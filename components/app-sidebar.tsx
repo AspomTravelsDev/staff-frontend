@@ -38,7 +38,7 @@ const data = {
   user: {
     name: "Damian Gabriel",
     email: "g.damian@aspomtravels.com",
-    avatar: "/avatars/damian.jpg",
+    avatar: "https://github.com/shadcn.png",
   },
   teams: [
     {
@@ -72,7 +72,6 @@ const data = {
       title: "Visa Operations",
       url: "/visa",
       icon: FileSearch,
-      isActive: true,
       items: [
         { title: "Active Applications", url: "/visa/active" },
         { title: "Embassy Appointments", url: "/visa/appointments" },
