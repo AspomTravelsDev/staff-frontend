@@ -1,160 +1,106 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
-  AudioWaveform,
   BookOpen,
   Bot,
-  Command,
+  Briefcase,
+  Clock,
+  CreditCard,
+  FileSearch,
   Frame,
-  GalleryVerticalEnd,
+  History,
+  Home,
   Map,
   PieChart,
   Settings2,
+  ShieldAlert,
   SquareTerminal,
-} from "lucide-react"
+  Users,
+} from "lucide-react";
+import { AspomLogo } from "./icons/aspom-logo";
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/nav-main";
+import { NavProjects } from "@/components/nav-projects";
+import { NavUser } from "@/components/nav-user";
+import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-// This is sample data.
+
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Damian Gabriel",
+    email: "g.damian@aspomtravels.com",
+    avatar: "/avatars/damian.jpg",
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      name: "Aspom Travels",
+      logo: AspomLogo,
+      plan: "Internal Staff Portal",
     },
+  ],
+  dashboard: [
     {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      name: "Dashboard",
+      url: "/dashboard",
+      icon: Home,
     },
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Finance & Accounts",
+      url: "/accounts",
+      icon: CreditCard,
+      items: [
+        { title: "Payment Confirmation", url: "/accounts/confirmation" },
+        { title: "Product Expenses", url: "/accounts/product-expenses" },
+        { title: "Other Expenses", url: "/accounts/other-expenses" },
+        { title: "Outstanding", url: "/accounts/outstanding" },
+        { title: "Assigned Projects", url: "/accounts/assigned-projects" },
+        // { title: "Invoice Generation", url: "/accounts/invoices" },
+        // { title: "Refund Requests", url: "/accounts/refunds" },
+      ],
+    },
+    {
+      title: "Visa Operations",
+      url: "/visa",
+      icon: FileSearch,
       isActive: true,
       items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
+        { title: "Active Applications", url: "/visa/active" },
+        { title: "Embassy Appointments", url: "/visa/appointments" },
+        { title: "Passport Collection", url: "/visa/collection" },
+        { title: "Escalated Cases", url: "/visa/escalated" },
       ],
     },
+
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Human Resources",
+      url: "/hr",
+      icon: Users,
       items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
+        { title: "Attendance (8:55 AM)", url: "/hr/attendance" },
+        { title: "Leave Management", url: "/hr/leave" },
+        { title: "Performance Reviews", url: "/hr/performance" },
+        { title: "Cooperative Savings", url: "/hr/savings" },
       ],
     },
   ],
   projects: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      name: "My Compliance Record",
+      url: "/compliance",
+      icon: History,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -163,6 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
+        <NavProjects projects={data.dashboard} />
         <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
@@ -171,5 +118,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
