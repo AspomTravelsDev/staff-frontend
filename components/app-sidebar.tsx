@@ -17,11 +17,12 @@ import {
   ShieldAlert,
   SquareTerminal,
   Users,
+  FileText,
 } from "lucide-react";
 import { AspomLogo } from "./icons/aspom-logo";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
+// import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
 import {
@@ -48,7 +49,7 @@ const data = {
   ],
   dashboard: [
     {
-      name: "Dashboard",
+      title: "Dashboard",
       url: "/dashboard",
       icon: Home,
     },
@@ -60,8 +61,7 @@ const data = {
       icon: CreditCard,
       items: [
         { title: "Payment Confirmation", url: "/accounts/confirmation" },
-        { title: "Product Expenses", url: "/accounts/product-expenses" },
-        { title: "Other Expenses", url: "/accounts/other-expenses" },
+        { title: "Expenses", url: "/accounts/expenses" },
         { title: "Outstanding", url: "/accounts/outstanding" },
         { title: "Assigned Projects", url: "/accounts/assigned-projects" },
         // { title: "Invoice Generation", url: "/accounts/invoices" },
@@ -86,19 +86,23 @@ const data = {
       url: "/hr",
       icon: Users,
       items: [
-        { title: "Attendance (8:55 AM)", url: "/hr/attendance" },
+        { title: "Employee Handouts", url: "/hr/handouts" },
         { title: "Leave Management", url: "/hr/leave" },
         { title: "Performance Reviews", url: "/hr/performance" },
-        { title: "Cooperative Savings", url: "/hr/savings" },
       ],
     },
   ],
   projects: [
     {
-      name: "My Compliance Record",
+      title: "My Compliance Record",
       url: "/compliance",
       icon: History,
     },
+    {
+      title: "Forms",
+      url: "/forms",
+      icon: FileText,
+    }
   ],
 };
 
@@ -109,9 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects projects={data.dashboard} />
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={[...data.dashboard, ...data.navMain, ...data.projects]} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
