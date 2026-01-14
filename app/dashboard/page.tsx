@@ -17,6 +17,15 @@ import {
   Users,
   LucideIcon,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { RecentUpdates } from "@/components/dashboard/recent-updates";
 
 interface StatsCardProps {
   title: string;
@@ -97,8 +106,8 @@ export default function Page() {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 items-start">
-        <div className="grid gap-4 grid-cols-2 lg:col-span-4">
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+        <div className="grid gap-4 grid-cols-2 flex-1">
           <Button
             variant="outline"
             className="h-24 flex-col items-start justify-center gap-2"
@@ -128,12 +137,12 @@ export default function Page() {
             <span className="font-semibold">Settings</span>
           </Button>
         </div>
-        <Card className="lg:col-span-3">
+        <Card className="flex flex-col justify-between lg:aspect-square lg:w-auto w-full">
           <CardHeader>
             <CardTitle>Employee of the Month</CardTitle>
             <CardDescription>Celebrating excellence</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center p-6 text-center pt-0">
+          <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center pt-0">
             <Avatar className="h-24 w-24 mb-4 ring-2 ring-primary ring-offset-2">
               <AvatarImage
                 src="https://github.com/shadcn.png"
@@ -152,6 +161,9 @@ export default function Page() {
         </Card>
       </div>
 
+      {/* Recent Updates */}
+      <RecentUpdates />
+
       {/* Team Members */}
       <Card>
         <CardHeader>
@@ -161,32 +173,32 @@ export default function Page() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {teamMembers.map((member, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between space-x-4"
-              >
-                <div className="flex items-center space-x-4">
-                  <Avatar>
-                    <AvatarImage src={member.image} alt={member.name} />
-                    <AvatarFallback>{member.initials}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium leading-none">
-                      {member.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {member.role}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {member.email}
-                </div>
-              </div>
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employee</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Email</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teamMembers.map((member, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={member.image} alt={member.name} />
+                        <AvatarFallback>{member.initials}</AvatarFallback>
+                      </Avatar>
+                      <span>{member.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{member.role}</TableCell>
+                  <TableCell>{member.email}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
