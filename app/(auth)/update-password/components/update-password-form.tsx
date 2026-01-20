@@ -6,14 +6,6 @@ import { updatePasswordAction, type UpdatePasswordState } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { IconArrowLeft, IconCheck } from "@tabler/icons-react";
 
 interface UpdatePasswordFormProps {
@@ -28,64 +20,59 @@ export function UpdatePasswordForm({ token }: UpdatePasswordFormProps) {
 
   if (state?.success) {
     return (
-      <Card>
-        <CardHeader className="space-y-1">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <IconCheck className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-center text-2xl">
-            Password updated
-          </CardTitle>
-          <CardDescription className="text-center">
-            {state.message}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Link href="/login" className="w-full">
-            <Button className="w-full">Sign in</Button>
+      <div className="text-center">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+          <IconCheck className="h-7 w-7 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">Password updated</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{state.message}</p>
+        <div className="mt-8">
+          <Link href="/login">
+            <Button className="h-11 w-full">Sign in</Button>
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (!token) {
     return (
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-destructive">
-            Invalid link
-          </CardTitle>
-          <CardDescription>
-            This password reset link is invalid or has expired. Please request a
-            new one.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Link href="/reset-password" className="w-full">
-            <Button variant="outline" className="w-full">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-destructive">
+          Invalid link
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          This password reset link is invalid or has expired. Please request a
+          new one.
+        </p>
+        <div className="mt-8">
+          <Link href="/reset-password">
+            <Button variant="outline" className="h-11 w-full">
               Request new link
             </Button>
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Set new password</CardTitle>
-        <CardDescription>Enter your new password below</CardDescription>
-      </CardHeader>
-      <form action={formAction}>
+    <div>
+      <h2 className="text-2xl font-bold tracking-tight">Set new password</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Enter your new password below.
+      </p>
+
+      <form action={formAction} className="mt-8 space-y-6">
         <input type="hidden" name="token" value={token} />
-        <CardContent className="space-y-4">
-          {state?.error && (
-            <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-              {state.error}
-            </div>
-          )}
+
+        {state?.error && (
+          <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+            {state.error}
+          </div>
+        )}
+
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="password">New password</Label>
             <Input
@@ -95,11 +82,13 @@ export function UpdatePasswordForm({ token }: UpdatePasswordFormProps) {
               required
               autoComplete="new-password"
               minLength={8}
+              className="h-11"
             />
             <p className="text-xs text-muted-foreground">
               Must be at least 8 characters
             </p>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="password_confirmation">Confirm password</Label>
             <Input
@@ -108,22 +97,25 @@ export function UpdatePasswordForm({ token }: UpdatePasswordFormProps) {
               type="password"
               required
               autoComplete="new-password"
+              className="h-11"
             />
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Updating..." : "Update password"}
-          </Button>
+        </div>
+
+        <Button type="submit" className="h-11 w-full" disabled={isPending}>
+          {isPending ? "Updating..." : "Update password"}
+        </Button>
+
+        <div className="text-center">
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-primary"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary"
           >
-            <IconArrowLeft className="mr-1 inline h-4 w-4" />
+            <IconArrowLeft className="mr-1 h-4 w-4" />
             Back to login
           </Link>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

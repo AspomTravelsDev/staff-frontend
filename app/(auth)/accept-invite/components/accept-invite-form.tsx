@@ -7,14 +7,6 @@ import { acceptInviteAction, type AcceptInviteState } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 interface AcceptInviteFormProps {
   token: string;
@@ -35,43 +27,42 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
 
   if (!token) {
     return (
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-destructive">
-            Invalid invitation
-          </CardTitle>
-          <CardDescription>
-            This invitation link is invalid or has expired. Please contact your
-            administrator for a new invitation.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Link href="/login" className="w-full">
-            <Button variant="outline" className="w-full">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-destructive">
+          Invalid invitation
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          This invitation link is invalid or has expired. Please contact your
+          administrator for a new invitation.
+        </p>
+        <div className="mt-8">
+          <Link href="/login">
+            <Button variant="outline" className="h-11 w-full">
               Go to login
             </Button>
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Welcome to ASPOM</CardTitle>
-        <CardDescription>
-          You&apos;ve been invited to join. Set your password to get started.
-        </CardDescription>
-      </CardHeader>
-      <form action={formAction}>
+    <div>
+      <h2 className="text-2xl font-bold tracking-tight">Welcome to ASPOM</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        You&apos;ve been invited to join. Set your password to get started.
+      </p>
+
+      <form action={formAction} className="mt-8 space-y-6">
         <input type="hidden" name="token" value={token} />
-        <CardContent className="space-y-4">
-          {state?.error && (
-            <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-              {state.error}
-            </div>
-          )}
+
+        {state?.error && (
+          <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+            {state.error}
+          </div>
+        )}
+
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
@@ -81,11 +72,13 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
               required
               autoComplete="new-password"
               minLength={8}
+              className="h-11"
             />
             <p className="text-xs text-muted-foreground">
               Must be at least 8 characters
             </p>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="password_confirmation">Confirm password</Label>
             <Input
@@ -94,15 +87,15 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
               type="password"
               required
               autoComplete="new-password"
+              className="h-11"
             />
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Creating account..." : "Create account"}
-          </Button>
-        </CardFooter>
+        </div>
+
+        <Button type="submit" className="h-11 w-full" disabled={isPending}>
+          {isPending ? "Creating account..." : "Create account"}
+        </Button>
       </form>
-    </Card>
+    </div>
   );
 }

@@ -23,10 +23,14 @@ import {
 import { IconCheck, IconSend } from "@tabler/icons-react";
 
 const ROLES = [
+  { value: "super", label: "Super Admin" },
   { value: "admin", label: "Administrator" },
-  { value: "manager", label: "Manager" },
-  { value: "staff", label: "Staff" },
-  { value: "viewer", label: "Viewer" },
+  { value: "it", label: "IT" },
+  { value: "account", label: "Accounts" },
+  { value: "visa", label: "Visa Operations" },
+  { value: "hr", label: "Human Resources" },
+  { value: "media", label: "Media" },
+  { value: "compliance", label: "Compliance" },
 ];
 
 export function InviteForm() {
