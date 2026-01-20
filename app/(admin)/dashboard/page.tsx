@@ -16,6 +16,7 @@ import {
   Trophy,
   Users,
   LucideIcon,
+  HomeIcon,
 } from "lucide-react";
 import {
   Table,
@@ -106,35 +107,42 @@ export default function Page() {
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-        <div className="grid gap-4 grid-cols-2 flex-1">
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="grid grid-cols-3 gap-2 flex-1 content-start">
           <Button
             variant="outline"
-            className="h-24 flex-col items-start justify-center gap-2"
+            className="h-20 w-full flex-col items-start justify-center gap-2"
           >
             <FileText className="h-6 w-6" />
             <span className="font-semibold">Request Leave</span>
           </Button>
           <Button
             variant="outline"
-            className="h-24 flex-col items-start justify-center gap-2"
+            className="h-20 w-full flex-col items-start justify-center gap-2"
           >
             <CreditCard className="h-6 w-6" />
             <span className="font-semibold">View Payslips</span>
           </Button>
           <Button
             variant="outline"
-            className="h-24 flex-col items-start justify-center gap-2"
+            className="h-20 w-full flex-col items-start justify-center gap-2"
           >
             <Users className="h-6 w-6" />
             <span className="font-semibold">Team Directory</span>
           </Button>
           <Button
             variant="outline"
-            className="h-24 flex-col items-start justify-center gap-2"
+            className="h-20 w-full flex-col items-start justify-center gap-2"
           >
             <Settings className="h-6 w-6" />
             <span className="font-semibold">Settings</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-20 w-full flex-col items-start justify-center gap-2"
+          >
+            <HomeIcon className="h-6 w-6" />
+            <span className="font-semibold">Aspom Website</span>
           </Button>
         </div>
         <Card className="flex flex-col justify-between lg:aspect-square lg:w-auto w-full">
@@ -143,7 +151,7 @@ export default function Page() {
             <CardDescription>Celebrating excellence</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center pt-0">
-            <Avatar className="h-24 w-24 mb-4 ring-2 ring-primary ring-offset-2">
+            <Avatar className="h-48 w-48 rounded-lg mb-4 ring-2 ring-primary ring-offset-2">
               <AvatarImage
                 src="https://github.com/shadcn.png"
                 alt="Sarah Wilson"

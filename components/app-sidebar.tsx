@@ -33,7 +33,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-
 const data = {
   user: {
     name: "Damian Gabriel",
@@ -101,7 +100,15 @@ const data = {
       title: "Forms",
       url: "/forms",
       icon: FileText,
-    }
+    },
+  ],
+  admin: [
+    {
+      title: "Administration",
+      url: "/admin",
+      icon: Settings2,
+      items: [{ title: "Invite Staff", url: "/admin/invite" }],
+    },
   ],
 };
 
@@ -112,7 +119,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={[...data.dashboard, ...data.navMain, ...data.projects]} />
+        <NavMain
+          items={[
+            ...data.dashboard,
+            ...data.navMain,
+            ...data.projects,
+            ...data.admin,
+          ]}
+        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

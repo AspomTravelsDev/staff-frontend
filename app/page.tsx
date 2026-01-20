@@ -1,5 +1,7 @@
-import { ComponentExample } from "@/components/component-example";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-return <ComponentExample />;
+  // TODO: Check auth state and redirect accordingly
+  // For now, redirect to login
+  redirect("/login");
 }
