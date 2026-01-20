@@ -1,11 +1,12 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { acceptInvite } from "@/lib/auth/api";
+import { setSession } from "@/lib/auth/session";
 import { acceptInviteSchema } from "@/lib/validations/auth";
 
 export type AcceptInviteState = {
     error?: string;
-    success?: boolean;
 } | null;
 
 export async function acceptInviteAction(
@@ -29,13 +30,14 @@ export async function acceptInviteAction(
 
     const { token, password, password_confirmation } = validatedFields.data;
 
-    // Call API
     const result = await acceptInvite(token, password, password_confirmation);
 
     if (!result.success) {
         return { error: result.error.error };
     }
 
-    // TODO: Store token when backend is ready
-    return { success: true };
+    // Store token and user in cookies
+    await setSession(result.data.token, result.data.user);
+
+    redirect("/dashboard");
 }

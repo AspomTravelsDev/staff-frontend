@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import Link from "next/link";
 import { loginAction, type LoginState } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -10,17 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export function LoginForm() {
-  const router = useRouter();
   const [state, formAction, isPending] = useActionState<LoginState, FormData>(
     loginAction,
     null,
   );
-
-  useEffect(() => {
-    if (state?.success) {
-      router.push("/dashboard");
-    }
-  }, [state?.success, router]);
 
   return (
     <div>

@@ -1,11 +1,12 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { login } from "@/lib/auth/api";
+import { setSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
 
 export type LoginState = {
     error?: string;
-    success?: boolean;
 } | null;
 
 export async function loginAction(
@@ -35,7 +36,8 @@ export async function loginAction(
         return { error: result.error.error };
     }
 
-    // TODO: Store token in cookie when backend is ready
-    // For now, we'll handle this on the client side
-    return { success: true };
+    // Store token and user in cookies
+    await setSession(result.data.token, result.data.user);
+
+    redirect("/dashboard");
 }

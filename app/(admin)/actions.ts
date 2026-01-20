@@ -1,11 +1,15 @@
 "use server";
 
-import { logout } from "@/lib/auth/api";
 import { redirect } from "next/navigation";
+import { logout } from "@/lib/auth/api";
+import { clearSession, getAuthToken } from "@/lib/auth/session";
 
 export async function logoutAction() {
-    await logout();
+    const token = await getAuthToken();
+    await logout(token ?? undefined);
 
-    // TODO: Clear auth token from cookies when backend is ready
+    // Clear auth cookies
+    await clearSession();
+
     redirect("/login");
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import Link from "next/link";
 import { acceptInviteAction, type AcceptInviteState } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -13,17 +12,10 @@ interface AcceptInviteFormProps {
 }
 
 export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
-  const router = useRouter();
   const [state, formAction, isPending] = useActionState<
     AcceptInviteState,
     FormData
   >(acceptInviteAction, null);
-
-  useEffect(() => {
-    if (state?.success) {
-      router.push("/dashboard");
-    }
-  }, [state?.success, router]);
 
   if (!token) {
     return (

@@ -1,6 +1,7 @@
 "use server";
 
 import { sendInvite } from "@/lib/auth/api";
+import { getAuthToken } from "@/lib/auth/session";
 import { inviteSchema } from "@/lib/validations/auth";
 
 export type InviteState = {
@@ -29,8 +30,9 @@ export async function inviteAction(
 
     const { email, role } = validatedFields.data;
 
-    // Call API
-    const result = await sendInvite(email, role);
+    // Call API with auth token
+    const token = await getAuthToken();
+    const result = await sendInvite(email, role, token ?? undefined);
 
     if (!result.success) {
         return { error: result.error.error };

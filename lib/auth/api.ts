@@ -1,23 +1,33 @@
 /**
- * Simulated Auth API
+ * Auth API
  *
- * These functions simulate backend API calls for authentication.
- * Replace with actual fetch calls when Laravel backend is ready.
+ * These functions handle authentication with the backend.
+ * Currently using simulated responses for development.
  *
- * Expected Laravel endpoints:
+ * Laravel endpoints:
  * - POST /api/auth/login
  * - POST /api/auth/logout
  * - POST /api/auth/reset-password
  * - POST /api/auth/update-password
  * - POST /api/auth/invite
  * - POST /api/auth/accept-invite
+ * - GET  /api/auth/user (validate token & get current user)
+ *
+ * TODO: When backend is ready:
+ * 1. Set USE_REAL_API to true
+ * 2. Ensure NEXT_PUBLIC_API_URL is set in .env
+ * 3. Remove simulated functions
  */
+
+// Toggle this to switch between simulated and real API
+const USE_REAL_API = false;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface User {
     id: string;
     name: string;
     email: string;
-    role: string;
+    role: "super" | "admin" | "it" | "account" | "visa" | "hr" | "media" | "compliance";
 }
 
 export interface AuthResponse {
@@ -36,8 +46,54 @@ export interface ErrorResponse {
 
 type ApiResponse<T> = { success: true; data: T } | { success: false; error: ErrorResponse };
 
-// Simulate network delay
+// Simulate network delay (remove when using real API)
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Helper function to make authenticated API requests
+ * TODO: Use this for all authenticated endpoints
+ */
+async function fetchWithAuth<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    token?: string
+): Promise<ApiResponse<T>> {
+    const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+    };
+
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: {
+                    error: data.message || data.error || "An error occurred",
+                    code: data.code || "UNKNOWN_ERROR",
+                },
+            };
+        }
+
+        return { success: true, data };
+    } catch {
+        return {
+            success: false,
+            error: {
+                error: "Network error. Please check your connection.",
+                code: "NETWORK_ERROR",
+            },
+        };
+    }
+}
 
 /**
  * POST /api/auth/login
@@ -46,31 +102,40 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" }
  */
 export async function login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
-    await delay(1000);
+    // TODO: Remove simulation when backend is ready
+    if (!USE_REAL_API) {
+        await delay(1000);
 
-    // Simulate validation
-    if (email === "test@aspom.com" && password === "password123") {
-        return {
-            success: true,
-            data: {
-                token: "simulated-jwt-token-" + Date.now(),
-                user: {
-                    id: "1",
-                    name: "Test User",
-                    email: email,
-                    role: "admin",
+        // Simulate validation - test@aspomtravels.com / password123
+        if (email === "test@aspomtravels.com" && password === "password123") {
+            return {
+                success: true,
+                data: {
+                    token: "simulated-jwt-token-" + Date.now(),
+                    user: {
+                        id: "1",
+                        name: "Test User",
+                        email: email,
+                        role: "admin",
+                    },
                 },
+            };
+        }
+
+        return {
+            success: false,
+            error: {
+                error: "Invalid email or password",
+                code: "INVALID_CREDENTIALS",
             },
         };
     }
 
-    return {
-        success: false,
-        error: {
-            error: "Invalid email or password",
-            code: "INVALID_CREDENTIALS",
-        },
-    };
+    // Real API call
+    return fetchWithAuth<AuthResponse>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+    });
 }
 
 /**
@@ -79,15 +144,20 @@ export async function login(email: string, password: string): Promise<ApiRespons
  * Success: { message: string }
  * Error: { error: string, code: "UNAUTHENTICATED" }
  */
-export async function logout(): Promise<ApiResponse<MessageResponse>> {
-    await delay(500);
+export async function logout(token?: string): Promise<ApiResponse<MessageResponse>> {
+    if (!USE_REAL_API) {
+        await delay(500);
+        return {
+            success: true,
+            data: { message: "Successfully logged out" },
+        };
+    }
 
-    return {
-        success: true,
-        data: {
-            message: "Successfully logged out",
-        },
-    };
+    return fetchWithAuth<MessageResponse>(
+        "/api/auth/logout",
+        { method: "POST" },
+        token
+    );
 }
 
 /**
@@ -97,25 +167,31 @@ export async function logout(): Promise<ApiResponse<MessageResponse>> {
  * Error: { error: string, code: "USER_NOT_FOUND" | "RATE_LIMITED" }
  */
 export async function resetPassword(email: string): Promise<ApiResponse<MessageResponse>> {
-    await delay(1000);
+    if (!USE_REAL_API) {
+        await delay(1000);
 
-    // Simulate success for any valid email format
-    if (email.includes("@")) {
+        if (email.includes("@")) {
+            return {
+                success: true,
+                data: {
+                    message: "If an account exists with this email, you will receive a password reset link.",
+                },
+            };
+        }
+
         return {
-            success: true,
-            data: {
-                message: "If an account exists with this email, you will receive a password reset link.",
+            success: false,
+            error: {
+                error: "Please enter a valid email address",
+                code: "INVALID_EMAIL",
             },
         };
     }
 
-    return {
-        success: false,
-        error: {
-            error: "Please enter a valid email address",
-            code: "INVALID_EMAIL",
-        },
-    };
+    return fetchWithAuth<MessageResponse>("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+    });
 }
 
 /**
@@ -129,35 +205,45 @@ export async function updatePassword(
     password: string,
     passwordConfirmation: string
 ): Promise<ApiResponse<MessageResponse>> {
-    await delay(1000);
+    if (!USE_REAL_API) {
+        await delay(1000);
 
-    // Simulate token validation
-    if (!token || token === "invalid") {
+        if (!token || token === "invalid") {
+            return {
+                success: false,
+                error: {
+                    error: "This password reset link is invalid or has expired",
+                    code: "INVALID_TOKEN",
+                },
+            };
+        }
+
+        if (password !== passwordConfirmation) {
+            return {
+                success: false,
+                error: {
+                    error: "Passwords do not match",
+                    code: "PASSWORD_MISMATCH",
+                },
+            };
+        }
+
         return {
-            success: false,
-            error: {
-                error: "This password reset link is invalid or has expired",
-                code: "INVALID_TOKEN",
+            success: true,
+            data: {
+                message: "Your password has been updated successfully. You can now log in.",
             },
         };
     }
 
-    if (password !== passwordConfirmation) {
-        return {
-            success: false,
-            error: {
-                error: "Passwords do not match",
-                code: "PASSWORD_MISMATCH",
-            },
-        };
-    }
-
-    return {
-        success: true,
-        data: {
-            message: "Your password has been updated successfully. You can now log in.",
-        },
-    };
+    return fetchWithAuth<MessageResponse>("/api/auth/update-password", {
+        method: "POST",
+        body: JSON.stringify({
+            token,
+            password,
+            password_confirmation: passwordConfirmation,
+        }),
+    });
 }
 
 /**
@@ -166,26 +252,38 @@ export async function updatePassword(
  * Success: { message: string }
  * Error: { error: string, code: "USER_EXISTS" | "INVALID_ROLE" | "FORBIDDEN" }
  */
-export async function sendInvite(email: string, role: string): Promise<ApiResponse<MessageResponse>> {
-    await delay(1000);
+export async function sendInvite(
+    email: string,
+    role: string,
+    token?: string
+): Promise<ApiResponse<MessageResponse>> {
+    if (!USE_REAL_API) {
+        await delay(1000);
 
-    // Simulate existing user check
-    if (email === "existing@aspom.com") {
+        if (email === "existing@aspom.com") {
+            return {
+                success: false,
+                error: {
+                    error: "A user with this email already exists",
+                    code: "USER_EXISTS",
+                },
+            };
+        }
+
         return {
-            success: false,
-            error: {
-                error: "A user with this email already exists",
-                code: "USER_EXISTS",
-            },
+            success: true,
+            data: { message: `Invitation sent to ${email} as ${role}` },
         };
     }
 
-    return {
-        success: true,
-        data: {
-            message: `Invitation sent to ${email} as ${role}`,
+    return fetchWithAuth<MessageResponse>(
+        "/api/auth/invite",
+        {
+            method: "POST",
+            body: JSON.stringify({ email, role }),
         },
-    };
+        token
+    );
 }
 
 /**
@@ -199,39 +297,84 @@ export async function acceptInvite(
     password: string,
     passwordConfirmation: string
 ): Promise<ApiResponse<AuthResponse>> {
-    await delay(1000);
+    if (!USE_REAL_API) {
+        await delay(1000);
 
-    // Simulate token validation
-    if (!token || token === "invalid") {
+        if (!token || token === "invalid") {
+            return {
+                success: false,
+                error: {
+                    error: "This invitation link is invalid or has expired",
+                    code: "INVALID_TOKEN",
+                },
+            };
+        }
+
+        if (password !== passwordConfirmation) {
+            return {
+                success: false,
+                error: {
+                    error: "Passwords do not match",
+                    code: "PASSWORD_MISMATCH",
+                },
+            };
+        }
+
         return {
-            success: false,
-            error: {
-                error: "This invitation link is invalid or has expired",
-                code: "INVALID_TOKEN",
+            success: true,
+            data: {
+                token: "simulated-jwt-token-" + Date.now(),
+                user: {
+                    id: "2",
+                    name: "New Staff",
+                    email: "newstaff@aspomtravels.com",
+                    role: "visa",
+                },
             },
         };
     }
 
-    if (password !== passwordConfirmation) {
+    return fetchWithAuth<AuthResponse>("/api/auth/accept-invite", {
+        method: "POST",
+        body: JSON.stringify({
+            token,
+            password,
+            password_confirmation: passwordConfirmation,
+        }),
+    });
+}
+
+/**
+ * GET /api/auth/user
+ * Validate token and get current user
+ * Success: User
+ * Error: { error: string, code: "UNAUTHENTICATED" }
+ */
+export async function validateToken(token: string): Promise<ApiResponse<User>> {
+    if (!USE_REAL_API) {
+        await delay(200);
+
+        // Simulate token validation - any token starting with "simulated-" is valid
+        if (token.startsWith("simulated-")) {
+            return {
+                success: true,
+                data: {
+                    id: "1",
+                    name: "Test User",
+                    email: "test@aspomtravels.com",
+                    role: "admin",
+                },
+            };
+        }
+
         return {
             success: false,
             error: {
-                error: "Passwords do not match",
-                code: "PASSWORD_MISMATCH",
+                error: "Invalid or expired token",
+                code: "UNAUTHENTICATED",
             },
         };
     }
 
-    return {
-        success: true,
-        data: {
-            token: "simulated-jwt-token-" + Date.now(),
-            user: {
-                id: "2",
-                name: "New Staff",
-                email: "newstaff@aspom.com",
-                role: "staff",
-            },
-        },
-    };
+    return fetchWithAuth<User>("/api/auth/user", { method: "GET" }, token);
 }
