@@ -11,13 +11,13 @@ import {
   Calendar,
   CreditCard,
   FileText,
-  Settings,
   Trophy,
-  Users,
   LucideIcon,
-  HomeIcon,
   AlertTriangle,
   MailIcon,
+  Earth,
+  TreePalm,
+  Baby,
 } from "lucide-react";
 
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
@@ -84,19 +84,7 @@ export default function Page() {
         {/* Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           <QuickLinkButton
-            icon={FileText}
-            title="Request Leave"
-            url="/my/leave"
-          />
-          <QuickLinkButton
-            icon={CreditCard}
-            title="View Payslips"
-            url="/my/payslips"
-          />
-          <QuickLinkButton icon={Users} title="Team Directory" url="/team" />
-          <QuickLinkButton icon={Settings} title="Settings" url="/settings" />
-          <QuickLinkButton
-            icon={HomeIcon}
+            icon={TreePalm}
             title="Aspom Website"
             url="https://aspomtravels.com"
           />
@@ -106,9 +94,24 @@ export default function Page() {
             url="https://webmail.aspomtravels.com"
           />
           <QuickLinkButton
-            icon={MailIcon}
-            title="UK FAQ"
-            url="https://webmail.aspomtravels.com"
+            icon={Earth}
+            title="Aspom Travels FAQ"
+            url="https://faq.aspomtravels.com/"
+          />
+          <QuickLinkButton
+            icon={Baby}
+            title="Birth Services"
+            url="http://aspombirthservices.com/"
+          />
+          <QuickLinkButton
+            icon={FileText}
+            title="Request Leave"
+            url="/my/leave"
+          />
+          <QuickLinkButton
+          icon={FileText}
+          title="Submit Task Report"
+          url="/my/tasks"
           />
         </div>
       </div>
