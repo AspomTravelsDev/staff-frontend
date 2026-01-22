@@ -19,6 +19,12 @@
  * 3. Remove simulated functions
  */
 
+import {
+    findUserByEmail,
+    findUserByToken,
+    getTokenForUser,
+} from "@/lib/api/mock-loader";
+
 // Toggle this to switch between simulated and real API
 const USE_REAL_API = false;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -104,19 +110,22 @@ async function fetchWithAuth<T>(
 export async function login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     // TODO: Remove simulation when backend is ready
     if (!USE_REAL_API) {
-        await delay(1000);
+        await delay(800);
 
-        // Simulate validation - test@aspomtravels.com / password123
-        if (email === "test@aspomtravels.com" && password === "password123") {
+        // Look up user in mock data (data/mock/auth.json)
+        const mockUser = await findUserByEmail(email);
+
+        if (mockUser && mockUser.password === password) {
+            const token = await getTokenForUser(mockUser.id);
             return {
                 success: true,
                 data: {
-                    token: "simulated-jwt-token-" + Date.now(),
+                    token: token || `mock-token-${mockUser.id}`,
                     user: {
-                        id: "1",
-                        name: "Test User",
-                        email: email,
-                        role: "admin",
+                        id: mockUser.id,
+                        name: mockUser.name,
+                        email: mockUser.email,
+                        role: mockUser.role,
                     },
                 },
             };
@@ -352,17 +361,19 @@ export async function acceptInvite(
  */
 export async function validateToken(token: string): Promise<ApiResponse<User>> {
     if (!USE_REAL_API) {
-        await delay(200);
+        await delay(100);
 
-        // Simulate token validation - any token starting with "simulated-" is valid
-        if (token.startsWith("simulated-")) {
+        // Look up user by token in mock data (data/mock/auth.json)
+        const mockUser = await findUserByToken(token);
+
+        if (mockUser) {
             return {
                 success: true,
                 data: {
-                    id: "1",
-                    name: "Test User",
-                    email: "test@aspomtravels.com",
-                    role: "admin",
+                    id: mockUser.id,
+                    name: mockUser.name,
+                    email: mockUser.email,
+                    role: mockUser.role,
                 },
             };
         }

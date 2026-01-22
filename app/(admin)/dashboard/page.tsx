@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Calendar,
-  Clock,
   CreditCard,
   FileText,
   Settings,
@@ -17,141 +16,114 @@ import {
   Users,
   LucideIcon,
   HomeIcon,
+  AlertTriangle,
+  MailIcon,
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { RecentUpdates } from "@/components/dashboard/recent-updates";
 
-interface StatsCardProps {
-  title: string;
+import { RecentUpdates } from "@/components/dashboard/recent-updates";
+import { StatsCard } from "@/components/dashboard/stats-card";
+import Link from "next/link";
+
+interface QuickLinkButtonProps {
   icon: LucideIcon;
-  value: string;
-  description: string;
+  title: string;
+  url: string;
 }
 
-function StatsCard({ title, icon: Icon, value, description }: StatsCardProps) {
+function QuickLinkButton({ icon: Icon, title, url }: QuickLinkButtonProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+    <Link href={url}>
+      <Button
+        variant="outline"
+        className="h-10 w-32 flex items-center justify-center gap-2 hover:bg-muted hover:cursor-pointer"
+      >
+        <Icon className="h-6 w-6" />
+        <span className="font-semibold">{title}</span>
+      </Button>
+    </Link>
   );
 }
 
 export default function Page() {
-  // Dummy data for team members
-  const teamMembers = [
-    {
-      name: "Sarah Wilson",
-      role: "Product Designer",
-      email: "sarah.w@aspom.com",
-      image: "https://github.com/shadcn.png",
-      initials: "SW",
-    },
-    {
-      name: "Michael Chen",
-      role: "Senior Developer",
-      email: "michael.c@aspom.com",
-      image: "",
-      initials: "MC",
-    },
-    {
-      name: "Emma Rodriguez",
-      role: "Marketing Lead",
-      email: "emma.r@aspom.com",
-      image: "",
-      initials: "ER",
-    },
-    {
-      name: "James Kim",
-      role: "Project Manager",
-      email: "james.k@aspom.com",
-      image: "",
-      initials: "JK",
-    },
-  ];
-
   return (
-    <div className="flex flex-1 flex-col gap-8">
+    <div className="flex flex-1 flex-col gap-12 pt-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
-          title="Punctuality Score"
-          icon={Clock}
-          value="98%"
-          description="+2% from last month"
+          title="Occurences this Month"
+          icon={AlertTriangle}
+          value="8"
+          description="+3 from last month"
+          color="red"
         />
         <StatsCard
           title="Leave Days Remaining"
           icon={Calendar}
-          value="20 Days"
+          value="12 Days"
           description="Available for 2026"
+          color="green"
         />
         <StatsCard
           title="Total Awards"
           icon={Trophy}
           value="3"
-          description="Employee of the Month (Jan)"
+          description="Employee of the Month"
+          color="yellow"
+        />
+        <StatsCard
+          title="Total Expenses put up"
+          icon={CreditCard}
+          value="$1,200"
+          description="Expenses for January 2024"
+          color="blue"
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="grid grid-cols-3 gap-2 flex-1 content-start">
-          <Button
-            variant="outline"
-            className="h-20 w-full flex-col items-start justify-center gap-2"
-          >
-            <FileText className="h-6 w-6" />
-            <span className="font-semibold">Request Leave</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20 w-full flex-col items-start justify-center gap-2"
-          >
-            <CreditCard className="h-6 w-6" />
-            <span className="font-semibold">View Payslips</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20 w-full flex-col items-start justify-center gap-2"
-          >
-            <Users className="h-6 w-6" />
-            <span className="font-semibold">Team Directory</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20 w-full flex-col items-start justify-center gap-2"
-          >
-            <Settings className="h-6 w-6" />
-            <span className="font-semibold">Settings</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20 w-full flex-col items-start justify-center gap-2"
-          >
-            <HomeIcon className="h-6 w-6" />
-            <span className="font-semibold">Aspom Website</span>
-          </Button>
+      <div className="flex flex-col gap-4">
+        <h6 className="text-sm font-bold">Quick Links</h6>
+        {/* Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <QuickLinkButton
+            icon={FileText}
+            title="Request Leave"
+            url="/my/leave"
+          />
+          <QuickLinkButton
+            icon={CreditCard}
+            title="View Payslips"
+            url="/my/payslips"
+          />
+          <QuickLinkButton icon={Users} title="Team Directory" url="/team" />
+          <QuickLinkButton icon={Settings} title="Settings" url="/settings" />
+          <QuickLinkButton
+            icon={HomeIcon}
+            title="Aspom Website"
+            url="https://aspomtravels.com"
+          />
+          <QuickLinkButton
+            icon={MailIcon}
+            title="Webmail"
+            url="https://webmail.aspomtravels.com"
+          />
+          <QuickLinkButton
+            icon={MailIcon}
+            title="UK FAQ"
+            url="https://webmail.aspomtravels.com"
+          />
         </div>
-        <Card className="flex flex-col justify-between lg:aspect-square lg:w-auto w-full">
+      </div>
+
+      <div className="flex flex-col lg:flex-row items-center gap-4">
+        {/* Recent Updates */}
+        <RecentUpdates className="w-5/7" />
+
+        <Card className="flex flex-col justify-between lg:aspect-square">
           <CardHeader>
             <CardTitle>Employee of the Month</CardTitle>
             <CardDescription>Celebrating excellence</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center pt-0">
-            <Avatar className="h-48 w-48 rounded-lg mb-4 ring-2 ring-primary ring-offset-2">
+            <Avatar className="h-32 w-32 rounded-lg mb-4 ring-2 ring-primary ring-offset-2">
               <AvatarImage
                 src="https://github.com/shadcn.png"
                 alt="Sarah Wilson"
@@ -163,17 +135,14 @@ export default function Page() {
               Product Designer
             </p>
             <p className="text-sm text-muted-foreground italic">
-              "Outstanding contribution to the new mobile app design."
+              &quot;Outstanding contribution to the new mobile app design.&quot;
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Updates */}
-      <RecentUpdates />
-
       {/* Team Members */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
           <CardDescription>
@@ -208,7 +177,7 @@ export default function Page() {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }

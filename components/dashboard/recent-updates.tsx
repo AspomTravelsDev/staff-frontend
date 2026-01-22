@@ -102,7 +102,7 @@ const newsData = [
 
 const ITEMS_PER_PAGE = 5;
 
-export function RecentUpdates() {
+export function RecentUpdates({className}: {className?: string}) {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.ceil(newsData.length / ITEMS_PER_PAGE);
@@ -118,7 +118,7 @@ export function RecentUpdates() {
   };
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle>Recent Updates</CardTitle>
         <CardDescription>

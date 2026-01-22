@@ -49,14 +49,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {/* Department-specific tools */}
         {filteredDepartmentNav.length > 0 && (
-          <NavMain items={filteredDepartmentNav} label="Department" />
+          <NavMain items={filteredDepartmentNav} label={user?.role.toLocaleUpperCase() + " Department Tools"} />
         )}
 
         {/* Divider */}
         <SidebarSeparator className="mx-2" />
 
-        {/* Personal actions - visible to all */}
-        <NavMain items={personalNav} label="Personal" />
+        {/* General actions - visible to all */}
+        <NavMain items={personalNav} label="General Links" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

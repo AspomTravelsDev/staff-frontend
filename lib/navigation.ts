@@ -1,15 +1,17 @@
 import {
+    Activity,
     CalendarCheck,
     ClipboardList,
     CreditCard,
     FileSearch,
     FileText,
     FolderOpen,
-    History,
     LayoutDashboard,
     Receipt,
     Settings2,
     ShieldCheck,
+    User as LucideUser,
+    MessageCircle,
     Users,
     type LucideIcon,
 } from "lucide-react";
@@ -22,7 +24,7 @@ export interface NavItem {
     url: string;
     icon?: LucideIcon;
     isActive?: boolean;
-    allowedRoles?: UserRole[]; // If undefined, visible to all
+    allowedRoles?: UserRole[];
     items?: {
         title: string;
         url: string;
@@ -44,101 +46,161 @@ export const dashboardNav: NavItem[] = [
  * Department-specific navigation
  * Only visible to users with matching roles
  * Admin and Super see all department items
+ * Now flattened as standalone links
  */
 export const departmentNav: NavItem[] = [
     {
-        title: "Finance & Accounts",
-        url: "/accounts",
+        title: "Payment Confirmation",
+        url: "/accounts/confirmation",
         icon: CreditCard,
         allowedRoles: ["account"],
-        items: [
-            { title: "Payment Confirmation", url: "/accounts/confirmation" },
-            { title: "Expenses Management", url: "/accounts/expenses" },
-            { title: "Outstanding Payments", url: "/accounts/outstanding" },
-            { title: "Assigned Projects", url: "/accounts/assigned-projects" },
-        ],
     },
     {
-        title: "Visa Operations",
-        url: "/visa",
+        title: "Expenses Management",
+        url: "/accounts/expenses",
+        icon: Receipt,
+        allowedRoles: ["account"],
+    },
+    {
+        title: "Outstanding Payments",
+        url: "/accounts/outstanding",
+        icon: CreditCard,
+        allowedRoles: ["account"],
+    },
+    {
+        title: "Assigned Projects",
+        url: "/accounts/assigned-projects",
+        icon: FolderOpen,
+        allowedRoles: ["account"],
+    },
+    {
+        title: "Visa Applications",
+        url: "/visa/applications",
         icon: FileSearch,
         allowedRoles: ["visa"],
-        items: [
-            { title: "Active Applications", url: "/visa/active" },
-            { title: "Embassy Appointments", url: "/visa/appointments" },
-            { title: "Passport Collection", url: "/visa/collection" },
-            { title: "Escalated Cases", url: "/visa/escalated" },
-        ],
     },
     {
-        title: "Human Resources",
-        url: "/hr",
-        icon: Users,
+        title: "Employee Handouts",
+        url: "/hr/handouts",
+        icon: FileText,
         allowedRoles: ["hr"],
-        items: [
-            { title: "Employee Handouts", url: "/hr/handouts" },
-            { title: "Leave Management", url: "/hr/leave" },
-            { title: "Performance Reviews", url: "/hr/performance" },
-        ],
     },
     {
-        title: "Compliance",
+        title: "Leave Management",
+        url: "/hr/leave",
+        icon: CalendarCheck,
+        allowedRoles: ["hr"],
+    },
+    {
+        title: "Performance Reviews",
+        url: "/hr/performance",
+        icon: ClipboardList,
+        allowedRoles: ["hr"],
+    },
+    {
+        title: "Compliance Dashboard",
         url: "/compliance",
         icon: ShieldCheck,
         allowedRoles: ["compliance"],
-        items: [
-            { title: "Compliance Dashboard", url: "/compliance" },
-            // Add more compliance-specific items as needed
-        ],
     },
     {
-        title: "Administration",
-        url: "/admin",
-        icon: Settings2,
+        title: "Invite Staff",
+        url: "/admin/invite",
+        icon: Users,
         allowedRoles: ["super", "admin", "it"],
-        items: [
-            { title: "Invite Staff", url: "/admin/invite" },
-            // { title: "User Management", url: "/admin/users" },
-            // { title: "System Settings", url: "/admin/settings" },
-        ],
     },
+    {
+        title: "Activity Log",
+        url: "/activity",
+        icon: Activity,
+        allowedRoles: ["super", "admin", "it"],
+    },
+    {
+        title: "Customer Database",
+        url: "/crm",
+        icon: ClipboardList,
+        allowedRoles: ["account", "visa", "media"]
+    }
 ];
 
 /**
  * Personal navigation - visible to ALL users
- * These are actions every employee can perform for themselves
+ * Now grouped into collapsible sections
  */
 export const personalNav: NavItem[] = [
     {
-        title: "My Tasks",
-        url: "/my/tasks",
-        icon: ClipboardList,
+        title: "HR Requests",
+        url: "",
+        icon: Users,
+        items: [
+            { title: "Leave", url: "/my/leave" },
+            { title: "Tasks", url: "/my/tasks" },
+            { title: "Handouts/Documents", url: "/my/documents" },
+            { title: "Appraisal", url: "/hr/performance" },
+            { title: "Expenses", url: "/my/expenses" },
+            { title: "Compliance", url: "/my/compliance" },
+        ],
     },
     {
-        title: "My Leave",
-        url: "/my/leave",
-        icon: CalendarCheck,
+        title: "IT Service Desk",
+        url: "",
+        icon: Settings2,
+        items: [
+            { title: "Laptop Request", url: "/it/laptop" },
+            { title: "Phone Request", url: "/it/phone" },
+            { title: "Software Access", url: "/it/software" },
+            { title: "Report Issue", url: "/it/report" },
+        ],
     },
     {
-        title: "My Expenses",
-        url: "/my/expenses",
-        icon: Receipt,
+        title: "Account",
+        url: "",
+        icon: CreditCard,
+        items: [
+            {
+                title: "Payment Confirmation", url:"/account/confirmation"
+            },
+            {
+                title: "Expenses", url: "/account/expenses"
+            }
+        ]
     },
     {
-        title: "My Compliance",
-        url: "/my/compliance",
-        icon: History,
+        title: "Admin",
+        url: "",
+        icon: LucideUser,
+        items: [
+            {
+                title: "General Requests", url:"/admin/requests"
+            },
+        ]
     },
     {
-        title: "Documents",
-        url: "/my/documents",
+        title: "Information Desk",
+        url: "",
         icon: FolderOpen,
+        items: [
+            {
+                title: "Visa Information Desk", url:"/information/visa"
+            },
+            {
+                title: "Birth Services Information Desk", url:"/information/birth-services"
+            },
+        ]
     },
     {
-        title: "Forms",
-        url: "/forms",
-        icon: FileText,
+        title: "My Compliance Record",
+        url: "/my/compliance",
+        icon: ShieldCheck,
+    
     },
+    {
+        title: "Chat",
+        url: "/chat",
+        icon: MessageCircle,
+    
+    },
+
 ];
 
 /**
