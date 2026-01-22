@@ -32,7 +32,7 @@ interface QuickLinkButtonProps {
 
 function QuickLinkButton({ icon: Icon, title, url }: QuickLinkButtonProps) {
   return (
-    <Link href={url}>
+    <Link href={url} target="_blank">
       <Button
         variant="outline"
         className="h-10 w-32 flex items-center justify-center gap-2 hover:bg-muted hover:cursor-pointer"

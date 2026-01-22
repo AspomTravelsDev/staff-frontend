@@ -120,7 +120,43 @@ export const departmentNav: NavItem[] = [
         url: "/crm",
         icon: ClipboardList,
         allowedRoles: ["account", "visa", "media"]
-    }
+    },
+    {
+        title: "HR Applications",
+        url: "/hr/applications",
+        icon: FileText,
+        allowedRoles: ["hr"],
+    },
+    {
+        title: "HR Tasks",
+        url: "/hr/tasks",
+        icon: ClipboardList,
+        allowedRoles: ["hr"],
+    },
+    {
+        title: "Tasks",
+        url: "/accounts/tasks",
+        icon: ClipboardList,
+        allowedRoles: ["account"],
+    },
+    {
+        title: "Applications",
+        url: "/accounts/applications",
+        icon: FileText,
+        allowedRoles: ["account"],
+    },
+    {
+        title: "Tasks",
+        url: "/visa/tasks",
+        icon: ClipboardList,
+        allowedRoles: ["visa"],
+    },
+    {
+        title: "Upload Documents",
+        url: "/visa/documents",
+        icon: FileText,
+        allowedRoles: ["visa"],
+    },
 ];
 
 /**
@@ -137,8 +173,6 @@ export const personalNav: NavItem[] = [
             { title: "Tasks", url: "/my/tasks" },
             { title: "Handouts/Documents", url: "/my/documents" },
             { title: "Appraisal", url: "/hr/performance" },
-            { title: "Expenses", url: "/my/expenses" },
-            { title: "Compliance", url: "/my/compliance" },
         ],
     },
     {
@@ -158,7 +192,7 @@ export const personalNav: NavItem[] = [
         icon: CreditCard,
         items: [
             {
-                title: "Payment Confirmation", url:"/account/confirmation"
+                title: "Payment Confirmation", url: "/account/confirmation"
             },
             {
                 title: "Expenses", url: "/account/expenses"
@@ -171,7 +205,7 @@ export const personalNav: NavItem[] = [
         icon: LucideUser,
         items: [
             {
-                title: "General Requests", url:"/admin/requests"
+                title: "General Requests", url: "/admin/requests"
             },
         ]
     },
@@ -181,10 +215,10 @@ export const personalNav: NavItem[] = [
         icon: FolderOpen,
         items: [
             {
-                title: "Visa Information Desk", url:"/information/visa"
+                title: "Visa Information Desk", url: "/information/visa"
             },
             {
-                title: "Birth Services Information Desk", url:"/information/birth-services"
+                title: "Birth Services Information Desk", url: "/information/birth-services"
             },
         ]
     },
@@ -192,13 +226,13 @@ export const personalNav: NavItem[] = [
         title: "My Compliance Record",
         url: "/my/compliance",
         icon: ShieldCheck,
-    
+
     },
     {
         title: "Chat",
         url: "/chat",
         icon: MessageCircle,
-    
+
     },
 
 ];
