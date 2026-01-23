@@ -180,10 +180,14 @@ export const personalNav: NavItem[] = [
         url: "",
         icon: Settings2,
         items: [
-            { title: "Laptop Request", url: "/it/laptop" },
-            { title: "Phone Request", url: "/it/phone" },
-            { title: "Software Access", url: "/it/software" },
-            { title: "Report Issue", url: "/it/report" },
+            // { title: "Laptop Request", url: "/it/laptop" },
+            // { title: "Laptop Request", url: "/it/phone" },
+            { title: "Laptop Request", url: "https://forms.gle/eB66WGDe49aKXW4R9" },
+            { title: "Phone Request", url: "https://forms.gle/eB66WGDe49aKXW4R9" },
+            // { title: "Software Access", url: "/it/software" },
+            // { title: "Report Issue", url: "/it/report" },
+            { title: "Software Access", url: "https://forms.gle/1fMFiV7uZb1urgip8" },
+            { title: "Report Issue", url: "https://forms.gle/1fMFiV7uZb1urgip8" },
         ],
     },
     {

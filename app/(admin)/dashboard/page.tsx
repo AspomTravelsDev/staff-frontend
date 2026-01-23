@@ -28,14 +28,21 @@ interface QuickLinkButtonProps {
   icon: LucideIcon;
   title: string;
   url: string;
+
+  target?: "_blank" | "_self";
 }
 
-function QuickLinkButton({ icon: Icon, title, url }: QuickLinkButtonProps) {
+function QuickLinkButton({
+  icon: Icon,
+  title,
+  url,
+  target = "_blank",
+}: QuickLinkButtonProps) {
   return (
-    <Link href={url} target="_blank">
+    <Link href={url} target={target} className="flex items-center gap-2">
       <Button
         variant="outline"
-        className="h-10 w-32 flex items-center justify-center gap-2 hover:bg-muted hover:cursor-pointer"
+        className="h-10 w-fit flex items-center justify-center gap-2 hover:bg-muted hover:cursor-pointer"
       >
         <Icon className="h-6 w-6" />
         <span className="font-semibold">{title}</span>
@@ -90,7 +97,7 @@ export default function Page() {
           />
           <QuickLinkButton
             icon={MailIcon}
-            title="Webmail"
+            title="My Webmail"
             url="https://webmail.aspomtravels.com"
           />
           <QuickLinkButton
@@ -100,18 +107,20 @@ export default function Page() {
           />
           <QuickLinkButton
             icon={Baby}
-            title="Birth Services"
+            title="Aspom Birth Services"
             url="http://aspombirthservices.com/"
           />
           <QuickLinkButton
             icon={FileText}
             title="Request Leave"
             url="/my/leave"
+            target="_self"
           />
           <QuickLinkButton
-          icon={FileText}
-          title="Submit Task Report"
-          url="/my/tasks"
+            icon={FileText}
+            title="Submit Task Report"
+            url="/my/tasks"
+            target="_self"
           />
         </div>
       </div>
