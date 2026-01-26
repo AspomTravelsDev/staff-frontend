@@ -1,12 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
+
 import { login } from "@/lib/auth/api";
 import { setSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
 
 export type LoginState = {
     error?: string;
+    success?: boolean;
+    destination?: string;
 } | null;
 
 export async function loginAction(
@@ -39,5 +41,9 @@ export async function loginAction(
     // Store token and user in cookies
     await setSession(result.data.token, result.data.user);
 
-    redirect("/dashboard");
+    const redirectPath = formData.get("redirect") as string;
+    const destination =
+        redirectPath && redirectPath.startsWith("/") ? redirectPath : "/dashboard";
+
+    return { success: true, destination };
 }

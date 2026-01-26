@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useActionState } from "react";
 import Link from "next/link";
 import { loginAction, type LoginState } from "../actions";
@@ -8,11 +11,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export function LoginForm() {
+export function LoginForm({ redirect }: { redirect?: string }) {
   const [state, formAction, isPending] = useActionState<LoginState, FormData>(
     loginAction,
     null,
   );
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.error) {
+      toast.error(state.error);
+    }
+    if (state?.success) {
+      toast.success("Login successful");
+      if (state.destination) {
+        router.push(state.destination);
+      }
+    }
+  }, [state, router]);
 
   return (
     <div>
@@ -24,6 +40,7 @@ export function LoginForm() {
       </p>
 
       <form action={formAction} className="mt-8 space-y-6">
+        <input type="hidden" name="redirect" value={redirect || "/dashboard"} />
         {state?.error && (
           <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
             {state.error}

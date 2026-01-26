@@ -116,7 +116,7 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["super", "admin", "it"],
     },
     {
-        title: "Customer Database",
+        title: "Client Database",
         url: "/crm",
         icon: ClipboardList,
         allowedRoles: ["account", "visa", "media"]
@@ -157,6 +157,18 @@ export const departmentNav: NavItem[] = [
         icon: FileText,
         allowedRoles: ["visa"],
     },
+    {
+        title: "Gadget Requests",
+        url: "/it/service-desk",
+        icon: Settings2,
+        allowedRoles: ["it", "admin", "super"],
+    },
+    {
+        title: "Issue Tracker",
+        url: "/it/report-issues",
+        icon: MessageCircle,
+        allowedRoles: ["it", "admin", "super"],
+    },
 ];
 
 /**
@@ -172,22 +184,16 @@ export const personalNav: NavItem[] = [
             { title: "Leave", url: "/my/leave" },
             { title: "Tasks", url: "/my/tasks" },
             { title: "Handouts/Documents", url: "/my/documents" },
-            { title: "Appraisal", url: "/hr/performance" },
+            { title: "Appraisal", url: "/my/performance" },
         ],
     },
     {
-        title: "IT Service Desk",
+        title: "IT Support",
         url: "",
         icon: Settings2,
         items: [
-            // { title: "Laptop Request", url: "/it/laptop" },
-            // { title: "Laptop Request", url: "/it/phone" },
-            { title: "Laptop Request", url: "https://forms.gle/eB66WGDe49aKXW4R9" },
-            { title: "Phone Request", url: "https://forms.gle/eB66WGDe49aKXW4R9" },
-            // { title: "Software Access", url: "/it/software" },
-            // { title: "Report Issue", url: "/it/report" },
-            { title: "Software Access", url: "https://forms.gle/1fMFiV7uZb1urgip8" },
-            { title: "Report Issue", url: "https://forms.gle/1fMFiV7uZb1urgip8" },
+            { title: "Report Issue", url: "/my/it-issue" },
+            { title: "Request Gadget", url: "/my/gadget-request" },
         ],
     },
     {
@@ -196,10 +202,10 @@ export const personalNav: NavItem[] = [
         icon: CreditCard,
         items: [
             {
-                title: "Payment Confirmation", url: "/account/confirmation"
+                title: "Payment Confirmation", url: "/my/payment"
             },
             {
-                title: "Expenses", url: "/account/expenses"
+                title: "Expenses", url: "/my/expenses"
             }
         ]
     },
@@ -209,7 +215,7 @@ export const personalNav: NavItem[] = [
         icon: LucideUser,
         items: [
             {
-                title: "General Requests", url: "/admin/requests"
+                title: "General Requests", url: "/my/requests"
             },
         ]
     },
@@ -219,10 +225,10 @@ export const personalNav: NavItem[] = [
         icon: FolderOpen,
         items: [
             {
-                title: "Visa Information Desk", url: "/information/visa"
+                title: "Visa Information Desk", url: "/my/visa"
             },
             {
-                title: "Birth Services Information Desk", url: "/information/birth-services"
+                title: "Birth Services Information Desk", url: "/my/birth-services"
             },
         ]
     },
