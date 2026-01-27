@@ -5,9 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { SidebarTrigger } from "./ui/sidebar";
-import { BellIcon } from "lucide-react";
+import { BellIcon, ClockIcon } from "lucide-react";
 // import { getExchangeRate } from "@/lib/getExchangeRate";
 import { useUser } from "@/providers/user-provider";
+import { Button } from "./ui/button";
 
 export const SiteHeader = () => {
   // const [exchangeRate, setExchangeRate] = useState<{ USD: number; EUR: number; GBP: number } | null>(null);
@@ -58,8 +59,12 @@ export const SiteHeader = () => {
               </span>
             </div>
           </div> */}
-          <div className="flex items-center gap-4">
-            {" "}
+          <div className="flex items-center gap-5">
+            {/* Clock In Button */}
+            <Button className="px-4 cursor-pointer flex items-center gap-2">
+              <span className="text-xs font-medium">Clock In</span>
+              <ClockIcon className="h-4 w-4 text-primary-foreground" />
+            </Button>
             {/* Popover Notifications */}
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center p-1.5 rounded-md bg-primary cursor-pointer">

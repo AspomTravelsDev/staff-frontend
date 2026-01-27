@@ -2,6 +2,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -18,6 +19,9 @@ import {
   Earth,
   TreePalm,
   Baby,
+  Clock10Icon,
+  Crown,
+  Sparkles,
 } from "lucide-react";
 
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
@@ -68,33 +72,39 @@ function QuickLinkButton({
   );
 }
 
+import {
+  mockDashboardStats,
+  mockEmployeeOfMonth,
+  mockExchangeRates,
+} from "@/lib/data/mock-dashboard";
+
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col gap-12 pt-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
-          title="Occurences this Month"
-          icon={AlertTriangle}
-          value="8"
-          description="+3 from last month"
-          color="red"
+          title={mockDashboardStats.totalAttendance.title}
+          icon={Clock10Icon}
+          value={mockDashboardStats.totalAttendance.value}
+          description={mockDashboardStats.totalAttendance.description}
+          color={mockDashboardStats.totalAttendance.color}
         />
         <StatsCard
-          title="Leave Days Remaining"
+          title={mockDashboardStats.leaveDays.title}
           icon={Calendar}
-          value="12 Days"
-          description="Available for 2026"
-          color="green"
+          value={mockDashboardStats.leaveDays.value}
+          description={mockDashboardStats.leaveDays.description}
+          color={mockDashboardStats.leaveDays.color}
         />
         <StatsCard
-          title="Total Awards"
+          title={mockDashboardStats.totalAwards.title}
           icon={Trophy}
-          value="3"
-          description="Employee of the Month"
-          color="yellow"
+          value={mockDashboardStats.totalAwards.value}
+          description={mockDashboardStats.totalAwards.description}
+          color={mockDashboardStats.totalAwards.color}
         />
-        <ExchangeRateCard />
+        <ExchangeRateCard rates={mockExchangeRates} />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -149,29 +159,38 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row items-center gap-4">
-        {/* Recent Updates */}
+      {/* ... Recent Updates ... */}
+      <div className="flex flex-col lg:flex-row gap-4">
         <RecentUpdates className="lg:w-5/7" />
 
-        <Card className="flex flex-col justify-between h-full lg:w-2/7">
-          <CardHeader>
-            <CardTitle>Employee of the Month</CardTitle>
-            <CardDescription>Celebrating excellence</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center pt-0">
-            <Avatar className="h-32 w-32 rounded-lg mb-4 ring-2 ring-primary ring-offset-2">
-              <AvatarImage
-                src="https://github.com/shadcn.png"
-                alt="Sarah Wilson"
-              />
-              <AvatarFallback>SW</AvatarFallback>
-            </Avatar>
-            <h3 className="font-bold text-lg">Sarah Wilson</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Visa Officer
-            </p>
-            <p className="text-sm text-muted-foreground italic">
-              &quot;Outstanding contribution to the new mobile app design.&quot;
+        <Card className="flex flex-col justify-between h-full w-full lg:w-2/7">
+          <CardContent className="flex flex-1 flex-col items-center justify-center p-4 text-center mt-6">
+            <div className="relative mb-6 group">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
+
+              {/* Crown Icon */}
+              <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
+
+              {/* Sparkles */}
+              <Sparkles className="absolute -left-6 top-0 h-6 w-6 text-primary fill-primary/20 animate-pulse" />
+              <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-primary fill-primary/20 animate-pulse delay-75" />
+              <Sparkles className="absolute -left-2 bottom-0 h-4 w-4 text-primary fill-primary/20 animate-pulse delay-150" />
+              <Sparkles className="absolute -right-4 -bottom-2 h-7 w-7 text-primary fill-primary/20 animate-bounce delay-300" />
+
+              <Avatar className="h-48 w-48 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 transition-transform duration-500 group-hover:scale-105">
+                <AvatarImage
+                  src={mockEmployeeOfMonth.image}
+                  alt={mockEmployeeOfMonth.name}
+                  className="object-cover"
+                />
+                <AvatarFallback>{mockEmployeeOfMonth.initials}</AvatarFallback>
+              </Avatar>
+            </div>
+            <CardTitle className="text-center">Employee of the Month</CardTitle>
+            <h3 className="font-bold text-lg">{mockEmployeeOfMonth.name}</h3>
+            <p className="text-sm text-muted-foreground">
+              {mockEmployeeOfMonth.role}
             </p>
           </CardContent>
         </Card>

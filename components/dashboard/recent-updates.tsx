@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -26,83 +27,11 @@ import {
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 
-// Dummy data for news
-const newsData = [
-  {
-    id: 1,
-    title: "New Office Opening in London",
-    date: "2024-01-15",
-    category: "Company News",
-    status: "New",
-  },
-  {
-    id: 2,
-    title: "Quarterly Town Hall Meeting",
-    date: "2024-01-12",
-    category: "Events",
-    status: "Upcoming",
-  },
-  {
-    id: 3,
-    title: "Updated Remote Work Policy",
-    date: "2024-01-10",
-    category: "HR Policy",
-    status: "Important",
-  },
-  {
-    id: 4,
-    title: "System Maintenance Scheduled",
-    date: "2024-01-08",
-    category: "IT Support",
-    status: "Alert",
-  },
-  {
-    id: 5,
-    title: "Welcome New Team Members",
-    date: "2024-01-05",
-    category: "Team",
-    status: "General",
-  },
-  {
-    id: 6,
-    title: "Annual Performance Reviews",
-    date: "2024-01-03",
-    category: "HR",
-    status: "Action Required",
-  },
-  {
-    id: 7,
-    title: "New Health Benefit Options",
-    date: "2024-01-01",
-    category: "Benefits",
-    status: "New",
-  },
-  {
-    id: 8,
-    title: "Q4 Financial Results",
-    date: "2023-12-28",
-    category: "Finance",
-    status: "Report",
-  },
-  {
-    id: 9,
-    title: "Holiday Party Photos",
-    date: "2023-12-20",
-    category: "Events",
-    status: "General",
-  },
-  {
-    id: 10,
-    title: "Security Training Reminder",
-    date: "2023-12-15",
-    category: "Compliance",
-    status: "Mandatory",
-  },
-];
+import { newsData } from "@/lib/data/mock-news";
 
 const ITEMS_PER_PAGE = 5;
 
-export function RecentUpdates({className}: {className?: string}) {
+export function RecentUpdates({ className }: { className?: string }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.ceil(newsData.length / ITEMS_PER_PAGE);
@@ -120,7 +49,7 @@ export function RecentUpdates({className}: {className?: string}) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Recent Updates</CardTitle>
+        <CardTitle>Newsletter & Announcements</CardTitle>
         <CardDescription>
           Latest company news and announcements.
         </CardDescription>
@@ -136,30 +65,41 @@ export function RecentUpdates({className}: {className?: string}) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentItems.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.title}</TableCell>
-                <TableCell>{item.category}</TableCell>
-                <TableCell>
-                  {new Date(item.date).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      item.status === "Important" || item.status === "Alert"
-                        ? "destructive"
-                        : "secondary"
-                    }
-                  >
-                    {item.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {currentItems.map((item) => {
+              const slug = item.title
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, "")
+                .replace(/\s+/g, "-");
+
+              return (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">
+                    <Link href={`/announcements/${slug}`} className="underline">
+                      {item.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{item.category}</TableCell>
+                  <TableCell>
+                    {new Date(item.date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        item.status === "Important" || item.status === "Alert"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
 
@@ -196,7 +136,7 @@ export function RecentUpdates({className}: {className?: string}) {
                       {page}
                     </PaginationLink>
                   </PaginationItem>
-                )
+                ),
               )}
 
               <PaginationItem>

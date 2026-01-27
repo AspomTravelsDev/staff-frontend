@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ApplicationActions } from "./components/application-actions";
 import { getApplications } from "@/lib/api/hr";
 
 export default async function AdminDashboardPage() {
@@ -124,9 +125,10 @@ export default async function AdminDashboardPage() {
                     {new Date(app.invited_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/hr/applications/${app.id}`}>View</Link>
-                    </Button>
+                    <ApplicationActions
+                      id={app.id}
+                      step={app.form_data.currentStep || 1}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

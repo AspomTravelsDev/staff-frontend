@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   Collapsible,
@@ -17,6 +18,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import type { NavItem } from "@/lib/navigation";
 
@@ -27,6 +29,9 @@ export function NavMain({
   items: NavItem[];
   label?: string;
 }) {
+  const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+
   if (items.length === 0) return null;
 
   return (
@@ -38,7 +43,10 @@ export function NavMain({
             <Collapsible
               key={item.title}
               asChild
-              defaultOpen={item.isActive}
+              defaultOpen={
+                item.isActive ||
+                item.items.some((subItem) => subItem.url === pathname)
+              } 
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -53,8 +61,14 @@ export function NavMain({
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
-                          <Link href={subItem.url}>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={subItem.url === pathname}
+                        >
+                          <Link
+                            href={subItem.url}
+                            onClick={() => isMobile && setOpenMobile(false)}
+                          >
                             <span>{subItem.title}</span>
                           </Link>
                         </SidebarMenuSubButton>
@@ -66,8 +80,15 @@ export function NavMain({
             </Collapsible>
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <Link href={item.url}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                isActive={item.url === pathname}
+              >
+                <Link
+                  href={item.url}
+                  onClick={() => isMobile && setOpenMobile(false)}
+                >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                 </Link>

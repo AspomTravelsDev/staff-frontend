@@ -60,17 +60,19 @@ export type LegalData = {
     declaration: boolean
 }
 
+export type MediaData = {
+    passportPhoto?: string
+    signature?: string
+    socialHandles?: Record<string, string>
+}
+
 export type ApplicantFormData = {
     personal: PersonalData
     employment: EmploymentData
     legal: LegalData
     guarantors: any[]
     referee: any
-    media: {
-        passportPhoto?: string
-        signature?: string
-        socialHandles?: Record<string, string>
-    }
+    media: MediaData
     documents: {
         cv?: string
         certificates?: string[]

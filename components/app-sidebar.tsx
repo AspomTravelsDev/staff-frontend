@@ -21,6 +21,8 @@ import {
   filterNavByRole,
   personalNav,
 } from "@/lib/navigation";
+import Image from "next/image";
+import Link from "next/link";
 
 const teams = [
   {
@@ -41,7 +43,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={teams} />
+        {/* <TeamSwitcher teams={teams} /> */}
+        <Link href="/" className="flex flex-col justify-center gap-0">
+          <Image src="/aspom-logo.webp" alt="Logo" width={180} height={32} />
+          <span className="text-xs text-muted-foreground ml-3">
+            Staff Management Portal
+          </span>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         {/* Dashboard - always visible */}

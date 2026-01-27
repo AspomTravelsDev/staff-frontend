@@ -307,3 +307,8 @@ export async function createApplication(data: CreateApplicationRequest): Promise
     MOCK_APPLICATIONS = [newApp, ...MOCK_APPLICATIONS];
     return newApp;
 }
+
+export async function deleteApplication(id: string): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    MOCK_APPLICATIONS = MOCK_APPLICATIONS.filter(app => app.id !== id);
+}

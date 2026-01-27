@@ -169,6 +169,14 @@ export const departmentNav: NavItem[] = [
         icon: MessageCircle,
         allowedRoles: ["it", "admin", "super"],
     },
+    {
+
+        // TODO: Create Employee List page
+        title: "Employee List",
+        url: "/hr/employees",
+        icon: Users,
+        allowedRoles: ["hr"],
+    }
 ];
 
 /**
@@ -183,7 +191,7 @@ export const personalNav: NavItem[] = [
         items: [
             { title: "Leave", url: "/my/leave" },
             { title: "Tasks", url: "/my/tasks" },
-            { title: "Handouts/Documents", url: "/my/documents" },
+            { title: "Employee HandBook", url: "/my/documents" },
             { title: "Appraisal", url: "/my/performance" },
         ],
     },
