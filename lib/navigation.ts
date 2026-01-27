@@ -171,7 +171,6 @@ export const departmentNav: NavItem[] = [
     },
     {
 
-        // TODO: Create Employee List page
         title: "Employee List",
         url: "/hr/employees",
         icon: Users,
