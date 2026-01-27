@@ -43,6 +43,6 @@ export const mockDashboardStats = {
 export const mockEmployeeOfMonth = {
     name: "Ehiorobo Maryjane",
     role: "Visa Officer",
-    image: "/mj.jpeg",
+    image: "/mj.webp",
     initials: "EM",
 };
