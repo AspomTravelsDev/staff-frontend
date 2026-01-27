@@ -10,51 +10,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getApplications } from "@/lib/api/hr";
 
 export default async function AdminDashboardPage() {
-  // Placeholder data
-  const stats = {
-    total: 25,
-    invited: 8,
-    inProgress: 12,
-    completed: 5,
-  };
+  const applications = await getApplications();
 
-  // Placeholder applications data
-  const applications = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      status: "In Progress",
-      date: "2026-01-15",
-      role: "Software Engineer",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      status: "Completed",
-      date: "2026-01-10",
-      role: "Designer",
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      email: "mike.johnson@example.com",
-      status: "Invited",
-      date: "2026-01-20",
-      role: "Product Manager",
-    },
-    {
-      id: "4",
-      name: "Sarah Wilson",
-      email: "sarah.wilson@example.com",
-      status: "In Progress",
-      date: "2026-01-18",
-      role: "HR Specialist",
-    },
-  ];
+  // Calculate stats from real data
+  const stats = {
+    total: applications.length,
+    invited: applications.filter((a) => a.status === "invited").length,
+    inProgress: applications.filter((a) => a.status === "in_progress").length,
+    completed: applications.filter((a) => a.status === "completed").length,
+  };
 
   return (
     <div className="space-y-8">
@@ -132,23 +99,30 @@ export default async function AdminDashboardPage() {
             <TableBody>
               {applications.map((app) => (
                 <TableRow key={app.id}>
-                  <TableCell className="font-medium">{app.name}</TableCell>
-                  <TableCell>{app.email}</TableCell>
-                  <TableCell>{app.role}</TableCell>
+                  {/* We don't have 'name' yet, using email or need to add name to schema? 
+                      Schema had applicant_email. We'll use email for now or duplicate it.
+                  */}
+                  <TableCell className="font-medium">
+                    {app.applicant_email.split("@")[0]}
+                  </TableCell>
+                  <TableCell>{app.applicant_email}</TableCell>
+                  <TableCell>{app.position_title}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        app.status === "Completed"
+                        app.status === "completed"
                           ? "default"
-                          : app.status === "In Progress"
+                          : app.status === "in_progress"
                             ? "secondary"
                             : "outline"
                       }
                     >
-                      {app.status}
+                      {app.status.replace("_", " ")}
                     </Badge>
                   </TableCell>
-                  <TableCell>{app.date}</TableCell>
+                  <TableCell>
+                    {new Date(app.invited_at).toLocaleDateString()}
+                  </TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/hr/applications/${app.id}`}>View</Link>

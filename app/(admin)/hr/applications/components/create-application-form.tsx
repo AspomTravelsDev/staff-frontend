@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import React from "react";
+import { createApplication } from "@/lib/api/hr";
+import { toast } from "sonner";
 
 // Salary breakdown percentages
 const SALARY_PERCENTAGES = {
@@ -81,25 +83,43 @@ export function CreateApplicationForm() {
     }
   }, [grossSalary]);
 
+  // ... inside component
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Log form data (for demo purposes)
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
-    console.log("Application data:", data);
+    const applicant_email = formData.get("applicant_email") as string;
+    const position_title = formData.get("position_title") as string;
+    const reporting_to = formData.get("reporting_to") as string;
+    const effective_date = formData.get("effective_date") as string;
 
-    setSuccess(true);
-    setIsPending(false);
+    // Use the calculated breakdown from state
+    // Check if grossSalary matches? It should if state is up to date.
 
-    // Redirect after a short delay
-    setTimeout(() => {
-      router.push("/(admin)/hr/applications");
-    }, 2000);
+    try {
+      await createApplication({
+        applicant_email,
+        position_title,
+        reporting_to,
+        effective_date,
+        salary_gross: grossSalary, // Ensure this matches formData logic if needed
+        salary_breakdown: breakdown,
+      });
+
+      toast.success("Application Created Successfully!");
+      setSuccess(true);
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push("/hr/applications");
+      }, 1500);
+    } catch (error) {
+      toast.error("Failed to create application");
+      console.error(error);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   if (success) {
