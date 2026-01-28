@@ -56,6 +56,19 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
 
         <div className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              required
+              autoComplete="name"
+              className="h-11"
+              placeholder="e.g. John Doe"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"

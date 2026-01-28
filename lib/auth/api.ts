@@ -29,12 +29,16 @@ import {
 const USE_REAL_API = process.env.NEXT_PUBLIC_USE_REAL_API === "true";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export interface User {
-    id: string;
+export type User = {
+    id: number;
     name: string;
     email: string;
-    role: "super" | "admin" | "it" | "account" | "visa" | "hr" | "media" | "compliance";
-}
+    role: string;
+    is_active: boolean;
+    email_verified_at?: string | null;
+    created_at?: string;
+    updated_at?: string;
+};
 
 export interface AuthResponse {
     token: string;
@@ -122,10 +126,11 @@ export async function login(email: string, password: string): Promise<ApiRespons
                 data: {
                     token: token || `mock-token-${mockUser.id}`,
                     user: {
-                        id: mockUser.id,
+                        id: Number(mockUser.id),
                         name: mockUser.name,
                         email: mockUser.email,
                         role: mockUser.role,
+                        is_active: true,
                     },
                 },
             };
@@ -281,7 +286,10 @@ export async function sendInvite(
 
         return {
             success: true,
-            data: { message: `Invitation sent to ${email} as ${role}` },
+            data: {
+                message: "Invite created",
+                invite_url: "http://localhost:3000/accept-invite?token=XYZ",
+            } as any,
         };
     }
 
@@ -303,6 +311,7 @@ export async function sendInvite(
  */
 export async function acceptInvite(
     token: string,
+    name: string,
     password: string,
     passwordConfirmation: string
 ): Promise<ApiResponse<AuthResponse>> {
@@ -334,10 +343,11 @@ export async function acceptInvite(
             data: {
                 token: "simulated-jwt-token-" + Date.now(),
                 user: {
-                    id: "2",
+                    id: 2,
                     name: "New Staff",
                     email: "newstaff@aspomtravels.com",
                     role: "visa",
+                    is_active: true,
                 },
             },
         };
@@ -347,6 +357,7 @@ export async function acceptInvite(
         method: "POST",
         body: JSON.stringify({
             token,
+            name,
             password,
             password_confirmation: passwordConfirmation,
         }),
@@ -370,10 +381,11 @@ export async function validateToken(token: string): Promise<ApiResponse<User>> {
             return {
                 success: true,
                 data: {
-                    id: mockUser.id,
+                    id: Number(mockUser.id),
                     name: mockUser.name,
                     email: mockUser.email,
                     role: mockUser.role,
+                    is_active: true,
                 },
             };
         }

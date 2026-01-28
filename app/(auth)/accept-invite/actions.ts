@@ -15,6 +15,7 @@ export async function acceptInviteAction(
 ): Promise<AcceptInviteState> {
     const rawData = {
         token: formData.get("token") as string,
+        name: formData.get("name") as string,
         password: formData.get("password") as string,
         password_confirmation: formData.get("password_confirmation") as string,
     };
@@ -28,9 +29,9 @@ export async function acceptInviteAction(
         return { error: firstError || "Invalid input" };
     }
 
-    const { token, password, password_confirmation } = validatedFields.data;
+    const { token, name, password, password_confirmation } = validatedFields.data;
 
-    const result = await acceptInvite(token, password, password_confirmation);
+    const result = await acceptInvite(token, name, password, password_confirmation);
 
     if (!result.success) {
         return { error: result.error.error };
