@@ -134,22 +134,10 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
-        title: "Tasks",
-        url: "/accounts/tasks",
-        icon: ClipboardList,
-        allowedRoles: ["account"],
-    },
-    {
         title: "Applications",
         url: "/accounts/applications",
         icon: FileText,
         allowedRoles: ["account"],
-    },
-    {
-        title: "Tasks",
-        url: "/visa/tasks",
-        icon: ClipboardList,
-        allowedRoles: ["visa"],
     },
     {
         title: "Upload Documents",

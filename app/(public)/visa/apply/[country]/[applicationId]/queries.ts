@@ -2,7 +2,7 @@ import type { VisaCountry } from "@/lib/visa/fields"
 import type { VisaFormData } from "@/lib/stores/visa-form-store"
 
 // Mock data for development - replace with actual API calls
-const USE_MOCK = process.env.NODE_ENV === "development"
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_REAL_API !== "true"
 
 interface ApplicationResponse {
     id: string

@@ -5,7 +5,7 @@ import { getAuthToken } from "@/lib/auth/session"
 import type { VisaCountry } from "@/lib/visa/fields"
 import type { VisaFormData } from "@/lib/stores/visa-form-store"
 
-const USE_MOCK = process.env.NODE_ENV === "development"
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_REAL_API !== "true"
 
 interface ActionResult {
     success: boolean

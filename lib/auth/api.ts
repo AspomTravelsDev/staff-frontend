@@ -26,7 +26,7 @@ import {
 } from "@/lib/api/mock-loader";
 
 // Toggle this to switch between simulated and real API
-const USE_REAL_API = false;
+const USE_REAL_API = process.env.NEXT_PUBLIC_USE_REAL_API === "true";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface User {
@@ -141,7 +141,7 @@ export async function login(email: string, password: string): Promise<ApiRespons
     }
 
     // Real API call
-    return fetchWithAuth<AuthResponse>("/api/auth/login", {
+    return fetchWithAuth<AuthResponse>("/api/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
     });
@@ -163,7 +163,7 @@ export async function logout(token?: string): Promise<ApiResponse<MessageRespons
     }
 
     return fetchWithAuth<MessageResponse>(
-        "/api/auth/logout",
+        "/api/logout",
         { method: "POST" },
         token
     );
@@ -197,7 +197,7 @@ export async function resetPassword(email: string): Promise<ApiResponse<MessageR
         };
     }
 
-    return fetchWithAuth<MessageResponse>("/api/auth/reset-password", {
+    return fetchWithAuth<MessageResponse>("/api/forgot-password", {
         method: "POST",
         body: JSON.stringify({ email }),
     });
@@ -245,7 +245,7 @@ export async function updatePassword(
         };
     }
 
-    return fetchWithAuth<MessageResponse>("/api/auth/update-password", {
+    return fetchWithAuth<MessageResponse>("/api/reset-password", {
         method: "POST",
         body: JSON.stringify({
             token,
@@ -286,7 +286,7 @@ export async function sendInvite(
     }
 
     return fetchWithAuth<MessageResponse>(
-        "/api/auth/invite",
+        "/api/invite",
         {
             method: "POST",
             body: JSON.stringify({ email, role }),
@@ -343,7 +343,7 @@ export async function acceptInvite(
         };
     }
 
-    return fetchWithAuth<AuthResponse>("/api/auth/accept-invite", {
+    return fetchWithAuth<AuthResponse>("/api/accept-invite", {
         method: "POST",
         body: JSON.stringify({
             token,
@@ -387,5 +387,5 @@ export async function validateToken(token: string): Promise<ApiResponse<User>> {
         };
     }
 
-    return fetchWithAuth<User>("/api/auth/user", { method: "GET" }, token);
+    return fetchWithAuth<User>("/api/user", { method: "GET" }, token);
 }

@@ -13,11 +13,12 @@ export default function AuthLayout({
 
       <div className="relative hidden lg:block lg:w-1/3">
         <Image
-          src="https://images.unsplash.com/photo-1579487785973-74d2ca7abdd5?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+          src="/auth-img.webp"
           alt="Office workspace"
           fill
           className="object-cover object-bottom"
-          priority={false}
+          // priority
+          // unoptimized
         />
       </div>
     </div>

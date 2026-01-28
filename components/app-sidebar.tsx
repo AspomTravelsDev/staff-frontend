@@ -68,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Department-specific tools */}
         {filteredDepartmentNav.length > 0 && (
           <NavMain
-            items={filteredDepartmentNav}
+            items={filteredDepartmentNav.sort((a, b) => a.title.localeCompare(b.title))}
             label={user?.role.toLocaleUpperCase() + " Department Tools"}
           />
         )}
