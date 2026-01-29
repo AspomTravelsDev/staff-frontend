@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useEffect } from "react";
 import { inviteAction, type InviteState } from "../actions";
+import { getRolesForSelect } from "@/types/user-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,16 +23,7 @@ import {
 } from "@/components/ui/select";
 import { IconCheck, IconSend } from "@tabler/icons-react";
 
-const ROLES = [
-  { value: "super", label: "Super Admin" },
-  { value: "admin", label: "Administrator" },
-  { value: "it", label: "IT" },
-  { value: "account", label: "Accounts" },
-  { value: "visa", label: "Visa Operations" },
-  { value: "hr", label: "Human Resources" },
-  { value: "media", label: "Media" },
-  { value: "compliance", label: "Compliance" },
-];
+const ROLES = getRolesForSelect();
 
 export function InviteForm() {
   const formRef = useRef<HTMLFormElement>(null);

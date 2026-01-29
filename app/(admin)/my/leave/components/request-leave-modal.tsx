@@ -21,22 +21,14 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { format, addBusinessDays } from "date-fns";
+import { getRoleLabel } from "@/types/user-types";
 
 interface RequestLeaveModalProps {
   userName: string;
   role: string | undefined;
 }
 
-const roleToDepartment: Record<string, string> = {
-  super: "Super Admin",
-  admin: "Admin",
-  it: "IT",
-  account: "Accounts",
-  visa: "Visa",
-  hr: "HR",
-  media: "Social Media",
-  compliance: "Compliance",
-};
+// removed local map
 
 const leaveTypes = [
   { value: "Casual", label: "Casual Leave" },
@@ -81,11 +73,7 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
               <Input value={userName} readOnly />
             </div>
             <div>
-              <Label>Department</Label>
-              <Input
-                value={role ? roleToDepartment[role] || role : "-"}
-                readOnly
-              />
+              <Input value={getRoleLabel(role) || "-"} readOnly />
             </div>
           </div>
           <div className="space-y-4">

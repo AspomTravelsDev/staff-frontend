@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
+import { getRoleLabel } from "@/types/user-types";
 import {
   FileText,
   UserPlus,
@@ -46,8 +47,9 @@ const roleColors: Record<User["role"], string> = {
   account: "bg-green-500",
   visa: "bg-orange-500",
   hr: "bg-pink-500",
-  media: "bg-cyan-500",
+  "social-media": "bg-cyan-500",
   compliance: "bg-yellow-500",
+  "birth-services": "bg-teal-500",
 };
 
 function formatAction(action: string): string {
@@ -139,7 +141,7 @@ export function ActivityList({ activities }: ActivityListProps) {
                     className={`inline-block h-2 w-2 rounded-full ${roleColors[activity.actor_role]}`}
                   />
                   <span className="text-xs text-muted-foreground capitalize">
-                    {activity.actor_role}
+                    {getRoleLabel(activity.actor_role)}
                   </span>
                 </div>
               </div>

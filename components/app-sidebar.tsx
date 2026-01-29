@@ -22,17 +22,11 @@ import {
   filterNavByRole,
   personalNav,
 } from "@/lib/navigation";
+import type { UserRole } from "@/types/user-types";
 import Image from "next/image";
 import Link from "next/link";
 import { TreePalm } from "lucide-react";
 
-const teams = [
-  {
-    name: "Aspom Travels",
-    logo: AspomLogo,
-    plan: "Internal Staff Portal",
-  },
-];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
@@ -40,7 +34,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Filter department nav based on user role
   const filteredDepartmentNav = user
-    ? filterNavByRole(departmentNav, user.role)
+    ? filterNavByRole(departmentNav, user.role as UserRole)
     : [];
 
   return (
@@ -68,8 +62,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Department-specific tools */}
         {filteredDepartmentNav.length > 0 && (
           <NavMain
-            items={filteredDepartmentNav.sort((a, b) => a.title.localeCompare(b.title))}
-            label={user?.role.toLocaleUpperCase() + " Department Tools"}
+            items={filteredDepartmentNav.sort((a, b) =>
+              a.title.localeCompare(b.title),
+            )}
+            label={user?.role.toLocaleUpperCase() + " Tools"}
           />
         )}
 

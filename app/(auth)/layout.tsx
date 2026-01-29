@@ -13,10 +13,10 @@ export default function AuthLayout({
 
       <div className="relative hidden lg:block lg:w-1/3">
         <Image
-          src="/auth-img.webp"
+          src="/banner.jpeg"
           alt="Office workspace"
           fill
-          className="object-cover object-bottom"
+          className="object-cover object-top"
           // priority
           // unoptimized
         />

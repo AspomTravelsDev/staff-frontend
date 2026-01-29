@@ -5,11 +5,14 @@
  */
 
 import { api, type ApiResponse } from "@/lib/api/client";
+// import type { UserRole } from "@/types/user-types";
 
 export type User = {
     id: number;
     name: string;
     email: string;
+    // TODO: Update to user role when backend supports types
+    // role: UserRole;
     role: string;
     is_active: boolean;
     email_verified_at?: string | null;

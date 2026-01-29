@@ -15,9 +15,7 @@ import {
     Users,
     type LucideIcon,
 } from "lucide-react";
-import type { User } from "./auth/api";
-
-export type UserRole = User["role"];
+import type { UserRole } from "@/types/user-types";
 
 export interface NavItem {
     title: string;
@@ -67,12 +65,12 @@ export const departmentNav: NavItem[] = [
         icon: CreditCard,
         allowedRoles: ["account"],
     },
-    {
-        title: "Assigned Projects",
-        url: "/accounts/assigned-projects",
-        icon: FolderOpen,
-        allowedRoles: ["account"],
-    },
+    // {
+    //     title: "Assigned Projects",
+    //     url: "/accounts/assigned-projects",
+    //     icon: FolderOpen,
+    //     allowedRoles: ["account"],
+    // },
     {
         title: "Visa Applications",
         url: "/visa/applications",
@@ -80,8 +78,8 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["visa"],
     },
     {
-        title: "Employee Handouts",
-        url: "/hr/handouts",
+        title: "Employee Documents",
+        url: "/hr/docs",
         icon: FileText,
         allowedRoles: ["hr"],
     },
@@ -107,19 +105,19 @@ export const departmentNav: NavItem[] = [
         title: "Invite Staff",
         url: "/admin/invite",
         icon: Users,
-        allowedRoles: ["super", "admin", "it"],
+        allowedRoles: ["super", "it"],
     },
     {
         title: "Activity Log",
         url: "/activity",
         icon: Activity,
-        allowedRoles: ["super", "admin", "it"],
+        allowedRoles: ["super", "it"],
     },
     {
         title: "Client Database",
         url: "/crm",
         icon: ClipboardList,
-        allowedRoles: ["account", "visa", "media"]
+        allowedRoles: ["account", "visa", "social-media", "birth-services"]
     },
     {
         title: "HR Applications",
@@ -128,17 +126,17 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
-        title: "HR Tasks",
+        title: "Employee Tasks & Reports",
         url: "/hr/tasks",
         icon: ClipboardList,
         allowedRoles: ["hr"],
     },
-    {
-        title: "Applications",
-        url: "/accounts/applications",
-        icon: FileText,
-        allowedRoles: ["account"],
-    },
+    // {
+    //     title: "Applications",
+    //     url: "/accounts/applications",
+    //     icon: FileText,
+    //     allowedRoles: ["account"],
+    // },
     {
         title: "Upload Documents",
         url: "/visa/documents",
@@ -149,13 +147,13 @@ export const departmentNav: NavItem[] = [
         title: "Gadget Requests",
         url: "/it/service-desk",
         icon: Settings2,
-        allowedRoles: ["it", "admin", "super"],
+        allowedRoles: ["it", "super"],
     },
     {
-        title: "Issue Tracker",
+        title: "All IT Issues",
         url: "/it/report-issues",
         icon: MessageCircle,
-        allowedRoles: ["it", "admin", "super"],
+        allowedRoles: ["it", "super"],
     },
     {
 
@@ -163,7 +161,20 @@ export const departmentNav: NavItem[] = [
         url: "/hr/employees",
         icon: Users,
         allowedRoles: ["hr"],
+    },
+    {
+        title: "All General Requests",
+        url: "/admin/requests",
+        icon: ClipboardList,
+        allowedRoles: ["admin", "super"]
+    },
+    {
+        title: "Inventory",
+        url: "/admin/inventory",
+        icon: ClipboardList,
+        allowedRoles: ["admin", "super"]
     }
+
 ];
 
 /**
@@ -244,18 +255,18 @@ export const personalNav: NavItem[] = [
 
 /**
  * Filter navigation items based on user role
- * Admin and Super see all department items
+ * Super see all department items
  */
 export function filterNavByRole(items: NavItem[], role: UserRole): NavItem[] {
-    // Admin and Super see everything
-    if (role === "admin" || role === "super") {
+    // Super see everything
+    if (role === "super") {
         return items;
     }
 
     return items.filter((item) => {
-        // If no allowedRoles defined, visible to all
+        // If no allowedRoles defined, invisible to all
         if (!item.allowedRoles) {
-            return true;
+            return false;
         }
         // Check if user's role is in allowed list
         return item.allowedRoles.includes(role);

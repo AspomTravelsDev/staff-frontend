@@ -22,19 +22,19 @@ export const mockExchangeRates: ExchangeRate[] = [
 export const mockDashboardStats = {
     totalAttendance: {
         title: "Total Attendance",
-        value: "27",
-        description: "+3 from last month",
+        value: "0",
+        description: "0 days late this month",
         color: "blue" as const,
     },
     leaveDays: {
-        title: "Leave Days Remaining",
-        value: "12 Days",
+        title: "Working Leave Days Remaining",
+        value: "20",
         description: "Available for 2026",
         color: "green" as const,
     },
     totalAwards: {
         title: "Total Awards",
-        value: "3",
+        value: "0",
         description: "Employee of the Month",
         color: "yellow" as const,
     },
