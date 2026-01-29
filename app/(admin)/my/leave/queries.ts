@@ -17,7 +17,7 @@ export type LeaveEntry = {
 }
 
 // TODO: Replace with Supabase queries
-export async function getLeaveStats(userId: string): Promise<LeaveStat> {
+export async function getLeaveStats(userId: string | number): Promise<LeaveStat> {
     // Mock data
     return {
         totalLeaveDaysLeft: 12,
@@ -27,7 +27,7 @@ export async function getLeaveStats(userId: string): Promise<LeaveStat> {
     }
 }
 
-export async function getLeaveEntries(userId: string): Promise<LeaveEntry[]> {
+export async function getLeaveEntries(userId: string | number): Promise<LeaveEntry[]> {
     // Mock data
     return [
         {

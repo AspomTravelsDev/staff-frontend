@@ -24,16 +24,7 @@ import { format, addBusinessDays } from "date-fns";
 
 interface RequestLeaveModalProps {
   userName: string;
-  role:
-    | "super"
-    | "admin"
-    | "it"
-    | "account"
-    | "visa"
-    | "hr"
-    | "media"
-    | "compliance"
-    | undefined;
+  role: string | undefined;
 }
 
 const roleToDepartment: Record<string, string> = {
