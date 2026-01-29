@@ -94,7 +94,9 @@ async function fetchWithAuth<T>(
         }
 
         return { success: true, data };
-    } catch {
+    } catch (e) {
+        console.error(`Auth API Payload Error [${endpoint}]:`, e);
+        console.error(`Using URL: ${API_URL}${endpoint}`);
         return {
             success: false,
             error: {

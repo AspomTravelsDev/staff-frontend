@@ -111,6 +111,7 @@ export async function apiClient<T>(
         return { success: true, data };
     } catch (error) {
         console.error(`API Error [${endpoint}]:`, error);
+        console.error(`Attempted URL: ${API_URL}${endpoint}`);
         return {
             success: false,
             error: {
