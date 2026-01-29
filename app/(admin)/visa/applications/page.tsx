@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { IconPlus } from "@tabler/icons-react";
-
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/dashboard/stats-card";
+import { CreateApplicationButton } from "./components/create-application-button";
 import { ApplicationsTable } from "./components/applications-table";
 import { getApplications } from "./queries";
 import { FileText, Clock, CheckCircle, XCircle } from "lucide-react";
@@ -50,12 +49,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
             Manage and track visa applications
           </p>
         </div>
-        <Button asChild>
-          <Link href="/visa/applications/new">
-            <IconPlus className="mr-2 size-4" />
-            New Application
-          </Link>
-        </Button>
+        <CreateApplicationButton />
       </div>
 
       {/* Stats Cards */}

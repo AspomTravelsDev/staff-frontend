@@ -14,7 +14,7 @@ export default async function ActivityPage() {
   const user = await getCurrentUser();
 
   // Only admin, super, and IT can access activity log
-  if (!user || !["admin", "super", "it"].includes(user.role)) {
+  if (!user || !["super", "it"].includes(user.role)) {
     redirect("/dashboard");
   }
 

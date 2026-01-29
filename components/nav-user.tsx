@@ -27,6 +27,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 
 function getInitials(name: string): string {
   return name
@@ -88,12 +89,16 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
+               <Link href="/profile" className="flex items-center gap-2">
                 <BadgeCheck />
-                Account
+                My Profile
+               </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
+              <Link href="/notifications" className="flex items-center gap-2">
                 <Bell />
                 Notifications
+              </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

@@ -14,7 +14,7 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRole }> = {
     [USER_ROLES.SUPER_ADMIN]: { label: "Super Admin", value: "super" },
-    [USER_ROLES.ADMIN_OFFICER]: { label: "Administrator", value: "admin" },
+    [USER_ROLES.ADMIN_OFFICER]: { label: "Admin Officer", value: "admin" },
     [USER_ROLES.IT_OFFICER]: { label: "IT Officer", value: "it" },
     [USER_ROLES.ACCOUNT_OFFICER]: { label: "Accounts Officer", value: "account" },
     [USER_ROLES.VISA_OFFICER]: { label: "Visa Officer", value: "visa" },

@@ -32,7 +32,8 @@ export interface ActivityFilters {
 export async function getActivities(
     filters: ActivityFilters = {}
 ): Promise<PaginatedResponse<ActivityItem>> {
-    if (!USE_REAL_API) {
+    // TODO: Remove this when we have a real API
+    if (USE_REAL_API) {
         const activities = await getMockActivities();
         let filtered = [...activities];
 

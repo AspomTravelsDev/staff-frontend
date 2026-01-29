@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CreateApplicationButton } from "./create-application-button";
 import {
   Table,
   TableBody,
@@ -158,11 +159,12 @@ export function ApplicationsTable({
               <TableRow>
                 <TableCell colSpan={7} className="py-12 text-center">
                   <p className="text-muted-foreground">No applications found</p>
-                  <Button asChild variant="outline" className="mt-4">
-                    <Link href="/visa/applications/new">
-                      Create your first application
-                    </Link>
-                  </Button>
+                  <CreateApplicationButton
+                    variant="outline"
+                    className="mt-4"
+                    label="Start new application"
+                    showIcon={false}
+                  />
                 </TableCell>
               </TableRow>
             ) : (
