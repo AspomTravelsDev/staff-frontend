@@ -8,6 +8,7 @@ export type InviteState = {
     error?: string;
     success?: boolean;
     message?: string;
+    invite_url?: string;
 } | null;
 
 export async function inviteAction(
@@ -38,5 +39,5 @@ export async function inviteAction(
         return { error: result.error.error };
     }
 
-    return { success: true, message: result.data.message };
+    return { success: true, message: result.data.message, invite_url: result.data.invite_url };
 }

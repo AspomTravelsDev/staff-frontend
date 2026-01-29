@@ -2,32 +2,9 @@
  * Auth API
  *
  * These functions handle authentication with the backend.
- * Currently using simulated responses for development.
- *
- * Laravel endpoints:
- * - POST /api/auth/login
- * - POST /api/auth/logout
- * - POST /api/auth/reset-password
- * - POST /api/auth/update-password
- * - POST /api/auth/invite
- * - POST /api/auth/accept-invite
- * - GET  /api/auth/user (validate token & get current user)
- *
- * TODO: When backend is ready:
- * 1. Set USE_REAL_API to true
- * 2. Ensure NEXT_PUBLIC_API_URL is set in .env
- * 3. Remove simulated functions
  */
 
-import {
-    findUserByEmail,
-    findUserByToken,
-    getTokenForUser,
-} from "@/lib/api/mock-loader";
-
-// Toggle this to switch between simulated and real API
-const USE_REAL_API = process.env.NEXT_PUBLIC_USE_REAL_API === "true";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api, type ApiResponse } from "@/lib/api/client";
 
 export type User = {
     id: number;
@@ -49,62 +26,9 @@ export interface MessageResponse {
     message: string;
 }
 
-export interface ErrorResponse {
-    error: string;
-    code: string;
-}
-
-type ApiResponse<T> = { success: true; data: T } | { success: false; error: ErrorResponse };
-
-// Simulate network delay (remove when using real API)
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Helper function to make authenticated API requests
- * TODO: Use this for all authenticated endpoints
- */
-async function fetchWithAuth<T>(
-    endpoint: string,
-    options: RequestInit = {},
-    token?: string
-): Promise<ApiResponse<T>> {
-    const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-    };
-
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            ...options,
-            headers,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            return {
-                success: false,
-                error: {
-                    error: data.message || data.error || "An error occurred",
-                    code: data.code || "UNKNOWN_ERROR",
-                },
-            };
-        }
-
-        return { success: true, data };
-    } catch (e) {
-        console.error(`Auth API Payload Error [${endpoint}]:`, e);
-        console.error(`Using URL: ${API_URL}${endpoint}`);
-        return {
-            success: false,
-            error: {
-                error: "Network error. Please check your connection.",
-                code: "NETWORK_ERROR",
-            },
-        };
-    }
+export interface InviteResponse {
+    message: string;
+    invite_url?: string;
 }
 
 /**
@@ -114,44 +38,7 @@ async function fetchWithAuth<T>(
  * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" }
  */
 export async function login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
-    // TODO: Remove simulation when backend is ready
-    if (!USE_REAL_API) {
-        await delay(800);
-
-        // Look up user in mock data (data/mock/auth.json)
-        const mockUser = await findUserByEmail(email);
-
-        if (mockUser && mockUser.password === password) {
-            const token = await getTokenForUser(mockUser.id);
-            return {
-                success: true,
-                data: {
-                    token: token || `mock-token-${mockUser.id}`,
-                    user: {
-                        id: Number(mockUser.id),
-                        name: mockUser.name,
-                        email: mockUser.email,
-                        role: mockUser.role,
-                        is_active: true,
-                    },
-                },
-            };
-        }
-
-        return {
-            success: false,
-            error: {
-                error: "Invalid email or password",
-                code: "INVALID_CREDENTIALS",
-            },
-        };
-    }
-
-    // Real API call
-    return fetchWithAuth<AuthResponse>("/api/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-    });
+    return api.post<AuthResponse>("/api/login", { email, password });
 }
 
 /**
@@ -161,19 +48,7 @@ export async function login(email: string, password: string): Promise<ApiRespons
  * Error: { error: string, code: "UNAUTHENTICATED" }
  */
 export async function logout(token?: string): Promise<ApiResponse<MessageResponse>> {
-    if (!USE_REAL_API) {
-        await delay(500);
-        return {
-            success: true,
-            data: { message: "Successfully logged out" },
-        };
-    }
-
-    return fetchWithAuth<MessageResponse>(
-        "/api/logout",
-        { method: "POST" },
-        token
-    );
+    return api.post<MessageResponse>("/api/logout", undefined, { token });
 }
 
 /**
@@ -183,31 +58,7 @@ export async function logout(token?: string): Promise<ApiResponse<MessageRespons
  * Error: { error: string, code: "USER_NOT_FOUND" | "RATE_LIMITED" }
  */
 export async function resetPassword(email: string): Promise<ApiResponse<MessageResponse>> {
-    if (!USE_REAL_API) {
-        await delay(1000);
-
-        if (email.includes("@")) {
-            return {
-                success: true,
-                data: {
-                    message: "If an account exists with this email, you will receive a password reset link.",
-                },
-            };
-        }
-
-        return {
-            success: false,
-            error: {
-                error: "Please enter a valid email address",
-                code: "INVALID_EMAIL",
-            },
-        };
-    }
-
-    return fetchWithAuth<MessageResponse>("/api/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-    });
+    return api.post<MessageResponse>("/api/forgot-password", { email });
 }
 
 /**
@@ -221,44 +72,10 @@ export async function updatePassword(
     password: string,
     passwordConfirmation: string
 ): Promise<ApiResponse<MessageResponse>> {
-    if (!USE_REAL_API) {
-        await delay(1000);
-
-        if (!token || token === "invalid") {
-            return {
-                success: false,
-                error: {
-                    error: "This password reset link is invalid or has expired",
-                    code: "INVALID_TOKEN",
-                },
-            };
-        }
-
-        if (password !== passwordConfirmation) {
-            return {
-                success: false,
-                error: {
-                    error: "Passwords do not match",
-                    code: "PASSWORD_MISMATCH",
-                },
-            };
-        }
-
-        return {
-            success: true,
-            data: {
-                message: "Your password has been updated successfully. You can now log in.",
-            },
-        };
-    }
-
-    return fetchWithAuth<MessageResponse>("/api/reset-password", {
-        method: "POST",
-        body: JSON.stringify({
-            token,
-            password,
-            password_confirmation: passwordConfirmation,
-        }),
+    return api.post<MessageResponse>("/api/reset-password", {
+        token,
+        password,
+        password_confirmation: passwordConfirmation,
     });
 }
 
@@ -272,36 +89,11 @@ export async function sendInvite(
     email: string,
     role: string,
     token?: string
-): Promise<ApiResponse<MessageResponse>> {
-    if (!USE_REAL_API) {
-        await delay(1000);
-
-        if (email === "existing@aspom.com") {
-            return {
-                success: false,
-                error: {
-                    error: "A user with this email already exists",
-                    code: "USER_EXISTS",
-                },
-            };
-        }
-
-        return {
-            success: true,
-            data: {
-                message: "Invite created",
-                invite_url: "http://localhost:3000/accept-invite?token=XYZ",
-            } as any,
-        };
-    }
-
-    return fetchWithAuth<MessageResponse>(
+): Promise<ApiResponse<InviteResponse>> {
+    return api.post<InviteResponse>(
         "/api/invite",
-        {
-            method: "POST",
-            body: JSON.stringify({ email, role }),
-        },
-        token
+        { email, role },
+        { token }
     );
 }
 
@@ -317,52 +109,11 @@ export async function acceptInvite(
     password: string,
     passwordConfirmation: string
 ): Promise<ApiResponse<AuthResponse>> {
-    if (!USE_REAL_API) {
-        await delay(1000);
-
-        if (!token || token === "invalid") {
-            return {
-                success: false,
-                error: {
-                    error: "This invitation link is invalid or has expired",
-                    code: "INVALID_TOKEN",
-                },
-            };
-        }
-
-        if (password !== passwordConfirmation) {
-            return {
-                success: false,
-                error: {
-                    error: "Passwords do not match",
-                    code: "PASSWORD_MISMATCH",
-                },
-            };
-        }
-
-        return {
-            success: true,
-            data: {
-                token: "simulated-jwt-token-" + Date.now(),
-                user: {
-                    id: 2,
-                    name: "New Staff",
-                    email: "newstaff@aspomtravels.com",
-                    role: "visa",
-                    is_active: true,
-                },
-            },
-        };
-    }
-
-    return fetchWithAuth<AuthResponse>("/api/accept-invite", {
-        method: "POST",
-        body: JSON.stringify({
-            token,
-            name,
-            password,
-            password_confirmation: passwordConfirmation,
-        }),
+    return api.post<AuthResponse>("/api/accept-invite", {
+        token,
+        name,
+        password,
+        password_confirmation: passwordConfirmation,
     });
 }
 
@@ -373,33 +124,5 @@ export async function acceptInvite(
  * Error: { error: string, code: "UNAUTHENTICATED" }
  */
 export async function validateToken(token: string): Promise<ApiResponse<User>> {
-    if (!USE_REAL_API) {
-        await delay(100);
-
-        // Look up user by token in mock data (data/mock/auth.json)
-        const mockUser = await findUserByToken(token);
-
-        if (mockUser) {
-            return {
-                success: true,
-                data: {
-                    id: Number(mockUser.id),
-                    name: mockUser.name,
-                    email: mockUser.email,
-                    role: mockUser.role,
-                    is_active: true,
-                },
-            };
-        }
-
-        return {
-            success: false,
-            error: {
-                error: "Invalid or expired token",
-                code: "UNAUTHENTICATED",
-            },
-        };
-    }
-
-    return fetchWithAuth<User>("/api/user", { method: "GET" }, token);
+    return api.get<User>("/api/user", { token });
 }

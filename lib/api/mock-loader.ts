@@ -19,57 +19,7 @@ async function loadMockFile<T>(filename: string): Promise<T> {
     return JSON.parse(data) as T;
 }
 
-// ============================================================================
-// Auth Types
-// ============================================================================
-
-export interface MockUser {
-    id: string;
-    email: string;
-    password: string;
-    name: string;
-    role: "super" | "admin" | "it" | "account" | "visa" | "hr" | "media" | "compliance";
-}
-
-interface AuthData {
-    users: MockUser[];
-    tokens: Record<string, string>;
-}
-
-// ============================================================================
-// Auth Functions
-// ============================================================================
-
-let authCache: AuthData | null = null;
-
-export async function getMockAuthData(): Promise<AuthData> {
-    if (!authCache) {
-        authCache = await loadMockFile<AuthData>("auth.json");
-    }
-    return authCache;
-}
-
-export async function findUserByEmail(email: string): Promise<MockUser | undefined> {
-    const data = await getMockAuthData();
-    return data.users.find((u) => u.email === email);
-}
-
-export async function findUserById(id: string): Promise<MockUser | undefined> {
-    const data = await getMockAuthData();
-    return data.users.find((u) => u.id === id);
-}
-
-export async function findUserByToken(token: string): Promise<MockUser | undefined> {
-    const data = await getMockAuthData();
-    const userId = Object.entries(data.tokens).find(([, t]) => t === token)?.[0];
-    if (!userId) return undefined;
-    return data.users.find((u) => u.id === userId);
-}
-
-export async function getTokenForUser(userId: string): Promise<string | undefined> {
-    const data = await getMockAuthData();
-    return data.tokens[userId];
-}
+// Auth mock data removed. Use real API.
 
 // ============================================================================
 // Visa Types (imported from main types, but simplified here for mock)
@@ -193,7 +143,6 @@ export async function getMockActivities(): Promise<ActivityItem[]> {
 // ============================================================================
 
 export function clearMockCache(): void {
-    authCache = null;
     visaCache = null;
     activityCache = null;
 }

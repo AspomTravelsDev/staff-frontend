@@ -63,9 +63,24 @@ export function InviteForm() {
             </div>
           )}
           {state?.success && (
-            <div className="flex items-center gap-2 rounded-md bg-primary/15 p-3 text-sm text-primary">
-              <IconCheck className="h-4 w-4" />
-              {state.message}
+            <div className="rounded-md bg-primary/15 p-3 text-sm text-primary space-y-2">
+              <div className="flex items-center gap-2">
+                <IconCheck className="h-4 w-4" />
+                {state.message}
+              </div>
+              {state.invite_url && (
+                <div className="mt-2 text-xs break-all bg-background/50 p-2 rounded border border-primary/20">
+                  <p className="font-semibold mb-1">Invite Link:</p>
+                  <a
+                    href={state.invite_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {state.invite_url}
+                  </a>
+                </div>
+              )}
             </div>
           )}
           <div className="space-y-2">

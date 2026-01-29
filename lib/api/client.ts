@@ -7,8 +7,8 @@
 
 import { getAuthToken } from "@/lib/auth/session";
 
-// Toggle this to switch between simulated and real API
-export const USE_REAL_API = process.env.NEXT_PUBLIC_USE_REAL_API === "true";
+// Remove debug logs and USE_REAL_API
+export const USE_REAL_API = true; // Deprecated, always true
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface ErrorResponse {
@@ -48,24 +48,6 @@ function buildHeaders(token?: string | null): HeadersInit {
     return headers;
 }
 
-/**
- * Main API client function
- *
- * @example
- * // Authenticated GET request
- * const result = await apiClient<User[]>("/users");
- *
- * @example
- * // POST request with body
- * const result = await apiClient<User>("/users", {
- *   method: "POST",
- *   body: { name: "John", email: "john@example.com" }
- * });
- *
- * @example
- * // Public endpoint (no auth)
- * const result = await apiClient<Config>("/config", { skipAuth: true });
- */
 export async function apiClient<T>(
     endpoint: string,
     config: RequestConfig = {}
@@ -111,7 +93,6 @@ export async function apiClient<T>(
         return { success: true, data };
     } catch (error) {
         console.error(`API Error [${endpoint}]:`, error);
-        console.error(`Attempted URL: ${API_URL}${endpoint}`);
         return {
             success: false,
             error: {
