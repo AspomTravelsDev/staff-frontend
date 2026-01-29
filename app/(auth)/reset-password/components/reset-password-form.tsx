@@ -22,6 +22,16 @@ export function ResetPasswordForm() {
         </div>
         <h2 className="text-2xl font-bold tracking-tight">Check your email</h2>
         <p className="mt-2 text-sm text-muted-foreground">{state.message}</p>
+        {state.reset_url && (
+          <div className="mt-4 text-xs break-all bg-muted p-2 rounded border mx-auto max-w-sm">
+            <p className="font-semibold mb-1 text-left">
+              Reset Link (Test Mode):
+            </p>
+            <a href={state.reset_url} className="underline text-primary">
+              {state.reset_url}
+            </a>
+          </div>
+        )}
         <div className="mt-8">
           <Link href="/login">
             <Button variant="outline" className="h-11 w-full">

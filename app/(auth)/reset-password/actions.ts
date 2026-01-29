@@ -7,6 +7,7 @@ export type ResetPasswordState = {
     error?: string;
     success?: boolean;
     message?: string;
+    reset_url?: string | null;
 } | null;
 
 export async function resetPasswordAction(
@@ -35,5 +36,5 @@ export async function resetPasswordAction(
         return { error: result.error.error };
     }
 
-    return { success: true, message: result.data.message };
+    return { success: true, message: result.data.message, reset_url: result.data.reset_url };
 }

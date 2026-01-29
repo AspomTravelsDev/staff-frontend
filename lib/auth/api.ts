@@ -26,6 +26,11 @@ export interface MessageResponse {
     message: string;
 }
 
+export interface ResetPasswordResponse {
+    message: string;
+    reset_url?: string | null;
+}
+
 export interface InviteResponse {
     message: string;
     invite_url?: string;
@@ -57,8 +62,8 @@ export async function logout(token?: string): Promise<ApiResponse<MessageRespons
  * Success: { message: string }
  * Error: { error: string, code: "USER_NOT_FOUND" | "RATE_LIMITED" }
  */
-export async function resetPassword(email: string): Promise<ApiResponse<MessageResponse>> {
-    return api.post<MessageResponse>("/api/forgot-password", { email });
+export async function resetPassword(email: string): Promise<ApiResponse<ResetPasswordResponse>> {
+    return api.post<ResetPasswordResponse>("/api/forgot-password", { email });
 }
 
 /**
