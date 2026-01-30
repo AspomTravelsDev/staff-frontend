@@ -1,0 +1,68 @@
+[
+    {
+        "id": "COM-2024-001",
+        "user_id": "usr_123",
+        "user_name": "John Doe",
+        "user_department": "IT",
+        "type": "Lateness",
+        "date": "2024-01-29T09:15:00Z",
+        "description": "Arrived 15 minutes late without prior notice.",
+        "severity": "low",
+        "status": "open"
+    },
+    {
+        "id": "COM-2024-002",
+        "user_id": "usr_456",
+        "user_name": "Jane Smith",
+        "user_department": "Visa",
+        "type": "Policy Violation",
+        "date": "2024-01-28T14:00:00Z",
+        "description": "Failed to wear ID badge in secure area.",
+        "severity": "medium",
+        "status": "resolved"
+    },
+    {
+        "id": "COM-2024-003",
+        "user_id": "usr_789",
+        "user_name": "Mike Johnson",
+        "user_department": "Sales",
+        "type": "Misconduct",
+        "date": "2024-01-25T10:30:00Z",
+        "description": "Inappropriate language during team meeting.",
+        "severity": "high",
+        "status": "open"
+    },
+    {
+        "id": "COM-2024-004",
+        "user_id": "usr_101",
+        "user_name": "Sarah Williams",
+        "user_department": "Visa",
+        "type": "Lateness",
+        "date": "2024-01-30T09:10:00Z",
+        "description": "Late arrival due to traffic.",
+        "severity": "low",
+        "status": "open"
+    },
+    {
+        "id": "COM-2024-005",
+        "user_id": "usr_202",
+        "user_name": "Robert Brown",
+        "user_department": "HR",
+        "type": "Procedural Error",
+        "date": "2024-01-20T11:00:00Z",
+        "description": "Forgot to log client interaction in CRM.",
+        "severity": "medium",
+        "status": "resolved"
+    },
+    {
+        "id": "COM-2024-006",
+        "user_id": "usr_456",
+        "user_name": "Jane Smith",
+        "user_department": "Visa",
+        "type": "Lateness",
+        "date": "2024-01-15T09:20:00Z",
+        "description": "Repeated lateness.",
+        "severity": "medium",
+        "status": "open"
+    }
+]

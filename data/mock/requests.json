@@ -1,0 +1,80 @@
+[
+    {
+        "id": "REQ-2024-001",
+        "type": "General",
+        "category": "Toiletries",
+        "requester_id": "usr_123",
+        "requester_name": "Sarah Johnson",
+        "requester_role": "hr",
+        "request_date": "2024-01-28T09:30:00Z",
+        "status": "pending",
+        "reason": "Office supplies running low",
+        "details": "Need 5 packs of hand soap and 10 rolls of paper towels for the 2nd floor restroom.",
+        "priority": "medium"
+    },
+    {
+        "id": "REQ-2024-002",
+        "type": "Maintenance",
+        "category": "Repairs",
+        "requester_id": "usr_456",
+        "requester_name": "Mike Chen",
+        "requester_role": "it",
+        "request_date": "2024-01-27T14:15:00Z",
+        "status": "in_progress",
+        "reason": "Broken Chair",
+        "details": "The ergonomic chair in the server room has a broken wheel. Unsafe to use.",
+        "priority": "high"
+    },
+    {
+        "id": "REQ-2024-003",
+        "type": "IT",
+        "category": "Gadget",
+        "requester_id": "usr_789",
+        "requester_name": "Alex Thompson",
+        "requester_role": "visa",
+        "request_date": "2024-01-25T11:00:00Z",
+        "status": "completed",
+        "reason": "New Monitor",
+        "details": "Requesting a second monitor for increased productivity during visa processing.",
+        "priority": "low"
+    },
+    {
+        "id": "REQ-2024-004",
+        "type": "General",
+        "category": "Toiletries",
+        "requester_id": "usr_101",
+        "requester_name": "Emily Davis",
+        "requester_role": "account",
+        "request_date": "2024-01-29T08:45:00Z",
+        "status": "pending",
+        "reason": "Restroom Supplies",
+        "details": "Air freshener refill needed for the guest restroom.",
+        "priority": "low"
+    },
+    {
+        "id": "REQ-2024-005",
+        "type": "Maintenance",
+        "category": "Repairs",
+        "requester_id": "usr_202",
+        "requester_name": "David Wilson",
+        "requester_role": "compliance",
+        "request_date": "2024-01-20T16:20:00Z",
+        "status": "rejected",
+        "reason": "Wall Painting",
+        "details": "Request to repaint the office wall blue.",
+        "priority": "low"
+    },
+    {
+        "id": "REQ-2024-006",
+        "type": "General",
+        "category": "Other",
+        "requester_id": "usr_303",
+        "requester_name": "Jessica Brown",
+        "requester_role": "social-media",
+        "request_date": "2024-01-30T10:00:00Z",
+        "status": "pending",
+        "reason": "Event Props",
+        "details": "Need props for the upcoming social media shoot.",
+        "priority": "high"
+    }
+]

@@ -114,7 +114,7 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["super", "it"],
     },
     {
-        title: "Client Database",
+        title: "General Customer Database",
         url: "/crm",
         icon: ClipboardList,
         allowedRoles: ["account", "visa", "social-media", "birth-services"]
@@ -126,7 +126,7 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
-        title: "Employee Tasks & Reports",
+        title: "General Tasks & Reports",
         url: "/hr/tasks",
         icon: ClipboardList,
         allowedRoles: ["hr"],
@@ -138,7 +138,7 @@ export const departmentNav: NavItem[] = [
     //     allowedRoles: ["account"],
     // },
     {
-        title: "Upload Documents",
+        title: "Visa Documents",
         url: "/visa/documents",
         icon: FileText,
         allowedRoles: ["visa"],
@@ -173,6 +173,12 @@ export const departmentNav: NavItem[] = [
         url: "/admin/inventory",
         icon: ClipboardList,
         allowedRoles: ["admin", "super"]
+    },
+    {
+        title: "Visa Client List",
+        url: "/visa/clients",
+        icon: ClipboardList,
+        allowedRoles: ["visa"]
     }
 
 ];

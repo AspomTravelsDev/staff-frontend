@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { ActivityList } from "./components/activity-list";
+import { ActivityTable } from "./components/activity-table";
 import {
   Card,
   CardContent,
@@ -37,7 +37,7 @@ export default async function ActivityPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ActivityList activities={activities} />
+          <ActivityTable activities={activities} />
         </CardContent>
       </Card>
     </div>
