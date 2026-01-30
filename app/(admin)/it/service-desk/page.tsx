@@ -9,8 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle } from "lucide-react";
-import Link from "next/link";
+import { StatsCard } from "@/components/stats-card";
+import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 
 export default function ServiceDeskAdminPage() {
   // Mock Stats for Managers
@@ -72,53 +72,37 @@ export default function ServiceDeskAdminPage() {
 
       {/* Admin Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Approval
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {stats.pending}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Pending Approval"
+          icon={Clock}
+          value={stats.pending}
+          description="Awaiting review"
+          iconClassName="text-orange-600"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Approved Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.approvedToday}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Approved Today"
+          icon={CheckCircle2}
+          value={stats.approvedToday}
+          description="Requests processed"
+          iconClassName="text-green-600"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processing</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProcessing}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Processing"
+          icon={Loader2}
+          value={stats.totalProcessing}
+          description="Currently active"
+          iconClassName="text-blue-600"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Rejected (This Week)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {stats.rejected}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Rejected (This Week)"
+          icon={XCircle}
+          value={stats.rejected}
+          description="Denied requests"
+          iconClassName="text-destructive"
+        />
       </div>
 
       {/* Requests Table */}
@@ -153,8 +137,8 @@ export default function ServiceDeskAdminPage() {
                         req.status === "Approved"
                           ? "default"
                           : req.status === "Rejected"
-                          ? "destructive"
-                          : "secondary"
+                            ? "destructive"
+                            : "secondary"
                       }
                       className={
                         req.status === "Approved"

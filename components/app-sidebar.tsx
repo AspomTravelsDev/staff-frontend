@@ -27,7 +27,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { TreePalm } from "lucide-react";
 
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const { state } = useSidebar();
@@ -53,7 +52,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </Link>
         )}
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="overflow-y-auto">
         {/* Dashboard - always visible */}
         <NavMain items={dashboardNav} />
         {/* Divider */}

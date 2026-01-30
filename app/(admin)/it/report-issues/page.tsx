@@ -9,8 +9,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, MoreHorizontal } from "lucide-react";
-import Link from "next/link";
+import { StatsCard } from "@/components/stats-card";
+import {
+  AlertTriangle,
+  Clock,
+  Inbox,
+  MessageSquare,
+  MoreHorizontal,
+  UserX,
+} from "lucide-react";
 
 export default function IssueTrackerAdminPage() {
   // Mock Stats for IT Support Team
@@ -79,51 +86,37 @@ export default function IssueTrackerAdminPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Unassigned Tickets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {stats.unassigned}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Unassigned Tickets"
+          icon={UserX}
+          value={stats.unassigned}
+          description="Tickets needing attention"
+          iconClassName="text-orange-600"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Critical Issues
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {stats.critical}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Critical Issues"
+          icon={AlertTriangle}
+          value={stats.critical}
+          description="High priority tickets"
+          iconClassName="text-destructive"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avg Response Time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.avgResponse}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Avg Response Time"
+          icon={Clock}
+          value={stats.avgResponse}
+          description="Performance metric"
+          iconClassName="text-blue-600"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.openInfo}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Open Tickets"
+          icon={Inbox}
+          value={stats.openInfo}
+          description="Total active tickets"
+          iconClassName="text-muted-foreground"
+        />
       </div>
 
       {/* All Tickets Table */}
@@ -158,8 +151,8 @@ export default function IssueTrackerAdminPage() {
                         t.priority === "Critical"
                           ? "destructive"
                           : t.priority === "High"
-                          ? "default"
-                          : "outline"
+                            ? "default"
+                            : "outline"
                       }
                     >
                       {t.priority}
@@ -174,8 +167,8 @@ export default function IssueTrackerAdminPage() {
                         t.status === "Open"
                           ? "secondary"
                           : t.status === "Resolved"
-                          ? "outline"
-                          : "default"
+                            ? "outline"
+                            : "default"
                       }
                     >
                       {t.status}

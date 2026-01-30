@@ -1,0 +1,82 @@
+[
+    {
+        "id": "CLI-001",
+        "name": "Acme Corp",
+        "contactPerson": "John Smith",
+        "email": "john@acme.com",
+        "status": "Customer",
+        "value": "$50,000",
+        "assignedTo": "Sarah Williams",
+        "lastContact": "2024-01-25"
+    },
+    {
+        "id": "LEA-002",
+        "name": "Globex Inc",
+        "contactPerson": "Hank Scorpio",
+        "email": "hank@globex.com",
+        "status": "Lead",
+        "value": "$120,000",
+        "assignedTo": "Mike Johnson",
+        "lastContact": "2024-01-28"
+    },
+    {
+        "id": "CLI-003",
+        "name": "Soylent Corp",
+        "contactPerson": "Richard Thornburg",
+        "email": "richard@soylent.com",
+        "status": "Customer",
+        "value": "$75,000",
+        "assignedTo": "Sarah Williams",
+        "lastContact": "2023-12-15"
+    },
+    {
+        "id": "LEA-004",
+        "name": "Umbrella Corp",
+        "contactPerson": "Albert Wesker",
+        "email": "albert@umbrella.com",
+        "status": "Lead",
+        "value": "$500,000",
+        "assignedTo": "Jennifer Wilson",
+        "lastContact": "2024-01-29"
+    },
+    {
+        "id": "LEA-005",
+        "name": "Cyberdyne Systems",
+        "contactPerson": "Miles Dyson",
+        "email": "miles@cyberdyne.com",
+        "status": "Negotiation",
+        "value": "$250,000",
+        "assignedTo": "Mike Johnson",
+        "lastContact": "2024-01-20"
+    },
+    {
+        "id": "CLI-006",
+        "name": "Wayne Enterprises",
+        "contactPerson": "Lucius Fox",
+        "email": "lucius@wayne.com",
+        "status": "Customer",
+        "value": "$1,000,000",
+        "assignedTo": "Jennifer Wilson",
+        "lastContact": "2024-01-10"
+    },
+    {
+        "id": "LEA-007",
+        "name": "Stark Industries",
+        "contactPerson": "Pepper Potts",
+        "email": "pepper@stark.com",
+        "status": "Qualified",
+        "value": "$800,000",
+        "assignedTo": "Sarah Williams",
+        "lastContact": "2024-01-27"
+    },
+    {
+        "id": "CLI-008",
+        "name": "Massive Dynamic",
+        "contactPerson": "Nina Sharp",
+        "email": "nina@massive.com",
+        "status": "Customer",
+        "value": "$300,000",
+        "assignedTo": "Mike Johnson",
+        "lastContact": "2023-11-30"
+    }
+]
