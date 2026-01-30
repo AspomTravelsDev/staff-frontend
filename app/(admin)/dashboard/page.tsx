@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
-import { StatsCard } from "@/components/dashboard/stats-card";
+import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
 import Link from "next/link";
 
@@ -88,21 +88,24 @@ export default function Page() {
           icon={Clock10Icon}
           value={mockDashboardStats.totalAttendance.value}
           description={mockDashboardStats.totalAttendance.description}
-          color={mockDashboardStats.totalAttendance.color}
+          variant="dashboard"
+          cardColor={mockDashboardStats.totalAttendance.color}
         />
         <StatsCard
           title={mockDashboardStats.leaveDays.title}
           icon={Calendar}
           value={mockDashboardStats.leaveDays.value}
           description={mockDashboardStats.leaveDays.description}
-          color={mockDashboardStats.leaveDays.color}
+          variant="dashboard"
+          cardColor={mockDashboardStats.leaveDays.color}
         />
         <StatsCard
           title={mockDashboardStats.totalAwards.title}
           icon={Trophy}
           value={mockDashboardStats.totalAwards.value}
           description={mockDashboardStats.totalAwards.description}
-          color={mockDashboardStats.totalAwards.color}
+          variant="dashboard"
+          cardColor={mockDashboardStats.totalAwards.color}
         />
         <ExchangeRateCard rates={mockExchangeRates} />
       </div>
