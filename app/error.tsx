@@ -21,7 +21,8 @@ export default function Error({
           Something went wrong!
         </h2>
         <p className="text-muted-foreground">
-          We apologize for the inconvenience. Please try again.
+          We apologize for the inconvenience. Please clear your browser cookies
+          and try again.
         </p>
       </div>
       <Button onClick={() => reset()} variant="secondary">

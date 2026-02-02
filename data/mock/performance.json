@@ -1,0 +1,112 @@
+[
+    {
+        "id": "REV-001",
+        "employeeId": "EMP-001",
+        "employeeName": "John Doe",
+        "department": "IT",
+        "period": "Q4 2023",
+        "reviewer": "David Miller",
+        "status": "Completed",
+        "score": 4.5,
+        "date": "2024-01-15"
+    },
+    {
+        "id": "REV-002",
+        "employeeId": "EMP-002",
+        "employeeName": "Jane Smith",
+        "department": "HR",
+        "period": "Q4 2023",
+        "reviewer": "Linda Anderson",
+        "status": "In Progress",
+        "score": null,
+        "date": "2024-01-20"
+    },
+    {
+        "id": "REV-003",
+        "employeeId": "EMP-003",
+        "employeeName": "Michael Johnson",
+        "department": "Sales",
+        "period": "Q4 2023",
+        "reviewer": "Jennifer Wilson",
+        "status": "Completed",
+        "score": 3.8,
+        "date": "2024-01-10"
+    },
+    {
+        "id": "REV-004",
+        "employeeId": "EMP-005",
+        "employeeName": "Robert Brown",
+        "department": "Accounts",
+        "period": "Q4 2023",
+        "reviewer": "Sarah Williams",
+        "status": "Pending",
+        "score": null,
+        "date": "2024-01-25"
+    },
+    {
+        "id": "REV-005",
+        "employeeId": "EMP-006",
+        "employeeName": "Emily Davis",
+        "department": "Marketing",
+        "period": "Q4 2023",
+        "reviewer": "John Doe",
+        "status": "Completed",
+        "score": 4.2,
+        "date": "2024-01-12"
+    },
+    {
+        "id": "REV-006",
+        "employeeId": "EMP-007",
+        "employeeName": "David Miller",
+        "department": "IT",
+        "period": "Q3 2023",
+        "reviewer": "Management",
+        "status": "Completed",
+        "score": 4.8,
+        "date": "2023-10-15"
+    },
+    {
+        "id": "REV-007",
+        "employeeId": "EMP-008",
+        "employeeName": "Jennifer Wilson",
+        "department": "Sales",
+        "period": "Q3 2023",
+        "reviewer": "Management",
+        "status": "Completed",
+        "score": 4.0,
+        "date": "2023-10-20"
+    },
+    {
+        "id": "REV-008",
+        "employeeId": "EMP-010",
+        "employeeName": "Linda Anderson",
+        "department": "HR",
+        "period": "Annual 2023",
+        "reviewer": "Board",
+        "status": "Completed",
+        "score": 4.9,
+        "date": "2023-12-15"
+    },
+    {
+        "id": "REV-009",
+        "employeeId": "EMP-001",
+        "employeeName": "John Doe",
+        "department": "IT",
+        "period": "Q3 2023",
+        "reviewer": "David Miller",
+        "status": "Completed",
+        "score": 4.6,
+        "date": "2023-10-10"
+    },
+    {
+        "id": "REV-010",
+        "employeeId": "EMP-003",
+        "employeeName": "Michael Johnson",
+        "department": "Sales",
+        "period": "Q3 2023",
+        "reviewer": "Jennifer Wilson",
+        "status": "Completed",
+        "score": 3.5,
+        "date": "2023-10-05"
+    }
+]
