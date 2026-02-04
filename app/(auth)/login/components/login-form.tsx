@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useActionState } from "react";
@@ -17,6 +17,29 @@ export function LoginForm({ redirect }: { redirect?: string }) {
     null,
   );
   const router = useRouter();
+  // Using a ref to store location to avoid hydration issues with hidden input
+  const locationRef = useRef<string>("");
+
+  useEffect(() => {
+    // Attempt to get location immediately on mount
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const data = JSON.stringify({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+          locationRef.current = data;
+        },
+        (error) => {
+          console.log("Location access denied or failed:", error.message);
+          // We just continue without location
+        },
+        { timeout: 4000, maximumAge: 60000 }, // 4s timeout, accept cached for 1min
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (state?.error) {
@@ -39,7 +62,16 @@ export function LoginForm({ redirect }: { redirect?: string }) {
         Welcome back! Please enter your credentials.
       </p>
 
-      <form action={formAction} className="mt-8 space-y-6">
+      <form
+        action={(formData) => {
+          // Append location data before submitting
+          if (locationRef.current) {
+            formData.set("location", locationRef.current);
+          }
+          formAction(formData);
+        }}
+        className="mt-8 space-y-6"
+      >
         <input type="hidden" name="redirect" value={redirect || "/dashboard"} />
         {state?.error && (
           <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">

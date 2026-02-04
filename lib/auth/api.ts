@@ -40,14 +40,24 @@ export interface InviteResponse {
     invite_url?: string;
 }
 
+export interface LocationData {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+}
+
 /**
  * POST /api/auth/login
- * Request: { email: string, password: string }
+ * Request: { email: string, password: string, location?: LocationData }
  * Success: { token: string, user: User }
- * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" }
+ * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" | "LOCATION_TOO_FAR" | "COUNTRY_RESTRICTED" | "LOCATION_VERIFICATION_REQUIRED" }
  */
-export async function login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
-    return api.post<AuthResponse>("/api/login", { email, password });
+export async function login(
+    email: string,
+    password: string,
+    location?: LocationData
+): Promise<ApiResponse<AuthResponse>> {
+    return api.post<AuthResponse>("/api/login", { email, password, location });
 }
 
 /**

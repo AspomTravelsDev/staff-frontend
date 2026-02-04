@@ -18,10 +18,12 @@ export async function loginAction(
     const rawData = {
         email: formData.get("email") as string,
         password: formData.get("password") as string,
+        location: formData.get("location")
+            ? JSON.parse(formData.get("location") as string)
+            : undefined,
     };
 
-    // Validate input
-    const validatedFields = loginSchema.safeParse(rawData);
+    const validatedFields = loginSchema.safeParse({ email: rawData.email, password: rawData.password });
 
     if (!validatedFields.success) {
         const errors = validatedFields.error.flatten().fieldErrors;
@@ -32,7 +34,7 @@ export async function loginAction(
     const { email, password } = validatedFields.data;
 
     // Call API
-    const result = await login(email, password);
+    const result = await login(email, password, rawData.location);
 
     if (!result.success) {
         return { error: result.error.error };
