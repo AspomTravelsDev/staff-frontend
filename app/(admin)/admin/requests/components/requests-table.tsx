@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { getRoleLabel } from "@/types/user-types";
+import { getRoleLabel, User } from "@/types/user-types";
 import {
   MoreHorizontal,
   Box,
@@ -28,7 +28,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { RequestItem } from "@/lib/api/requests";
-import type { User } from "@/lib/auth/api";
 
 interface RequestsTableProps {
   requests: RequestItem[];

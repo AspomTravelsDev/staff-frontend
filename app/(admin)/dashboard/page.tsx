@@ -115,10 +115,14 @@ export default async function Page() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
-          title="Attendance (Month)"
+          title={`Attendance - Clock In (${now.toLocaleString("default", { month: "long" })})`}
           icon={Clock10Icon}
-          value={totalAttendance}
-          description={`${lateDays} late arrival${lateDays === 1 ? "" : "s"}`}
+          value={`${totalAttendance} / ${
+            Array.from({ length: now.getDate() }, (_, i) =>
+              new Date(now.getFullYear(), now.getMonth(), i + 1).getDay()
+            ).filter((day) => day !== 0 && day !== 6).length
+          }`}
+          description={`${lateDays} late arrival${lateDays === 1 ? "" : "s"} | Resumption: 9:05 AM UTC+1`}
           variant="dashboard"
           cardColor="blue"
         />

@@ -1,4 +1,4 @@
-import { User } from "../auth/api";
+import { User } from "@/types/user-types";
 import { api, USE_REAL_API } from "./client";
 import type { PaginatedResponse } from "./types";
 

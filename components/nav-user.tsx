@@ -41,7 +41,9 @@ function getInitials(name: string): string {
 export function NavUser() {
   const { user } = useUser();
 
-  const img_url = user.profile_img || "https://github.com/shadcn.png";
+  const img_url =
+    user?.image_url ||
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTS-_lB_YIKaaPz_vciNdT2ebnlUl6gJE5kBQ&s";
   const { isMobile } = useSidebar();
 
   if (!user) return null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { getRoleLabel } from "@/types/user-types";
+import { getRoleLabel, User } from "@/types/user-types";
 import {
   FileText,
   UserPlus,
@@ -14,7 +14,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ActivityItem } from "@/lib/api/types";
-import type { User } from "@/lib/auth/api";
 
 interface ActivityListProps {
   activities: ActivityItem[];

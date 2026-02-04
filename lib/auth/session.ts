@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { User, validateToken } from "./api";
+import { validateToken } from "./api";
+import { User, LoginUser } from "@/types/user-types";
 
 const AUTH_COOKIE_NAME = "auth_token";
 const USER_COOKIE_NAME = "auth_user";
@@ -15,7 +16,7 @@ const COOKIE_OPTIONS = {
 /**
  * Set auth session (token + user data)
  */
-export async function setSession(token: string, user: User): Promise<void> {
+export async function setSession(token: string, user: User | LoginUser): Promise<void> {
     const cookieStore = await cookies();
 
     cookieStore.set(AUTH_COOKIE_NAME, token, COOKIE_OPTIONS);

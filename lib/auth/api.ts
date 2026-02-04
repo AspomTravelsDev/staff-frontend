@@ -5,25 +5,11 @@
  */
 
 import { api, type ApiResponse } from "@/lib/api/client";
-// import type { UserRole } from "@/types/user-types";
-
-export type User = {
-    id: number;
-    name: string;
-    email: string;
-    // TODO: Update to user role when backend supports types
-    // role: UserRole;
-    role: string;
-    is_active: boolean;
-    email_verified_at?: string | null;
-    created_at?: string;
-    updated_at?: string;
-    profile_img?: string | null;
-};
+import { type User, type LoginUser } from "@/types/user-types";
 
 export interface AuthResponse {
     token: string;
-    user: User;
+    user: LoginUser;
 }
 
 export interface MessageResponse {
@@ -49,7 +35,7 @@ export interface LocationData {
 /**
  * POST /api/auth/login
  * Request: { email: string, password: string, location?: LocationData }
- * Success: { token: string, user: User }
+ * Success: { token: string, user: LoginUser }
  * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" | "LOCATION_TOO_FAR" | "COUNTRY_RESTRICTED" | "LOCATION_VERIFICATION_REQUIRED" }
  */
 export async function login(

@@ -37,3 +37,30 @@ export function getRoleLabel(role?: string): string {
     const detail = USER_ROLE_DETAILS[role as UserRole];
     return detail ? detail.label : role;
 }
+
+export interface User {
+    id: string;
+    staff_id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    image_url: string | null;
+    role: UserRole;
+    is_active: boolean;
+    is_supervisor: boolean;
+    net_pay: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface LoginUser {
+    id: string;
+    staff_id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    image_url: string | null;
+    role: UserRole;
+    is_active: boolean;
+    is_supervisor: boolean;
+}

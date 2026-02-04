@@ -4,7 +4,7 @@
  * Common types used across all API modules.
  */
 
-import type { User } from "@/lib/auth/api";
+import type { User } from "@/types/user-types";
 
 /**
  * Pagination response from API

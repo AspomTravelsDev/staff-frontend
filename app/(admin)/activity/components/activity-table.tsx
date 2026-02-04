@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ActivityItem } from "@/lib/api/types";
-import type { User } from "@/lib/auth/api";
+import type { User } from "@/types/user-types";
 
 interface ActivityTableProps {
   activities: ActivityItem[];
