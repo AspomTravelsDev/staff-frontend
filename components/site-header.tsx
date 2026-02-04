@@ -82,16 +82,6 @@ export const SiteHeader = () => {
                 </Popover>
               </div>
             </div>
-            {/* User Image */}
-            <div className="flex items-center gap-2">
-              <Avatar>
-                <AvatarImage
-                  src="https://github.com/shadcn.png"
-                  alt="@shadcn"
-                />
-                <AvatarFallback>CN</AvatarFallback>
-              </Avatar>
-            </div>
             <div>
               <ThemeSwitcher />
             </div>

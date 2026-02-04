@@ -78,7 +78,21 @@ export async function apiClient<T>(
             return { success: true, data: null as T };
         }
 
-        const data = await response.json();
+        let data;
+        try {
+            const text = await response.text();
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error(`API JSON Parse Error [${endpoint}]:`, e);
+                console.error("Raw Response Preview:", text.substring(0, 1000));
+                console.error("Raw Response End:", text.slice(-1000));
+                throw new Error(`Invalid JSON response from server: ${text.substring(0, 100)}...`);
+            }
+        } catch (error) {
+            // Handle non-json responses or network stream errors
+            throw error;
+        }
 
         if (!response.ok) {
             return {

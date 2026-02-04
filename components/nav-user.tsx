@@ -40,6 +40,8 @@ function getInitials(name: string): string {
 
 export function NavUser() {
   const { user } = useUser();
+
+  const img_url = user.profile_img || "https://github.com/shadcn.png";
   const { isMobile } = useSidebar();
 
   if (!user) return null;
@@ -56,6 +58,7 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src={img_url} alt={user.name} />
                 <AvatarFallback className="rounded-lg">
                   {initials}
                 </AvatarFallback>
@@ -76,6 +79,7 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={img_url} alt={user.name} />
                   <AvatarFallback className="rounded-lg">
                     {initials}
                   </AvatarFallback>
@@ -89,16 +93,16 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-               <Link href="/profile" className="flex items-center gap-2">
-                <BadgeCheck />
-                My Profile
-               </Link>
+                <Link href="/profile" className="flex items-center gap-2">
+                  <BadgeCheck />
+                  My Profile
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
-              <Link href="/notifications" className="flex items-center gap-2">
-                <Bell />
-                Notifications
-              </Link>
+                <Link href="/notifications" className="flex items-center gap-2">
+                  <Bell />
+                  Notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
