@@ -28,6 +28,7 @@ import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
 import Link from "next/link";
+import { getClockInHistory } from "@/lib/api/clock-in";
 
 interface QuickLinkButtonProps {
   icon: LucideIcon;
@@ -78,18 +79,48 @@ import {
   mockExchangeRates,
 } from "@/lib/data/mock-dashboard";
 
-export default function Page() {
+export default async function Page() {
+  // Fetch Attendance Data
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const formatDate = (date: Date) => date.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const clockInResponse = await getClockInHistory(
+    formatDate(startOfMonth),
+    formatDate(now),
+  );
+
+  let totalAttendance = 0;
+  let lateDays = 0;
+
+  if (clockInResponse.success) {
+    const history = clockInResponse.data.data;
+    totalAttendance = history.length;
+
+    // Calculate late days (Clock in > 9:05 AM UTC+1)
+    // 9:05 AM UTC+1 is 8:05 AM UTC
+    lateDays = history.filter((record) => {
+      const date = new Date(record.clock_in_at);
+      const utcHours = date.getUTCHours();
+      const utcMinutes = date.getUTCMinutes();
+
+      if (utcHours > 8) return true;
+      if (utcHours === 8 && utcMinutes > 5) return true;
+      return false;
+    }).length;
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-12 pt-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
-          title={mockDashboardStats.totalAttendance.title}
+          title="Attendance (Month)"
           icon={Clock10Icon}
-          value={mockDashboardStats.totalAttendance.value}
-          description={mockDashboardStats.totalAttendance.description}
+          value={totalAttendance}
+          description={`${lateDays} late arrival${lateDays === 1 ? "" : "s"}`}
           variant="dashboard"
-          cardColor={mockDashboardStats.totalAttendance.color}
+          cardColor="blue"
         />
         <StatsCard
           title={mockDashboardStats.leaveDays.title}
