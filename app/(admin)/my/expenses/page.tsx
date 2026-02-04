@@ -1,3 +1,10 @@
+import { PlaceholderPage } from "@/components/placeholder-page";
+
 export default function Page() {
-  return <div>Expenses</div>;
+  return (
+    <PlaceholderPage
+      title="Expenses"
+      description="Track and report your personal expenses."
+    />
+  );
 }

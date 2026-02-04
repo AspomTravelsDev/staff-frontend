@@ -1,3 +1,10 @@
+import { PlaceholderPage } from "@/components/placeholder-page";
+
 export default function Page() {
-  return <div>Accounts Tasks</div>;
+  return (
+    <PlaceholderPage
+      title="Accounts Tasks"
+      description="Track and manage accounting-related tasks and todo items."
+    />
+  );
 }

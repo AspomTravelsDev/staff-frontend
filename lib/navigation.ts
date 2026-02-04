@@ -179,6 +179,13 @@ export const departmentNav: NavItem[] = [
         url: "/visa/clients",
         icon: ClipboardList,
         allowedRoles: ["visa"]
+    },
+    // Route for IT to manage all information in information desk
+    {
+        title: "Information Desk",
+        url: "/it/information-desk",
+        icon: FolderOpen,
+        allowedRoles: ["it", "super"]
     }
 
 ];
@@ -242,6 +249,9 @@ export const personalNav: NavItem[] = [
             {
                 title: "Birth Services Information Desk", url: "/my/birth-services"
             },
+            {
+                title: "IT Information Desk", url: "/my/it"
+            }
         ]
     },
     {

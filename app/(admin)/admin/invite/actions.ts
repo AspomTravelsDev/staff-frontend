@@ -39,5 +39,25 @@ export async function inviteAction(
         return { error: result.error.error };
     }
 
+    // Send email with invite link
+    if (result.data.invite_url) {
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            await fetch(`${baseUrl}/api/send-email/invite`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email: email,
+                    inviteLink: result.data.invite_url.replace(/^https?:\/\/[^/]+/, baseUrl),
+                }),
+            });
+        } catch (error) {
+            console.error("Failed to send invite email:", error);
+            // We don't fail the action if email sending fails, as the user still has the link
+        }
+    }
+
     return { success: true, message: result.data.message, invite_url: result.data.invite_url };
 }

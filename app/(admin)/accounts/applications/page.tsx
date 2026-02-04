@@ -1,3 +1,10 @@
+import { PlaceholderPage } from "@/components/placeholder-page";
+
 export default function Page() {
-  return <div>Accounts Applications</div>;
+  return (
+    <PlaceholderPage
+      title="Accounts Applications"
+      description="Manage application fees and payment processing for all accounts."
+    />
+  );
 }

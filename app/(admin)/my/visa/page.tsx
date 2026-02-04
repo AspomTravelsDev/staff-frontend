@@ -1,3 +1,10 @@
+import { PlaceholderPage } from "@/components/placeholder-page";
+
 export default function Page() {
-  return <div>Visa Information Desk</div>;
+  return (
+    <PlaceholderPage
+      title="Visa Information Desk"
+      description="Information and resources regarding visa services."
+    />
+  );
 }
