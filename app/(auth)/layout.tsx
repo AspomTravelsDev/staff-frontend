@@ -13,7 +13,7 @@ export default function AuthLayout({
 
       <div className="relative hidden lg:block lg:w-1/3">
         <Image
-          src="/banner.jpeg"
+          src="/banner-crop.jpeg"
           alt="Office workspace"
           fill
           className="object-cover object-top"

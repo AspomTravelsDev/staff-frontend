@@ -122,7 +122,7 @@ export default async function Page() {
               new Date(now.getFullYear(), now.getMonth(), i + 1).getDay()
             ).filter((day) => day !== 0 && day !== 6).length
           }`}
-          description={`${lateDays} late arrival${lateDays === 1 ? "" : "s"} | Resumption: 9:05 AM UTC+1`}
+          description={`${lateDays} late arrival${lateDays === 1 ? "" : "s"} | Resumption: 9:05 AM UTC+1`} 
           variant="dashboard"
           cardColor="blue"
         />
