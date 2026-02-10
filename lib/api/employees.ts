@@ -1,6 +1,7 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
+import { shouldMock } from "./client";
 
 // ============================================================================
 // Types
@@ -34,8 +35,6 @@ export interface EmployeeFilters {
     status?: "Active" | "Inactive";
 }
 
-const USE_REAL_API = true; // Mock toggle
-
 // ============================================================================
 // Mock Data Loader
 // ============================================================================
@@ -63,7 +62,7 @@ const getMockEmployees = async (): Promise<Employee[]> => {
 export async function getEmployees(
     filters: EmployeeFilters = {}
 ): Promise<PaginatedResponse<Employee>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockEmployees")) {
         const employees = await getMockEmployees();
         let filtered = [...employees];
 
@@ -108,7 +107,7 @@ export async function getEmployees(
 }
 
 export async function getEmployeeStats(): Promise<EmployeeStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockEmployees")) {
         const employees = await getMockEmployees();
 
         const totalActive = employees.filter(e => e.status === "Active").length;

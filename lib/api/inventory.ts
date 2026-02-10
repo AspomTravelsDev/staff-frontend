@@ -1,6 +1,7 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
+import { shouldMock } from "./client";
 
 // ============================================================================
 // Types
@@ -34,8 +35,6 @@ export interface InventoryFilters {
     status?: InventoryStatus;
 }
 
-const USE_REAL_API = true; // Mock toggle
-
 // ============================================================================
 // Mock Data Loader
 // ============================================================================
@@ -63,7 +62,7 @@ const getMockInventory = async (): Promise<InventoryItem[]> => {
 export async function getInventory(
     filters: InventoryFilters = {}
 ): Promise<PaginatedResponse<InventoryItem>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockInventory")) {
         const inventory = await getMockInventory();
         let filtered = [...inventory];
 
@@ -107,7 +106,7 @@ export async function getInventory(
 }
 
 export async function getInventoryStats(): Promise<InventoryStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockInventory")) {
         const inventory = await getMockInventory();
 
         const totalItems = inventory.reduce((acc, item) => acc + item.stock, 0);

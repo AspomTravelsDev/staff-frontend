@@ -1,5 +1,5 @@
 import { User } from "@/types/user-types";
-import { api, USE_REAL_API } from "./client";
+import { api, shouldMock } from "./client";
 import type { PaginatedResponse } from "./types";
 
 // ============================================================================
@@ -73,7 +73,7 @@ const getMockRequests = async (): Promise<RequestItem[]> => {
 export async function getRequests(
     filters: RequestFilters = {}
 ): Promise<PaginatedResponse<RequestItem>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockRequests")) {
         const requests = await getMockRequests();
         let filtered = [...requests];
 
@@ -119,7 +119,7 @@ export async function getRequests(
  * Get request statistics
  */
 export async function getRequestStats(): Promise<RequestStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockRequests")) {
         const requests = await getMockRequests();
 
         return {

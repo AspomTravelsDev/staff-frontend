@@ -1,6 +1,6 @@
 "use server";
 
-import { api, USE_REAL_API } from "./client";
+import { api, shouldMock } from "./client";
 import type { PaginatedResponse } from "./types";
 
 // ============================================================================
@@ -71,7 +71,7 @@ const getMockComplianceIssues = async (): Promise<ComplianceIssue[]> => {
 export async function getComplianceIssues(
     filters: ComplianceFilters = {}
 ): Promise<PaginatedResponse<ComplianceIssue>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockCompliance")) {
         const issues = await getMockComplianceIssues();
         let filtered = [...issues];
 
@@ -116,7 +116,7 @@ export async function getComplianceIssues(
 }
 
 export async function getComplianceStats(): Promise<ComplianceStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockCompliance")) {
         const issues = await getMockComplianceIssues();
 
         // Mock Logic for stats
@@ -167,7 +167,7 @@ export async function getComplianceStats(): Promise<ComplianceStats> {
 }
 
 export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): Promise<void> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockCompliance")) {
         console.log("Mock: Adding compliance occurrence", data);
         return;
     }

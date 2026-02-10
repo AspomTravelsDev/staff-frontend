@@ -4,7 +4,7 @@
  * API functions for system-wide activity/audit log.
  */
 
-import { api, USE_REAL_API } from "./client";
+import { api, shouldMock } from "./client";
 import { getMockActivities } from "./mock-loader";
 import type { PaginatedResponse, ActivityItem } from "./types";
 
@@ -33,7 +33,7 @@ export async function getActivities(
     filters: ActivityFilters = {}
 ): Promise<PaginatedResponse<ActivityItem>> {
     // TODO: Remove this when we have a real API
-    if (USE_REAL_API) {
+    if (shouldMock("useMockActivity")) {
         const activities = await getMockActivities();
         let filtered = [...activities];
 
@@ -86,7 +86,7 @@ export async function getActivities(
  * Get unread activity count
  */
 export async function getUnreadActivityCount(): Promise<number> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockActivity")) {
         const activities = await getMockActivities();
         return activities.filter((act) => !act.is_read).length;
     }
@@ -104,7 +104,7 @@ export async function getUnreadActivityCount(): Promise<number> {
  * Mark activity as read
  */
 export async function markActivityRead(id: string): Promise<void> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockActivity")) {
         // In mock mode, we can't persist this change
         console.log(`Mock: Marking activity ${id} as read`);
         return;
@@ -121,7 +121,7 @@ export async function markActivityRead(id: string): Promise<void> {
  * Mark all activities as read
  */
 export async function markAllActivitiesRead(): Promise<void> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockActivity")) {
         console.log("Mock: Marking all activities as read");
         return;
     }

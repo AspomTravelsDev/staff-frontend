@@ -1,6 +1,7 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
+import { shouldMock } from "./client";
 
 // ============================================================================
 // Types
@@ -35,8 +36,6 @@ export interface PerformanceFilters {
     period?: string;
 }
 
-const USE_REAL_API = true; // Mock toggle
-
 // ============================================================================
 // Mock Data Loader
 // ============================================================================
@@ -64,7 +63,7 @@ const getMockReviews = async (): Promise<Review[]> => {
 export async function getReviews(
     filters: PerformanceFilters = {}
 ): Promise<PaginatedResponse<Review>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockPerformance")) {
         const reviews = await getMockReviews();
         let filtered = [...reviews];
 
@@ -107,7 +106,7 @@ export async function getReviews(
 }
 
 export async function getPerformanceStats(): Promise<PerformanceStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockPerformance")) {
         const reviews = await getMockReviews();
 
         const totalReviews = reviews.length;

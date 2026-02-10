@@ -65,6 +65,85 @@ export const queryKeys = {
         detail: (id: string) => [...queryKeys.users.all, "detail", id] as const,
         staff: () => [...queryKeys.users.all, "staff"] as const,
     },
+
+    /**
+     * CRM keys
+     */
+    crm: {
+        all: ["crm"] as const,
+        clients: {
+            all: ["crm", "clients"] as const,
+            lists: () => [...queryKeys.crm.clients.all, "list"] as const,
+            list: (filters?: QueryFilters) => [...queryKeys.crm.clients.lists(), filters] as const,
+        },
+        stats: () => ["crm", "stats"] as const,
+    },
+
+    /**
+     * Employee keys
+     */
+    employees: {
+        all: ["employees"] as const,
+        lists: () => [...queryKeys.employees.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.employees.lists(), filters] as const,
+        stats: () => ["employees", "stats"] as const,
+    },
+
+    /**
+     * Request keys
+     */
+    requests: {
+        all: ["requests"] as const,
+        lists: () => [...queryKeys.requests.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.requests.lists(), filters] as const,
+        stats: () => ["requests", "stats"] as const,
+    },
+
+    /**
+     * Leave keys
+     */
+    leave: {
+        all: ["leave"] as const,
+        lists: () => [...queryKeys.leave.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.leave.lists(), filters] as const,
+        stats: () => ["leave", "stats"] as const,
+    },
+
+    /**
+     * Inventory keys
+     */
+    inventory: {
+        all: ["inventory"] as const,
+        lists: () => [...queryKeys.inventory.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.inventory.lists(), filters] as const,
+        stats: () => ["inventory", "stats"] as const,
+    },
+
+    /**
+     * Performance keys
+     */
+    performance: {
+        all: ["performance"] as const,
+        lists: () => [...queryKeys.performance.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.performance.lists(), filters] as const,
+        stats: () => ["performance", "stats"] as const,
+    },
+
+    /**
+     * Compliance keys
+     */
+    compliance: {
+        all: ["compliance"] as const,
+        lists: () => [...queryKeys.compliance.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.compliance.lists(), filters] as const,
+        stats: () => ["compliance", "stats"] as const,
+    },
+    awards: {
+        all: ["awards"] as const,
+        lists: () => [...queryKeys.awards.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.awards.lists(), filters] as const,
+        stats: () => ["awards", "stats"] as const,
+    },
 } as const;
 
 /**

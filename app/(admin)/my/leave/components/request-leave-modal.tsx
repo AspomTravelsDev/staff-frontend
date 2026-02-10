@@ -45,7 +45,7 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
 
   const endDate = useMemo(() => {
     if (!startDate || !days) return "";
-    const end = addBusinessDays(startDate, days - 1);
+    const end = addBusinessDays(startDate, days);
     return format(end, "yyyy-MM-dd");
   }, [startDate, days]);
 

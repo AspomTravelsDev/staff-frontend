@@ -6,9 +6,12 @@
  */
 
 import { getAuthToken } from "@/lib/auth/session";
+export { API_CONFIG, shouldMock } from "./config";
 
 // Remove debug logs and USE_REAL_API
-export const USE_REAL_API = true; // Deprecated, always true
+
+// Remove debug logs and USE_REAL_API
+// export const USE_REAL_API = true; // Deprecated
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface ErrorResponse {

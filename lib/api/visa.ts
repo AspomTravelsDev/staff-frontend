@@ -5,7 +5,7 @@
  * Used by React Query hooks and Server Actions.
  */
 
-import { api, USE_REAL_API } from "./client";
+import { api, shouldMock } from "./client";
 import {
     getMockApplications,
     getMockApplicationById,
@@ -164,7 +164,7 @@ export interface AddNoteRequest {
 export async function getVisaApplications(
     filters: VisaApplicationFilters = {}
 ): Promise<PaginatedResponse<VisaApplicationListItem>> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         const applications = await getMockApplications();
         let filtered = applications.map(toListItem);
 
@@ -241,7 +241,7 @@ export async function getVisaApplications(
  * Get single visa application by ID
  */
 export async function getVisaApplication(id: string): Promise<VisaApplication> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         const application = await getMockApplicationById(id);
         if (!application) {
             throw new Error("Application not found");
@@ -265,7 +265,7 @@ export async function updateApplicationStatus(
     id: string,
     data: UpdateStatusRequest
 ): Promise<VisaApplication> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         const application = await getMockApplicationById(id);
         if (!application) {
             throw new Error("Application not found");
@@ -296,7 +296,7 @@ export async function assignApplication(
     id: string,
     data: AssignApplicationRequest
 ): Promise<VisaApplication> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         const application = await getMockApplicationById(id);
         const staff = await getMockVisaStaff();
         const assignedStaff = staff.find((s) => s.id === data.staff_id);
@@ -328,7 +328,7 @@ export async function assignApplication(
  * Get notes for an application
  */
 export async function getApplicationNotes(id: string): Promise<InternalNote[]> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         return getMockApplicationNotes(id);
     }
 
@@ -350,7 +350,7 @@ export async function addApplicationNote(
     id: string,
     data: AddNoteRequest
 ): Promise<InternalNote> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         return {
             id: `note-${Date.now()}`,
             content: data.content,
@@ -379,7 +379,7 @@ export async function addApplicationNote(
 export async function getApplicationDocuments(
     id: string
 ): Promise<DocumentAttachment[]> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         return getMockApplicationDocuments(id);
     }
 
@@ -400,7 +400,7 @@ export async function getApplicationDocuments(
 export async function getApplicationAuditLog(
     id: string
 ): Promise<AuditLogEntry[]> {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         return getMockApplicationAuditLog(id);
     }
 
@@ -421,7 +421,7 @@ export async function getApplicationAuditLog(
 export async function getVisaStaff(): Promise<
     { id: string; name: string; email: string }[]
 > {
-    if (!USE_REAL_API) {
+    if (shouldMock("useMockVisa")) {
         return getMockVisaStaff();
     }
 

@@ -14,6 +14,8 @@ import {
     MessageCircle,
     Users,
     type LucideIcon,
+    Trophy,
+    Coins,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 
@@ -180,12 +182,23 @@ export const departmentNav: NavItem[] = [
         icon: ClipboardList,
         allowedRoles: ["visa"]
     },
-    // Route for IT to manage all information in information desk
     {
         title: "Information Desk",
         url: "/it/information-desk",
         icon: FolderOpen,
         allowedRoles: ["it", "super"]
+    },
+    {
+        title: "Award Staff",
+        url: "/hr/award-staff",
+        icon: Trophy,
+        allowedRoles: ["hr", "super"]
+    },
+    {
+        title: "Current Rates",
+        url: "/accounts/current-rates",
+        icon: Coins,
+        allowedRoles: ["account"]
     }
 
 ];
@@ -196,7 +209,7 @@ export const departmentNav: NavItem[] = [
  */
 export const personalNav: NavItem[] = [
     {
-        title: "HR Requests",
+        title: "HR Updates",
         url: "",
         icon: Users,
         items: [

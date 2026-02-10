@@ -1,6 +1,7 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
+import { shouldMock } from "./client";
 
 // ============================================================================
 // Types
@@ -33,8 +34,6 @@ export interface CRMFilters {
     status?: CRMStatus;
 }
 
-const USE_REAL_API = true; // Mock toggle
-
 // ============================================================================
 // Mock Data Loader
 // ============================================================================
@@ -62,7 +61,7 @@ const getMockClients = async (): Promise<Client[]> => {
 export async function getClients(
     filters: CRMFilters = {}
 ): Promise<PaginatedResponse<Client>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockCrm")) {
         const clients = await getMockClients();
         let filtered = [...clients];
 
@@ -102,7 +101,7 @@ export async function getClients(
 }
 
 export async function getCRMStats(): Promise<CRMStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockCrm")) {
         const clients = await getMockClients();
 
         const totalClients = clients.filter(c => c.status === "Customer").length;

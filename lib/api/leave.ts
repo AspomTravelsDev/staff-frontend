@@ -1,6 +1,7 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
+import { shouldMock } from "./client";
 
 // ============================================================================
 // Types
@@ -37,8 +38,6 @@ export interface LeaveFilters {
     department?: string;
 }
 
-const USE_REAL_API = true; // Mock toggle
-
 // ============================================================================
 // Mock Data Loader
 // ============================================================================
@@ -66,7 +65,7 @@ const getMockLeaveRequests = async (): Promise<LeaveRequest[]> => {
 export async function getLeaveRequests(
     filters: LeaveFilters = {}
 ): Promise<PaginatedResponse<LeaveRequest>> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockLeave")) {
         const requests = await getMockLeaveRequests();
         let filtered = [...requests];
 
@@ -113,7 +112,7 @@ export async function getLeaveRequests(
 }
 
 export async function getLeaveStats(): Promise<LeaveStats> {
-    if (USE_REAL_API) {
+    if (shouldMock("useMockLeave")) {
         const requests = await getMockLeaveRequests();
         const today = new Date().toISOString().split('T')[0];
         const currentYearMonth = today.substring(0, 7); // YYYY-MM
