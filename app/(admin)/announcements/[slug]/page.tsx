@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { newsData } from "@/lib/data/mock-news";
+import { getAnnouncementBySlug } from "@/lib/api/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,21 +15,16 @@ interface PageProps {
 export default async function AnnouncementPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const getSlug = (title: string) =>
-    title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-");
+  const response = await getAnnouncementBySlug(slug);
 
-  const newsItem = newsData.find((item) => getSlug(item.title) === slug);
-
-  if (!newsItem) {
+  if (!response.success || !response.data) {
     notFound();
   }
 
+  const newsItem = response.data;
+
   return (
     <div className="space-y-6">
-
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">

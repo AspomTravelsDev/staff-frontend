@@ -12,6 +12,7 @@ export const API_CONFIG = {
     useMockCompliance: true,
     useMockAwards: true,
     useMockRates: true,
+    useMockDashboard: true,
 } as const;
 
 // Helper to check if a specific module should use mocks

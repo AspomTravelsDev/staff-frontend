@@ -31,7 +31,7 @@ export default function Error({
         console.error("Failed to auto-logout:", err);
       }
     };
-    performLogout();
+    // performLogout();
   }, [error]);
 
   return (

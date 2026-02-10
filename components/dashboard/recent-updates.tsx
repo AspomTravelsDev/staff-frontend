@@ -26,13 +26,49 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
-import { newsData } from "@/lib/data/mock-news";
+import { useDashboardUpdates } from "@/lib/api/hooks/use-dashboard";
 
 const ITEMS_PER_PAGE = 5;
 
 export function RecentUpdates({ className }: { className?: string }) {
+  const { data: newsData, isLoading } = useDashboardUpdates();
   const [currentPage, setCurrentPage] = useState(1);
+
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Newsletter & Announcements</CardTitle>
+          <CardDescription>
+            Latest company news and announcements.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!newsData || newsData.length === 0) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Newsletter & Announcements</CardTitle>
+          <CardDescription>
+            Latest company news and announcements.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-10 text-muted-foreground">
+            No updates available.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const totalPages = Math.ceil(newsData.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -74,7 +110,11 @@ export function RecentUpdates({ className }: { className?: string }) {
               return (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/announcements/${slug}`} className="underline">
+                    <Link
+                      href={`/announcements/${slug}`}
+                      className="underline"
+                      // target="_blank"
+                    >
                       {item.title}
                     </Link>
                   </TableCell>
