@@ -90,7 +90,13 @@ export default async function MyAttendancePage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Attendance History</h2>
+        <h2 className="text-lg font-semibold">
+          Attendance History{" "}
+          <span className="text-xs text-muted-foreground italic">
+            Comment for backend: automatic clockout (not logout) at 6pm
+          </span>
+        </h2>
+
         <AttendanceTable history={history} />
       </div>
     </div>

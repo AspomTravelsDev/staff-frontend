@@ -7,6 +7,7 @@ interface StatsCardProps {
   icon: LucideIcon;
   value: React.ReactNode;
   description?: string;
+  footer?: React.ReactNode; // Custom footer content (replaces description if provided)
   variant?: "default" | "dashboard";
   cardColor?: "blue" | "green" | "red" | "yellow" | "purple" | "orange";
   iconClassName?: string;
@@ -18,6 +19,7 @@ export function StatsCard({
   icon: Icon,
   value,
   description,
+  footer,
   variant = "default",
   cardColor = "blue",
   iconClassName,
@@ -49,9 +51,11 @@ export function StatsCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {description && (
+        {footer ? (
+          <div className="mt-3">{footer}</div>
+        ) : description ? (
           <p className="text-xs text-muted-foreground">{description}</p>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

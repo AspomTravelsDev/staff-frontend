@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { UserProvider } from "@/providers/user-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { getCurrentUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
   children,
@@ -11,6 +12,11 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
+
+  // If no user, redirect to logout route which will clear session and redirect to login
+  if (!user) {
+    redirect("/auth/logout");
+  }
 
   return (
     <QueryProvider>

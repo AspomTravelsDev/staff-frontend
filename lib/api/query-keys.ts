@@ -124,9 +124,14 @@ export const queryKeys = {
      */
     performance: {
         all: ["performance"] as const,
-        lists: () => [...queryKeys.performance.all, "list"] as const,
-        list: (filters?: QueryFilters) => [...queryKeys.performance.lists(), filters] as const,
-        stats: () => ["performance", "stats"] as const,
+        appraisals: {
+            all: () => [...queryKeys.performance.all, "appraisals"] as const,
+            lists: () => [...queryKeys.performance.appraisals.all(), "list"] as const,
+            list: (filters?: QueryFilters) => [...queryKeys.performance.appraisals.lists(), filters] as const,
+            details: () => [...queryKeys.performance.appraisals.all(), "detail"] as const,
+            detail: (id: string) => [...queryKeys.performance.appraisals.details(), id] as const,
+        },
+        stats: () => [...queryKeys.performance.all, "stats"] as const,
     },
 
     /**

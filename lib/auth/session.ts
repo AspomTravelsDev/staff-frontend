@@ -59,8 +59,8 @@ export async function getCurrentUser(): Promise<User | null> {
     const result = await validateToken(token);
 
     if (!result.success) {
-        // Token is invalid, clear session
-        await clearSession();
+        // Token is invalid - cannot clear session here (Next.js restriction)
+        // Session will be cleared by the logout route handler
         return null;
     }
 

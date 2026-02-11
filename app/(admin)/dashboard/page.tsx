@@ -26,6 +26,10 @@ import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
 import { EmployeeOfTheMonthCard } from "@/components/dashboard/employee-of-month-card";
+import {
+  AttendanceStatusBlocks,
+  AttendanceStatus,
+} from "@/components/dashboard/attendance-status-blocks";
 import Link from "next/link";
 import { getClockInHistory } from "@/lib/api/clock-in";
 
@@ -87,22 +91,76 @@ export default async function Page() {
 
   let totalAttendance = 0;
   let lateDays = 0;
+  let attendanceStatuses: AttendanceStatus[] = [];
+
+  // console.log("📊 Clock-in API Response:", clockInResponse);
 
   if (clockInResponse.success) {
     const history = clockInResponse.data.data;
     totalAttendance = history.length;
 
-    // Calculate late days (Clock in > 9:05 AM UTC+1)
-    // 9:05 AM UTC+1 is 8:05 AM UTC
-    lateDays = history.filter((record) => {
+    // console.log("📅 Clock-in History Data:", {
+    //   totalRecords: history.length,
+    //   records: history,
+    // });
+
+    // Get all working days from start of month to today (matching the stat denominator)
+    const workingDaysThisMonth: Date[] = [];
+    let currentDate = new Date(now);
+
+    // Go backwards from today to start of month
+    while (currentDate >= startOfMonth) {
+      const dayOfWeek = currentDate.getDay();
+      // Skip weekends (0 = Sunday, 6 = Saturday)
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDaysThisMonth.push(new Date(currentDate));
+      }
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+
+    // Reverse to get chronological order (oldest to newest)
+    workingDaysThisMonth.reverse();
+
+    // console.log(
+    //   "📆 Working Days This Month:",
+    //   workingDaysThisMonth.map((d) => formatDate(d)),
+    // );
+
+    // Map each working day to its status
+    attendanceStatuses = workingDaysThisMonth.map((workDay) => {
+      const dayStr = formatDate(workDay);
+      const record = history.find((r) => {
+        const recordDate = formatDate(new Date(r.clock_in_at));
+        return recordDate === dayStr;
+      });
+
+      if (!record) {
+        // No clock-in record for this working day
+        return "absent" as AttendanceStatus;
+      }
+
+      // Check if late (Clock in > 9:05 AM UTC+1 = 8:05 AM UTC)
       const date = new Date(record.clock_in_at);
       const utcHours = date.getUTCHours();
       const utcMinutes = date.getUTCMinutes();
 
-      if (utcHours > 8) return true;
-      if (utcHours === 8 && utcMinutes > 5) return true;
-      return false;
-    }).length;
+      const isLate = utcHours > 8 || (utcHours === 8 && utcMinutes > 5);
+
+      if (isLate) {
+        lateDays++;
+        return "late" as AttendanceStatus;
+      }
+
+      return "on-time" as AttendanceStatus;
+    });
+
+    // console.log("✅ Calculated Attendance Statuses:", {
+    //   statuses: attendanceStatuses,
+    //   onTime: attendanceStatuses.filter((s) => s === "on-time").length,
+    //   late: attendanceStatuses.filter((s) => s === "late").length,
+    //   absent: attendanceStatuses.filter((s) => s === "absent").length,
+    //   placeholder: attendanceStatuses.filter((s) => s === "placeholder").length,
+    // });
   }
 
   return (
@@ -117,7 +175,7 @@ export default async function Page() {
               new Date(now.getFullYear(), now.getMonth(), i + 1).getDay(),
             ).filter((day) => day !== 0 && day !== 6).length
           }`}
-          description={`${lateDays} late arrival${lateDays === 1 ? "" : "s"} | Resumption: 9:05 AM UTC+1`}
+          footer={<AttendanceStatusBlocks statuses={attendanceStatuses} />}
           variant="dashboard"
           cardColor="blue"
         />
@@ -147,7 +205,7 @@ export default async function Page() {
           <QuickLinkButton
             icon={TreePalm}
             title="Aspom Website"
-            url="https://aspomtravels.com"
+            url="https://office.aspomtravels.com"
             color="green"
           />
           <QuickLinkButton

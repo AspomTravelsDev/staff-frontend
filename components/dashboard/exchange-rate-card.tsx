@@ -22,15 +22,7 @@ export function ExchangeRateCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Exchange Rate</CardTitle>
-        <CardDescription>
-          Current exchange rates for{" "}
-          {new Intl.DateTimeFormat("en-GB", {
-            weekday: "long",
-            day: "numeric",
-            month: "short",
-          }).format(new Date(rates.updatedAt))}
-        </CardDescription>
+        <CardTitle>Dollar Billing Rate</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3 mt-3">
