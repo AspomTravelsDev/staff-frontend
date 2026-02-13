@@ -14,7 +14,7 @@ import {
 
 export function usePerformanceReviews(filters: PerformanceFilters = {}) {
     return useQuery({
-        queryKey: queryKeys.performance.list(filters),
+        queryKey: queryKeys.performance.appraisals.list(filters),
         queryFn: () => getReviews(filters),
     });
 }
