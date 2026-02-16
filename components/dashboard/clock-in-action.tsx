@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/clock-in";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { CheckCircle2 } from "lucide-react";
 
 interface ClockInActionProps {
   initialStatus: ClockInRecord | null;
@@ -147,9 +148,16 @@ export function ClockInAction({ initialStatus }: ClockInActionProps) {
         const errorCode = result.error?.code;
 
         if (errorCode === "LOCATION_RESTRICTED") {
-          toast.error("Location restricted!", {
-            description: "You must be at the office or on office WiFi.",
-          });
+          // Check for specific 6pm message or generic location message
+          if (errorMsg.includes("after 6:00 PM")) {
+            toast.error("Time Restriction", {
+              description: "Clock-out is only allowed after 6:00 PM.",
+            });
+          } else {
+            toast.error("Location restricted!", {
+              description: "You must be at the office or on office WiFi.",
+            });
+          }
         } else {
           toast.error(errorMsg);
         }
@@ -164,12 +172,17 @@ export function ClockInAction({ initialStatus }: ClockInActionProps) {
 
   const isClockedIn =
     status?.is_clocked_in || (status?.clock_in_at && !status?.clock_out_at);
+  const isDoneForDay = status?.clock_in_at && status?.clock_out_at;
 
   return (
     <Card
       className={cn(
         "border-l-4 shadow-sm",
-        isClockedIn ? "border-l-green-500" : "border-l-amber-500",
+        isClockedIn
+          ? "border-l-green-500"
+          : isDoneForDay
+            ? "border-l-blue-500"
+            : "border-l-amber-500",
       )}
     >
       <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -179,25 +192,45 @@ export function ClockInAction({ initialStatus }: ClockInActionProps) {
               "p-3 rounded-full",
               isClockedIn
                 ? "bg-green-100 text-green-700"
-                : "bg-amber-100 text-amber-700",
+                : isDoneForDay
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-amber-100 text-amber-700",
             )}
           >
-            <Clock className="w-6 h-6" />
+            {isDoneForDay ? (
+              <CheckCircle2 className="w-6 h-6" />
+            ) : (
+              <Clock className="w-6 h-6" />
+            )}
           </div>
           <div>
             <h3 className="font-semibold text-lg">
-              {isClockedIn ? "You are Clocked In" : "Not Clocked In"}
+              {isClockedIn
+                ? "You are Clocked In"
+                : isDoneForDay
+                  ? "Work Completed for Today"
+                  : "Not Clocked In"}
             </h3>
             <p className="text-sm text-muted-foreground">
               {isClockedIn
                 ? `Working for: ${elapsedTime}`
-                : "Please clock in when you arrive at the office."}
+                : isDoneForDay
+                  ? "You have clocked out for the day. See you tomorrow!"
+                  : "Please clock in when you arrive at the office."}
             </p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {isClockedIn ? (
+          {isDoneForDay ? (
+            <Button
+              variant="outline"
+              disabled
+              className="w-full sm:w-auto min-w-[140px]"
+            >
+              Completed
+            </Button>
+          ) : isClockedIn ? (
             <Button
               variant="destructive"
               size="lg"
