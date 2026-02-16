@@ -9,6 +9,14 @@ export interface ClockInRecord {
     clock_out_at: string | null;
     duration_minutes: number | null;
     is_clocked_in?: boolean; // Sometimes returned by /today
+    location_method?: "gps" | "ip";
+    ip_address?: string;
+}
+
+export interface LocationData {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
 }
 
 export interface ClockInSummary {
@@ -29,16 +37,36 @@ export interface StandardResponse<T> {
  * GET /api/clock-ins/today
  * Get today's clock-in status
  */
-export async function getTodayStatus(): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
-    return api.get<StandardResponse<ClockInRecord>>("/api/clock-ins/today");
+export async function getTodayStatus(): Promise<ApiResponse<StandardResponse<ClockInRecord | null>>> {
+    return api.get<StandardResponse<ClockInRecord | null>>("/api/clock-ins/today");
+}
+
+/**
+ * POST /api/clock-in
+ * Clock in for the day
+ */
+export async function clockIn(
+    location?: LocationData,
+    client_ip?: string
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    return api.post<StandardResponse<ClockInRecord>>("/api/clock-in", {
+        location,
+        client_ip
+    });
 }
 
 /**
  * POST /api/clock-out
  * Clock out for the day
  */
-export async function clockOut(): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
-    return api.post<StandardResponse<ClockInRecord>>("/api/clock-out");
+export async function clockOut(
+    location?: LocationData,
+    client_ip?: string
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    return api.post<StandardResponse<ClockInRecord>>("/api/clock-out", {
+        location,
+        client_ip
+    });
 }
 
 /**

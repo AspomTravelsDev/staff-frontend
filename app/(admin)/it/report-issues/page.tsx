@@ -19,54 +19,24 @@ import {
   UserX,
 } from "lucide-react";
 
+interface Ticket {
+  id: string;
+  subject: string;
+  requester: string;
+  priority: "Critical" | "High" | "Medium" | "Low";
+  assignedTo: string;
+  status: "Open" | "In Progress" | "Resolved";
+}
+
 export default function IssueTrackerAdminPage() {
-  // Mock Stats for IT Support Team
   const stats = {
-    openInfo: 8,
-    critical: 3,
-    avgResponse: "15m",
-    unassigned: 4,
+    openInfo: 0,
+    critical: 0,
+    avgResponse: "0m",
+    unassigned: 0,
   };
 
-  // Mock All Tickets Data
-  const tickets = [
-    {
-      id: "TKT-991",
-      subject: "Server downtime on node 4",
-      requester: "SysAdmin",
-      priority: "Critical",
-      status: "Open",
-      assignedTo: "Unassigned",
-      created: "10 mins ago",
-    },
-    {
-      id: "TKT-990",
-      subject: "Email signatures not updating",
-      requester: "Clarissa Dalloway",
-      priority: "Low",
-      status: "In Progress",
-      assignedTo: "Mike",
-      created: "1 hour ago",
-    },
-    {
-      id: "TKT-989",
-      subject: "VPN access for new intern",
-      requester: "Peter Walsh",
-      priority: "High",
-      status: "Open",
-      assignedTo: "Unassigned",
-      created: "2 hours ago",
-    },
-    {
-      id: "TKT-988",
-      subject: "Printer jammed on 3rd floor",
-      requester: "Sally Seton",
-      priority: "Medium",
-      status: "Resolved",
-      assignedTo: "John",
-      created: "Yesterday",
-    },
-  ];
+  const tickets: Ticket[] = [];
 
   return (
     <div className="space-y-8">

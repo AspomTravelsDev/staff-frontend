@@ -10,6 +10,8 @@ import { type User, type LoginUser } from "@/types/user-types";
 export interface AuthResponse {
     token: string;
     user: LoginUser;
+    clocked_in?: boolean;
+    clock_in_message?: string | null;
 }
 
 export interface MessageResponse {
@@ -34,16 +36,17 @@ export interface LocationData {
 
 /**
  * POST /api/auth/login
- * Request: { email: string, password: string, location?: LocationData }
+ * Request: { email: string, password: string, location?: LocationData, client_ip?: string }
  * Success: { token: string, user: LoginUser }
- * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" | "LOCATION_TOO_FAR" | "COUNTRY_RESTRICTED" | "LOCATION_VERIFICATION_REQUIRED" }
+ * Error: { error: string, code: "INVALID_CREDENTIALS" | "ACCOUNT_DISABLED" | "LOCATION_RESTRICTED" }
  */
 export async function login(
     email: string,
     password: string,
-    location?: LocationData
+    location?: LocationData,
+    client_ip?: string
 ): Promise<ApiResponse<AuthResponse>> {
-    return api.post<AuthResponse>("/api/login", { email, password, location });
+    return api.post<AuthResponse>("/api/login", { email, password, location, client_ip });
 }
 
 /**

@@ -3,7 +3,7 @@
 export const API_CONFIG = {
     useMockRequests: true,
     useMockCrm: true,
-    useMockEmployees: true,
+    useMockEmployees: false,
     useMockVisa: true,
     useMockActivity: true,
     useMockLeave: true,

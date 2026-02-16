@@ -9,7 +9,7 @@ export interface DashboardStat {
     title: string;
     value: string;
     description: string;
-    color: "blue" | "green" | "yellow" | "red"; // aligning with StatsCard props
+    color: "blue" | "green" | "yellow" | "red";
 }
 
 export const mockExchangeRates: ExchangeRate[] = [

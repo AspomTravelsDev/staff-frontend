@@ -49,6 +49,7 @@ export interface User {
     is_active: boolean;
     is_supervisor: boolean;
     net_pay: string;
+    date_joined: string | null; // ISO date string (YYYY-MM-DD)
     created_at: string;
     updated_at: string;
 }

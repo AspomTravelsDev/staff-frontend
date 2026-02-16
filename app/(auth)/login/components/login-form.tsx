@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useActionState } from "react";
 import Link from "next/link";
 import { loginAction, type LoginState } from "../actions";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,8 +21,19 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   const router = useRouter();
   // Using a ref to store location to avoid hydration issues with hidden input
   const locationRef = useRef<string>("");
+  const clientIpRef = useRef<string>("");
+  const [isLocating, setIsLocating] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Fetch client IP
+    fetch("https://api.ipify.org?format=json")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ip) clientIpRef.current = data.ip;
+      })
+      .catch((err) => console.error("Failed to fetch IP:", err));
+
     // Attempt to get location immediately on mount
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -31,13 +44,19 @@ export function LoginForm({ redirect }: { redirect?: string }) {
             accuracy: position.coords.accuracy,
           });
           locationRef.current = data;
+          setIsLocating(false);
         },
         (error) => {
           console.log("Location access denied or failed:", error.message);
-          // We just continue without location
+          setLocationError(
+            "Location access denied. Some features may be restricted.",
+          );
+          setIsLocating(false);
         },
-        { timeout: 4000, maximumAge: 60000 }, // 4s timeout, accept cached for 1min
+        { timeout: 5000, maximumAge: 60000 },
       );
+    } else {
+      setIsLocating(false);
     }
   }, []);
 
@@ -46,7 +65,21 @@ export function LoginForm({ redirect }: { redirect?: string }) {
       toast.error(state.error);
     }
     if (state?.success) {
-      toast.success("Login successful");
+      if (state.clocked_in) {
+        toast.success("Login successful & clocked in!");
+      } else if (state.clocked_in === false) {
+        // Logged in but failed to clock in
+        toast.success("Login successful");
+        if (state.clock_in_message) {
+          toast.warning(state.clock_in_message, {
+            duration: 6000,
+          });
+        }
+      } else {
+        // Fallback for old API response or simple login
+        toast.success("Login successful");
+      }
+
       if (state.destination) {
         router.push(state.destination);
       }
@@ -68,14 +101,34 @@ export function LoginForm({ redirect }: { redirect?: string }) {
           if (locationRef.current) {
             formData.set("location", locationRef.current);
           }
+          if (clientIpRef.current) {
+            formData.set("client_ip", clientIpRef.current);
+          }
           formAction(formData);
         }}
         className="mt-8 space-y-6"
       >
         <input type="hidden" name="redirect" value={redirect || "/dashboard"} />
+
         {state?.error && (
-          <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-            {state.error}
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Login Failed</AlertTitle>
+            <AlertDescription>{state.error}</AlertDescription>
+          </Alert>
+        )}
+
+        {isLocating && (
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Checking secure location...</span>
+          </div>
+        )}
+
+        {locationError && !state?.error && (
+          <div className="text-xs text-amber-600 flex items-center gap-1.5 mt-2">
+            <AlertCircle className="h-3 w-3" />
+            <span>{locationError}</span>
           </div>
         )}
 

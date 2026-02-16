@@ -32,7 +32,6 @@ export interface ActivityFilters {
 export async function getActivities(
     filters: ActivityFilters = {}
 ): Promise<PaginatedResponse<ActivityItem>> {
-    // TODO: Remove this when we have a real API
     if (shouldMock("useMockActivity")) {
         const activities = await getMockActivities();
         let filtered = [...activities];

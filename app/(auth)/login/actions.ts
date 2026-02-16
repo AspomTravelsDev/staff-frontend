@@ -9,7 +9,16 @@ export type LoginState = {
     error?: string;
     success?: boolean;
     destination?: string;
+    clocked_in?: boolean;
+    clock_in_message?: string | null;
 } | null;
+
+const ERROR_MESSAGES: Record<string, string> = {
+    INVALID_CREDENTIALS: "Wrong email or password.",
+    ACCOUNT_DISABLED: "Your account is disabled. Please contact an administrator.",
+    LOCATION_RESTRICTED: "Login not allowed from your location. Please be within office premises or connect to office WiFi.",
+    NETWORK_ERROR: "Network error. Please check your connection."
+};
 
 export async function loginAction(
     prevState: LoginState,
@@ -21,6 +30,7 @@ export async function loginAction(
         location: formData.get("location")
             ? JSON.parse(formData.get("location") as string)
             : undefined,
+        client_ip: (formData.get("client_ip") as string) || undefined,
     };
 
     const validatedFields = loginSchema.safeParse({ email: rawData.email, password: rawData.password });
@@ -34,10 +44,12 @@ export async function loginAction(
     const { email, password } = validatedFields.data;
 
     // Call API
-    const result = await login(email, password, rawData.location);
+    const result = await login(email, password, rawData.location, rawData.client_ip);
 
     if (!result.success) {
-        return { error: result.error.error };
+        const errorCode = result.error.code;
+        const errorMessage = ERROR_MESSAGES[errorCode] || result.error.error || "An error occurred during login.";
+        return { error: errorMessage };
     }
 
     // Store token and user in cookies
@@ -47,5 +59,10 @@ export async function loginAction(
     const destination =
         redirectPath && redirectPath.startsWith("/") ? redirectPath : "/dashboard";
 
-    return { success: true, destination };
+    return {
+        success: true,
+        destination,
+        clocked_in: result.data.clocked_in,
+        clock_in_message: result.data.clock_in_message
+    };
 }

@@ -1,12 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Calendar,
@@ -14,7 +5,6 @@ import {
   FileText,
   Trophy,
   LucideIcon,
-  AlertTriangle,
   MailIcon,
   Earth,
   TreePalm,
@@ -31,7 +21,7 @@ import {
   AttendanceStatus,
 } from "@/components/dashboard/attendance-status-blocks";
 import Link from "next/link";
-import { getClockInHistory } from "@/lib/api/clock-in";
+import { getClockInHistory, getTodayStatus } from "@/lib/api/clock-in";
 
 interface QuickLinkButtonProps {
   icon: LucideIcon;
@@ -76,57 +66,44 @@ function QuickLinkButton({
   );
 }
 
+import { ClockInAction } from "@/components/dashboard/clock-in-action";
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
 export default async function Page() {
-  // Fetch Attendance Data
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const formatDate = (date: Date) => date.toISOString().split("T")[0]; // YYYY-MM-DD
+  const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
-  const clockInResponse = await getClockInHistory(
-    formatDate(startOfMonth),
-    formatDate(now),
-  );
+  // Fetch both history and today's status in parallel
+  const [clockInResponse, todayStatusResponse] = await Promise.all([
+    getClockInHistory(formatDate(startOfMonth), formatDate(now)),
+    getTodayStatus(),
+  ]);
+
+  const todayRecord = todayStatusResponse.success
+    ? todayStatusResponse.data.data
+    : null;
 
   let totalAttendance = 0;
   let lateDays = 0;
   let attendanceStatuses: AttendanceStatus[] = [];
 
-  // console.log("📊 Clock-in API Response:", clockInResponse);
-
   if (clockInResponse.success) {
     const history = clockInResponse.data.data;
     totalAttendance = history.length;
-
-    // console.log("📅 Clock-in History Data:", {
-    //   totalRecords: history.length,
-    //   records: history,
-    // });
-
-    // Get all working days from start of month to today (matching the stat denominator)
     const workingDaysThisMonth: Date[] = [];
     let currentDate = new Date(now);
 
-    // Go backwards from today to start of month
     while (currentDate >= startOfMonth) {
       const dayOfWeek = currentDate.getDay();
-      // Skip weekends (0 = Sunday, 6 = Saturday)
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         workingDaysThisMonth.push(new Date(currentDate));
       }
       currentDate.setDate(currentDate.getDate() - 1);
     }
 
-    // Reverse to get chronological order (oldest to newest)
     workingDaysThisMonth.reverse();
 
-    // console.log(
-    //   "📆 Working Days This Month:",
-    //   workingDaysThisMonth.map((d) => formatDate(d)),
-    // );
-
-    // Map each working day to its status
     attendanceStatuses = workingDaysThisMonth.map((workDay) => {
       const dayStr = formatDate(workDay);
       const record = history.find((r) => {
@@ -135,11 +112,9 @@ export default async function Page() {
       });
 
       if (!record) {
-        // No clock-in record for this working day
         return "absent" as AttendanceStatus;
       }
 
-      // Check if late (Clock in > 9:05 AM UTC+1 = 8:05 AM UTC)
       const date = new Date(record.clock_in_at);
       const utcHours = date.getUTCHours();
       const utcMinutes = date.getUTCMinutes();
@@ -153,19 +128,10 @@ export default async function Page() {
 
       return "on-time" as AttendanceStatus;
     });
-
-    // console.log("✅ Calculated Attendance Statuses:", {
-    //   statuses: attendanceStatuses,
-    //   onTime: attendanceStatuses.filter((s) => s === "on-time").length,
-    //   late: attendanceStatuses.filter((s) => s === "late").length,
-    //   absent: attendanceStatuses.filter((s) => s === "absent").length,
-    //   placeholder: attendanceStatuses.filter((s) => s === "placeholder").length,
-    // });
   }
 
   return (
     <div className="flex flex-1 flex-col gap-12 pt-6">
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
           title={`Attendance - Clock In (${now.toLocaleString("default", { month: "long" })})`}
@@ -254,44 +220,6 @@ export default async function Page() {
         <RecentUpdates className="lg:w-5/7" />
         <EmployeeOfTheMonthCard />
       </div>
-
-      {/* Team Members */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Team Members</CardTitle>
-          <CardDescription>
-            Colleagues you work with frequently.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Email</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teamMembers.map((member, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={member.image} alt={member.name} />
-                        <AvatarFallback>{member.initials}</AvatarFallback>
-                      </Avatar>
-                      <span>{member.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{member.role}</TableCell>
-                  <TableCell>{member.email}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

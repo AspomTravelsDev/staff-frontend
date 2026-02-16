@@ -14,13 +14,10 @@ import { getRequests, getRequestStats } from "@/lib/api/requests";
 export default async function RequestsPage() {
   const user = await getCurrentUser();
 
-  // Only admin, super, and IT can access requests log
-  // Assuming access control is similar to activity log
   if (!user || !["super", "it", "admin"].includes(user.role)) {
     redirect("/dashboard");
   }
 
-  // Fetch data in parallel
   const [requestsData, stats] = await Promise.all([
     getRequests({ limit: 50 }),
     getRequestStats(),

@@ -40,7 +40,7 @@ export function EmployeeOfTheMonthCard() {
             <AvatarImage
               src={employee.image}
               alt={employee.name}
-              className="object-cover"
+              className="object-cover object-top"
             />
             <AvatarFallback>{employee.initials}</AvatarFallback>
           </Avatar>

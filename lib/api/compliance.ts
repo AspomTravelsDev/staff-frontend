@@ -136,7 +136,6 @@ export async function getComplianceStats(): Promise<ComplianceStats> {
             }
         });
 
-        // Top Department
         const deptCounts: Record<string, number> = {};
         issues.forEach(i => {
             deptCounts[i.user_department] = (deptCounts[i.user_department] || 0) + 1;
@@ -151,7 +150,7 @@ export async function getComplianceStats(): Promise<ComplianceStats> {
         });
 
         return {
-            avgClockInTime: "09:12 AM", // Hardcoded mock for now as we don't have attendance data linked yet
+            avgClockInTime: "09: 02 AM",
             totalIssues,
             topOffender,
             topDepartment,

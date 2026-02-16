@@ -17,15 +17,51 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, UserX, Edit, Phone, Mail } from "lucide-react";
+import {
+  MoreHorizontal,
+  UserCheck,
+  UserX,
+  Edit,
+  Phone,
+  Loader2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from "@/lib/api/employees";
+import { useUpdateUserStatus } from "@/lib/api/hooks/use-employees";
+import { toast } from "sonner";
+import { useState } from "react";
+import { EditUserDialog } from "./edit-user-dialog";
 
 interface EmployeeTableProps {
   employees: Employee[];
 }
 
 export function EmployeeTable({ employees }: EmployeeTableProps) {
+  const { mutate: updateStatus, isPending } = useUpdateUserStatus();
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  const handleStatusToggle = (employee: Employee) => {
+    const newStatus = !employee.status || employee.status === "Inactive";
+    setUpdatingId(employee.id);
+
+    updateStatus(
+      { userId: employee.id, isActive: newStatus },
+      {
+        onSuccess: () => {
+          toast.success(
+            `${employee.firstName} ${employee.lastName} has been ${newStatus ? "activated" : "deactivated"}.`,
+          );
+          setUpdatingId(null);
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to update user status");
+          setUpdatingId(null);
+        },
+      },
+    );
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -33,9 +69,9 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
           <TableRow>
             <TableHead>Staff ID</TableHead>
             <TableHead>Name</TableHead>
-            <TableHead>Role</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Contact</TableHead>
+            <TableHead>Date Joined</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -51,25 +87,40 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
             employees.map((employee) => (
               <TableRow key={employee.id}>
                 <TableCell className="font-mono text-xs font-medium">
-                  {employee.id}
+                  {employee.staff_id}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">
-                      {employee.firstName} {employee.lastName}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {employee.firstName} {employee.lastName}
+                      </span>
+                      {employee.is_supervisor && (
+                        <Badge variant="outline" className="text-xs">
+                          Supervisor
+                        </Badge>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">
                       {employee.email}
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>{employee.role}</TableCell>
-                <TableCell>{employee.department}</TableCell>
+                <TableCell>{employee.role || "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="h-3 w-3" />
-                    <span className="text-xs">{employee.phone}</span>
+                    <span className="text-xs">{employee.phone || "—"}</span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {employee.joinDate
+                    ? new Date(employee.joinDate).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "-"}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -83,20 +134,42 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={isPending && updatingId === employee.id}
+                      >
+                        {isPending && updatingId === employee.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-4 w-4" />
+                        )}
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setEditingEmployee(employee)}
+                      >
                         <Edit className="mr-2 h-4 w-4" /> Edit Details
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        <UserX className="mr-2 h-4 w-4" /> Make Inactive
-                      </DropdownMenuItem>
+                      {employee.status === "Active" ? (
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleStatusToggle(employee)}
+                        >
+                          <UserX className="mr-2 h-4 w-4" /> Make Inactive
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => handleStatusToggle(employee)}
+                        >
+                          <UserCheck className="mr-2 h-4 w-4" /> Make Active
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -105,6 +178,12 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
           )}
         </TableBody>
       </Table>
+
+      <EditUserDialog
+        employee={editingEmployee}
+        open={!!editingEmployee}
+        onOpenChange={(open) => !open && setEditingEmployee(null)}
+      />
     </div>
   );
 }
