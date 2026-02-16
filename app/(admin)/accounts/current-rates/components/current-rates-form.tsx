@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect } from "react";
-import { Coins, Loader2 } from "lucide-react";
+import { Coins, Loader2, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,31 +26,39 @@ import {
 } from "@/components/ui/card";
 import { useRates, useUpdateRates } from "@/lib/api/hooks/use-rates";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@/providers/user-provider";
+import { USER_ROLES } from "@/types/user-types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
-  internalRate: z.coerce
+  internal_rate: z.coerce
     .number()
     .min(1, "Internal rate must be greater than 0"),
-  billingRate: z.coerce.number().min(1, "Billing rate must be greater than 0"),
+  billing_rate: z.coerce.number().min(1, "Billing rate must be greater than 0"),
 });
 
 export function CurrentRatesForm() {
+  const { user } = useUser();
   const { data: rates, isLoading } = useRates();
   const updateRates = useUpdateRates();
+
+  const canEdit =
+    user?.role === USER_ROLES.SUPER_ADMIN ||
+    user?.role === USER_ROLES.ACCOUNT_OFFICER;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      internalRate: 0,
-      billingRate: 0,
+      internal_rate: 0,
+      billing_rate: 0,
     },
   });
 
   useEffect(() => {
     if (rates) {
       form.reset({
-        internalRate: rates.internalRate,
-        billingRate: rates.billingRate,
+        internal_rate: rates.internal_rate,
+        billing_rate: rates.billing_rate,
       });
     }
   }, [rates, form]);
@@ -88,12 +96,22 @@ export function CurrentRatesForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {!canEdit && (
+          <Alert className="mb-6 bg-muted/50">
+            <Lock className="h-4 w-4" />
+            <AlertTitle>Read Only</AlertTitle>
+            <AlertDescription>
+              Only Super Admin and Accounts Officers can update exchange rates.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="internalRate"
+                name="internal_rate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Internal Rate (₦)</FormLabel>
@@ -102,7 +120,7 @@ export function CurrentRatesForm() {
                         type="number"
                         placeholder="0.00"
                         {...field}
-                        disabled={updateRates.isPending}
+                        disabled={updateRates.isPending || !canEdit}
                       />
                     </FormControl>
                     <FormDescription>
@@ -115,7 +133,7 @@ export function CurrentRatesForm() {
 
               <FormField
                 control={form.control}
-                name="billingRate"
+                name="billing_rate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Rate (₦)</FormLabel>
@@ -124,7 +142,7 @@ export function CurrentRatesForm() {
                         type="number"
                         placeholder="0.00"
                         {...field}
-                        disabled={updateRates.isPending}
+                        disabled={updateRates.isPending || !canEdit}
                       />
                     </FormControl>
                     <FormDescription>
@@ -137,12 +155,14 @@ export function CurrentRatesForm() {
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={updateRates.isPending}>
-                {updateRates.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Save Changes
-              </Button>
+              {canEdit && (
+                <Button type="submit" disabled={updateRates.isPending}>
+                  {updateRates.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              )}
             </div>
           </form>
         </Form>

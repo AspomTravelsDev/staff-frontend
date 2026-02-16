@@ -21,7 +21,7 @@ export function useUpdateRates() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: { internalRate: number; billingRate: number }) => {
+        mutationFn: async (data: { internal_rate: number; billing_rate: number }) => {
             const response = await updateRates(data);
             if (!response.success) {
                 throw new Error(response.error?.error || "Failed to update rates");
