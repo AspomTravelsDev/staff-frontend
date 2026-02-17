@@ -18,6 +18,10 @@ export async function inviteAction(
     const rawData = {
         email: formData.get("email") as string,
         role: formData.get("role") as string,
+        department: formData.get("department") as string,
+        staff_id: formData.get("staff_id") as string,
+        date_joined: formData.get("date_joined") as string,
+        is_supervisor: formData.get("is_supervisor") === "on",
     };
 
     // Validate input
@@ -29,11 +33,18 @@ export async function inviteAction(
         return { error: firstError || "Invalid input" };
     }
 
-    const { email, role } = validatedFields.data;
+    const { email, role, department, staff_id, date_joined, is_supervisor } = validatedFields.data;
 
     // Call API with auth token
     const token = await getAuthToken();
-    const result = await sendInvite(email, role, token ?? undefined);
+    const result = await sendInvite({
+        email,
+        role,
+        department,
+        staff_id,
+        date_joined,
+        is_supervisor
+    }, token ?? undefined);
 
     if (!result.success) {
         return { error: result.error.error };

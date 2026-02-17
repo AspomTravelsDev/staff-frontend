@@ -1,15 +1,17 @@
 import { Button } from "@/components/ui/button";
 import {
+  Baby,
   Calendar,
+  Clock10Icon,
+  Cloud,
   CreditCard,
+  Earth,
   FileText,
-  Trophy,
+  Globe2,
   LucideIcon,
   MailIcon,
-  Earth,
   TreePalm,
-  Baby,
-  Clock10Icon,
+  Trophy,
 } from "lucide-react";
 
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
@@ -72,6 +74,17 @@ import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 import { getAllAwards } from "@/lib/api/awards";
 
 // ... imports
+
+// ... imports
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export default async function Page() {
   const now = new Date();
@@ -137,30 +150,124 @@ export default async function Page() {
 
   const employeeOfTheMonthAward = allAwards.find(
     (a) =>
-      (a.award_type === "employee_of_the_month" ||
-        a.award_name.toLowerCase().includes("month")) &&
+      a.award_type === "staff_of_the_month" &&
       a.month === formatDate(now).substring(0, 7),
   );
 
   const employeeOfTheMonth = employeeOfTheMonthAward
     ? {
         name: employeeOfTheMonthAward.user
-          ? `${employeeOfTheMonthAward.user.first_name} ${employeeOfTheMonthAward.user.last_name}`
+          ? employeeOfTheMonthAward.user.name
           : "Unknown",
         role: employeeOfTheMonthAward.user?.department || "Staff",
-        image: employeeOfTheMonthAward.image?.url || null,
+        image:
+          employeeOfTheMonthAward.image?.url ||
+          employeeOfTheMonthAward.user?.image_url ||
+          null,
         initials: employeeOfTheMonthAward.user
-          ? `${employeeOfTheMonthAward.user.first_name[0]}${employeeOfTheMonthAward.user.last_name[0]}`
+          ? getInitials(employeeOfTheMonthAward.user.name)
           : "EM",
       }
     : undefined;
 
   return (
     <div className="flex flex-1 flex-col gap-12 pt-6">
-      {/* ... existing stats grid ... */}
-      <div className="grid gap-4 md:grid-cols-4">{/* ... */}</div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatsCard
+          title={`Attendance - Clock In (${now.toLocaleString("default", { month: "long" })})`}
+          icon={Clock10Icon}
+          value={`${totalAttendance} / ${
+            Array.from({ length: now.getDate() }, (_, i) =>
+              new Date(now.getFullYear(), now.getMonth(), i + 1).getDay(),
+            ).filter((day) => day !== 0 && day !== 6).length
+          }`}
+          footer={<AttendanceStatusBlocks statuses={attendanceStatuses} />}
+          variant="dashboard"
+          cardColor="blue"
+        />
+        <StatsCard
+          title={mockDashboardStats.leaveDays.title}
+          icon={Calendar}
+          value={mockDashboardStats.leaveDays.value}
+          description={mockDashboardStats.leaveDays.description}
+          variant="dashboard"
+          cardColor={mockDashboardStats.leaveDays.color}
+        />
+        <StatsCard
+          title="Total Awards"
+          icon={Trophy}
+          value={allAwards.length.toString()}
+          description={`${allAwards.filter((a) => a.month === formatDate(now).substring(0, 7)).length} this month`}
+          variant="dashboard"
+          cardColor="yellow"
+        />
+        <ExchangeRateCard />
+      </div>
 
-      <div className="flex flex-col gap-4">{/* ... quick links ... */}</div>
+      <div className="flex flex-col gap-4">
+        <h6 className="text-sm font-bold">Quick Links</h6>
+        {/* Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <QuickLinkButton
+            icon={TreePalm}
+            title="Aspom Website"
+            url="https://office.aspomtravels.com"
+            color="green"
+          />
+          <QuickLinkButton
+            icon={Cloud}
+            title="My Cloud"
+            url="https://home.mycloud.com"
+            color="blue"
+          />
+          <QuickLinkButton
+            icon={MailIcon}
+            title="My Webmail"
+            url="https://webmail.aspomtravels.com"
+            color="rose"
+          />
+          <QuickLinkButton
+            icon={Earth}
+            title="Aspom Travels FAQ"
+            url="https://faq.aspomtravels.com/"
+            color="blue"
+          />
+          <QuickLinkButton
+            icon={Baby}
+            title="Aspom Birth Services"
+            url="http://aspombirthservices.com/"
+            color="green"
+          />
+          <QuickLinkButton
+            icon={Globe2}
+            title="Passport Index"
+            url="https://visa-index.netlify.app/"
+            color="green"
+          />
+
+          <QuickLinkButton
+            icon={FileText}
+            title="Request Leave"
+            url="/my/leave"
+            target="_self"
+            color="rose"
+          />
+          <QuickLinkButton
+            icon={FileText}
+            title="Submit Task Report"
+            url="/my/tasks"
+            target="_self"
+            color="indigo"
+          />
+          <QuickLinkButton
+            icon={CreditCard}
+            title="Report IT Issue"
+            url="/my/it-issue"
+            target="_self"
+            color="rose"
+          />
+        </div>
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
         <RecentUpdates className="lg:w-5/7" />

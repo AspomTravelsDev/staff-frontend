@@ -93,14 +93,28 @@ export async function updatePassword(
  * Success: { message: string }
  * Error: { error: string, code: "USER_EXISTS" | "INVALID_ROLE" | "FORBIDDEN" }
  */
+export interface InviteData {
+    email: string;
+    role: string;
+    is_supervisor?: boolean;
+    department?: string;
+    date_joined?: string;
+    staff_id?: string;
+}
+
+/**
+ * POST /api/auth/invite
+ * Request: InviteData
+ * Success: { message: string }
+ * Error: { error: string, code: "USER_EXISTS" | "INVALID_ROLE" | "FORBIDDEN" }
+ */
 export async function sendInvite(
-    email: string,
-    role: string,
+    data: InviteData,
     token?: string
 ): Promise<ApiResponse<InviteResponse>> {
     return api.post<InviteResponse>(
         "/api/invite",
-        { email, role },
+        data,
         { token }
     );
 }

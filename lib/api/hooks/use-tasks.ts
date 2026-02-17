@@ -1,0 +1,76 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { taskQueryKeys } from "./task-query-keys";
+import {
+    updateDailyTasks,
+    getMyDailyTasks,
+    submitDailyReport,
+    getAllDailyTasks
+} from "@/lib/api/tasks";
+import { TaskFilters, AllTaskFilters, CreateTaskRequest } from "@/types/task-types";
+import { toast } from "sonner"; // Assuming sonner is used, or replace with appropriate toast
+// Note: toast calls might be better in component, but keeping generic error handling here is fine or user handles it.
+// I'll leave toast logic to the component or layout to stay pure, but hooks often handle success invalidation.
+
+export function useMyDailyTasks(filters: TaskFilters) {
+    return useQuery({
+        queryKey: taskQueryKeys.myTasks(filters),
+        queryFn: async () => {
+            const result = await getMyDailyTasks(filters);
+            if (!result.success) {
+                throw new Error(result.error.error);
+            }
+            return result.data;
+        },
+    });
+}
+
+export function useAllDailyTasks(filters: AllTaskFilters) {
+    return useQuery({
+        queryKey: taskQueryKeys.allTasks(filters),
+        queryFn: async () => {
+            const result = await getAllDailyTasks(filters);
+            if (!result.success) {
+                throw new Error(result.error.error);
+            }
+            return result.data;
+        },
+    });
+}
+
+export function useUpdateDailyTasks() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: CreateTaskRequest) => {
+            const result = await updateDailyTasks(data);
+            if (!result.success) {
+                throw new Error(result.error.error);
+            }
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+            // toast.success("Tasks saved successfully");
+        },
+    });
+}
+
+export function useSubmitDailyReport() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            const result = await submitDailyReport();
+            if (!result.success) {
+                throw new Error(result.error.error);
+            }
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+            // toast.success("Report submitted successfully");
+        },
+    });
+}

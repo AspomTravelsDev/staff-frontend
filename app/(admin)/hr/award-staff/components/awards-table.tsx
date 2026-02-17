@@ -41,9 +41,7 @@ export function AwardsTable({ awards }: AwardsTableProps) {
             awards.map((award) => (
               <TableRow key={award.id}>
                 <TableCell className="font-medium">
-                  {award.user
-                    ? `${award.user.first_name} ${award.user.last_name}`
-                    : "Unknown User"}
+                  {award.user ? award.user.name : "Unknown User"}
                 </TableCell>
                 <TableCell>{award.user?.department || "N/A"}</TableCell>
                 <TableCell>

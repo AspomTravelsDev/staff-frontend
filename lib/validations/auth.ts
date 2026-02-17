@@ -35,6 +35,10 @@ export const acceptInviteSchema = z
 export const inviteSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
     role: z.string().min(1, "Please select a role"),
+    is_supervisor: z.boolean().optional().default(false),
+    department: z.string().optional(), // Can be obtained from role, but editable
+    date_joined: z.string().optional(), // ISO date string (YYYY-MM-DD)
+    staff_id: z.string().optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

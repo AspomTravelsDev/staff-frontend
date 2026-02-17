@@ -35,10 +35,12 @@ export interface Award {
     description: string | null;
     // Optional fields for admin lists (if provided by backend)
     user?: {
-        first_name: string;
-        last_name: string;
+        id: string;
+        name: string;
         email: string;
-        department?: string;
+        staff_id: string;
+        image_url?: string;
+        department?: string; // Guide doesn't show this, but might be useful if available. Keeping optional.
     };
 }
 
@@ -147,19 +149,12 @@ export async function deleteAward(awardId: string): Promise<void> {
     }
 }
 
-// Keeps compatibility for HR page listing if backend supports it, otherwise this might fail if /api/awards doesn't exist.
-// Assuming /api/awards might exist for admin listing or we reuse getUserAwards for specific views.
-// For now, I'll keep a generic getAwards but point it to /api/awards/all if it existed, but since it's not documented,
-// I will comment it out or adapt callsites.
-// actually, I'll keep it as a placeholder that calls /api/awards (common convention) just in case,
-// but typed correctly.
+/**
+ * Get all awards
+ */
 export async function getAllAwards(): Promise<Award[]> {
-    // NOTE: This endpoint wasn't explicitly in the guide, but is needed for the HR dashboard.
-    // If it doesn't exist, this will 404.
     const result = await api.get<AwardListResponse>("/api/awards");
     if (!result.success) {
-        // Fallback? or throw?
-        // For dev safety, if it fails, return empty array to not crash UI
         console.warn("Failed to fetch all awards:", result.error);
         return [];
     }
