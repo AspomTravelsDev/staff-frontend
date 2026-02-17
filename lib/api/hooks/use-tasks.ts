@@ -9,9 +9,7 @@ import {
     getAllDailyTasks
 } from "@/lib/api/tasks";
 import { TaskFilters, AllTaskFilters, CreateTaskRequest } from "@/types/task-types";
-import { toast } from "sonner"; // Assuming sonner is used, or replace with appropriate toast
-// Note: toast calls might be better in component, but keeping generic error handling here is fine or user handles it.
-// I'll leave toast logic to the component or layout to stay pure, but hooks often handle success invalidation.
+import { toast } from "sonner";
 
 export function useMyDailyTasks(filters: TaskFilters) {
     return useQuery({

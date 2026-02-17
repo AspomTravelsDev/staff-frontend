@@ -27,7 +27,6 @@ export default async function MyAttendancePage() {
   // Calculate late days locally as well for now, or trust summary if it had it (it doesn't)
   const lateDays = history.filter((record: any) => {
     const date = new Date(record.clock_in_at);
-    // Use UTCHours assuming the backend sends the correct time in UTC (or "local as UTC")
     const hour = date.getUTCHours();
     const minute = date.getUTCMinutes();
 

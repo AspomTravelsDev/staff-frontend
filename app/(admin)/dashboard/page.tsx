@@ -68,23 +68,10 @@ function QuickLinkButton({
   );
 }
 
-// import { ClockInAction } from "@/components/dashboard/clock-in-action";
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
 import { getAllAwards } from "@/lib/api/awards";
-
-// ... imports
-
-// ... imports
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import { getInitials } from "@/lib/utils";
 
 export default async function Page() {
   const now = new Date();

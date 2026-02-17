@@ -214,7 +214,7 @@ export const personalNav: NavItem[] = [
         icon: Users,
         items: [
             { title: "Leave", url: "/my/leave" },
-            { title: "Tasks", url: "/my/tasks" },
+            { title: "To-Do & Reports", url: "/my/tasks" },
             { title: "Attendance", url: "/my/attendance" },
             { title: "Employee HandBook", url: "/my/documents" },
             { title: "Appraisal", url: "/my/performance" },

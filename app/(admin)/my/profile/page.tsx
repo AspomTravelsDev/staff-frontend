@@ -13,15 +13,7 @@ import { AvatarUpload } from "@/components/avatar-upload";
 import { ProfileForm } from "@/components/profile-form";
 import { getMyAwards } from "@/lib/api/awards";
 import { AwardsCard } from "./components/awards-card";
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import { getInitials } from "@/lib/utils";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();

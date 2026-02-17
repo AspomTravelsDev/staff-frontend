@@ -59,6 +59,13 @@ export interface UpdateAwardRequest {
     description?: string;
 }
 
+export interface AwardStats {
+    totalAwards: number;
+    thisMonth: number;
+    topAwardType: string;
+    mostAwardedDept: string;
+}
+
 // Response wrappers
 interface AwardTypesResponse {
     types: AwardType[];

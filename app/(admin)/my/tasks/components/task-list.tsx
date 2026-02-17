@@ -12,7 +12,6 @@ import { TaskItem } from "./task-item";
 import { TaskStats } from "./task-stats";
 import { Button } from "@/components/ui/button";
 import { Plus, Save, Send, AlertTriangle, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast"; // Assuming use-toast is available
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,13 +25,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export function TaskList() {
   const today = format(new Date(), "yyyy-MM-dd");
   const { data: records, isLoading } = useMyDailyTasks({ date: today });
   const updateTasks = useUpdateDailyTasks();
   const submitReport = useSubmitDailyReport();
-  const { toast } = useToast();
 
   const [localTasks, setLocalTasks] = useState<TaskItemType[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -78,43 +77,25 @@ export function TaskList() {
     const validTasks = localTasks.filter((t) => t.text.trim() !== "");
 
     if (validTasks.length === 0) {
-      toast({
-        title: "Cannot save empty list",
-        description: "Please add at least one task with text.",
-        variant: "destructive",
-      });
+      toast.error("Cannot save empty list");
       return;
     }
 
     try {
       await updateTasks.mutateAsync({ tasks: validTasks });
       setHasUnsavedChanges(false);
-      toast({
-        title: "Tasks saved",
-        description: "Your daily tasks have been updated.",
-      });
+      toast.success("Saved successfully");
     } catch (error: any) {
-      toast({
-        title: "Error saving tasks",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      });
+      toast.error("Failed to save tasks");
     }
   };
 
   const handleSubmitReport = async () => {
     try {
       await submitReport.mutateAsync();
-      toast({
-        title: "Report Submitted",
-        description: "Your end-of-day report has been locked and submitted.",
-      });
+      toast.success("Report submitted successfully");
     } catch (error: any) {
-      toast({
-        title: "Submission Failed",
-        description: error.message || "Failed to submit report",
-        variant: "destructive",
-      });
+      toast.error("Failed to submit report");
     }
   };
 
