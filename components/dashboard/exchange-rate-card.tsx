@@ -3,11 +3,10 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRates } from "@/lib/api/hooks/use-rates";
 
 export function ExchangeRateCard() {

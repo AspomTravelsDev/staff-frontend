@@ -1,19 +1,28 @@
-import React from "react"
-import { LucideProps } from "lucide-react"
+import React from "react";
+import { LucideProps } from "lucide-react";
 
 export const AspomLogo = ({
-    size = 24,
-    strokeWidth = 2,
-    color = "currentColor",
-    ...props
+  size = 24,
+  strokeWidth = 2,
+  color = "currentColor",
+  ...props
 }: LucideProps) => {
-    return (
-        <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-            width="492.000000pt" height="369.000000pt" viewBox="0 0 492.000000 369.000000"
-            preserveAspectRatio="xMidYMid meet">
-            <g transform="translate(0.000000,369.000000) scale(0.100000,-0.100000)"
-                fill="#5d8e19ff" stroke="none">
-                <path d="M1685 3650 c-161 -79 -284 -197 -349 -334 -49 -104 -59 -160 -54
+  return (
+    <svg
+      version="1.0"
+      xmlns="http://www.w3.org/2000/svg"
+      width="492.000000pt"
+      height="369.000000pt"
+      viewBox="0 0 492.000000 369.000000"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <g
+        transform="translate(0.000000,369.000000) scale(0.100000,-0.100000)"
+        fill="#5d8e19ff"
+        stroke="none"
+      >
+        <path
+          d="M1685 3650 c-161 -79 -284 -197 -349 -334 -49 -104 -59 -160 -54
 -298 l5 -118 -26 17 c-234 154 -478 148 -727 -19 -66 -44 -190 -165 -180 -176
 3 -2 48 4 102 13 64 11 118 14 156 10 53 -6 60 -5 89 20 34 28 108 69 115 62
 2 -2 -9 -21 -26 -43 -55 -73 -43 -77 125 -39 60 14 111 25 113 25 2 0 -8 -15
@@ -67,9 +76,9 @@ export const AspomLogo = ({
 -49 -99 -101 -107 -114 -9 -14 -19 -22 -23 -19 -9 10 24 127 51 183 13 27 22
 51 20 54 -3 2 -24 -3 -47 -12 -23 -9 -43 -15 -45 -14 -1 2 16 31 40 64 48 69
 93 160 84 169 -4 4 -31 -2 -61 -14 -70 -27 -66 -11 18 56 54 44 64 58 80 109
-10 32 35 90 55 128 46 89 44 85 34 85 -4 -1 -44 -18 -88 -40z"/>
-            </g>
-        </svg>
-
-    )
-}
+10 32 35 90 55 128 46 89 44 85 34 85 -4 -1 -44 -18 -88 -40z"
+        />
+      </g>
+    </svg>
+  );
+};

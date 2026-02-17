@@ -5,12 +5,7 @@ import { Button } from "@/components/ui/button";
 import { logoutAction } from "./actions/auth";
 import { AlertCircle, ArrowRight, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+
 
 export default function Error({
   error,

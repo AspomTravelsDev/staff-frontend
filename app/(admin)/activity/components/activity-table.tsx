@@ -47,6 +47,7 @@ const roleColors: Record<User["role"], string> = {
   "social-media": "bg-cyan-500",
   compliance: "bg-yellow-500",
   "birth-services": "bg-teal-500",
+  "holidays": "bg-purple-500",
 };
 
 function formatAction(action: string): string {
@@ -138,7 +139,7 @@ export function ActivityTable({ activities }: ActivityTableProps) {
                   )}
                   {activity.note && (
                     <p className="text-sm text-muted-foreground italic truncate max-w-[300px]">
-                      "{activity.note}"
+                      &quot;{activity.note}&quot;
                     </p>
                   )}
                   {!activity.note &&

@@ -1,11 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { AspomLogo } from "./icons/aspom-logo";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
-import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,

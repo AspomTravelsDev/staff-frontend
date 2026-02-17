@@ -1,5 +1,3 @@
-import { IconPlus } from "@tabler/icons-react";
-import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { CreateApplicationButton } from "./components/create-application-button";
 import { ApplicationsTable } from "./components/applications-table";

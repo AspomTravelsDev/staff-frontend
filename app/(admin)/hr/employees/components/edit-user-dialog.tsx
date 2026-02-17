@@ -125,7 +125,7 @@ export function EditUserDialog({
         <DialogHeader>
           <DialogTitle>Edit User Details</DialogTitle>
           <DialogDescription>
-            Update user information. Click save when you're done.
+            Update user information. Click save when you&apos;re done.
           </DialogDescription>
         </DialogHeader>
 

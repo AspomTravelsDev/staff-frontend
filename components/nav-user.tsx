@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
+import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
 import { logoutAction } from "@/app/(admin)/actions";
 import { useUser } from "@/providers/user-provider";
 
@@ -95,7 +88,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Link href="/profile" className="flex items-center gap-2">
+                <Link href="/my/profile" className="flex items-center gap-2">
                   <BadgeCheck />
                   My Profile
                 </Link>

@@ -5,6 +5,7 @@ import { UserProvider } from "@/providers/user-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { FeedbackButton } from "@/components/feedback-button";
 
 export default async function AdminLayout({
   children,
@@ -28,6 +29,7 @@ export default async function AdminLayout({
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
               {children}
             </div>
+            <FeedbackButton />
           </SidebarInset>
         </SidebarProvider>
       </UserProvider>

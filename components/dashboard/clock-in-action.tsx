@@ -6,9 +6,7 @@ import {
   Clock,
   MapPin,
   LogOut,
-  LogIn,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +17,6 @@ import {
   type ClockInRecord,
   type LocationData,
 } from "@/lib/api/clock-in";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
 

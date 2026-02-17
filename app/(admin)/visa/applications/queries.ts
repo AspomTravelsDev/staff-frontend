@@ -88,20 +88,20 @@ const mockApplications: ApplicationListItem[] = [
     },
 ]
 
-// Mock full application data for details view
-const mockFullApplications: Record<string, ApplicationDetail> = {
-    "a1b2c3d4-e5f6-7890-abcd-ef1234567890": {
-        ...mockApplications[0],
-        data: {
-            given_names: "John",
-            surname: "Doe",
-            email_address: "john.doe@example.com",
-            // Add more mock data as needed
-        },
-        current_step: 7,
-    },
-    // Add more as needed
-}
+// // Mock full application data for details view
+// const mockFullApplications: Record<string, ApplicationDetail> = {
+//     "a1b2c3d4-e5f6-7890-abcd-ef1234567890": {
+//         ...mockApplications[0],
+//         data: {
+//             given_names: "John",
+//             surname: "Doe",
+//             email_address: "john.doe@example.com",
+//             // Add more mock data as needed
+//         },
+//         current_step: 7,
+//     },
+//     // Add more as needed
+// }
 
 /**
  * Fetch paginated list of applications

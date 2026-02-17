@@ -6,7 +6,7 @@ import { EmployeeTable } from "./employee-table";
 import { EmployeeFilters, FilterValues } from "./employee-filters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useMemo } from "react";
-import { Employee } from "@/lib/api/employees";
+// import { Employee } from "@/lib/api/employees";
 
 export function EmployeeListContent() {
   const [filters, setFilters] = useState<FilterValues>({

@@ -25,7 +25,7 @@ export function ApplicationActions({ id, step }: ApplicationActionsProps) {
   const [isPending, startTransition] = useTransition();
 
   const onCopyLink = () => {
-    const url = `${window.location.origin}/applicant/${id}/1`;
+    const url = `${window.location.origin}/applicant/${id}/${step}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copied to clipboard");
   };

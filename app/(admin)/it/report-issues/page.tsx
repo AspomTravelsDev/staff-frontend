@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Clock,
   Inbox,
-  MessageSquare,
   MoreHorizontal,
   UserX,
 } from "lucide-react";

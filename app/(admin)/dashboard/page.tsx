@@ -66,7 +66,7 @@ function QuickLinkButton({
   );
 }
 
-import { ClockInAction } from "@/components/dashboard/clock-in-action";
+// import { ClockInAction } from "@/components/dashboard/clock-in-action";
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
 export default async function Page() {
@@ -80,9 +80,9 @@ export default async function Page() {
     getTodayStatus(),
   ]);
 
-  const todayRecord = todayStatusResponse.success
-    ? todayStatusResponse.data.data
-    : null;
+  // const todayRecord = todayStatusResponse.success
+  //   ? todayStatusResponse.data.data
+  //   : null;
 
   let totalAttendance = 0;
   let lateDays = 0;
@@ -92,7 +92,7 @@ export default async function Page() {
     const history = clockInResponse.data.data;
     totalAttendance = history.length;
     const workingDaysThisMonth: Date[] = [];
-    let currentDate = new Date(now);
+    const currentDate = new Date(now);
 
     while (currentDate >= startOfMonth) {
       const dayOfWeek = currentDate.getDay();
