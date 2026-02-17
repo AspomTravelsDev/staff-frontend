@@ -7,10 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { getRoleLabel } from "@/types/user-types";
+import { AvatarUpload } from "@/components/avatar-upload";
+import { ProfileForm } from "@/components/profile-form";
+import { getMyAwards } from "@/lib/api/awards";
+import { AwardsCard } from "./components/awards-card";
 
 function getInitials(name: string): string {
   return name
@@ -28,6 +30,10 @@ export default async function ProfilePage() {
     redirect("/auth/login");
   }
 
+  // Fetch awards concurrently with user data if possible, but safe here
+  // Ideally we would Promise.all but getCurrentUser is needed for auth check
+  const awards = await getMyAwards().catch(() => []); // Fail gracefully if awards API errors
+
   const initials = getInitials(user.name);
 
   return (
@@ -39,64 +45,29 @@ export default async function ProfilePage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Personal Details Card */}
-        <Card className="col-span-full lg:col-span-2">
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Left Column: Awards & Stats (could add more later) */}
+        <div className="space-y-6 md:col-span-1 order-2 md:order-1">
+          <AwardsCard awards={awards} />
+          {/* Potential Attendance Summary could go here too */}
+        </div>
+
+        {/* Right Column: Profile Form (Main Content) */}
+        <Card className="md:col-span-2 order-1 md:order-2">
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-            <Avatar className="h-20 w-20 rounded-lg">
-              <AvatarImage src={user.image_url || ""} alt={user.name} />
-              <AvatarFallback className="rounded-lg text-lg">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <AvatarUpload user={user} initials={initials} />
+
             <div className="flex flex-col gap-1">
               <CardTitle className="text-2xl">{user.name}</CardTitle>
               <CardDescription className="flex items-center gap-2">
-                {getRoleLabel(user.role)}
-                <Badge variant={user.is_active ? "default" : "destructive"}>
-                  {user.is_active ? "Active" : "Inactive"}
-                </Badge>
+                <Badge variant="secondary">{getRoleLabel(user.role)}</Badge>
+                <span className="text-muted-foreground">•</span>
+                <span>{user.staff_id}</span>
               </CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-6">
-            <Separator />
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Email Address
-                </span>
-                <p className="text-sm font-medium">{user.email}</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Phone Number
-                </span>
-                <p className="text-sm font-medium">
-                  {user.phone || "Not provided"}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Staff ID
-                </span>
-                <p className="text-sm font-medium">{user.staff_id}</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Date Joined
-                </span>
-                <p className="text-sm font-medium">
-                  {user.date_joined
-                    ? new Date(user.date_joined).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : "Not recorded"}
-                </p>
-              </div>
-            </div>
+          <CardContent>
+            <ProfileForm user={user} />
           </CardContent>
         </Card>
       </div>

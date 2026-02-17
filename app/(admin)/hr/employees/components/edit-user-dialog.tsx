@@ -41,6 +41,8 @@ interface EditUserFormData {
   is_supervisor: boolean;
   net_pay: string;
   date_joined: string;
+  dob: string;
+  contract_type: string;
   is_active: boolean;
 }
 
@@ -68,6 +70,8 @@ export function EditUserDialog({
       is_supervisor: false,
       net_pay: "",
       date_joined: "",
+      dob: "",
+      contract_type: "",
       is_active: true,
     },
   });
@@ -81,8 +85,10 @@ export function EditUserDialog({
         phone: employee.phone || "",
         role: employee.role,
         is_supervisor: employee.is_supervisor,
-        net_pay: "", // Employee type doesn't have this
-        date_joined: employee.joinDate ? employee.joinDate.split("T")[0] : "", // Extract date part
+        net_pay: "", // Employee type doesn't have this property in the interface yet if not added? defaulting to empty
+        date_joined: employee.joinDate ? employee.joinDate.split("T")[0] : "",
+        dob: employee.dob ? employee.dob.split("T")[0] : "",
+        contract_type: employee.contract_type || "",
         is_active: employee.status === "Active",
       });
     }
@@ -102,6 +108,8 @@ export function EditUserDialog({
           is_supervisor: data.is_supervisor,
           net_pay: data.net_pay ? parseFloat(data.net_pay) : null,
           date_joined: data.date_joined || null,
+          dob: data.dob || null,
+          contract_type: data.contract_type || null,
           is_active: data.is_active,
         },
       },
@@ -121,7 +129,7 @@ export function EditUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User Details</DialogTitle>
           <DialogDescription>
@@ -198,6 +206,26 @@ export function EditUserDialog({
               </Select>
             </div>
 
+            {/* Contract Type */}
+            <div className="grid gap-2">
+              <Label htmlFor="contract_type">Contract Type</Label>
+              <Select
+                value={watch("contract_type")}
+                onValueChange={(value) => setValue("contract_type", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select contract type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full_time">Full Time</SelectItem>
+                  <SelectItem value="part_time">Part Time</SelectItem>
+                  <SelectItem value="contract">Contract</SelectItem>
+                  <SelectItem value="nysc">NYSC</SelectItem>
+                  <SelectItem value="intern">Intern</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Net Pay */}
             <div className="grid gap-2">
               <Label htmlFor="net_pay">Net Pay</Label>
@@ -218,6 +246,12 @@ export function EditUserDialog({
                 type="date"
                 {...register("date_joined")}
               />
+            </div>
+
+            {/* Date of Birth */}
+            <div className="grid gap-2">
+              <Label htmlFor="dob">Date of Birth</Label>
+              <Input id="dob" type="date" {...register("dob")} />
             </div>
 
             {/* Checkboxes */}

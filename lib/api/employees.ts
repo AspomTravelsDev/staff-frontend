@@ -21,6 +21,8 @@ export interface Employee {
     is_supervisor: boolean;
     joinDate: string | null;
     exitDate?: string;
+    dob: string | null;
+    contract_type: string | null;
 }
 
 export interface EmployeeStats {
@@ -74,6 +76,8 @@ function mapUserToEmployee(user: User): Employee {
         is_supervisor: user.is_supervisor,
         joinDate: user.date_joined || "",
         exitDate: undefined,
+        dob: user.dob,
+        contract_type: user.contract_type,
     };
 }
 
@@ -221,6 +225,8 @@ export interface UpdateUserRequest {
     net_pay?: number | null;
     is_active?: boolean;
     date_joined?: string | null; // ISO date string (YYYY-MM-DD)
+    dob?: string | null;
+    contract_type?: string | null;
 }
 
 export async function updateUser(

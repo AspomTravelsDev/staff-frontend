@@ -2,22 +2,20 @@
 
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Crown, Sparkles, Loader2 } from "lucide-react";
-import { useEmployeeOfTheMonth } from "@/lib/api/hooks/use-dashboard";
+import { Crown, Sparkles } from "lucide-react";
 
-export function EmployeeOfTheMonthCard() {
-  const { data: employee, isLoading } = useEmployeeOfTheMonth();
+interface EmployeeOfTheMonthCardProps {
+  employee?: {
+    name: string;
+    role: string;
+    image?: string | null;
+    initials: string;
+  };
+}
 
-  if (isLoading) {
-    return (
-      <Card className="flex flex-col justify-between h-full w-full lg:w-2/7">
-        <CardContent className="flex flex-1 flex-col items-center justify-center p-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
+export function EmployeeOfTheMonthCard({
+  employee,
+}: EmployeeOfTheMonthCardProps) {
   if (!employee) return null;
 
   return (
@@ -38,7 +36,7 @@ export function EmployeeOfTheMonthCard() {
 
           <Avatar className="h-48 w-48 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 transition-transform duration-500 group-hover:scale-105">
             <AvatarImage
-              src={employee.image}
+              src={employee.image || ""}
               alt={employee.name}
               className="object-cover object-top"
             />

@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getAwards, getAwardStats } from "@/lib/api/awards";
-import { AwardStatsCards } from "./components/award-stats";
+import { getAllAwards } from "@/lib/api/awards";
+// import { AwardStatsCards } from "./components/award-stats";
 import { AwardsTable } from "./components/awards-table";
 import { CreateAwardDialog } from "./components/create-award-dialog";
 
@@ -20,10 +20,8 @@ export default async function AwardStaffPage() {
   }
 
   // Fetch initial data on the server
-  const [awardsResponse, stats] = await Promise.all([
-    getAwards({ limit: 100 }),
-    getAwardStats(),
-  ]);
+  // Note: getAllAwards is an assumption for admin listing.
+  const awards = await getAllAwards();
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
@@ -37,9 +35,10 @@ export default async function AwardStaffPage() {
         <CreateAwardDialog />
       </div>
 
-      <AwardStatsCards stats={stats} />
+      {/* Stats temporarily removed as per new API guide */}
+      {/* <AwardStatsCards stats={stats} /> */}
 
-      <AwardsTable awards={awardsResponse.items} />
+      <AwardsTable awards={awards} />
     </div>
   );
 }

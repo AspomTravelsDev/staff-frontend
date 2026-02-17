@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -34,28 +35,33 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { useEmployees } from "@/lib/api/hooks/use-employees";
-import { useCreateAward } from "@/lib/api/hooks/use-awards";
+import { useCreateAward, useAwardTypes } from "@/lib/api/hooks/use-awards";
 import { toast } from "sonner";
-
-const formSchema = z.object({
-  employeeId: z.string().min(1, "Please select an employee"),
-  awardType: z.string().min(1, "Please select an award type"),
-  date: z.date({
-    message: "A date is required",
-  }),
-  reason: z.string().min(10, "Please provide a reason (min 10 characters)"),
-});
-
-const AWARD_TYPES = [
-  "Employee of the Month",
-  "Customer Hero",
-  "Most Punctual",
-  "Team Player",
-  "Innovation Award",
-  "Leadership Award",
-  "Best Sales Performance",
-  "Safety First",
-];
+const formSchema = z
+  .object({
+    employeeId: z.string().min(1, "Please select an employee"),
+    awardType: z.string().min(1, "Please select an award type"),
+    customName: z.string().optional(),
+    date: z.date({
+      message: "A month is required",
+    }),
+    reason: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.awardType === "custom" &&
+        (!data.customName || data.customName.length < 3)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Custom name is required (min 3 chars)",
+      path: ["customName"],
+    },
+  );
 
 export function CreateAwardDialog() {
   const [open, setOpen] = useState(false);
@@ -63,34 +69,44 @@ export function CreateAwardDialog() {
     limit: 100,
     status: "Active",
   });
+
+  const { data: awardTypes, isLoading: isLoadingTypes } = useAwardTypes();
   const createAward = useCreateAward();
 
   const {
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       reason: "",
+      customName: "",
     },
   });
 
+  const selectedAwardType = watch("awardType");
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      // Format date to YYYY-MM-01
+      const month = format(values.date, "yyyy-MM-01");
+
       await createAward.mutateAsync({
-        employeeId: values.employeeId,
-        awardType: values.awardType,
-        date: values.date.toISOString(),
-        reason: values.reason,
+        user_id: values.employeeId,
+        type: values.awardType,
+        custom_name:
+          values.awardType === "custom" ? values.customName : undefined,
+        month: month,
+        description: values.reason,
       });
-      toast.success("Award created successfully");
+      toast.success("Award assigned successfully");
       setOpen(false);
       reset();
-    } catch (error) {
-      toast.error("Failed to create award");
-      console.error(error);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to assign award");
     }
   }
 
@@ -99,19 +115,19 @@ export function CreateAwardDialog() {
       <DialogTrigger asChild>
         <Button>
           <Trophy className="mr-2 h-4 w-4" />
-          Award Staff
+          Give Award
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Award Staff Member</DialogTitle>
           <DialogDescription>
-            Recognize an employee for their outstanding performance or
-            contribution.
+            Recognize an employee for their outstanding performance.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Employee Select */}
           <div className="space-y-2">
             <Label htmlFor="employeeId">Employee</Label>
             <Controller
@@ -151,6 +167,7 @@ export function CreateAwardDialog() {
             )}
           </div>
 
+          {/* Award Type Select */}
           <div className="space-y-2">
             <Label htmlFor="awardType">Award Type</Label>
             <Controller
@@ -160,16 +177,23 @@ export function CreateAwardDialog() {
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  disabled={isLoadingTypes}
                 >
                   <SelectTrigger id="awardType">
                     <SelectValue placeholder="Select award type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {AWARD_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
+                    {isLoadingTypes ? (
+                      <div className="flex items-center justify-center p-2">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      </div>
+                    ) : (
+                      awardTypes?.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               )}
@@ -181,8 +205,28 @@ export function CreateAwardDialog() {
             )}
           </div>
 
+          {/* Custom Name (Conditional) */}
+          {selectedAwardType === "custom" && (
+            <div className="space-y-2">
+              <Label htmlFor="customName">Custom Award Name</Label>
+              <Controller
+                control={control}
+                name="customName"
+                render={({ field }) => (
+                  <Input {...field} placeholder="e.g. Best Coder" />
+                )}
+              />
+              {errors.customName && (
+                <p className="text-sm font-medium text-destructive">
+                  {errors.customName.message}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Month Select */}
           <div className="space-y-2">
-            <Label>Date of Award</Label>
+            <Label>Month of Award</Label>
             <Controller
               control={control}
               name="date"
@@ -197,9 +241,9 @@ export function CreateAwardDialog() {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(field.value, "MMMM yyyy")
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Pick a month</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -218,6 +262,10 @@ export function CreateAwardDialog() {
                 </Popover>
               )}
             />
+            <p className="text-[0.8rem] text-muted-foreground">
+              Select any day in the month. The award will be assigned to that
+              month.
+            </p>
             {errors.date && (
               <p className="text-sm font-medium text-destructive">
                 {errors.date.message}
@@ -225,8 +273,9 @@ export function CreateAwardDialog() {
             )}
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="reason">Reason / Note</Label>
+            <Label htmlFor="reason">Description / Note</Label>
             <Controller
               control={control}
               name="reason"

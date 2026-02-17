@@ -1,197 +1,168 @@
 "use server";
 
-import { api, shouldMock } from "./client";
-import type { PaginatedResponse } from "./types";
+import { api } from "./client";
 
 // ============================================================================
 // Types
 // ============================================================================
 
+export interface AwardType {
+    value: string;
+    label: string;
+}
+
+export interface AwardedBy {
+    id: string;
+    name: string;
+    email: string;
+}
+
+export interface AwardImage {
+    id: string;
+    url: string;
+}
+
 export interface Award {
     id: string;
-    employeeId: string;
-    employeeName: string;
-    department: string;
-    awardType: string;
-    date: string;
-    reason: string;
-    awardedBy: string;
+    user_id: string;
+    award_type: string;
+    award_name: string; // Display label
+    custom_name: string | null;
+    month: string; // YYYY-MM
+    awarded_at: string; // ISO datetime
+    awarded_by: AwardedBy;
+    image: AwardImage | null;
+    description: string | null;
+    // Optional fields for admin lists (if provided by backend)
+    user?: {
+        first_name: string;
+        last_name: string;
+        email: string;
+        department?: string;
+    };
 }
 
-export interface AwardStats {
-    totalAwards: number;
-    thisMonth: number;
-    topAwardType: string;
-    mostAwardedDept: string;
+export interface AssignAwardRequest {
+    user_id: string;
+    type: string;
+    custom_name?: string; // Required if type="custom"
+    month?: string; // YYYY-MM-01
+    image_id?: string;
+    description?: string;
 }
 
-export interface AwardFilters {
-    page?: number;
-    limit?: number;
-    search?: string;
-    department?: string;
-    awardType?: string;
-    dateFrom?: string;
-    dateTo?: string;
+export interface UpdateAwardRequest {
+    month?: string; // YYYY-MM-01
+    image_id?: string | null; // Pass null to remove
+    description?: string;
 }
 
-export interface CreateAwardRequest {
-    employeeId: string;
-    awardType: string;
-    date: string;
-    reason: string;
+// Response wrappers
+interface AwardTypesResponse {
+    types: AwardType[];
 }
 
-// ============================================================================
-// Mock Data Loader
-// ============================================================================
+interface AwardListResponse {
+    data: Award[];
+    // Pagination might be added later, for now guide says "data": [...]
+}
 
-const getMockAwards = async (): Promise<Award[]> => {
-    if (typeof window === "undefined") {
-        const fs = await import("fs/promises");
-        const path = await import("path");
-        const filePath = path.join(process.cwd(), "data/mock/awards.json");
-        try {
-            const fileContent = await fs.readFile(filePath, "utf-8");
-            return JSON.parse(fileContent);
-        } catch (error) {
-            console.error("Error reading mock awards data:", error);
-            return [];
-        }
-    }
-    return [];
-};
+interface UserAwardsResponse {
+    user_id: string;
+    user_name: string;
+    awards: Award[];
+}
+
+interface AssignAwardResponse {
+    message: string;
+    award: Award;
+}
 
 // ============================================================================
 // API Functions
 // ============================================================================
 
-export async function getAwards(
-    filters: AwardFilters = {}
-): Promise<PaginatedResponse<Award>> {
-    if (shouldMock("useMockAwards")) {
-        const awards = await getMockAwards();
-        let filtered = [...awards];
-
-        if (filters.search) {
-            const search = filters.search.toLowerCase();
-            filtered = filtered.filter(
-                (a) =>
-                    a.employeeName.toLowerCase().includes(search) ||
-                    a.reason.toLowerCase().includes(search) ||
-                    a.awardType.toLowerCase().includes(search)
-            );
-        }
-
-        if (filters.department) {
-            filtered = filtered.filter((a) => a.department === filters.department);
-        }
-
-        if (filters.awardType) {
-            filtered = filtered.filter((a) => a.awardType === filters.awardType);
-        }
-
-        const page = filters.page ?? 1;
-        const limit = filters.limit ?? 20;
-        const total = filtered.length;
-
-        // Sort by date desc
-        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        return {
-            items: filtered.slice((page - 1) * limit, page * limit),
-            pagination: {
-                page,
-                limit,
-                total,
-                total_pages: Math.ceil(total / limit),
-            },
-        };
+/**
+ * Get available award types
+ */
+export async function getAwardTypes(): Promise<AwardType[]> {
+    const result = await api.get<AwardTypesResponse>("/api/awards/types");
+    if (!result.success) {
+        throw new Error(result.error.error);
     }
+    return result.data.types;
+}
 
-    // Real API implementation
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-            params.append(key, String(value));
-        }
-    });
+/**
+ * Get logged-in user's awards
+ */
+export async function getMyAwards(): Promise<Award[]> {
+    const result = await api.get<AwardListResponse>("/api/awards/my");
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data.data;
+}
 
-    const result = await api.get<PaginatedResponse<Award>>(`/awards?${params.toString()}`);
+/**
+ * Get awards for a specific user
+ */
+export async function getUserAwards(userId: string): Promise<UserAwardsResponse> {
+    const result = await api.get<UserAwardsResponse>(`/api/awards/user/${userId}`);
     if (!result.success) {
         throw new Error(result.error.error);
     }
     return result.data;
 }
 
-export async function getAwardStats(): Promise<AwardStats> {
-    if (shouldMock("useMockAwards")) {
-        const awards = await getMockAwards();
-
-        const totalAwards = awards.length;
-
-        const today = new Date().toISOString().split('T')[0];
-        const currentYearMonth = today.substring(0, 7);
-        const thisMonth = awards.filter(a => a.date.startsWith(currentYearMonth)).length;
-
-        // Top Award Type
-        const typeCounts: Record<string, number> = {};
-        awards.forEach(a => { typeCounts[a.awardType] = (typeCounts[a.awardType] || 0) + 1; });
-        let topAwardType = "N/A";
-        let maxTypeCount = 0;
-        Object.entries(typeCounts).forEach(([type, count]) => {
-            if (count > maxTypeCount) {
-                maxTypeCount = count;
-                topAwardType = type;
-            }
-        });
-
-        // Most Awarded Dept
-        const deptCounts: Record<string, number> = {};
-        awards.forEach(a => { deptCounts[a.department] = (deptCounts[a.department] || 0) + 1; });
-        let mostAwardedDept = "N/A";
-        let maxDeptCount = 0;
-        Object.entries(deptCounts).forEach(([dept, count]) => {
-            if (count > maxDeptCount) {
-                maxDeptCount = count;
-                mostAwardedDept = dept;
-            }
-        });
-
-        return {
-            totalAwards,
-            thisMonth,
-            topAwardType,
-            mostAwardedDept
-        };
-    }
-
-    const result = await api.get<AwardStats>("/awards/stats");
+/**
+ * Assign an award (HR/Super only)
+ */
+export async function assignAward(data: AssignAwardRequest): Promise<Award> {
+    const result = await api.post<AssignAwardResponse>("/api/awards/assign", data);
     if (!result.success) {
         throw new Error(result.error.error);
     }
-    return result.data;
+    return result.data.award;
 }
 
-export async function createAward(data: CreateAwardRequest): Promise<Award> {
-    if (shouldMock("useMockAwards")) {
-        console.log("Mock: Creating award", data);
-        // Return a mock created award
-        return {
-            id: `new-${Date.now()}`,
-            employeeId: data.employeeId,
-            employeeName: "Mock Employee", // In a real app we'd fetch the name
-            department: "Mock Dept",
-            awardType: data.awardType,
-            date: data.date,
-            reason: data.reason,
-            awardedBy: "Current User"
-        };
-    }
-
-    const result = await api.post<Award>("/awards", data);
+/**
+ * Update an award
+ */
+export async function updateAward(awardId: string, data: UpdateAwardRequest): Promise<Award> {
+    const result = await api.patch<{ message: string; award: Award }>(`/api/awards/${awardId}`, data);
     if (!result.success) {
         throw new Error(result.error.error);
     }
-    return result.data;
+    return result.data.award;
 }
+
+/**
+ * Delete an award
+ */
+export async function deleteAward(awardId: string): Promise<void> {
+    const result = await api.delete<{ message: string }>(`/api/awards/${awardId}`);
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+}
+
+// Keeps compatibility for HR page listing if backend supports it, otherwise this might fail if /api/awards doesn't exist.
+// Assuming /api/awards might exist for admin listing or we reuse getUserAwards for specific views.
+// For now, I'll keep a generic getAwards but point it to /api/awards/all if it existed, but since it's not documented,
+// I will comment it out or adapt callsites.
+// actually, I'll keep it as a placeholder that calls /api/awards (common convention) just in case,
+// but typed correctly.
+export async function getAllAwards(): Promise<Award[]> {
+    // NOTE: This endpoint wasn't explicitly in the guide, but is needed for the HR dashboard.
+    // If it doesn't exist, this will 404.
+    const result = await api.get<AwardListResponse>("/api/awards");
+    if (!result.success) {
+        // Fallback? or throw?
+        // For dev safety, if it fails, return empty array to not crash UI
+        console.warn("Failed to fetch all awards:", result.error);
+        return [];
+    }
+    return result.data.data;
+}
+

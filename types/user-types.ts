@@ -54,6 +54,8 @@ export interface User {
     date_joined: string | null; // ISO date string (YYYY-MM-DD)
     created_at: string;
     updated_at: string;
+    dob: string | null;
+    contract_type: "full_time" | "part_time" | "contract" | "nysc" | "intern" | null;
 }
 
 export interface LoginUser {

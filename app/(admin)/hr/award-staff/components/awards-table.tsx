@@ -41,28 +41,30 @@ export function AwardsTable({ awards }: AwardsTableProps) {
             awards.map((award) => (
               <TableRow key={award.id}>
                 <TableCell className="font-medium">
-                  {award.employeeName}
+                  {award.user
+                    ? `${award.user.first_name} ${award.user.last_name}`
+                    : "Unknown User"}
                 </TableCell>
-                <TableCell>{award.department}</TableCell>
+                <TableCell>{award.user?.department || "N/A"}</TableCell>
                 <TableCell>
                   <Badge
                     variant="secondary"
                     className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                   >
-                    {award.awardType}
+                    {award.award_name}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {format(new Date(award.date), "MMM d, yyyy")}
+                  {format(new Date(award.awarded_at), "MMM d, yyyy")}
                 </TableCell>
                 <TableCell
                   className="max-w-[300px] truncate"
-                  title={award.reason}
+                  title={award.description || ""}
                 >
-                  {award.reason}
+                  {award.description || "-"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {award.awardedBy}
+                  {award.awarded_by.name}
                 </TableCell>
               </TableRow>
             ))

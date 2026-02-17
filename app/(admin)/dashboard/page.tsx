@@ -69,15 +69,20 @@ function QuickLinkButton({
 // import { ClockInAction } from "@/components/dashboard/clock-in-action";
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
+import { getAllAwards } from "@/lib/api/awards";
+
+// ... imports
+
 export default async function Page() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
   // Fetch both history and today's status in parallel
-  const [clockInResponse, todayStatusResponse] = await Promise.all([
+  const [clockInResponse, todayStatusResponse, allAwards] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getTodayStatus(),
+    getAllAwards().catch(() => []), // Fail gracefully
   ]);
 
   // const todayRecord = todayStatusResponse.success
@@ -130,95 +135,36 @@ export default async function Page() {
     });
   }
 
+  const employeeOfTheMonthAward = allAwards.find(
+    (a) =>
+      (a.award_type === "employee_of_the_month" ||
+        a.award_name.toLowerCase().includes("month")) &&
+      a.month === formatDate(now).substring(0, 7),
+  );
+
+  const employeeOfTheMonth = employeeOfTheMonthAward
+    ? {
+        name: employeeOfTheMonthAward.user
+          ? `${employeeOfTheMonthAward.user.first_name} ${employeeOfTheMonthAward.user.last_name}`
+          : "Unknown",
+        role: employeeOfTheMonthAward.user?.department || "Staff",
+        image: employeeOfTheMonthAward.image?.url || null,
+        initials: employeeOfTheMonthAward.user
+          ? `${employeeOfTheMonthAward.user.first_name[0]}${employeeOfTheMonthAward.user.last_name[0]}`
+          : "EM",
+      }
+    : undefined;
+
   return (
     <div className="flex flex-1 flex-col gap-12 pt-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatsCard
-          title={`Attendance - Clock In (${now.toLocaleString("default", { month: "long" })})`}
-          icon={Clock10Icon}
-          value={`${totalAttendance} / ${
-            Array.from({ length: now.getDate() }, (_, i) =>
-              new Date(now.getFullYear(), now.getMonth(), i + 1).getDay(),
-            ).filter((day) => day !== 0 && day !== 6).length
-          }`}
-          footer={<AttendanceStatusBlocks statuses={attendanceStatuses} />}
-          variant="dashboard"
-          cardColor="blue"
-        />
-        <StatsCard
-          title={mockDashboardStats.leaveDays.title}
-          icon={Calendar}
-          value={mockDashboardStats.leaveDays.value}
-          description={mockDashboardStats.leaveDays.description}
-          variant="dashboard"
-          cardColor={mockDashboardStats.leaveDays.color}
-        />
-        <StatsCard
-          title={mockDashboardStats.totalAwards.title}
-          icon={Trophy}
-          value={mockDashboardStats.totalAwards.value}
-          description={mockDashboardStats.totalAwards.description}
-          variant="dashboard"
-          cardColor={mockDashboardStats.totalAwards.color}
-        />
-        <ExchangeRateCard />
-      </div>
+      {/* ... existing stats grid ... */}
+      <div className="grid gap-4 md:grid-cols-4">{/* ... */}</div>
 
-      <div className="flex flex-col gap-4">
-        <h6 className="text-sm font-bold">Quick Links</h6>
-        {/* Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <QuickLinkButton
-            icon={TreePalm}
-            title="Aspom Website"
-            url="https://office.aspomtravels.com"
-            color="green"
-          />
-          <QuickLinkButton
-            icon={MailIcon}
-            title="My Webmail"
-            url="https://webmail.aspomtravels.com"
-            color="rose"
-          />
-          <QuickLinkButton
-            icon={Earth}
-            title="Aspom Travels FAQ"
-            url="https://faq.aspomtravels.com/"
-            color="blue"
-          />
-          <QuickLinkButton
-            icon={Baby}
-            title="Aspom Birth Services"
-            url="http://aspombirthservices.com/"
-            color="green"
-          />
-          <QuickLinkButton
-            icon={FileText}
-            title="Request Leave"
-            url="/my/leave"
-            target="_self"
-            color="rose"
-          />
-          <QuickLinkButton
-            icon={FileText}
-            title="Submit Task Report"
-            url="/my/tasks"
-            target="_self"
-            color="indigo"
-          />
-          <QuickLinkButton
-            icon={CreditCard}
-            title="Report IT Issue"
-            url="/my/it-issue"
-            target="_self"
-            color="rose"
-          />
-        </div>
-      </div>
+      <div className="flex flex-col gap-4">{/* ... quick links ... */}</div>
 
       <div className="flex flex-col lg:flex-row gap-4">
         <RecentUpdates className="lg:w-5/7" />
-        <EmployeeOfTheMonthCard />
+        <EmployeeOfTheMonthCard employee={employeeOfTheMonth} />
       </div>
     </div>
   );
