@@ -28,6 +28,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { getInitials } from "@/lib/utils";
+import { toProxiedImageUrl } from "@/lib/utils/image-url";
 
 interface AllTasksTableProps {
   records: DailyTaskRecord[];
@@ -101,7 +102,9 @@ function TaskRow({ record }: { record: DailyTaskRecord }) {
             <TableCell>
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={record.user?.image_url || undefined} />
+                  <AvatarImage
+                    src={toProxiedImageUrl(record.user?.image_url)}
+                  />
                   <AvatarFallback>
                     {getInitials(record.user?.name || "Unknown")}
                   </AvatarFallback>

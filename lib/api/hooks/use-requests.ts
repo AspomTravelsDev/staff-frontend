@@ -8,9 +8,11 @@ import {
     deleteRequest,
     type RequestFilters,
     type RequestItem,
+    type UpdateRequestPayload
 } from "../requests";
 import type { RequestFormValues } from "@/lib/validations/requests";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // ============================================================================
 // Query Hooks
@@ -42,6 +44,7 @@ export function useCreateRequest() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
             toast.success("Request submitted successfully");
+            router.refresh();
         },
         onError: (error: any) => {
             toast.error(error.message || "Failed to submit request");
@@ -53,11 +56,12 @@ export function useUpdateRequest() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<RequestFormValues> }) =>
+        mutationFn: ({ id, data }: { id: string; data: UpdateRequestPayload }) =>
             updateRequest(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
             toast.success("Request updated successfully");
+            router.refresh();
         },
         onError: (error: any) => {
             toast.error(error.message || "Failed to update request");
@@ -73,6 +77,7 @@ export function useDeleteRequest() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
             toast.success("Request deleted successfully");
+            router.refresh();
         },
         onError: (error: any) => {
             toast.error(error.message || "Failed to delete request");

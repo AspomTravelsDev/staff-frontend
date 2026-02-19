@@ -6,6 +6,7 @@ import { uploadProfileImage } from "@/app/(admin)/my/profile/actions";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { toProxiedImageUrl } from "@/lib/utils/image-url";
 
 interface AvatarUploadProps {
   user: {
@@ -63,7 +64,10 @@ export function AvatarUpload({ user, initials }: AvatarUploadProps) {
       />
 
       <Avatar className="h-20 w-20 rounded-lg group-hover:opacity-75 transition-opacity">
-        <AvatarImage src={user.image_url || ""} alt={user.name} />
+        <AvatarImage
+          src={toProxiedImageUrl(user.image_url) || ""}
+          alt={user.name}
+        />
         <AvatarFallback className="rounded-lg text-lg">
           {initials}
         </AvatarFallback>

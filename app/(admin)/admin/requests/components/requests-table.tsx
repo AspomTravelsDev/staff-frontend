@@ -61,7 +61,8 @@ function getStatusVariant(status: RequestItem["status"]) {
     case "rejected":
       return "destructive";
     case "in_progress":
-      return "secondary"; // or a custom blue
+    case "cancelled":
+      return "secondary";
     case "pending":
     default:
       return "outline";

@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { RequestItem } from "@/lib/api/requests";
-import { useDeleteRequest } from "@/lib/api/hooks/use-requests";
+import {
+  useDeleteRequest,
+  useUpdateRequest,
+} from "@/lib/api/hooks/use-requests";
 import { useState } from "react";
 
 interface MyRequestsTableProps {
@@ -65,6 +69,8 @@ function getStatusVariant(status: RequestItem["status"]) {
       return "destructive";
     case "in_progress":
       return "secondary";
+    case "cancelled":
+      return "secondary"; // or a specific variant for cancelled
     case "pending":
     default:
       return "outline";
@@ -73,7 +79,9 @@ function getStatusVariant(status: RequestItem["status"]) {
 
 export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const deleteMutation = useDeleteRequest();
+  const updateMutation = useUpdateRequest();
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -85,7 +93,21 @@ export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
     }
   };
 
+  const handleCancel = async () => {
+    if (!cancelId) return;
+    try {
+      await updateMutation.mutateAsync({
+        id: cancelId,
+        data: { status: "cancelled" },
+      });
+      setCancelId(null);
+    } catch (e) {
+      console.error("Failed to cancel request", e);
+    }
+  };
+
   const isDeleting = deleteMutation.isPending;
+  const isCancelling = updateMutation.isPending;
 
   if (requests.length === 0) {
     return (
@@ -168,17 +190,34 @@ export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(request)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setDeleteId(request.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {request.status === "pending" && (
+                        <>
+                          <DropdownMenuItem onClick={() => onEdit(request)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setCancelId(request.id)}
+                            className="text-orange-600 focus:text-orange-600"
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Cancel
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeleteId(request.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
+
+                      {request.status !== "pending" && (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                          No actions available
+                        </div>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -212,6 +251,36 @@ export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
             >
               {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!cancelId}
+        onOpenChange={(open) => !open && setCancelId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this request?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleCancel();
+              }}
+              className="bg-orange-600 hover:bg-orange-700"
+              disabled={isCancelling}
+            >
+              {isCancelling && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Cancel Request
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

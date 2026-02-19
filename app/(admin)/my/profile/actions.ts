@@ -20,8 +20,8 @@ export async function uploadProfileImage(formData: FormData) {
     // 1. Upload file
     const uploadFormData = new FormData();
     uploadFormData.append("file", file);
-    uploadFormData.append("model_type", "User");
-    uploadFormData.append("model_id", user.id);
+    uploadFormData.append("model_type", "App\\Models\\User");
+    uploadFormData.append("model_id", String(user.id));
 
     // Note: api.post automatically handles Content-Type for FormData?
     // Actually, we usually need to let the browser/fetch set it for multipart.
@@ -64,6 +64,7 @@ export async function uploadProfileImage(formData: FormData) {
         }
 
         revalidatePath("/my/profile");
+        revalidatePath("/", "layout");
         return { success: true, url: downloadUrl };
 
     } catch (error) {
