@@ -1,6 +1,7 @@
 "use server";
 
 import { api } from "./client";
+import { getCurrentUser as getSessionUser } from "@/lib/auth/session";
 import { PaginatedResponse } from "./types";
 import type { User } from "@/types/user-types";
 
@@ -241,4 +242,11 @@ export async function updateUser(
 
     // Backend returns the updated user directly (not in an array)
     return result.data.data;
+}
+
+/**
+ * Get current authenticated user
+ */
+export async function getCurrentUser(): Promise<User | null> {
+    return getSessionUser();
 }

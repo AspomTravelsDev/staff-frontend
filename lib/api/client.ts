@@ -5,7 +5,7 @@
  * error handling, and mock mode support for development.
  */
 
-import { getAuthToken } from "@/lib/auth/session";
+
 export { API_CONFIG, shouldMock } from "./config";
 
 // Remove debug logs and USE_REAL_API
@@ -60,6 +60,8 @@ export async function apiClient<T>(
     // Get auth token if not skipped
     let token: string | null = null;
     if (!skipAuth) {
+        // Dynamically import to allow this file to be imported in client components without breaking
+        const { getAuthToken } = await import("@/lib/auth/session");
         token = customToken ?? (await getAuthToken());
     }
 

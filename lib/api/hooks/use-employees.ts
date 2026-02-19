@@ -7,6 +7,7 @@ import {
     getEmployeeStats,
     updateUserStatus,
     updateUser,
+    getCurrentUser,
     type EmployeeFilters,
     type UpdateUserRequest,
 } from "../employees";
@@ -14,6 +15,13 @@ import {
 // ============================================================================
 // Query Hooks
 // ============================================================================
+
+export function useCurrentUser() {
+    return useQuery({
+        queryKey: queryKeys.users.me(),
+        queryFn: () => getCurrentUser(),
+    });
+}
 
 export function useEmployees(filters: EmployeeFilters = {}) {
     return useQuery({

@@ -70,7 +70,7 @@ function QuickLinkButton({
 
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
-import { getAllAwards } from "@/lib/api/awards";
+import { getAllAwards, getMyAwards } from "@/lib/api/awards";
 import { getInitials } from "@/lib/utils";
 
 export default async function Page() {
@@ -79,11 +79,13 @@ export default async function Page() {
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
   // Fetch both history and today's status in parallel
-  const [clockInResponse, todayStatusResponse, allAwards] = await Promise.all([
-    getClockInHistory(formatDate(startOfMonth), formatDate(now)),
-    getTodayStatus(),
-    getAllAwards().catch(() => []), // Fail gracefully
-  ]);
+  const [clockInResponse, todayStatusResponse, allAwards, myAwards] =
+    await Promise.all([
+      getClockInHistory(formatDate(startOfMonth), formatDate(now)),
+      getTodayStatus(),
+      getAllAwards().catch(() => []), // Fail gracefully
+      getMyAwards().catch(() => []), // Fail gracefully
+    ]);
 
   // const todayRecord = todayStatusResponse.success
   //   ? todayStatusResponse.data.data
@@ -181,10 +183,10 @@ export default async function Page() {
           cardColor={mockDashboardStats.leaveDays.color}
         />
         <StatsCard
-          title="Total Awards"
+          title="My Awards"
           icon={Trophy}
-          value={allAwards.length.toString()}
-          description={`${allAwards.filter((a) => a.month === formatDate(now).substring(0, 7)).length} this month`}
+          value={myAwards.length.toString()}
+          description={`${myAwards.filter((a) => a.month === formatDate(now).substring(0, 7)).length} this month`}
           variant="dashboard"
           cardColor="yellow"
         />

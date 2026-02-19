@@ -64,6 +64,7 @@ export const queryKeys = {
             [...queryKeys.users.lists(), filters] as const,
         detail: (id: string) => [...queryKeys.users.all, "detail", id] as const,
         staff: () => [...queryKeys.users.all, "staff"] as const,
+        me: () => [...queryKeys.users.all, "me"] as const,
     },
 
     /**
