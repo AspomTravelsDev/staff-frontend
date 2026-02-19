@@ -38,6 +38,7 @@ export function useRequestStats() {
 
 export function useCreateRequest() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     return useMutation({
         mutationFn: (data: RequestFormValues) => createRequest(data),
@@ -54,6 +55,7 @@ export function useCreateRequest() {
 
 export function useUpdateRequest() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: UpdateRequestPayload }) =>
@@ -71,6 +73,7 @@ export function useUpdateRequest() {
 
 export function useDeleteRequest() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     return useMutation({
         mutationFn: (id: string) => deleteRequest(id),
