@@ -29,8 +29,8 @@ export function EmployeeListContent() {
     if (!allEmployeesData?.items) return [];
     const depts = new Set(
       allEmployeesData.items
-        .map((e) => e.role)
-        .filter((role) => role && role.trim() !== ""),
+        .map((e) => e.department)
+        .filter((dept): dept is string => !!dept && dept.trim() !== ""),
     );
     return Array.from(depts).sort();
   }, [allEmployeesData]);
@@ -48,7 +48,7 @@ export function EmployeeListContent() {
 
     // Apply department filter
     if (filters.department !== "all") {
-      result = result.filter((e) => e.role === filters.department);
+      result = result.filter((e) => e.department === filters.department);
     }
 
     // Apply sorting

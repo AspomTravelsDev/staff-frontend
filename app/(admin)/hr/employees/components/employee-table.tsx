@@ -106,7 +106,16 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>{employee.role || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="text-sm">
+                      {employee.department || "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {employee.role}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="h-3 w-3" />

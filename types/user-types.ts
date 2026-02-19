@@ -48,6 +48,7 @@ export interface User {
     phone: string | null;
     image_url: string | null;
     role: UserRole;
+    department: string | null;
     is_active: boolean;
     is_supervisor: boolean;
     net_pay: string;

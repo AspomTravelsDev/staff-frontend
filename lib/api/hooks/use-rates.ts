@@ -12,7 +12,12 @@ export function useRates() {
             if (!response.success) {
                 throw new Error(response.error?.error || "Failed to fetch rates");
             }
-            return response.data;
+            // Log raw shape so we can see what the real API returns
+            console.log("[Rates] raw response.data:", response.data);
+            // Some backends wrap: { data: { internal_rate, billing_rate } }
+            // Handle both shapes
+            const payload = (response.data as any)?.data ?? response.data;
+            return payload as { internal_rate: number; billing_rate: number; updated_at: string };
         },
     });
 }

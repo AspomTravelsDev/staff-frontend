@@ -116,10 +116,10 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["super", "it"],
     },
     {
-        title: "General Customer Database",
+        title: "Customer Database (CRM)",
         url: "/crm",
-        icon: ClipboardList,
-        allowedRoles: ["account", "visa", "social-media", "birth-services"]
+        icon: Users,
+        allowedRoles: ["account", "visa", "social-media", "birth-services", "hr", "admin", "it", "compliance", "holidays"],
     },
     {
         title: "HR Applications",

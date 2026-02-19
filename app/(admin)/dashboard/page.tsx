@@ -73,6 +73,7 @@ import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 import { getAllAwards, getMyAwards } from "@/lib/api/awards";
 import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
+import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
 
 export default async function Page() {
   const now = new Date();
@@ -149,7 +150,10 @@ export default async function Page() {
         name: employeeOfTheMonthAward.user
           ? employeeOfTheMonthAward.user.name
           : "Unknown",
-        role: employeeOfTheMonthAward.user?.department || "Staff",
+        role:
+          employeeOfTheMonthAward.user?.department ||
+          ROLE_TO_DEPARTMENT[employeeOfTheMonthAward.user?.role ?? ""] ||
+          "Staff",
         image:
           toProxiedImageUrl(
             employeeOfTheMonthAward.image?.url ||

@@ -71,7 +71,7 @@ function mapUserToEmployee(user: User): Employee {
         lastName,
         email: user.email,
         phone: user.phone || "",
-        department: "",
+        department: user.department || "",
         role: user.role,
         status: user.is_active ? "Active" : "Inactive",
         is_supervisor: user.is_supervisor,
@@ -222,6 +222,7 @@ export interface UpdateUserRequest {
     phone?: string | null;
     image_url?: string | null;
     role?: string;
+    department?: string | null;
     is_supervisor?: boolean;
     net_pay?: number | null;
     is_active?: boolean;

@@ -5,8 +5,8 @@ import { queryKeys } from "../query-keys";
 import {
     getClients,
     getCRMStats,
-    type CRMFilters,
 } from "../crm";
+import type { CRMFilters } from "../crm-constants";
 
 // ============================================================================
 // Query Hooks

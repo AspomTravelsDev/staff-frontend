@@ -39,8 +39,9 @@ export interface Award {
         name: string;
         email: string;
         staff_id: string;
+        role?: string;
         image_url?: string;
-        department?: string; // Guide doesn't show this, but might be useful if available. Keeping optional.
+        department?: string;
     };
 }
 
@@ -79,6 +80,7 @@ interface AwardListResponse {
 interface UserAwardsResponse {
     user_id: string;
     user_name: string;
+    user_department?: string;
     awards: Award[];
 }
 

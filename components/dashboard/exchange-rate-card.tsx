@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useRates } from "@/lib/api/hooks/use-rates";
 
@@ -39,7 +34,7 @@ export function ExchangeRateCard() {
             </div>
             <div className="flex items-center gap-2">
               <span className="font-bold">
-                ₦{rates.internal_rate.toLocaleString()}
+                ₦{(rates.internal_rate ?? 0).toLocaleString()}
               </span>
               {/* Trend logic can be added later if API supports history */}
             </div>
@@ -53,7 +48,7 @@ export function ExchangeRateCard() {
             </div>
             <div className="flex items-center gap-2">
               <span className="font-bold">
-                ₦{rates.billing_rate.toLocaleString()}
+                ₦{(rates.billing_rate ?? 0).toLocaleString()}
               </span>
             </div>
           </div>

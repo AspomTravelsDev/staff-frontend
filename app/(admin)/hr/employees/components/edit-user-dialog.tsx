@@ -26,6 +26,7 @@ import { useUpdateUser } from "@/lib/api/hooks/use-employees";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { getRolesForSelect } from "@/types/user-types";
+import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
 
 interface EditUserDialogProps {
   employee: Employee | null;
@@ -38,6 +39,7 @@ interface EditUserFormData {
   email: string;
   phone: string;
   role: string;
+  department: string;
   is_supervisor: boolean;
   net_pay: string;
   date_joined: string;
@@ -45,6 +47,22 @@ interface EditUserFormData {
   contract_type: string;
   is_active: boolean;
 }
+
+const DEPARTMENTS = [
+  "Management",
+  "Administration",
+  "IT",
+  "Accounts",
+  "Visa",
+  "HR",
+  "Social Media",
+  "Compliance",
+  "Birth Services",
+  "Holidays",
+  "Operations",
+  "Customer Service",
+  "Other",
+];
 
 export function EditUserDialog({
   employee,
@@ -67,6 +85,7 @@ export function EditUserDialog({
       email: "",
       phone: "",
       role: "",
+      department: "",
       is_supervisor: false,
       net_pay: "",
       date_joined: "",
@@ -84,8 +103,9 @@ export function EditUserDialog({
         email: employee.email,
         phone: employee.phone || "",
         role: employee.role,
+        department: employee.department || "",
         is_supervisor: employee.is_supervisor,
-        net_pay: "", // Employee type doesn't have this property in the interface yet if not added? defaulting to empty
+        net_pay: "",
         date_joined: employee.joinDate ? employee.joinDate.split("T")[0] : "",
         dob: employee.dob ? employee.dob.split("T")[0] : "",
         contract_type: employee.contract_type || "",
@@ -93,6 +113,16 @@ export function EditUserDialog({
       });
     }
   }, [employee, reset]);
+
+  // Auto-suggest department when role changes (only if department is empty or was previously auto-suggested)
+  const watchedRole = watch("role");
+  const watchedDepartment = watch("department");
+  useEffect(() => {
+    const suggested = ROLE_TO_DEPARTMENT[watchedRole];
+    if (suggested && !watchedDepartment) {
+      setValue("department", suggested);
+    }
+  }, [watchedRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSubmit = (data: EditUserFormData) => {
     if (!employee) return;
@@ -105,6 +135,7 @@ export function EditUserDialog({
           email: data.email,
           phone: data.phone || null,
           role: data.role,
+          department: data.department || null,
           is_supervisor: data.is_supervisor,
           net_pay: data.net_pay ? parseFloat(data.net_pay) : null,
           date_joined: data.date_joined || null,
@@ -186,24 +217,59 @@ export function EditUserDialog({
               />
             </div>
 
-            {/* Role */}
-            <div className="grid gap-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={watch("role")}
-                onValueChange={(value) => setValue("role", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Role + Department side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Role */}
+              <div className="grid gap-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={watchedRole}
+                  onValueChange={(value) => {
+                    setValue("role", value);
+                    // Auto-fill department if empty or previously auto-filled
+                    const suggested = ROLE_TO_DEPARTMENT[value];
+                    if (suggested) {
+                      const currentDept = watch("department");
+                      const wasSuggested =
+                        Object.values(ROLE_TO_DEPARTMENT).includes(currentDept);
+                      if (!currentDept || wasSuggested) {
+                        setValue("department", suggested);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Department */}
+              <div className="grid gap-2">
+                <Label htmlFor="department">Department</Label>
+                <Select
+                  value={watchedDepartment}
+                  onValueChange={(value) => setValue("department", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Contract Type */}
