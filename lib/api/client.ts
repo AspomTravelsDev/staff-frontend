@@ -8,10 +8,6 @@
 
 export { API_CONFIG, shouldMock } from "./config";
 
-// Remove debug logs and USE_REAL_API
-
-// Remove debug logs and USE_REAL_API
-// export const USE_REAL_API = true; // Deprecated
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface ErrorResponse {

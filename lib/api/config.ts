@@ -11,7 +11,6 @@ export const API_CONFIG = {
     useMockPerformance: true,
     useMockCompliance: true,
     useMockAwards: true,
-    useMockRates: false,
     useMockDashboard: true,
 } as const;
 

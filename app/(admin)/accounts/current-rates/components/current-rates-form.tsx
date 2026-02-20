@@ -71,13 +71,13 @@ export function CurrentRatesForm() {
     return (
       <Card>
         <CardHeader>
-          <Skeleton className="h-8 w-[200px] mb-2" />
-          <Skeleton className="h-4 w-[300px]" />
+          <Skeleton className="h-8 w-50 mb-2" />
+          <Skeleton className="h-4 w-75" />
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-[100px]" />
+          <Skeleton className="h-10 w-25" />
         </CardContent>
       </Card>
     );

@@ -35,6 +35,7 @@ interface EditUserDialogProps {
 }
 
 interface EditUserFormData {
+  staff_id: string;
   name: string;
   email: string;
   phone: string;
@@ -81,6 +82,7 @@ export function EditUserDialog({
     reset,
   } = useForm<EditUserFormData>({
     defaultValues: {
+      staff_id: "",
       name: "",
       email: "",
       phone: "",
@@ -99,6 +101,7 @@ export function EditUserDialog({
   useEffect(() => {
     if (employee) {
       reset({
+        staff_id: employee.staff_id || "",
         name: `${employee.firstName} ${employee.lastName}`,
         email: employee.email,
         phone: employee.phone || "",
@@ -131,6 +134,7 @@ export function EditUserDialog({
       {
         userId: employee.id,
         data: {
+          staff_id: data.staff_id || null,
           name: data.name,
           email: data.email,
           phone: data.phone || null,
@@ -160,7 +164,7 @@ export function EditUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-131.25 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User Details</DialogTitle>
           <DialogDescription>
@@ -183,6 +187,16 @@ export function EditUserDialog({
                   {errors.name.message}
                 </p>
               )}
+            </div>
+
+            {/* Staff ID */}
+            <div className="grid gap-2">
+              <Label htmlFor="staff_id">Staff ID</Label>
+              <Input
+                id="staff_id"
+                {...register("staff_id")}
+                placeholder="e.g. ASP-001"
+              />
             </div>
 
             {/* Email */}
@@ -229,10 +243,11 @@ export function EditUserDialog({
                     // Auto-fill department if empty or previously auto-filled
                     const suggested = ROLE_TO_DEPARTMENT[value];
                     if (suggested) {
-                      const currentDept = watch("department");
                       const wasSuggested =
-                        Object.values(ROLE_TO_DEPARTMENT).includes(currentDept);
-                      if (!currentDept || wasSuggested) {
+                        Object.values(ROLE_TO_DEPARTMENT).includes(
+                          watchedDepartment,
+                        );
+                      if (!watchedDepartment || wasSuggested) {
                         setValue("department", suggested);
                       }
                     }

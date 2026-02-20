@@ -217,6 +217,7 @@ export async function updateUserStatus(
  * Update user details
  */
 export interface UpdateUserRequest {
+    staff_id?: string | null;
     name?: string;
     email?: string;
     phone?: string | null;
