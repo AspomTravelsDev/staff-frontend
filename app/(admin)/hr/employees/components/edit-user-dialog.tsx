@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Employee } from "@/lib/api/employees";
-import { useUpdateUser } from "@/lib/api/hooks/use-employees";
+import { updateUserAction } from "../actions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { getRolesForSelect } from "@/types/user-types";
@@ -70,7 +70,7 @@ export function EditUserDialog({
   open,
   onOpenChange,
 }: EditUserDialogProps) {
-  const { mutate: updateUser, isPending } = useUpdateUser();
+  const [isPending, setIsPending] = useState(false);
   const roles = getRolesForSelect();
 
   const {
@@ -127,37 +127,33 @@ export function EditUserDialog({
     }
   }, [watchedRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onSubmit = (data: EditUserFormData) => {
+  const onSubmit = async (data: EditUserFormData) => {
     if (!employee) return;
 
-    updateUser(
-      {
-        userId: employee.id,
-        data: {
-          staff_id: data.staff_id || null,
-          name: data.name,
-          email: data.email,
-          phone: data.phone || null,
-          role: data.role,
-          department: data.department || null,
-          is_supervisor: data.is_supervisor,
-          net_pay: data.net_pay ? parseFloat(data.net_pay) : null,
-          date_joined: data.date_joined || null,
-          dob: data.dob || null,
-          contract_type: data.contract_type || null,
-          is_active: data.is_active,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success(`${data.name} has been updated successfully.`);
-          onOpenChange(false);
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to update user");
-        },
-      },
-    );
+    setIsPending(true);
+    const result = await updateUserAction(employee.id, {
+      staff_id: data.staff_id || null,
+      name: data.name,
+      email: data.email,
+      phone: data.phone || null,
+      role: data.role,
+      department: data.department || null,
+      is_supervisor: data.is_supervisor,
+      net_pay: data.net_pay ? parseFloat(data.net_pay) : null,
+      date_joined: data.date_joined || null,
+      dob: data.dob || null,
+      contract_type: data.contract_type || null,
+      is_active: data.is_active,
+    });
+
+    setIsPending(false);
+
+    if (result.success) {
+      toast.success(`${data.name} has been updated successfully.`);
+      onOpenChange(false);
+    } else {
+      toast.error(result.error || "Failed to update user");
+    }
   };
 
   if (!employee) return null;

@@ -1,5 +1,3 @@
-"use client";
-
 import { StatsCard } from "@/components/stats-card";
 import { Users, UserMinus, TrendingUp, UserPlus } from "lucide-react";
 import type { EmployeeStats } from "@/lib/api/employees";

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from "@/lib/api/employees";
-import { useUpdateUserStatus } from "@/lib/api/hooks/use-employees";
+import { updateUserStatusAction } from "../actions";
 import { toast } from "sonner";
 import { useState } from "react";
 import { EditUserDialog } from "./edit-user-dialog";
@@ -37,29 +37,24 @@ interface EmployeeTableProps {
 }
 
 export function EmployeeTable({ employees }: EmployeeTableProps) {
-  const { mutate: updateStatus, isPending } = useUpdateUserStatus();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  const handleStatusToggle = (employee: Employee) => {
+  const handleStatusToggle = async (employee: Employee) => {
     const newStatus = !employee.status || employee.status === "Inactive";
     setUpdatingId(employee.id);
 
-    updateStatus(
-      { userId: employee.id, isActive: newStatus },
-      {
-        onSuccess: () => {
-          toast.success(
-            `${employee.firstName} ${employee.lastName} has been ${newStatus ? "activated" : "deactivated"}.`,
-          );
-          setUpdatingId(null);
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to update user status");
-          setUpdatingId(null);
-        },
-      },
-    );
+    const result = await updateUserStatusAction(employee.id, newStatus);
+
+    if (result.success) {
+      toast.success(
+        `${employee.firstName} ${employee.lastName} has been ${newStatus ? "activated" : "deactivated"}.`,
+      );
+    } else {
+      toast.error(result.error || "Failed to update user status");
+    }
+
+    setUpdatingId(null);
   };
 
   return (
@@ -147,9 +142,9 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        disabled={isPending && updatingId === employee.id}
+                        disabled={updatingId === employee.id}
                       >
-                        {isPending && updatingId === employee.id ? (
+                        {updatingId === employee.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <MoreHorizontal className="h-4 w-4" />

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUploadDocument } from "@/lib/api/hooks/use-files";
+import { uploadDocumentAction } from "../actions";
 import { Loader2, UploadCloud, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,9 +33,8 @@ export function UploadDocumentDialog() {
   const [category, setCategory] = useState("policies");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const uploadMutation = useUploadDocument();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -78,7 +77,13 @@ export function UploadDocumentDialog() {
     if (description) formData.append("description", description);
 
     try {
-      await uploadMutation.mutateAsync(formData);
+      setIsPending(true);
+      const result = await uploadDocumentAction(formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      toast("Document uploaded successfully");
       setOpen(false);
       // Reset form
       setFile(null);
@@ -87,8 +92,10 @@ export function UploadDocumentDialog() {
       setDescription("");
       setError(null);
     } catch (err) {
-      // Error is handled by mutation onError, but we can set local error if needed
       console.error(err);
+      setError("An unexpected error occurred");
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -151,7 +158,7 @@ export function UploadDocumentDialog() {
               accept=".pdf"
               onChange={handleFileChange}
               ref={fileInputRef}
-              disabled={uploadMutation.isPending}
+              disabled={isPending}
             />
           </div>
 
@@ -175,17 +182,15 @@ export function UploadDocumentDialog() {
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={uploadMutation.isPending}
+            disabled={isPending}
           >
             Cancel
           </Button>
           <Button
             onClick={handleUpload}
-            disabled={!file || !title || !!error || uploadMutation.isPending}
+            disabled={!file || !title || !!error || isPending}
           >
-            {uploadMutation.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Upload
           </Button>
         </DialogFooter>

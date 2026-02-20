@@ -1,18 +1,28 @@
-"use client";
-
-import { useState } from "react";
 import { AllTasksTable } from "./components/all-tasks-table";
 import { TaskFilters } from "./components/task-filters";
-import { useAllDailyTasks } from "@/lib/api/hooks/use-tasks";
-import { AllTaskFilters } from "@/types/task-types";
+import { getHRTasks } from "./queries";
 import { format } from "date-fns";
 
-export default function HRTasksPage() {
-  const [filters, setFilters] = useState<AllTaskFilters>({
-    date: format(new Date(), "yyyy-MM-dd"), // Default to today
-  });
+interface PageProps {
+  searchParams: Promise<{
+    date?: string;
+    report_submitted?: string;
+  }>;
+}
 
-  const { data: records, isLoading } = useAllDailyTasks(filters);
+export default async function HRTasksPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const filters = {
+    date: params.date || format(new Date(), "yyyy-MM-dd"),
+    report_submitted:
+      params.report_submitted === "true"
+        ? true
+        : params.report_submitted === "false"
+          ? false
+          : undefined,
+  };
+
+  const records = await getHRTasks(filters);
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -27,9 +37,9 @@ export default function HRTasksPage() {
         </div>
       </div>
 
-      <TaskFilters filters={filters} onFilterChange={setFilters} />
+      <TaskFilters filters={filters} />
 
-      <AllTasksTable records={records || []} isLoading={isLoading} />
+      <AllTasksTable records={records} isLoading={false} />
     </div>
   );
 }

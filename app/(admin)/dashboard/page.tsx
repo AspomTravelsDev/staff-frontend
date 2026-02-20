@@ -74,6 +74,8 @@ import { getAllAwards, getMyAwards } from "@/lib/api/awards";
 import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
+import { getRates } from "@/lib/api/rates";
+import { getDashboardUpdates } from "@/lib/api/dashboard";
 
 export default async function Page() {
   const now = new Date();
@@ -81,13 +83,36 @@ export default async function Page() {
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
   // Fetch both history and today's status in parallel
-  const [clockInResponse, todayStatusResponse, allAwards, myAwards] =
-    await Promise.all([
-      getClockInHistory(formatDate(startOfMonth), formatDate(now)),
-      getTodayStatus(),
-      getAllAwards().catch(() => []), // Fail gracefully
-      getMyAwards().catch(() => []), // Fail gracefully
-    ]);
+  const [
+    clockInResponse,
+    todayStatusResponse,
+    allAwards,
+    myAwards,
+    ratesResponse,
+    updatesResponse,
+  ] = await Promise.all([
+    getClockInHistory(formatDate(startOfMonth), formatDate(now)),
+    getTodayStatus(),
+    getAllAwards().catch(() => []), // Fail gracefully
+    getMyAwards().catch(() => []), // Fail gracefully
+    getRates().catch(() => ({
+      success: false as const,
+      error: { code: "500", error: "Failed" },
+    })),
+    getDashboardUpdates().catch(() => ({
+      success: false as const,
+      error: { code: "500", error: "Failed" },
+    })),
+  ]);
+
+  const ratesPayload = ratesResponse.success ? ratesResponse.data : null;
+  const rates = ratesPayload
+    ? ((ratesPayload as any)?.data ?? ratesPayload)
+    : null;
+  const updatesPayload = updatesResponse.success ? updatesResponse.data : null;
+  const updates = updatesPayload
+    ? ((updatesPayload as any)?.data ?? updatesPayload)
+    : [];
 
   // const todayRecord = todayStatusResponse.success
   //   ? todayStatusResponse.data.data
@@ -196,7 +221,7 @@ export default async function Page() {
           variant="dashboard"
           cardColor="yellow"
         />
-        <ExchangeRateCard />
+        <ExchangeRateCard rates={rates} />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -265,7 +290,7 @@ export default async function Page() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        <RecentUpdates className="lg:w-5/7" />
+        <RecentUpdates className="lg:w-5/7" updates={updates} />
         <EmployeeOfTheMonthCard employee={employeeOfTheMonth} />
       </div>
     </div>

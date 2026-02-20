@@ -1,34 +1,12 @@
-"use client";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Clock, TrendingUp, Calendar } from "lucide-react";
-import { useAppraisalStats } from "@/lib/api/hooks/use-performance-appraisal";
-import { Skeleton } from "@/components/ui/skeleton";
+import type { AppraisalStats } from "@/lib/api/performance-appraisal";
 
-export function AppraisalStatsCards() {
-  const { data: stats, isLoading } = useAppraisalStats();
+interface AppraisalStatsCardsProps {
+  stats: AppraisalStats;
+}
 
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-4 rounded-full" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16 mb-1" />
-              <Skeleton className="h-3 w-32" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (!stats) return null;
-
+export function AppraisalStatsCards({ stats }: AppraisalStatsCardsProps) {
   const cards = [
     {
       title: "Total Appraisals",

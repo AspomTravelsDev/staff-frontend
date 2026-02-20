@@ -26,10 +26,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import type { DailyTaskRecord } from "@/types/task-types";
 
-export function TaskList() {
+interface TaskListProps {
+  initialData: DailyTaskRecord[];
+}
+
+export function TaskList({ initialData }: TaskListProps) {
   const today = format(new Date(), "yyyy-MM-dd");
-  const { data: records, isLoading } = useMyDailyTasks({ date: today });
+  const { data: records, isLoading } = useMyDailyTasks({
+    date: today,
+    initialData,
+  });
   const updateTasks = useUpdateDailyTasks();
   const submitReport = useSubmitDailyReport();
 

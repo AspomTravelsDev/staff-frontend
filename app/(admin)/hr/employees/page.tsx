@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { EmployeeListContent } from "./components/employee-list-content";
+import { getAllEmployees, getStats } from "./queries";
 
 export default async function EmployeeListPage() {
   const user = await getCurrentUser();
@@ -8,6 +9,8 @@ export default async function EmployeeListPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const [employees, stats] = await Promise.all([getAllEmployees(), getStats()]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
@@ -20,7 +23,7 @@ export default async function EmployeeListPage() {
         </div>
       </div>
 
-      <EmployeeListContent />
+      <EmployeeListContent employees={employees} stats={stats} />
     </div>
   );
 }

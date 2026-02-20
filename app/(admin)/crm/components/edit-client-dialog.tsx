@@ -26,21 +26,19 @@ import {
   CRM_STATUS_OPTIONS,
   UpdateClientRequest,
 } from "@/lib/api/crm-constants";
-import { updateClient } from "@/lib/api/crm";
+import { updateClientAction } from "../actions";
 import { Loader2 } from "lucide-react";
 
 interface EditClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   client: Client | null;
-  onClientUpdated: (updated: Client) => void;
 }
 
 export function EditClientDialog({
   open,
   onOpenChange,
   client,
-  onClientUpdated,
 }: EditClientDialogProps) {
   const [form, setForm] = useState<UpdateClientRequest>({});
   const [loading, setLoading] = useState(false);
@@ -73,10 +71,9 @@ export function EditClientDialog({
     }
     setError(null);
     setLoading(true);
-    const result = await updateClient(client.id, form);
+    const result = await updateClientAction(client.id, form);
     setLoading(false);
-    if (result.success && result.client) {
-      onClientUpdated({ ...client, ...form, ...result.client });
+    if (result.success) {
       onOpenChange(false);
     } else {
       setError(result.error ?? "Failed to update client.");

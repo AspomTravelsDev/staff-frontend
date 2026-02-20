@@ -41,10 +41,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { RequestItem } from "@/lib/api/requests";
-import {
-  useDeleteRequest,
-  useUpdateRequest,
-} from "@/lib/api/hooks/use-requests";
+import { deleteRequestAction, updateRequestAction } from "../actions";
+import { toast } from "sonner";
 import { useState } from "react";
 
 interface MyRequestsTableProps {
@@ -80,34 +78,34 @@ function getStatusVariant(status: RequestItem["status"]) {
 export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
-  const deleteMutation = useDeleteRequest();
-  const updateMutation = useUpdateRequest();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    try {
-      await deleteMutation.mutateAsync(deleteId);
+    setIsDeleting(true);
+    const result = await deleteRequestAction(deleteId);
+    setIsDeleting(false);
+    if (result.success) {
+      toast.success("Request deleted successfully");
       setDeleteId(null);
-    } catch (e) {
-      console.error("Failed to delete request", e);
+    } else {
+      toast.error(result.error || "Failed to delete request");
     }
   };
 
   const handleCancel = async () => {
     if (!cancelId) return;
-    try {
-      await updateMutation.mutateAsync({
-        id: cancelId,
-        data: { status: "cancelled" },
-      });
+    setIsCancelling(true);
+    const result = await updateRequestAction(cancelId, { status: "cancelled" });
+    setIsCancelling(false);
+    if (result.success) {
+      toast.success("Request cancelled successfully");
       setCancelId(null);
-    } catch (e) {
-      console.error("Failed to cancel request", e);
+    } else {
+      toast.error(result.error || "Failed to cancel request");
     }
   };
-
-  const isDeleting = deleteMutation.isPending;
-  const isCancelling = updateMutation.isPending;
 
   if (requests.length === 0) {
     return (

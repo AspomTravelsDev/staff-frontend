@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect } from "react";
+import { useState } from "react";
 import { Coins, Loader2, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useRates, useUpdateRates } from "@/lib/api/hooks/use-rates";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/providers/user-provider";
 import { USER_ROLES } from "@/types/user-types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { updateRatesAction } from "../actions";
+import { toast } from "sonner";
+import type { Rates } from "@/lib/api/rates";
 
 const formSchema = z.object({
   internal_rate: z.coerce
@@ -37,10 +38,13 @@ const formSchema = z.object({
   billing_rate: z.coerce.number().min(1, "Billing rate must be greater than 0"),
 });
 
-export function CurrentRatesForm() {
+interface CurrentRatesFormProps {
+  initialRates: Rates;
+}
+
+export function CurrentRatesForm({ initialRates }: CurrentRatesFormProps) {
   const { user } = useUser();
-  const { data: rates, isLoading } = useRates();
-  const updateRates = useUpdateRates();
+  const [isPending, setIsPending] = useState(false);
 
   const canEdit =
     user?.role === USER_ROLES.SUPER_ADMIN ||
@@ -49,38 +53,23 @@ export function CurrentRatesForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      internal_rate: 0,
-      billing_rate: 0,
+      internal_rate: initialRates.internal_rate,
+      billing_rate: initialRates.billing_rate,
     },
   });
 
-  useEffect(() => {
-    if (rates) {
-      form.reset({
-        internal_rate: rates.internal_rate,
-        billing_rate: rates.billing_rate,
-      });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsPending(true);
+    try {
+      const result = await updateRatesAction(values);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Rates updated successfully");
+      }
+    } finally {
+      setIsPending(false);
     }
-  }, [rates, form]);
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    updateRates.mutate(values);
-  }
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-50 mb-2" />
-          <Skeleton className="h-4 w-75" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-25" />
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
@@ -120,7 +109,7 @@ export function CurrentRatesForm() {
                         type="number"
                         placeholder="0.00"
                         {...field}
-                        disabled={updateRates.isPending || !canEdit}
+                        disabled={isPending || !canEdit}
                       />
                     </FormControl>
                     <FormDescription>
@@ -142,7 +131,7 @@ export function CurrentRatesForm() {
                         type="number"
                         placeholder="0.00"
                         {...field}
-                        disabled={updateRates.isPending || !canEdit}
+                        disabled={isPending || !canEdit}
                       />
                     </FormControl>
                     <FormDescription>
@@ -156,8 +145,8 @@ export function CurrentRatesForm() {
 
             <div className="flex justify-end">
               {canEdit && (
-                <Button type="submit" disabled={updateRates.isPending}>
-                  {updateRates.isPending && (
+                <Button type="submit" disabled={isPending}>
+                  {isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Save Changes

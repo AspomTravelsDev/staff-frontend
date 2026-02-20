@@ -8,10 +8,11 @@ import {
     submitDailyReport,
     getAllDailyTasks
 } from "@/lib/api/tasks";
-import { TaskFilters, AllTaskFilters, CreateTaskRequest } from "@/types/task-types";
+import { TaskFilters, AllTaskFilters, CreateTaskRequest, DailyTaskRecord } from "@/types/task-types";
 import { toast } from "sonner";
 
-export function useMyDailyTasks(filters: TaskFilters) {
+export function useMyDailyTasks(options: TaskFilters & { initialData?: DailyTaskRecord[] }) {
+    const { initialData, ...filters } = options;
     return useQuery({
         queryKey: taskQueryKeys.myTasks(filters),
         queryFn: async () => {
@@ -21,6 +22,7 @@ export function useMyDailyTasks(filters: TaskFilters) {
             }
             return result.data;
         },
+        initialData,
     });
 }
 

@@ -9,31 +9,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import { DatePicker } from "@/components/ui/date-picker"; // Assuming this exists or using standard input
 import { AllTaskFilters } from "@/types/task-types";
 import { X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 
 interface TaskFiltersProps {
   filters: AllTaskFilters;
-  onFilterChange: (filters: AllTaskFilters) => void;
 }
 
-export function TaskFilters({ filters, onFilterChange }: TaskFiltersProps) {
+export function TaskFilters({ filters }: TaskFiltersProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const updateSearchParams = useCallback(
+    (updates: Record<string, string | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === undefined) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      }
+      router.push(`?${params.toString()}`);
+    },
+    [router, searchParams],
+  );
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onFilterChange({ ...filters, date: e.target.value || undefined });
+    updateSearchParams({ date: e.target.value || undefined });
   };
 
   const handleStatusChange = (value: string) => {
     if (value === "all") {
-      const { report_submitted, ...rest } = filters;
-      onFilterChange(rest);
+      updateSearchParams({ report_submitted: undefined });
     } else {
-      onFilterChange({ ...filters, report_submitted: value === "submitted" });
+      updateSearchParams({
+        report_submitted: value === "submitted" ? "true" : "false",
+      });
     }
   };
 
   const clearFilters = () => {
-    onFilterChange({});
+    router.push("?");
   };
 
   return (

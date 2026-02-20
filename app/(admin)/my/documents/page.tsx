@@ -1,10 +1,8 @@
-"use client";
-
 import { DocumentListTable } from "../../hr/docs/components/document-list-table";
-import { useDocuments } from "@/lib/api/hooks/use-files";
+import { getDocuments } from "./queries";
 
-export default function MyDocumentsPage() {
-  const { data: documents, isLoading } = useDocuments();
+export default async function MyDocumentsPage() {
+  const documents = await getDocuments();
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -20,8 +18,8 @@ export default function MyDocumentsPage() {
       </div>
 
       <DocumentListTable
-        documents={documents || []}
-        isLoading={isLoading}
+        documents={documents}
+        isLoading={false}
         showDelete={false}
       />
     </div>

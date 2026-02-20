@@ -24,9 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useDeleteDocument } from "@/lib/api/hooks/use-files";
+import { deleteDocumentAction } from "../actions";
 import { useState, useEffect } from "react";
 import { getFileDownloadToken } from "@/lib/api/files";
+import { toast } from "sonner";
 
 interface DocumentListTableProps {
   documents: DocumentFile[];
@@ -39,7 +40,6 @@ export function DocumentListTable({
   isLoading,
   showDelete = false,
 }: DocumentListTableProps) {
-  const deleteMutation = useDeleteDocument();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
@@ -50,7 +50,12 @@ export function DocumentListTable({
   const handleDelete = async (fileId: string) => {
     setDeletingId(fileId);
     try {
-      await deleteMutation.mutateAsync(fileId);
+      const result = await deleteDocumentAction(fileId);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Document deleted successfully");
+      }
     } finally {
       setDeletingId(null);
     }

@@ -3,8 +3,11 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { AppraisalStatsCards } from "./components/appraisal-stats-cards";
 import { AppraisalTable } from "./components/appraisal-table";
+import { getPerformanceData } from "./queries";
 
-export default function Page() {
+export default async function Page() {
+  const { appraisals, stats } = await getPerformanceData();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -24,9 +27,9 @@ export default function Page() {
         </Link>
       </div>
 
-      <AppraisalStatsCards />
+      <AppraisalStatsCards stats={stats} />
 
-      <AppraisalTable />
+      <AppraisalTable appraisals={appraisals} />
     </div>
   );
 }

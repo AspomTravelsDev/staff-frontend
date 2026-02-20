@@ -26,13 +26,12 @@ import {
   CRM_STATUS_OPTIONS,
   CreateClientRequest,
 } from "@/lib/api/crm-constants";
-import { createClient } from "@/lib/api/crm";
+import { createClientAction } from "../actions";
 import { Loader2 } from "lucide-react";
 
 interface AddClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onClientAdded: (client: Client) => void;
 }
 
 const EMPTY_FORM: CreateClientRequest = {
@@ -47,11 +46,7 @@ const EMPTY_FORM: CreateClientRequest = {
   assignedTo: "",
 };
 
-export function AddClientDialog({
-  open,
-  onOpenChange,
-  onClientAdded,
-}: AddClientDialogProps) {
+export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
   const [form, setForm] = useState<CreateClientRequest>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +61,9 @@ export function AddClientDialog({
     }
     setError(null);
     setLoading(true);
-    const result = await createClient(form);
+    const result = await createClientAction(form);
     setLoading(false);
-    if (result.success && result.client) {
-      onClientAdded(result.client);
+    if (result.success) {
       setForm(EMPTY_FORM);
       onOpenChange(false);
     } else {

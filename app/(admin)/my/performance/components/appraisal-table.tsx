@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Card,
   CardContent,
@@ -17,13 +15,15 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Loader2 } from "lucide-react";
-import { useAppraisalHistory } from "@/lib/api/hooks/use-performance-appraisal";
+import { Eye } from "lucide-react";
+import type { PerformanceAppraisal } from "@/lib/api/performance-appraisal";
 import Link from "next/link";
 
-export function AppraisalTable() {
-  const { data: appraisals, isLoading } = useAppraisalHistory();
+interface AppraisalTableProps {
+  appraisals: PerformanceAppraisal[];
+}
 
+export function AppraisalTable({ appraisals }: AppraisalTableProps) {
   const getStatusBadge = (status: string) => {
     const variants: Record<
       string,
@@ -44,20 +44,6 @@ export function AppraisalTable() {
     };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Appraisal History</CardTitle>
-          <CardDescription>Your performance review history</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (!appraisals || appraisals.length === 0) {
     return (

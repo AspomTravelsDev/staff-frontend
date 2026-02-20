@@ -29,14 +29,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Edit, Eye, Trash2, Search, X } from "lucide-react";
 import { Client, CRMStatus, CRM_STATUS_OPTIONS } from "@/lib/api/crm-constants";
-import { deleteClient } from "@/lib/api/crm";
+import { deleteClientAction } from "../actions";
 import { EditClientDialog } from "./edit-client-dialog";
 import { ClientDetailSheet } from "./client-detail-sheet";
 
 interface CRMTableProps {
   clients: Client[];
-  onClientUpdated: (client: Client) => void;
-  onClientDeleted: (clientId: string) => void;
 }
 
 const STATUS_STYLES: Record<CRMStatus, string> = {
@@ -48,11 +46,7 @@ const STATUS_STYLES: Record<CRMStatus, string> = {
   inactive: "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100",
 };
 
-export function CRMTable({
-  clients,
-  onClientUpdated,
-  onClientDeleted,
-}: CRMTableProps) {
+export function CRMTable({ clients }: CRMTableProps) {
   // Local UI state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">("all");
@@ -88,16 +82,14 @@ export function CRMTable({
     setDetailOpen(true);
   };
 
-  const handleClientUpdated = (updated: Client) => {
-    onClientUpdated(updated);
+  const handleClientUpdated = () => {
+    // revalidatePath in the server action handles refreshing the data
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this customer?")) {
-      const result = await deleteClient(id);
-      if (result.success) {
-        onClientDeleted(id);
-      } else {
+      const result = await deleteClientAction(id);
+      if (!result.success) {
         alert("Failed to delete client");
       }
     }
@@ -267,7 +259,6 @@ export function CRMTable({
         open={editOpen}
         onOpenChange={setEditOpen}
         client={editClient}
-        onClientUpdated={handleClientUpdated}
       />
       <ClientDetailSheet
         open={detailOpen}

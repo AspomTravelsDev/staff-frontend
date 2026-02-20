@@ -1,11 +1,9 @@
-"use client";
-
 import { DocumentListTable } from "./components/document-list-table";
 import { UploadDocumentDialog } from "./components/upload-document-dialog";
-import { useDocuments } from "@/lib/api/hooks/use-files";
+import { getDocuments } from "./queries";
 
-export default function HRDocumentsPage() {
-  const { data: documents, isLoading } = useDocuments();
+export default async function HRDocumentsPage() {
+  const documents = await getDocuments();
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -22,8 +20,8 @@ export default function HRDocumentsPage() {
       </div>
 
       <DocumentListTable
-        documents={documents || []}
-        isLoading={isLoading}
+        documents={documents}
+        isLoading={false}
         showDelete={true}
       />
     </div>

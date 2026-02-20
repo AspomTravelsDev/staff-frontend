@@ -35,11 +35,9 @@ import {
   type RequestFormValues,
 } from "@/lib/validations/requests";
 import type { RequestItem } from "@/lib/api/requests";
-import {
-  useCreateRequest,
-  useUpdateRequest,
-} from "@/lib/api/hooks/use-requests";
-import { useEffect } from "react";
+import { createRequestAction, updateRequestAction } from "../actions";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 interface RequestDialogProps {
   open: boolean;
@@ -63,8 +61,7 @@ export function RequestDialog({
   request,
 }: RequestDialogProps) {
   const isEditing = !!request;
-  const createMutation = useCreateRequest();
-  const updateMutation = useUpdateRequest();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<RequestFormValues>({
     resolver: zodResolver(requestSchema),
@@ -97,18 +94,29 @@ export function RequestDialog({
     }
   }, [open, request, form]);
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
-
   const onSubmit = async (values: RequestFormValues) => {
+    setIsLoading(true);
     try {
       if (isEditing && request) {
-        await updateMutation.mutateAsync({ id: request.id, data: values });
+        const result = await updateRequestAction(request.id, values);
+        if (!result.success) {
+          toast.error(result.error || "Failed to update request");
+          return;
+        }
+        toast.success("Request updated successfully");
       } else {
-        await createMutation.mutateAsync(values);
+        const result = await createRequestAction(values);
+        if (!result.success) {
+          toast.error(result.error || "Failed to submit request");
+          return;
+        }
+        toast.success("Request submitted successfully");
       }
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to submit request", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
