@@ -23,7 +23,13 @@ export default async function RequestsPage() {
     getRequestStats(),
   ]);
 
-  const { items: requests, pagination } = requestsData;
+  const requests = requestsData?.items ?? [];
+  const pagination = requestsData?.pagination ?? {
+    page: 1,
+    limit: 50,
+    total: 0,
+    total_pages: 0,
+  };
 
   return (
     <div className="space-y-6">

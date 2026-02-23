@@ -111,9 +111,9 @@ export async function getRequests(
     if (filters.search) params.append("search", filters.search);
     if (filters.requester_id) params.append("requester_id", filters.requester_id);
 
-    const result = await api.get<PaginatedResponse<RequestItem>>(`/api/requests?${params.toString()}`);
+    const result = await api.get<{ data: RequestItem[]; pagination: PaginatedResponse<RequestItem>["pagination"] }>(`/api/requests?${params.toString()}`);
     if (!result.success) return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
-    return result.data;
+    return { items: result.data.data, pagination: result.data.pagination };
 }
 
 

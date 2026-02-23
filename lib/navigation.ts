@@ -16,6 +16,7 @@ import {
     type LucideIcon,
     Trophy,
     Coins,
+    Megaphone,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 
@@ -199,7 +200,13 @@ export const departmentNav: NavItem[] = [
         url: "/accounts/current-rates",
         icon: Coins,
         allowedRoles: ["account"]
-    }
+    },
+    {
+        title: "Announcements",
+        url: "/admin/announcements",
+        icon: Megaphone,
+        allowedRoles: ["admin", "super"]
+    },
 
 ];
 
@@ -273,6 +280,11 @@ export const personalNav: NavItem[] = [
         url: "/my/compliance",
         icon: ShieldCheck,
 
+    },
+    {
+        title: "Make Announcement",
+        url: "/my/announcement",
+        icon: Megaphone,
     },
     {
         title: "Chat",

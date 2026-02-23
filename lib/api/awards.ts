@@ -1,7 +1,7 @@
 "use server";
 
 import { api } from "./client";
-
+import { revalidatePath } from "next/cache";
 // ============================================================================
 // Types
 // ============================================================================
@@ -134,6 +134,7 @@ export async function assignAward(data: AssignAwardRequest): Promise<Award> {
     if (!result.success) {
         throw new Error(result.error.error);
     }
+    revalidatePath("/hr/award-staff");
     return result.data.award;
 }
 
@@ -145,6 +146,7 @@ export async function updateAward(awardId: string, data: UpdateAwardRequest): Pr
     if (!result.success) {
         throw new Error(result.error.error);
     }
+    revalidatePath("/hr/award-staff");
     return result.data.award;
 }
 
@@ -156,6 +158,7 @@ export async function deleteAward(awardId: string): Promise<void> {
     if (!result.success) {
         throw new Error(result.error.error);
     }
+    revalidatePath("/hr/award-staff");
 }
 
 /**

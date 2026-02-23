@@ -1,0 +1,146 @@
+"use server";
+
+import { api } from "./client";
+import type { PaginatedResponse } from "./types";
+import { revalidatePath } from "next/cache";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type AnnouncementType = "announcement" | "newsletter";
+export type AnnouncementStatus = "pending" | "approved" | "rejected";
+
+export interface AnnouncementItem {
+    id: string;
+    type: AnnouncementType;
+    title: string;
+    content: string; // HTML from rich text editor
+    author_id: string;
+    author_name: string;
+    status: AnnouncementStatus;
+    publish_at: string | null; // ISO 8601 — null means publish immediately on approval
+    published_at: string | null; // Set by backend cron when actually published
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateAnnouncementPayload {
+    type: AnnouncementType;
+    title: string;
+    content: string;
+    publish_at?: string | null; // ISO 8601 datetime or null for immediate
+}
+
+export interface AnnouncementFilters {
+    page?: number;
+    limit?: number;
+    status?: AnnouncementStatus;
+    author_id?: string;
+    type?: AnnouncementType;
+}
+
+export interface UpdateAnnouncementPayload {
+    status?: AnnouncementStatus;
+    publish_at?: string | null;
+}
+
+// ============================================================================
+// API Functions
+// ============================================================================
+
+/**
+ * Get paginated announcements
+ */
+export async function getAnnouncements(
+    filters: AnnouncementFilters = {}
+): Promise<PaginatedResponse<AnnouncementItem>> {
+    const params = new URLSearchParams();
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.status) params.append("status", filters.status);
+    if (filters.author_id) params.append("author_id", filters.author_id);
+    if (filters.type) params.append("type", filters.type);
+
+    const result = await api.get<{
+        data: AnnouncementItem[];
+        pagination: PaginatedResponse<AnnouncementItem>["pagination"];
+    }>(`/api/announcements?${params.toString()}`);
+
+    if (!result.success) {
+        return {
+            items: [],
+            pagination: { page: 1, limit: 10, total: 0, total_pages: 0 },
+        };
+    }
+
+    return {
+        items: result.data.data,
+        pagination: result.data.pagination,
+    };
+}
+
+/**
+ * Create a new announcement or newsletter suggestion
+ */
+export async function createAnnouncement(
+    payload: CreateAnnouncementPayload
+): Promise<AnnouncementItem> {
+    const result = await api.post<{ announcement: AnnouncementItem }>(
+        "/api/announcements",
+        payload
+    );
+    if (!result.success) throw new Error(result.error.error);
+    revalidatePath("/my/announcement");
+    return result.data.announcement;
+}
+
+/**
+ * Update an announcement status (admin approve/reject + optional publish_at tweak)
+ */
+export async function updateAnnouncement(
+    id: string,
+    payload: UpdateAnnouncementPayload
+): Promise<AnnouncementItem> {
+    const result = await api.patch<{ announcement: AnnouncementItem }>(
+        `/api/announcements/${id}`,
+        payload
+    );
+    if (!result.success) throw new Error(result.error.error);
+    revalidatePath("/admin/announcements");
+    revalidatePath("/my/announcement");
+    return result.data.announcement;
+}
+
+/**
+ * Delete an announcement
+ */
+export async function deleteAnnouncement(id: string): Promise<void> {
+    const result = await api.delete<{ message: string }>(
+        `/api/announcements/${id}`
+    );
+    if (!result.success) throw new Error(result.error.error);
+    revalidatePath("/my/announcement");
+    revalidatePath("/admin/announcements");
+}
+
+/**
+ * Fetch a single announcement by ID.
+ * Resolves from the full list since a dedicated single-item endpoint
+ * may not be available on the backend yet.
+ */
+export async function getAnnouncementById(
+    id: string
+): Promise<AnnouncementItem | null> {
+    // Try fetching all statuses so the detail page works for any status
+    const [approved, pending, rejected] = await Promise.all([
+        getAnnouncements({ limit: 200, status: "approved" }).catch(() => ({ items: [] as AnnouncementItem[] })),
+        getAnnouncements({ limit: 200, status: "pending" }).catch(() => ({ items: [] as AnnouncementItem[] })),
+        getAnnouncements({ limit: 200, status: "rejected" }).catch(() => ({ items: [] as AnnouncementItem[] })),
+    ]);
+
+    const all = [...approved.items, ...pending.items, ...rejected.items];
+    return all.find((item) => item.id === id) ?? null;
+}
+
+

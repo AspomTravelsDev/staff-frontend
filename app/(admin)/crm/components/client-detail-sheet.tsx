@@ -68,7 +68,7 @@ export function ClientDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto p-6">
         <SheetHeader className="pb-4">
           <div className="flex items-start justify-between gap-2">
             <div>

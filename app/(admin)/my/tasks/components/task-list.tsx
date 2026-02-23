@@ -62,7 +62,12 @@ export function TaskList({ initialData }: TaskListProps) {
   const handleAddTask = () => {
     setLocalTasks([
       ...localTasks,
-      { text: "", completed: false, completed_at: null },
+      {
+        text: "",
+        completed: false,
+        completed_at: null,
+        created_at: new Date().toISOString(),
+      },
     ]);
     setHasUnsavedChanges(true);
   };
@@ -94,7 +99,8 @@ export function TaskList({ initialData }: TaskListProps) {
       setHasUnsavedChanges(false);
       toast.success("Saved successfully");
     } catch (error: any) {
-      toast.error("Failed to save tasks");
+      console.error("Failed to save tasks:", error);
+      toast.error(error.message || "Failed to save tasks");
     }
   };
 
@@ -133,12 +139,21 @@ export function TaskList({ initialData }: TaskListProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {record?.first_saved_at && (
+            <Badge
+              variant="secondary"
+              className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200"
+            >
+              📥 First saved {format(new Date(record.first_saved_at), "HH:mm")}
+            </Badge>
+          )}
+
           {isSubmitted && (
             <Badge
               variant="secondary"
               className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200"
             >
-              Report Submitted{" "}
+              ✅ Submitted{" "}
               {record?.report_submitted_at
                 ? format(new Date(record.report_submitted_at), "HH:mm")
                 : ""}

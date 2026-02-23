@@ -89,18 +89,12 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
           </TableHeader>
           <TableBody>
             {currentItems.map((item) => {
-              const slug = item.title
-                .toLowerCase()
-                .replace(/[^\w\s-]/g, "")
-                .replace(/\s+/g, "-");
-
               return (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
                     <Link
-                      href={`/announcements/${slug}`}
+                      href={`/announcements/${item.id}`}
                       className="underline"
-                      // target="_blank"
                     >
                       {item.title}
                     </Link>

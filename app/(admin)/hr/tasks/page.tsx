@@ -7,6 +7,7 @@ interface PageProps {
   searchParams: Promise<{
     date?: string;
     report_submitted?: string;
+    user_id?: string;
   }>;
 }
 
@@ -20,6 +21,7 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
         : params.report_submitted === "false"
           ? false
           : undefined,
+    user_id: params.user_id,
   };
 
   const records = await getHRTasks(filters);

@@ -2,6 +2,7 @@ export interface TaskItem {
     text: string;
     completed: boolean;
     completed_at: string | null; // ISO datetime
+    created_at?: string; // ISO datetime
 }
 
 export interface DailyTaskRecord {
@@ -16,6 +17,7 @@ export interface DailyTaskRecord {
     ongoing_count: number;
     report_submitted: boolean;
     report_submitted_at: string | null; // ISO datetime
+    first_saved_at: string | null; // ISO datetime
     created_at: string;
     updated_at: string;
     user?: { // For HR view

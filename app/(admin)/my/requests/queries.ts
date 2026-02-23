@@ -1,4 +1,4 @@
-import { getRequests, type RequestItem, type RequestFilters } from "@/lib/api/requests";
+import { getRequests, type RequestItem } from "@/lib/api/requests";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export async function getMyRequests(): Promise<RequestItem[]> {

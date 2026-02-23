@@ -75,7 +75,7 @@ import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
 import { getRates } from "@/lib/api/rates";
-import { getDashboardUpdates } from "@/lib/api/dashboard";
+import { getAnnouncements } from "@/lib/api/announcements";
 
 export default async function Page() {
   const now = new Date();
@@ -89,7 +89,7 @@ export default async function Page() {
     allAwards,
     myAwards,
     ratesResponse,
-    updatesResponse,
+    announcementsData,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getTodayStatus(),
@@ -99,9 +99,9 @@ export default async function Page() {
       success: false as const,
       error: { code: "500", error: "Failed" },
     })),
-    getDashboardUpdates().catch(() => ({
-      success: false as const,
-      error: { code: "500", error: "Failed" },
+    getAnnouncements({ status: "approved", limit: 50 }).catch(() => ({
+      items: [],
+      pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
     })),
   ]);
 
@@ -109,10 +109,16 @@ export default async function Page() {
   const rates = ratesPayload
     ? ((ratesPayload as any)?.data ?? ratesPayload)
     : null;
-  const updatesPayload = updatesResponse.success ? updatesResponse.data : null;
-  const updates = updatesPayload
-    ? ((updatesPayload as any)?.data ?? updatesPayload)
-    : [];
+
+  // Map approved AnnouncementItems → NewsItem shape for RecentUpdates
+  const updates = (announcementsData.items ?? []).map((a) => ({
+    id: a.id,
+    title: a.title,
+    category: (a.type === "newsletter" ? "Other" : "Other") as "Other",
+    date: a.published_at ?? a.updated_at,
+    status: "New" as const,
+    content: a.content,
+  }));
 
   // const todayRecord = todayStatusResponse.success
   //   ? todayStatusResponse.data.data

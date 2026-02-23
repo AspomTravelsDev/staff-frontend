@@ -62,14 +62,13 @@ export function AllTasksTable({ records, isLoading }: AllTasksTableProps) {
             <TableHead>Date</TableHead>
             <TableHead className="text-center">Progress</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>First Saved At</TableHead>
             <TableHead className="text-right">Submitted At</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {records.map((record) => (
-            <TaskRow key={record.id} record={record} />
-          ))}
-        </TableBody>
+        {records.map((record) => (
+          <TaskRow key={record.id} record={record} />
+        ))}
       </Table>
     </div>
   );
@@ -83,100 +82,111 @@ function TaskRow({ record }: { record: DailyTaskRecord }) {
       : 0;
 
   return (
-    <>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} asChild>
-        <>
-          <TableRow className="cursor-pointer hover:bg-muted/50">
-            <TableCell>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0">
-                  {isOpen ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} asChild>
+      <TableBody
+        className={cn(
+          "border-b transition-colors",
+          isOpen ? "bg-muted/10" : "",
+        )}
+      >
+        <TableRow className="cursor-pointer hover:bg-muted/50 border-0">
+          <TableCell>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0">
+                {isOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <span className="sr-only">Toggle details</span>
+              </Button>
+            </CollapsibleTrigger>
+          </TableCell>
+          <TableCell>
+            <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={toProxiedImageUrl(record.user?.image_url)} />
+                <AvatarFallback>
+                  {getInitials(record.user?.name || "Unknown")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium text-sm">
+                  {record.user?.name || "Unknown User"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {record.user?.staff_id}
+                </span>
+              </div>
+            </div>
+          </TableCell>
+          <TableCell className="text-sm">
+            {format(new Date(record.date), "MMM dd, yyyy")}
+          </TableCell>
+          <TableCell>
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium">
+                  {record.completed_count}/{record.total_tasks}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  ({completionRate}%)
+                </span>
+              </div>
+              <div className="h-1.5 w-24 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    completionRate === 100
+                      ? "bg-green-500"
+                      : completionRate > 50
+                        ? "bg-blue-500"
+                        : "bg-orange-500",
                   )}
-                  <span className="sr-only">Toggle details</span>
-                </Button>
-              </CollapsibleTrigger>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={toProxiedImageUrl(record.user?.image_url)}
-                  />
-                  <AvatarFallback>
-                    {getInitials(record.user?.name || "Unknown")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm">
-                    {record.user?.name || "Unknown User"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {record.user?.staff_id}
-                  </span>
-                </div>
+                  style={{ width: `${completionRate}%` }}
+                />
               </div>
-            </TableCell>
-            <TableCell className="text-sm">
-              {format(new Date(record.date), "MMM dd, yyyy")}
-            </TableCell>
-            <TableCell>
-              <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">
-                    {record.completed_count}/{record.total_tasks}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    ({completionRate}%)
-                  </span>
-                </div>
-                <div className="h-1.5 w-24 bg-secondary rounded-full overflow-hidden">
+            </div>
+          </TableCell>
+          <TableCell>
+            {record.report_submitted ? (
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-800 border-green-200"
+              >
+                Submitted
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-yellow-600 border-yellow-200 bg-yellow-50"
+              >
+                Pending
+              </Badge>
+            )}
+          </TableCell>
+          <TableCell className="text-sm text-muted-foreground">
+            {record.first_saved_at
+              ? format(new Date(record.first_saved_at), "HH:mm")
+              : "-"}
+          </TableCell>
+          <TableCell className="text-right text-sm text-muted-foreground">
+            {record.report_submitted_at
+              ? format(new Date(record.report_submitted_at), "HH:mm")
+              : "-"}
+          </TableCell>
+        </TableRow>
+        <CollapsibleContent asChild>
+          <TableRow className="bg-muted/30 border-b hover:bg-muted/30">
+            <TableCell colSpan={6} className="p-0">
+              <div className="p-4 pl-16 grid gap-2">
+                <h4 className="font-semibold text-sm mb-2">Detailed Tasks</h4>
+                {record.tasks.map((task, i) => (
                   <div
-                    className={cn(
-                      "h-full transition-all",
-                      completionRate === 100
-                        ? "bg-green-500"
-                        : completionRate > 50
-                          ? "bg-blue-500"
-                          : "bg-orange-500",
-                    )}
-                    style={{ width: `${completionRate}%` }}
-                  />
-                </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              {record.report_submitted ? (
-                <Badge
-                  variant="secondary"
-                  className="bg-green-100 text-green-800 border-green-200"
-                >
-                  Submitted
-                </Badge>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="text-yellow-600 border-yellow-200 bg-yellow-50"
-                >
-                  Pending
-                </Badge>
-              )}
-            </TableCell>
-            <TableCell className="text-right text-sm text-muted-foreground">
-              {record.report_submitted_at
-                ? format(new Date(record.report_submitted_at), "HH:mm")
-                : "-"}
-            </TableCell>
-          </TableRow>
-          <CollapsibleContent asChild>
-            <TableRow className="bg-muted/30 border-b hover:bg-muted/30">
-              <TableCell colSpan={6} className="p-0">
-                <div className="p-4 pl-16 grid gap-2">
-                  <h4 className="font-semibold text-sm mb-2">Detailed Tasks</h4>
-                  {record.tasks.map((task, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm">
+                    key={i}
+                    className="flex flex-col gap-1 py-1 border-b last:border-0 border-muted/50"
+                  >
+                    <div className="flex items-start gap-2 text-sm">
                       {task.completed ? (
                         <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                       ) : (
@@ -190,24 +200,32 @@ function TaskRow({ record }: { record: DailyTaskRecord }) {
                       >
                         {task.text}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-4 pl-6 text-xs text-muted-foreground">
+                      {task.created_at && (
+                        <span className="flex items-center gap-1">
+                          Added: {format(new Date(task.created_at), "HH:mm")}
+                        </span>
+                      )}
                       {task.completed_at && (
-                        <span className="text-xs text-muted-foreground ml-auto">
+                        <span className="flex items-center gap-1">
+                          Completed:{" "}
                           {format(new Date(task.completed_at), "HH:mm")}
                         </span>
                       )}
                     </div>
-                  ))}
-                  {record.tasks.length === 0 && (
-                    <span className="text-sm text-muted-foreground italic">
-                      No tasks recorded.
-                    </span>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          </CollapsibleContent>
-        </>
-      </Collapsible>
-    </>
+                  </div>
+                ))}
+                {record.tasks.length === 0 && (
+                  <span className="text-sm text-muted-foreground italic">
+                    No tasks recorded.
+                  </span>
+                )}
+              </div>
+            </TableCell>
+          </TableRow>
+        </CollapsibleContent>
+      </TableBody>
+    </Collapsible>
   );
 }

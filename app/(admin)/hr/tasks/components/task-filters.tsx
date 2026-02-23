@@ -13,6 +13,7 @@ import { AllTaskFilters } from "@/types/task-types";
 import { X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { useEmployees } from "@/lib/api/hooks/use-employees";
 
 interface TaskFiltersProps {
   filters: AllTaskFilters;
@@ -41,6 +42,10 @@ export function TaskFilters({ filters }: TaskFiltersProps) {
     updateSearchParams({ date: e.target.value || undefined });
   };
 
+  const handleUserChange = (value: string) => {
+    updateSearchParams({ user_id: value === "all" ? undefined : value });
+  };
+
   const handleStatusChange = (value: string) => {
     if (value === "all") {
       updateSearchParams({ report_submitted: undefined });
@@ -55,6 +60,11 @@ export function TaskFilters({ filters }: TaskFiltersProps) {
     router.push("?");
   };
 
+  const { data: employeesData, isLoading: isLoadingEmployees } = useEmployees({
+    status: "Active",
+  });
+  const employees = employeesData?.items || [];
+
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center bg-card p-4 rounded-lg border">
       <div className="grid gap-2 w-full sm:w-auto">
@@ -65,6 +75,27 @@ export function TaskFilters({ filters }: TaskFiltersProps) {
           onChange={handleDateChange}
           className="w-full sm:w-[180px]"
         />
+      </div>
+
+      <div className="grid gap-2 w-full sm:w-auto">
+        <label className="text-sm font-medium">Staff Member</label>
+        <Select
+          value={filters.user_id || "all"}
+          onValueChange={handleUserChange}
+          disabled={isLoadingEmployees}
+        >
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="All Staff" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Staff</SelectItem>
+            {employees.map((employee) => (
+              <SelectItem key={employee.id} value={employee.id}>
+                {employee.firstName} {employee.lastName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2 w-full sm:w-auto">
@@ -91,7 +122,9 @@ export function TaskFilters({ filters }: TaskFiltersProps) {
       </div>
 
       <div className="flex items-center gap-2 mt-auto ml-auto">
-        {(filters.date || filters.report_submitted !== undefined) && (
+        {(filters.date ||
+          filters.report_submitted !== undefined ||
+          filters.user_id) && (
           <Button
             variant="ghost"
             size="sm"
