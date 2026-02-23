@@ -28,10 +28,12 @@ import {
 } from "@/lib/api/crm-constants";
 import { createClientAction } from "../actions";
 import { Loader2 } from "lucide-react";
+import { useEmployees } from "@/lib/api/hooks/use-employees";
 
 interface AddClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  currentUserId?: string;
 }
 
 const EMPTY_FORM: CreateClientRequest = {
@@ -46,10 +48,20 @@ const EMPTY_FORM: CreateClientRequest = {
   assignedTo: "",
 };
 
-export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
-  const [form, setForm] = useState<CreateClientRequest>(EMPTY_FORM);
+export function AddClientDialog({
+  open,
+  onOpenChange,
+  currentUserId,
+}: AddClientDialogProps) {
+  const [form, setForm] = useState<CreateClientRequest>({
+    ...EMPTY_FORM,
+    assignedTo: currentUserId || "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: employeesData } = useEmployees({ status: "Active" });
+  const employees = employeesData?.items || [];
 
   const set = (field: keyof CreateClientRequest, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -64,7 +76,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
     const result = await createClientAction(form);
     setLoading(false);
     if (result.success) {
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, assignedTo: currentUserId || "" });
       onOpenChange(false);
     } else {
       setError(result.error ?? "Failed to add client.");
@@ -196,13 +208,25 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="assignedTo">Assigned To</Label>
-              <Input
-                id="assignedTo"
-                placeholder="Staff name"
-                value={form.assignedTo}
-                onChange={(e) => set("assignedTo", e.target.value)}
-              />
+              <Label>Assigned To</Label>
+              <Select
+                value={form.assignedTo || "unassigned"}
+                onValueChange={(v) =>
+                  set("assignedTo", v === "unassigned" ? "" : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select staff member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.firstName} {e.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

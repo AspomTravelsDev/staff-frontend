@@ -32,6 +32,7 @@ import { Client, CRMStatus, CRM_STATUS_OPTIONS } from "@/lib/api/crm-constants";
 import { deleteClientAction } from "../actions";
 import { EditClientDialog } from "./edit-client-dialog";
 import { ClientDetailSheet } from "./client-detail-sheet";
+import { useEmployees } from "@/lib/api/hooks/use-employees";
 
 interface CRMTableProps {
   clients: Client[];
@@ -50,6 +51,12 @@ export function CRMTable({ clients }: CRMTableProps) {
   // Local UI state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">("all");
+  const [assignedToFilter, setAssignedToFilter] = useState<string | "all">(
+    "all",
+  );
+
+  const { data: employeesData } = useEmployees({ status: "Active" });
+  const employees = employeesData?.items || [];
 
   // Dialogs state
   const [editClient, setEditClient] = useState<Client | null>(null);
@@ -68,8 +75,13 @@ export function CRMTable({ clients }: CRMTableProps) {
       c.service?.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+    const matchesAssignedTo =
+      assignedToFilter === "all" ||
+      (assignedToFilter === "unassigned"
+        ? !c.assignedTo
+        : c.assignedTo === assignedToFilter);
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesAssignedTo;
   });
 
   const handleEdit = (client: Client) => {
@@ -98,9 +110,11 @@ export function CRMTable({ clients }: CRMTableProps) {
   const clearFilters = () => {
     setSearch("");
     setStatusFilter("all");
+    setAssignedToFilter("all");
   };
 
-  const hasFilters = search || statusFilter !== "all";
+  const hasFilters =
+    search || statusFilter !== "all" || assignedToFilter !== "all";
 
   return (
     <>
@@ -128,6 +142,24 @@ export function CRMTable({ clients }: CRMTableProps) {
             {CRM_STATUS_OPTIONS.map((s) => (
               <SelectItem key={s.value} value={s.value}>
                 {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={assignedToFilter}
+          onValueChange={(v) => setAssignedToFilter(v)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Staff" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Staff</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {employees.map((e) => (
+              <SelectItem key={e.id} value={e.id}>
+                {e.firstName} {e.lastName}
               </SelectItem>
             ))}
           </SelectContent>
@@ -216,7 +248,7 @@ export function CRMTable({ clients }: CRMTableProps) {
                     {client.source || "—"}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-sm">
-                    {client.assignedTo || "—"}
+                    {client.assignedToName || client.assignedTo || "—"}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                     {client.lastContact}

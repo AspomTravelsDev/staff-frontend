@@ -11,9 +11,10 @@ import { Plus } from "lucide-react";
 interface CRMContentProps {
   clients: Client[];
   stats: CRMStats;
+  currentUserId?: string;
 }
 
-export function CRMContent({ clients, stats }: CRMContentProps) {
+export function CRMContent({ clients, stats, currentUserId }: CRMContentProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   return (
@@ -35,7 +36,11 @@ export function CRMContent({ clients, stats }: CRMContentProps) {
 
       <CRMTable clients={clients} />
 
-      <AddClientDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddClientDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }

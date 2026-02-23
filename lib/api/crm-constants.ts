@@ -49,6 +49,7 @@ export interface Client {
     source: string;
     notes: string | null;
     assignedTo: string | null;
+    assignedToName?: string | null;
     lastContact: string;
     createdAt: string;
     createdBy: string;
@@ -91,4 +92,6 @@ export interface CRMFilters {
     limit?: number;
     search?: string;
     status?: CRMStatus;
+    myClients?: boolean;
+    assignedTo?: string;
 }

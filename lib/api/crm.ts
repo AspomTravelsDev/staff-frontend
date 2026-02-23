@@ -77,6 +77,8 @@ export async function getClients(
     if (filters.limit) queryParams.set("limit", filters.limit.toString());
     if (filters.search) queryParams.set("search", filters.search);
     if (filters.status) queryParams.set("status", filters.status);
+    if (filters.myClients) queryParams.set("my_clients", "true");
+    if (filters.assignedTo) queryParams.set("assignedTo", filters.assignedTo);
 
     const response = await api.get<PaginatedResponse<Client>>(
         `/api/crm/clients?${queryParams.toString()}`
@@ -90,7 +92,7 @@ export async function getClients(
     return { items: [], pagination: { page: 1, limit: 50, total: 0, total_pages: 0 } };
 }
 
-export async function getCRMStats(): Promise<CRMStats> {
+export async function getCRMStats(myClients: boolean = false, assignedTo?: string): Promise<CRMStats> {
     if (shouldMock("useMockCrm")) {
         const clients = await getMockClients();
 
@@ -109,7 +111,11 @@ export async function getCRMStats(): Promise<CRMStats> {
         return { totalPaid, newPotentials, activeDeals, conversionRate };
     }
 
-    const response = await api.get<CRMStats>("/api/crm/stats");
+    const queryParams = new URLSearchParams();
+    if (myClients) queryParams.set("my_clients", "true");
+    if (assignedTo) queryParams.set("assignedTo", assignedTo);
+
+    const response = await api.get<CRMStats>(`/api/crm/stats?${queryParams.toString()}`);
 
     if (response.success) {
         return response.data;

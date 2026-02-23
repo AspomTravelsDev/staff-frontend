@@ -120,7 +120,7 @@ export const departmentNav: NavItem[] = [
         title: "Customer Database (CRM)",
         url: "/crm",
         icon: Users,
-        allowedRoles: ["account", "visa", "social-media", "birth-services", "hr", "admin", "it", "compliance", "holidays"],
+        allowedRoles: ["super", "it", "visa"],
     },
     {
         title: "HR Applications",
@@ -258,6 +258,11 @@ export const personalNav: NavItem[] = [
                 title: "General Requests", url: "/my/requests"
             },
         ]
+    },
+    {
+        title: "My Clients",
+        url: "/my/clients",
+        icon: Users,
     },
     {
         title: "Information Desk",

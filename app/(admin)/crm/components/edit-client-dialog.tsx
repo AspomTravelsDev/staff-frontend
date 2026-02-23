@@ -28,6 +28,7 @@ import {
 } from "@/lib/api/crm-constants";
 import { updateClientAction } from "../actions";
 import { Loader2 } from "lucide-react";
+import { useEmployees } from "@/lib/api/hooks/use-employees";
 
 interface EditClientDialogProps {
   open: boolean;
@@ -43,6 +44,9 @@ export function EditClientDialog({
   const [form, setForm] = useState<UpdateClientRequest>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: employeesData } = useEmployees({ status: "Active" });
+  const employees = employeesData?.items || [];
 
   useEffect(() => {
     if (client) {
@@ -191,12 +195,25 @@ export function EditClientDialog({
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="edit-assigned">Assigned To</Label>
-              <Input
-                id="edit-assigned"
-                value={form.assignedTo ?? ""}
-                onChange={(e) => set("assignedTo", e.target.value)}
-              />
+              <Label>Assigned To</Label>
+              <Select
+                value={form.assignedTo || "unassigned"}
+                onValueChange={(v) =>
+                  set("assignedTo", v === "unassigned" ? "" : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select staff member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.firstName} {e.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

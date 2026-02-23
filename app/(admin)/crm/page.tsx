@@ -15,5 +15,5 @@ export default async function CRMPage() {
     getClientStats(),
   ]);
 
-  return <CRMContent clients={clients} stats={stats} />;
+  return <CRMContent clients={clients} stats={stats} currentUserId={user.id} />;
 }
