@@ -53,6 +53,7 @@ export interface Client {
     lastContact: string;
     createdAt: string;
     createdBy: string;
+    createdById: string;
 }
 
 export interface CreateClientRequest {

@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,8 @@ import { Client, CRMStatus, CRM_STATUS_OPTIONS } from "@/lib/api/crm-constants";
 import { deleteClientAction } from "../actions";
 import { EditClientDialog } from "./edit-client-dialog";
 import { ClientDetailSheet } from "./client-detail-sheet";
+import { TableExportButton } from "@/components/ui/table-export-button";
+import type { ExportColumn } from "@/lib/utils/export";
 
 interface CRMTableProps {
   clients: Client[];
@@ -46,10 +49,30 @@ const STATUS_STYLES: Record<CRMStatus, string> = {
   inactive: "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100",
 };
 
+const EXPORT_COLUMNS: ExportColumn<Client>[] = [
+  { header: "Name", key: "name" },
+  { header: "Contact Person", key: "contactPerson" },
+  { header: "Email", key: "email" },
+  { header: "Phone", key: "phone" },
+  { header: "Status", key: "status" },
+  { header: "Service", key: "service" },
+  { header: "Source", key: "source" },
+  {
+    header: "Assigned To",
+    key: (c) => c.assignedToName || c.assignedTo || "Unassigned",
+  },
+  { header: "Last Contact", key: "lastContact" },
+  { header: "Date Added", key: "createdAt" },
+  { header: "Notes", key: "notes" },
+];
+
 export function CRMTable({ clients }: CRMTableProps) {
   // Local UI state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">("all");
+
+  // Table generic state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
   // Dialogs state
   const [editClient, setEditClient] = useState<Client | null>(null);
@@ -98,9 +121,34 @@ export function CRMTable({ clients }: CRMTableProps) {
   const clearFilters = () => {
     setSearch("");
     setStatusFilter("all");
+    setSelectedRows(new Set());
   };
 
   const hasFilters = search || statusFilter !== "all";
+
+  // Selection logic
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(filtered.map((c) => c.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    const next = new Set(selectedRows);
+    if (checked) {
+      next.add(id);
+    } else {
+      next.delete(id);
+    }
+    setSelectedRows(next);
+  };
+
+  const isAllSelected =
+    filtered.length > 0 && selectedRows.size === filtered.length;
+  const isSomeSelected =
+    selectedRows.size > 0 && selectedRows.size < filtered.length;
 
   return (
     <>
@@ -145,9 +193,19 @@ export function CRMTable({ clients }: CRMTableProps) {
           </Button>
         )}
 
-        <p className="text-sm text-muted-foreground ml-auto">
-          {filtered.length} of {clients.length} customers
-        </p>
+        <div className="ml-auto flex items-center gap-3">
+          <p className="text-sm text-muted-foreground mr-2">
+            {filtered.length} of {clients.length} customers
+            {selectedRows.size > 0 && ` (${selectedRows.size} selected)`}
+          </p>
+          <TableExportButton
+            data={filtered}
+            columns={EXPORT_COLUMNS}
+            filename="my_clients_export"
+            selectedIndices={selectedRows}
+            keyExtractor={(item) => item.id}
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -155,6 +213,15 @@ export function CRMTable({ clients }: CRMTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={
+                    isAllSelected || (isSomeSelected ? "indeterminate" : false)
+                  }
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  aria-label="Select all"
+                />
+              </TableHead>
               <TableHead>Client / Company</TableHead>
               <TableHead className="hidden sm:table-cell">Phone</TableHead>
               <TableHead>Status</TableHead>
@@ -182,73 +249,89 @@ export function CRMTable({ clients }: CRMTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((client) => (
-                <TableRow
-                  key={client.id}
-                  className="cursor-pointer hover:bg-muted/30"
-                >
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{client.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {client.contactPerson !== client.name
-                          ? `${client.contactPerson} · `
-                          : ""}
-                        {client.email}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm">
-                    {client.phone || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs border ${STATUS_STYLES[client.status]}`}
-                    >
-                      {client.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm">
-                    {client.service || "—"}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                    {client.source || "—"}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm">
-                    {client.assignedToName || client.assignedTo || "—"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                    {client.lastContact}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleView(client)}>
-                          <Eye className="mr-2 h-4 w-4" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(client)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(client.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+              filtered.map((client) => {
+                const isSelected = selectedRows.has(client.id);
+                return (
+                  <TableRow
+                    key={client.id}
+                    className={`cursor-pointer ${isSelected ? "bg-muted/50" : "hover:bg-muted/30"}`}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) =>
+                          handleSelectRow(client.id, !!checked)
+                        }
+                        aria-label="Select row"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{client.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {client.contactPerson !== client.name
+                            ? `${client.contactPerson} · `
+                            : ""}
+                          {client.email}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm">
+                      {client.phone || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs border ${STATUS_STYLES[client.status]}`}
+                      >
+                        {client.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm">
+                      {client.service || "—"}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {client.source || "—"}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm">
+                      {client.assignedToName || client.assignedTo || "—"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                      {client.lastContact}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleView(client)}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(client)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(client.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
