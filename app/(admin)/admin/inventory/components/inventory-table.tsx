@@ -47,11 +47,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/lib/api/inventory";
 
+import type { Employee } from "@/lib/api/employees";
+
 interface InventoryTableProps {
   items: InventoryItem[];
+  employees: Employee[];
 }
 
-export function InventoryTable({ items }: InventoryTableProps) {
+export function InventoryTable({ items, employees }: InventoryTableProps) {
   const router = useRouter();
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
@@ -126,7 +129,14 @@ export function InventoryTable({ items }: InventoryTableProps) {
                     <div className="text-sm">
                       <span className="text-muted-foreground mr-1">Staff:</span>
                       <span className="font-medium text-foreground">
-                        {item.assignedTo}
+                        {(() => {
+                          const emp = employees.find(
+                            (e) => e.id === item.assignedTo,
+                          );
+                          return emp
+                            ? `${emp.firstName} ${emp.lastName}`
+                            : item.assignedTo;
+                        })()}
                       </span>
                     </div>
                   )}
@@ -147,7 +157,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                   )}
                   {item.status === "Storage" && (
                     <span className="text-xs text-muted-foreground italic">
-                      In IT Cabinet
+                      In Storage
                     </span>
                   )}
                 </TableCell>
@@ -188,6 +198,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
         onOpenChange={(open) => !open && setItemToEdit(null)}
         initialData={itemToEdit}
         onSubmit={handleUpdate}
+        employees={employees}
       />
 
       <AlertDialog

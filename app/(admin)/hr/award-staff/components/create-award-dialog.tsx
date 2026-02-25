@@ -77,7 +77,6 @@ export function CreateAwardDialog() {
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,7 +86,7 @@ export function CreateAwardDialog() {
     },
   });
 
-  const selectedAwardType = watch("awardType");
+  // Remove watch usage to avoid React Compiler issues
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -118,7 +117,7 @@ export function CreateAwardDialog() {
           Give Award
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>Award Staff Member</DialogTitle>
           <DialogDescription>
@@ -174,28 +173,50 @@ export function CreateAwardDialog() {
               control={control}
               name="awardType"
               render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isLoadingTypes}
-                >
-                  <SelectTrigger id="awardType">
-                    <SelectValue placeholder="Select award type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingTypes ? (
-                      <div className="flex items-center justify-center p-2">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      </div>
-                    ) : (
-                      awardTypes?.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isLoadingTypes}
+                  >
+                    <SelectTrigger id="awardType">
+                      <SelectValue placeholder="Select award type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingTypes ? (
+                        <div className="flex items-center justify-center p-2">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        </div>
+                      ) : (
+                        awardTypes?.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {field.value === "custom" && (
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor="customName">Custom Award Name</Label>
+                      <Controller
+                        control={control}
+                        name="customName"
+                        render={({ field: customField }) => (
+                          <Input
+                            {...customField}
+                            placeholder="e.g. Best Coder"
+                          />
+                        )}
+                      />
+                      {errors.customName && (
+                        <p className="text-sm font-medium text-destructive">
+                          {errors.customName.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             />
             {errors.awardType && (
@@ -204,25 +225,6 @@ export function CreateAwardDialog() {
               </p>
             )}
           </div>
-
-          {/* Custom Name (Conditional) */}
-          {selectedAwardType === "custom" && (
-            <div className="space-y-2">
-              <Label htmlFor="customName">Custom Award Name</Label>
-              <Controller
-                control={control}
-                name="customName"
-                render={({ field }) => (
-                  <Input {...field} placeholder="e.g. Best Coder" />
-                )}
-              />
-              {errors.customName && (
-                <p className="text-sm font-medium text-destructive">
-                  {errors.customName.message}
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Month Select */}
           <div className="space-y-2">

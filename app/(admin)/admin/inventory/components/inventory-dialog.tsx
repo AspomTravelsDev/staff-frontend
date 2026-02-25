@@ -1,14 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  InventoryItem,
-  InventoryItemPayload,
-  InventoryStatus,
-} from "@/lib/api/inventory";
+import { InventoryItem, InventoryItemPayload } from "@/lib/api/inventory";
 
 import {
   Dialog,
@@ -57,11 +53,10 @@ const formSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Staff assignee name is required when Assigned",
+        message: "Staff assignee is required when Assigned",
         path: ["assignedTo"],
       });
     }
-
     if (data.status === "Repairs") {
       if (
         !data.technicianDetails?.name ||
@@ -78,11 +73,15 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
+import type { Employee } from "@/lib/api/employees";
+
 interface ManageInventoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: InventoryItem | null;
   onSubmit: (data: InventoryItemPayload) => Promise<void>;
+  employees: Employee[];
+  isLoadingEmployees?: boolean;
 }
 
 export function ManageInventoryDialog({
@@ -90,9 +89,15 @@ export function ManageInventoryDialog({
   onOpenChange,
   initialData,
   onSubmit,
+  employees,
+  isLoadingEmployees = false,
 }: ManageInventoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // employeesData and isLoadingEmployees will be passed as props
   const isEditing = !!initialData;
+
+  // Removed client-side fetchUsers effect. Employees data will be provided by parent.
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -110,19 +115,49 @@ export function ManageInventoryDialog({
     },
   });
 
+  // Reset form values when initialData changes (e.g. editing a different item)
+  useEffect(() => {
+    if (isEditing && initialData) {
+      form.reset({
+        name: initialData.name || "",
+        category: initialData.category || "Laptop",
+        serialNumber: initialData.serialNumber || "",
+        status: initialData.status || "Storage",
+        assignedTo: initialData.assignedTo || "",
+        technicianDetails: {
+          name: initialData.technicianDetails?.name || "",
+          phone: initialData.technicianDetails?.phone || "",
+          address: initialData.technicianDetails?.address || "",
+        },
+      });
+    }
+    if (!isEditing) {
+      form.reset({
+        name: "",
+        category: "Laptop",
+        serialNumber: "",
+        status: "Storage",
+        assignedTo: "",
+        technicianDetails: {
+          name: "",
+          phone: "",
+          address: "",
+        },
+      });
+    }
+  }, [isEditing, initialData, form]);
+
   const selectedStatus = form.watch("status");
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Clean up fields based on status logic (similar to backend scrubbing, to ensure clean payload)
-      let cleanPayload: InventoryItemPayload = {
+      const cleanPayload: InventoryItemPayload = {
         name: values.name,
         category: values.category,
         serialNumber: values.serialNumber,
         status: values.status,
       };
-
       if (values.status === "Assigned") {
         cleanPayload.assignedTo = values.assignedTo;
       } else if (values.status === "Repairs") {
@@ -132,13 +167,11 @@ export function ManageInventoryDialog({
           address: values.technicianDetails?.address || "",
         };
       }
-
       await onSubmit(cleanPayload);
       onOpenChange(false);
       form.reset();
     } catch (error) {
       console.error(error);
-      // Usually you'd show a toast here
     } finally {
       setIsSubmitting(false);
     }
@@ -146,7 +179,7 @@ export function ManageInventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Asset" : "Add New Asset"}
@@ -254,10 +287,32 @@ export function ManageInventoryDialog({
                 name="assignedTo"
                 render={({ field }) => (
                   <FormItem className="bg-muted/30 border border-muted p-3 rounded-md">
-                    <FormLabel>Staff Assignee Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
+                    <FormLabel>Staff Assignee</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isLoadingEmployees || employees.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select staff" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingEmployees ? (
+                          <div className="flex items-center justify-center p-2 text-muted-foreground">
+                            Loading...
+                          </div>
+                        ) : (
+                          employees.map((employee) => (
+                            <SelectItem key={employee.id} value={employee.id}>
+                              {employee.firstName} {employee.lastName} (
+                              {employee.department})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
