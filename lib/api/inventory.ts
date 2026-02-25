@@ -1,30 +1,37 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
-import { shouldMock } from "./client";
+import { shouldMock, api } from "./client";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type InventoryStatus = "In Stock" | "Low Stock" | "Out of Stock";
+export type InventoryStatus = "Storage" | "Assigned" | "Repairs";
+
+export interface TechnicianDetails {
+    name: string;
+    phone: string;
+    address: string;
+}
 
 export interface InventoryItem {
     id: string;
     name: string;
-    sku: string;
-    category: string;
-    stock: number;
-    price: string;
+    category: "Laptop" | "Phone" | "Gadget" | "Other";
+    serialNumber: string;
     status: InventoryStatus;
-    minStock: number;
+    assignedTo?: string;            // Only present if status is "Assigned"
+    technicianDetails?: TechnicianDetails; // Only present if status is "Repairs"
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface InventoryStats {
-    totalItems: number;
-    lowStock: number;
-    totalValue: string;
-    outOfStock: number;
+    totalDevices: number;
+    inStorage: number;
+    assigned: number;
+    inRepairs: number;
 }
 
 export interface InventoryFilters {
@@ -34,6 +41,8 @@ export interface InventoryFilters {
     category?: string;
     status?: InventoryStatus;
 }
+
+export type InventoryItemPayload = Omit<InventoryItem, "id" | "createdAt" | "updatedAt">;
 
 // ============================================================================
 // Mock Data Loader
@@ -62,7 +71,9 @@ const getMockInventory = async (): Promise<InventoryItem[]> => {
 export async function getInventory(
     filters: InventoryFilters = {}
 ): Promise<PaginatedResponse<InventoryItem>> {
-    if (shouldMock("useMockInventory")) {
+    const isMock = shouldMock("useMockInventory");
+
+    if (isMock) {
         const inventory = await getMockInventory();
         let filtered = [...inventory];
 
@@ -71,8 +82,9 @@ export async function getInventory(
             filtered = filtered.filter(
                 (i) =>
                     i.name.toLowerCase().includes(search) ||
-                    i.sku.toLowerCase().includes(search) ||
-                    i.category.toLowerCase().includes(search)
+                    i.serialNumber.toLowerCase().includes(search) ||
+                    (i.assignedTo && i.assignedTo.toLowerCase().includes(search)) ||
+                    (i.technicianDetails && i.technicianDetails.name.toLowerCase().includes(search))
             );
         }
 
@@ -102,35 +114,168 @@ export async function getInventory(
         };
     }
 
-    return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
+    try {
+        const queryParams = new URLSearchParams();
+        if (filters.page) queryParams.set("page", filters.page.toString());
+        if (filters.limit) queryParams.set("limit", filters.limit.toString());
+        if (filters.search) queryParams.set("search", filters.search);
+        if (filters.category) queryParams.set("category", filters.category);
+        if (filters.status) queryParams.set("status", filters.status);
+
+        const response = await api.get<any>(`/api/admin/inventory?${queryParams.toString()}`);
+
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to fetch inventory");
+        }
+
+        return {
+            items: response.data.items.map((item: any) => ({
+                id: item.id.toString(),
+                name: item.name,
+                category: item.category,
+                serialNumber: item.serial_number,
+                status: item.status,
+                assignedTo: item.assigned_to,
+                technicianDetails: item.technician_details,
+                createdAt: item.created_at,
+                updatedAt: item.updated_at,
+            })),
+            pagination: response.data.pagination,
+        };
+    } catch (error) {
+        console.error("Error fetching live inventory", error);
+        return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
+    }
 }
 
 export async function getInventoryStats(): Promise<InventoryStats> {
-    if (shouldMock("useMockInventory")) {
+    const isMock = shouldMock("useMockInventory");
+
+    if (isMock) {
         const inventory = await getMockInventory();
 
-        const totalItems = inventory.reduce((acc, item) => acc + item.stock, 0);
-        const lowStock = inventory.filter(i => i.status === "Low Stock").length;
-        const outOfStock = inventory.filter(i => i.status === "Out of Stock").length;
-
-        // Calculate total value
-        const totalValue = inventory.reduce((acc, item) => {
-            const price = parseFloat(item.price.replace(/[^0-9.]/g, ""));
-            return acc + (price * item.stock);
-        }, 0);
-
         return {
-            totalItems,
-            lowStock,
-            outOfStock,
-            totalValue: new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(totalValue)
-        }
+            totalDevices: inventory.length,
+            inStorage: inventory.filter(i => i.status === "Storage").length,
+            assigned: inventory.filter(i => i.status === "Assigned").length,
+            inRepairs: inventory.filter(i => i.status === "Repairs").length
+        };
     }
 
-    return {
-        totalItems: 0,
-        lowStock: 0,
-        outOfStock: 0,
-        totalValue: "₦0.00"
+    try {
+        const response = await api.get<any>("/api/admin/inventory/stats");
+
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to fetch stats");
+        }
+
+        return {
+            totalDevices: response.data.totalDevices || 0,
+            inStorage: response.data.inStorage || 0,
+            assigned: response.data.assigned || 0,
+            inRepairs: response.data.inRepairs || 0,
+        };
+    } catch (error) {
+        console.error("Error fetching inventory stats:", error);
+        return {
+            totalDevices: 0,
+            inStorage: 0,
+            assigned: 0,
+            inRepairs: 0
+        };
+    }
+}
+
+export async function createInventoryItem(payload: InventoryItemPayload): Promise<InventoryItem> {
+    const isMock = shouldMock("useMockInventory");
+    if (isMock) {
+        throw new Error("Cannot create items in mock mode. Please connect to a live backend.");
+    }
+
+    try {
+        const response = await api.post<any>("/api/admin/inventory", {
+            name: payload.name,
+            category: payload.category,
+            serial_number: payload.serialNumber,
+            status: payload.status,
+            assigned_to: payload.assignedTo,
+            technician_details: payload.technicianDetails,
+        });
+
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to create inventory item");
+        }
+
+        const item = response.data;
+        return {
+            id: item.id.toString(),
+            name: item.name,
+            category: item.category,
+            serialNumber: item.serial_number,
+            status: item.status,
+            assignedTo: item.assigned_to,
+            technicianDetails: item.technician_details,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+        };
+    } catch (error) {
+        console.error("Error creating inventory item", error);
+        throw error;
+    }
+}
+
+export async function updateInventoryItem(id: string, payload: Partial<InventoryItemPayload>): Promise<InventoryItem> {
+    const isMock = shouldMock("useMockInventory");
+    if (isMock) {
+        throw new Error("Cannot update items in mock mode. Please connect to a live backend.");
+    }
+
+    try {
+        const response = await api.patch<any>(`/api/admin/inventory/${id}`, {
+            name: payload.name,
+            category: payload.category, // using partial is fine, undefined won't be sent or Laravel handles validation skip
+            serial_number: payload.serialNumber,
+            status: payload.status,
+            assigned_to: payload.assignedTo,
+            technician_details: payload.technicianDetails,
+        });
+
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to update inventory item");
+        }
+
+        const item = response.data;
+        return {
+            id: item.id.toString(),
+            name: item.name,
+            category: item.category,
+            serialNumber: item.serial_number,
+            status: item.status,
+            assignedTo: item.assigned_to,
+            technicianDetails: item.technician_details,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+        };
+    } catch (error) {
+        console.error(`Error updating inventory item ${id}`, error);
+        throw error;
+    }
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+    const isMock = shouldMock("useMockInventory");
+    if (isMock) {
+        throw new Error("Cannot delete items in mock mode. Please connect to a live backend.");
+    }
+
+    try {
+        const response = await api.delete<any>(`/api/admin/inventory/${id}`);
+
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to delete inventory item");
+        }
+    } catch (error) {
+        console.error(`Error deleting inventory item ${id}`, error);
+        throw error;
     }
 }

@@ -1,102 +1,87 @@
 [
     {
-        "id": "INV-001",
-        "name": "MacBook Pro M3",
-        "sku": "APP-MBP-M3",
-        "category": "Electronics",
-        "stock": 5,
-        "price": "₦2,500,000",
-        "status": "In Stock",
-        "minStock": 2
+        "id": "INV-1001",
+        "name": "MacBook Pro M2 14-inch",
+        "category": "Laptop",
+        "serialNumber": "C02G3448Q05N",
+        "status": "Assigned",
+        "assignedTo": "Sarah Jenkins",
+        "createdAt": "2024-01-15T09:00:00Z",
+        "updatedAt": "2024-01-15T09:00:00Z"
     },
     {
-        "id": "INV-002",
+        "id": "INV-1002",
         "name": "Dell XPS 15",
-        "sku": "DEL-XPS-15",
-        "category": "Electronics",
-        "stock": 2,
-        "price": "₦1,800,000",
-        "status": "Low Stock",
-        "minStock": 3
+        "category": "Laptop",
+        "serialNumber": "8H7B1A2",
+        "status": "Repairs",
+        "technicianDetails": {
+            "name": "Mike's PC Repair",
+            "phone": "08012345678",
+            "address": "12 Tech Road, Lagos"
+        },
+        "createdAt": "2024-01-20T10:30:00Z",
+        "updatedAt": "2024-02-10T14:20:00Z"
     },
     {
-        "id": "INV-003",
-        "name": "Ergonomic Office Chair",
-        "sku": "FUR-CHR-001",
-        "category": "Furniture",
-        "stock": 15,
-        "price": "₦350,000",
-        "status": "In Stock",
-        "minStock": 5
+        "id": "INV-1003",
+        "name": "iPhone 14 Pro",
+        "category": "Phone",
+        "serialNumber": "F17H8KMLQ1",
+        "status": "Storage",
+        "createdAt": "2024-02-01T11:15:00Z",
+        "updatedAt": "2024-02-01T11:15:00Z"
     },
     {
-        "id": "INV-004",
-        "name": "Standing Desk",
-        "sku": "FUR-DSK-002",
-        "category": "Furniture",
-        "stock": 0,
-        "price": "₦500,000",
-        "status": "Out of Stock",
-        "minStock": 2
+        "id": "INV-1004",
+        "name": "Lenovo ThinkPad X1 Carbon",
+        "category": "Laptop",
+        "serialNumber": "PF3N1A9X",
+        "status": "Assigned",
+        "assignedTo": "David Chen",
+        "createdAt": "2024-02-05T09:45:00Z",
+        "updatedAt": "2024-02-05T09:45:00Z"
     },
     {
-        "id": "INV-005",
-        "name": "Monitor 27-inch 4K",
-        "sku": "ELE-MON-27",
-        "category": "Electronics",
-        "stock": 8,
-        "price": "₦400,000",
-        "status": "In Stock",
-        "minStock": 3
+        "id": "INV-1005",
+        "name": "Samsung Galaxy S23 Ultra",
+        "category": "Phone",
+        "serialNumber": "R5CX10B9PZF",
+        "status": "Repairs",
+        "technicianDetails": {
+            "name": "Galaxy Care Center",
+            "phone": "09087654321",
+            "address": "45 Mobile Avenue, Abuja"
+        },
+        "createdAt": "2024-02-10T14:30:00Z",
+        "updatedAt": "2024-02-15T09:10:00Z"
     },
     {
-        "id": "INV-006",
-        "name": "Wireless Mouse",
-        "sku": "ACC-MSE-001",
-        "category": "Accessories",
-        "stock": 25,
-        "price": "₦50,000",
-        "status": "In Stock",
-        "minStock": 10
+        "id": "INV-1006",
+        "name": "MacBook Air M2 13-inch",
+        "category": "Laptop",
+        "serialNumber": "C02H1928Q13F",
+        "status": "Storage",
+        "createdAt": "2024-02-12T10:00:00Z",
+        "updatedAt": "2024-02-12T10:00:00Z"
     },
     {
-        "id": "INV-007",
-        "name": "Mechanical Keyboard",
-        "sku": "ACC-KBD-002",
-        "category": "Accessories",
-        "stock": 4,
-        "price": "₦120,000",
-        "status": "Low Stock",
-        "minStock": 5
+        "id": "INV-1007",
+        "name": "iPad Pro 11-inch",
+        "category": "Gadget",
+        "serialNumber": "DMPDF19M1M",
+        "status": "Assigned",
+        "assignedTo": "Marketing Team (Shared)",
+        "createdAt": "2024-02-18T13:20:00Z",
+        "updatedAt": "2024-02-18T13:20:00Z"
     },
     {
-        "id": "INV-008",
-        "name": "USB-C Hub",
-        "sku": "ACC-HUB-003",
-        "category": "Accessories",
-        "stock": 12,
-        "price": "₦80,000",
-        "status": "In Stock",
-        "minStock": 5
-    },
-    {
-        "id": "INV-009",
-        "name": "Conference Phone",
-        "sku": "TEL-PHN-001",
-        "category": "Telephony",
-        "stock": 1,
-        "price": "₦600,000",
-        "status": "Low Stock",
-        "minStock": 1
-    },
-    {
-        "id": "INV-010",
-        "name": "Webcam 1080p",
-        "sku": "ACC-CAM-001",
-        "category": "Accessories",
-        "stock": 0,
-        "price": "₦90,000",
-        "status": "Out of Stock",
-        "minStock": 2
+        "id": "INV-1008",
+        "name": "Dell Latitude 5430",
+        "category": "Laptop",
+        "serialNumber": "5B2H1C3",
+        "status": "Storage",
+        "createdAt": "2024-02-20T09:15:00Z",
+        "updatedAt": "2024-02-20T09:15:00Z"
     }
 ]

@@ -1,5 +1,24 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  updateInventoryItem,
+  deleteInventoryItem,
+  InventoryItemPayload,
+} from "@/lib/api/inventory";
+import { ManageInventoryDialog } from "./inventory-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import {
   Table,
   TableBody,
@@ -17,7 +36,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Trash2, Edit, Truck } from "lucide-react";
+import {
+  MoreHorizontal,
+  Trash2,
+  Edit,
+  Replace,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/lib/api/inventory";
 
@@ -26,38 +52,60 @@ interface InventoryTableProps {
 }
 
 export function InventoryTable({ items }: InventoryTableProps) {
+  const router = useRouter();
+  const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "In Stock":
+      case "Storage":
         return "default";
-      case "Low Stock":
-        return "secondary"; // or warning color if available
-      case "Out of Stock":
+      case "Assigned":
+        return "secondary";
+      case "Repairs":
         return "destructive";
       default:
         return "outline";
     }
   };
 
+  const handleUpdate = async (data: InventoryItemPayload) => {
+    if (!itemToEdit) return;
+    await updateInventoryItem(itemToEdit.id, data);
+    router.refresh();
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteInventoryItem(itemToDelete.id);
+      router.refresh();
+    } finally {
+      setIsDeleting(false);
+      setItemToDelete(null);
+    }
+  };
+
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Product Name</TableHead>
-            <TableHead>SKU</TableHead>
+            <TableHead>Device Model</TableHead>
+            <TableHead>Serial Number</TableHead>
             <TableHead>Category</TableHead>
-            <TableHead>Stock Level</TableHead>
-            <TableHead>Price</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Tracking Details</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
-                No inventory items found.
+              <TableCell colSpan={6} className="h-24 text-center">
+                No tracking devices found.
               </TableCell>
             </TableRow>
           ) : (
@@ -65,24 +113,43 @@ export function InventoryTable({ items }: InventoryTableProps) {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
-                  {item.sku}
+                  {item.serialNumber}
                 </TableCell>
                 <TableCell>{item.category}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span>{item.stock}</span>
-                    {item.stock <= item.minStock && item.stock > 0 && (
-                      <span className="text-xs text-orange-500 font-medium">
-                        (Low)
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>{item.price}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(item.status)}>
                     {item.status}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {item.status === "Assigned" && item.assignedTo && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground mr-1">Staff:</span>
+                      <span className="font-medium text-foreground">
+                        {item.assignedTo}
+                      </span>
+                    </div>
+                  )}
+                  {item.status === "Repairs" && item.technicianDetails && (
+                    <div className="text-sm flex flex-col gap-0.5">
+                      <span className="font-medium text-destructive">
+                        {item.technicianDetails.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Phone className="w-3 h-3" />{" "}
+                        {item.technicianDetails.phone}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />{" "}
+                        {item.technicianDetails.address}
+                      </span>
+                    </div>
+                  )}
+                  {item.status === "Storage" && (
+                    <span className="text-xs text-muted-foreground italic">
+                      In IT Cabinet
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -93,16 +160,19 @@ export function InventoryTable({ items }: InventoryTableProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
-                        <Edit className="mr-2 h-4 w-4" /> Edit Details
+                      <DropdownMenuLabel>Device Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setItemToEdit(item)}>
+                        <Edit className="mr-2 h-4 w-4" /> Update Status
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Truck className="mr-2 h-4 w-4" /> Restock
+                      <DropdownMenuItem onClick={() => setItemToEdit(item)}>
+                        <Replace className="mr-2 h-4 w-4" /> Reassign Device
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      <DropdownMenuItem
+                        className="text-destructive font-medium"
+                        onClick={() => setItemToDelete(item)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Remove Asset
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -112,6 +182,40 @@ export function InventoryTable({ items }: InventoryTableProps) {
           )}
         </TableBody>
       </Table>
+
+      <ManageInventoryDialog
+        open={!!itemToEdit}
+        onOpenChange={(open) => !open && setItemToEdit(null)}
+        initialData={itemToEdit}
+        onSubmit={handleUpdate}
+      />
+
+      <AlertDialog
+        open={!!itemToDelete}
+        onOpenChange={(open) => !open && setItemToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove IT Asset</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete{" "}
+              <strong>{itemToDelete?.name}</strong> (
+              {itemToDelete?.serialNumber})? This action cannot be undone and
+              will remove it from all inventory tracking reports.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Permanently Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

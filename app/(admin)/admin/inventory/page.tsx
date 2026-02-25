@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { getInventory, getInventoryStats } from "@/lib/api/inventory";
 import { InventoryStatsCards } from "./components/inventory-stats";
 import { InventoryTable } from "./components/inventory-table";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { InventoryAddButton } from "./components/inventory-add-button";
 
 export default async function InventoryPage() {
   const user = await getCurrentUser();
@@ -29,10 +28,7 @@ export default async function InventoryPage() {
             Track assets, stock levels, and valuations
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Item
-        </Button>
+        <InventoryAddButton />
       </div>
 
       <InventoryStatsCards stats={stats} />

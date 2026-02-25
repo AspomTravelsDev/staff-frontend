@@ -1,7 +1,7 @@
 "use client";
 
 import { StatsCard } from "@/components/stats-card";
-import { Package, AlertTriangle, DollarSign, XCircle } from "lucide-react";
+import { Laptop, Archive, UserCheck, Wrench } from "lucide-react";
 import type { InventoryStats } from "@/lib/api/inventory";
 
 interface InventoryStatsCardsProps {
@@ -12,35 +12,35 @@ export function InventoryStatsCards({ stats }: InventoryStatsCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <StatsCard
-        title="Total Stock Items"
-        icon={Package}
-        value={stats.totalItems}
-        description="Items in stock"
+        title="Total Devices"
+        icon={Laptop}
+        value={stats.totalDevices}
+        description="All registered assets"
         iconClassName="text-blue-600"
       />
 
       <StatsCard
-        title="Low Stock"
-        icon={AlertTriangle}
-        value={stats.lowStock}
-        description="Need reordering"
-        iconClassName="text-orange-500"
-      />
-
-      <StatsCard
-        title="Total Value"
-        icon={DollarSign}
-        value={stats.totalValue}
-        description="Inventory valuation"
+        title="In Storage"
+        icon={Archive}
+        value={stats.inStorage}
+        description="Available for assignment"
         iconClassName="text-green-600"
       />
 
       <StatsCard
-        title="Out of Stock"
-        icon={XCircle}
-        value={stats.outOfStock}
-        description="Currently unavailable"
-        iconClassName="text-destructive"
+        title="Assigned"
+        icon={UserCheck}
+        value={stats.assigned}
+        description="Currently with staff"
+        iconClassName="text-purple-600"
+      />
+
+      <StatsCard
+        title="In Repairs"
+        icon={Wrench}
+        value={stats.inRepairs}
+        description="Out for maintenance"
+        iconClassName="text-orange-500"
       />
     </div>
   );
