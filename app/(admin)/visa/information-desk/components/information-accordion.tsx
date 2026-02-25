@@ -9,9 +9,27 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, MapPin, Clock, Loader2, Info } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  MapPin,
+  Clock,
+  Loader2,
+  Info,
+  CheckCircle2,
+} from "lucide-react";
 import { deleteVisaInformationAction } from "../actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   items: VisaInformation[];
@@ -30,52 +48,6 @@ interface LocationItem {
   timings: string;
 }
 
-// --- Interactive Checklist Component ---
-function InteractiveChecklist({ items }: { items: string[] }) {
-  const [checked, setChecked] = useState<Set<number>>(new Set());
-
-  const toggle = (index: number) => {
-    const next = new Set(checked);
-    if (next.has(index)) next.delete(index);
-    else next.add(index);
-    setChecked(next);
-  };
-
-  return (
-    <div className="space-y-3 mt-2">
-      {items.map((item, i) => {
-        const isChecked = checked.has(i);
-        return (
-          <div
-            key={i}
-            className={`flex items-start gap-4 p-4 border rounded-xl transition-all cursor-pointer ${
-              isChecked
-                ? "bg-muted/40 border-muted opacity-80"
-                : "bg-card hover:border-primary/40 hover:bg-card/80 border-border"
-            }`}
-            onClick={() => toggle(i)}
-          >
-            <Checkbox
-              checked={isChecked}
-              onCheckedChange={() => toggle(i)}
-              className="mt-0.5 shrink-0"
-            />
-            <span
-              className={`text-sm leading-relaxed select-none transition-colors ${
-                isChecked
-                  ? "text-muted-foreground line-through"
-                  : "text-foreground font-medium"
-              }`}
-            >
-              {item}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // --- Render Content ---
 function renderContent(content: string) {
   try {
@@ -83,34 +55,47 @@ function renderContent(content: string) {
 
     // Checklist Layout
     if (parsed.type === "checklist" && Array.isArray(parsed.items)) {
-      return <InteractiveChecklist items={parsed.items} />;
+      return (
+        <ul className="space-y-2 mt-2">
+          {parsed.items.map((item: string, i: number) => (
+            <li
+              key={i}
+              className="flex gap-3 items-start text-sm bg-muted/20 p-3 rounded-lg border border-border/50"
+            >
+              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+              <span className="text-foreground leading-relaxed">{item}</span>
+            </li>
+          ))}
+        </ul>
+      );
     }
 
     // FAQ Layout
     if (parsed.type === "faq" && Array.isArray(parsed.faqs)) {
       return (
-        <div className="space-y-4 mt-2">
-          {parsed.faqs.map((faq: FAQItem, i: number) => (
-            <div
-              key={i}
-              className="p-5 rounded-xl bg-card border border-border shadow-sm space-y-3"
-            >
-              <h4 className="flex gap-2 items-start text-sm font-semibold text-foreground">
-                <span className="text-primary mt-0.5 shrink-0">Q.</span>
-                <span>{faq.question}</span>
-              </h4>
-              <div className="block h-px w-full bg-border/40 my-2" />
-              <div className="flex gap-2 items-start text-sm text-muted-foreground">
-                <span className="text-muted-foreground/60 mt-0.5 shrink-0 font-medium select-none">
-                  A.
-                </span>
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: faq.answer }}
-                />
-              </div>
-            </div>
-          ))}
+        <div className=" text-foreground w-full">
+          <div className="border border-border/80 rounded-xl overflow-hidden bg-card/50">
+            <Accordion type="single" className="w-full">
+              {parsed.faqs.map((faq: FAQItem, i: number) => (
+                <AccordionItem
+                  key={`faq-${i}`}
+                  value={`faq-${i}`}
+                  className="border-b border-border last:border-0 bg-transparent data-[state=open]:bg-muted/10 transition-colors"
+                  style={{ overflow: "visible" }}
+                >
+                  <AccordionTrigger className="flex flex-row text-sm font-medium hover:no-underline px-5 py-4 text-left w-full">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="px-5 pb-5 overflow-visible">
+                    <div
+                      className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-p:leading-relaxed mt-2"
+                      dangerouslySetInnerHTML={{ __html: faq.answer }}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </div>
       );
     }
@@ -143,7 +128,7 @@ function renderContent(content: string) {
                     </p>
                   )}
                   {loc.timings && (
-                    <p className="text-muted-foreground text-sm flex items-center gap-2.5 bg-muted/40 p-2 rounded-lg font-medium self-start inline-flex">
+                    <p className="text-muted-foreground text-sm items-center gap-2.5 bg-muted/40 p-2 rounded-lg font-medium self-start inline-flex">
                       <Clock className="h-3.5 w-3.5 shrink-0" />
                       {loc.timings}
                     </p>
@@ -191,7 +176,6 @@ export function InformationAccordion({ items, canManage, onEdit }: Props) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this entry?")) return;
     setDeletingId(id);
     await deleteVisaInformationAction(id);
     setDeletingId(null);
@@ -203,16 +187,16 @@ export function InformationAccordion({ items, canManage, onEdit }: Props) {
         <AccordionItem
           key={item.id}
           value={item.id}
-          className="border border-border/60 shadow-sm rounded-xl bg-card px-5 transition-all hover:border-border data-[state=open]:border-primary/20 data-[state=open]:shadow-md overflow-hidden"
+          className="rounded-xl px-2 transition-all outline-none"
         >
-          <div className="flex items-center w-full gap-3">
-            <AccordionTrigger className="hover:no-underline py-5 flex-1 min-w-0">
-              <div className="flex flex-col items-start gap-1.5 text-left min-w-0">
-                <span className="font-semibold text-base truncate text-foreground">
+          <div className="flex w-full items-center justify-between gap-4">
+            <AccordionTrigger className="hover:no-underline py-4 flex-1 w-full text-left [&[data-state=closed]>svg]:opacity-50">
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-base text-foreground">
                   {item.title}
                 </span>
                 {item.country && (
-                  <span className="text-xs font-medium px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full shrink-0">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-md uppercase tracking-wide">
                     {item.country}
                   </span>
                 )}
@@ -220,39 +204,64 @@ export function InformationAccordion({ items, canManage, onEdit }: Props) {
             </AccordionTrigger>
 
             {canManage && (
-              <div className="flex items-center gap-1.5 shrink-0 bg-muted/30 p-1.5 rounded-lg border">
+              <div className="flex items-center gap-1.5 shrink-0 -ml-2 z-10">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground bg-background shadow-sm border border-border/50"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground bg-background shadow-none"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     onEdit(item);
                   }}
                 >
                   <Edit className="h-3.5 w-3.5" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  disabled={deletingId === item.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item.id);
-                  }}
-                >
-                  {deletingId === item.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3.5 w-3.5" />
-                  )}
-                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground shadow-none"
+                      disabled={deletingId === item.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      {deletingId === item.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently
+                        delete the Information Desk entry for "{item.title}".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </div>
 
-          <AccordionContent className="text-muted-foreground pb-6 border-t pt-5">
+          <AccordionContent className="text-muted-foreground pb-4 pt-3">
             {renderContent(item.content)}
           </AccordionContent>
         </AccordionItem>

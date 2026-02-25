@@ -56,7 +56,7 @@ export function InformationDeskView({
         {CATEGORIES.map((category) => {
           const filtered = information.filter((i) => i.category === category);
           return (
-            <TabsContent key={category} value={category} className="mt-6">
+            <TabsContent key={category} value={category} className="mt-2 border border-border rounded-lg">
               <InformationAccordion
                 items={filtered}
                 canManage={canManage}

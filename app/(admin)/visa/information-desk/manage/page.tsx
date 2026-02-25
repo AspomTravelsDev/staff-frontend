@@ -30,17 +30,14 @@ export default async function ManageInfoPage(props: ManageInfoPageProps) {
   let infoRecord = null;
 
   if (id) {
-    // Fetch all info and find the specific one.
-    // If the API provided a fetchById endpoint, it would be better,
-    // but the current API only provides getVisaInformation().
     const information = await getVisaInformation();
     infoRecord = information.find((item) => item.id === id) || null;
   }
 
   return (
-    <div className="container py-8 max-w-7xl mx-auto">
+    <div className="">
       <div className="flex justify-center">
-        <div className="w-full max-w-4xl">
+        <div className="w-full">
           <ManageInfoForm infoRecord={infoRecord} />
         </div>
       </div>
