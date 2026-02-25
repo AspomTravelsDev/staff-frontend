@@ -2,15 +2,14 @@
 // Set to true to use Mock Data, false to use Real API
 export const API_CONFIG = {
     useMockRequests: true,
-    useMockCrm: false,
     useMockEmployees: false,
-    useMockVisa: true,
+    useMockVisa: false,
     useMockActivity: true,
     useMockLeave: true,
     useMockInventory: true,
     useMockPerformance: true,
     useMockCompliance: true,
-    useMockAwards: true,
+    useMockAwards: false,
     useMockDashboard: true,
 } as const;
 

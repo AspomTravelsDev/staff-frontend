@@ -184,6 +184,12 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["visa"]
     },
     {
+        title: "Visa Information Desk",
+        url: "/visa/information-desk",
+        icon: FolderOpen,
+        allowedRoles: ["visa"]
+    },
+    {
         title: "Information Desk",
         url: "/it/information-desk",
         icon: FolderOpen,

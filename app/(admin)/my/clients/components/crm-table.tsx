@@ -86,7 +86,7 @@ export function CRMTable({ clients }: CRMTableProps) {
       !search ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.contactPerson.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase()) ||
+      c.email?.toLowerCase().includes(search.toLowerCase()) ||
       c.phone?.toLowerCase().includes(search.toLowerCase()) ||
       c.service?.toLowerCase().includes(search.toLowerCase());
 
@@ -272,7 +272,7 @@ export function CRMTable({ clients }: CRMTableProps) {
                           {client.contactPerson !== client.name
                             ? `${client.contactPerson} · `
                             : ""}
-                          {client.email}
+                          {client.email || ""}
                         </span>
                       </div>
                     </TableCell>

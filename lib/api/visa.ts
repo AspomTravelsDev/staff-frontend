@@ -5,16 +5,7 @@
  * Used by React Query hooks and Server Actions.
  */
 
-import { api, shouldMock } from "./client";
-import {
-    getMockApplications,
-    getMockApplicationById,
-    getMockApplicationNotes,
-    getMockApplicationDocuments,
-    getMockApplicationAuditLog,
-    getMockVisaStaff,
-    toListItem,
-} from "./mock-loader";
+import { api } from "./client";
 import type {
     PaginatedResponse,
     AuditLogEntry,
@@ -44,6 +35,31 @@ export type VisaApplicationStatus =
 export type VisaPriority = "normal" | "urgent" | "express";
 
 export type PaymentStatus = "pending" | "partial" | "paid" | "refunded";
+
+export type VisaInformationCategory =
+    | "Checklist"
+    | "Submission Info"
+    | "Embassy Details"
+    | "FAQ";
+
+/**
+ * Visa Information entity
+ */
+export interface VisaInformation {
+    id: string;
+    category: VisaInformationCategory;
+    country: string | null;
+    title: string;
+    content: string;
+    author_id: string;
+    author?: {
+        id: string;
+        name: string;
+        staff_id: string;
+    };
+    created_at: string;
+    updated_at: string;
+}
 
 /**
  * Visa application entity
@@ -154,8 +170,17 @@ export interface AddNoteRequest {
     is_internal: boolean;
 }
 
+export interface CreateVisaInformationRequest {
+    category: VisaInformationCategory;
+    country?: string | null;
+    title: string;
+    content: string;
+}
+
+export type UpdateVisaInformationRequest = Partial<CreateVisaInformationRequest>;
+
 // ============================================================================
-// API Functions
+// Visa Application API Functions
 // ============================================================================
 
 /**
@@ -164,61 +189,6 @@ export interface AddNoteRequest {
 export async function getVisaApplications(
     filters: VisaApplicationFilters = {}
 ): Promise<PaginatedResponse<VisaApplicationListItem>> {
-    if (shouldMock("useMockVisa")) {
-        const applications = await getMockApplications();
-        let filtered = applications.map(toListItem);
-
-        if (filters.status) {
-            filtered = filtered.filter((app) => app.status === filters.status);
-        }
-        if (filters.country) {
-            filtered = filtered.filter((app) => app.country === filters.country);
-        }
-        if (filters.priority) {
-            filtered = filtered.filter((app) => app.priority === filters.priority);
-        }
-        if (filters.payment_status) {
-            filtered = filtered.filter(
-                (app) => app.payment_status === filters.payment_status
-            );
-        }
-        if (filters.search) {
-            const search = filters.search.toLowerCase();
-            filtered = filtered.filter(
-                (app) =>
-                    app.applicant_name.toLowerCase().includes(search) ||
-                    app.applicant_email.toLowerCase().includes(search) ||
-                    app.reference_number.toLowerCase().includes(search) ||
-                    app.passport_number.toLowerCase().includes(search)
-            );
-        }
-
-        // Sort
-        const sortBy = filters.sort_by || "created_at";
-        const sortOrder = filters.sort_order || "desc";
-        filtered.sort((a, b) => {
-            const aVal = a[sortBy as keyof VisaApplicationListItem] || "";
-            const bVal = b[sortBy as keyof VisaApplicationListItem] || "";
-            const comparison = String(aVal).localeCompare(String(bVal));
-            return sortOrder === "desc" ? -comparison : comparison;
-        });
-
-        const page = filters.page ?? 1;
-        const limit = filters.limit ?? 20;
-        const total = filtered.length;
-
-        return {
-            items: filtered.slice((page - 1) * limit, page * limit),
-            pagination: {
-                page,
-                limit,
-                total,
-                total_pages: Math.ceil(total / limit),
-            },
-        };
-    }
-
-    // Build query string
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") {
@@ -227,7 +197,7 @@ export async function getVisaApplications(
     });
 
     const result = await api.get<PaginatedResponse<VisaApplicationListItem>>(
-        `/visa-applications?${params.toString()}`
+        `/api/visa-applications?${params.toString()}`
     );
 
     if (!result.success) {
@@ -241,15 +211,7 @@ export async function getVisaApplications(
  * Get single visa application by ID
  */
 export async function getVisaApplication(id: string): Promise<VisaApplication> {
-    if (shouldMock("useMockVisa")) {
-        const application = await getMockApplicationById(id);
-        if (!application) {
-            throw new Error("Application not found");
-        }
-        return application;
-    }
-
-    const result = await api.get<VisaApplication>(`/visa-applications/${id}`);
+    const result = await api.get<VisaApplication>(`/api/visa-applications/${id}`);
 
     if (!result.success) {
         throw new Error(result.error.error);
@@ -265,20 +227,8 @@ export async function updateApplicationStatus(
     id: string,
     data: UpdateStatusRequest
 ): Promise<VisaApplication> {
-    if (shouldMock("useMockVisa")) {
-        const application = await getMockApplicationById(id);
-        if (!application) {
-            throw new Error("Application not found");
-        }
-        return {
-            ...application,
-            status: data.status,
-            updated_at: new Date().toISOString(),
-        };
-    }
-
     const result = await api.patch<VisaApplication>(
-        `/visa-applications/${id}/status`,
+        `/api/visa-applications/${id}/status`,
         data
     );
 
@@ -296,24 +246,8 @@ export async function assignApplication(
     id: string,
     data: AssignApplicationRequest
 ): Promise<VisaApplication> {
-    if (shouldMock("useMockVisa")) {
-        const application = await getMockApplicationById(id);
-        const staff = await getMockVisaStaff();
-        const assignedStaff = staff.find((s) => s.id === data.staff_id);
-        if (!application) {
-            throw new Error("Application not found");
-        }
-        return {
-            ...application,
-            assigned_to: data.staff_id,
-            assigned_to_name: assignedStaff?.name || "Unknown Staff",
-            assigned_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        };
-    }
-
     const result = await api.post<VisaApplication>(
-        `/visa-applications/${id}/assign`,
+        `/api/visa-applications/${id}/assign`,
         data
     );
 
@@ -328,12 +262,8 @@ export async function assignApplication(
  * Get notes for an application
  */
 export async function getApplicationNotes(id: string): Promise<InternalNote[]> {
-    if (shouldMock("useMockVisa")) {
-        return getMockApplicationNotes(id);
-    }
-
     const result = await api.get<InternalNote[]>(
-        `/visa-applications/${id}/notes`
+        `/api/visa-applications/${id}/notes`
     );
 
     if (!result.success) {
@@ -350,19 +280,8 @@ export async function addApplicationNote(
     id: string,
     data: AddNoteRequest
 ): Promise<InternalNote> {
-    if (shouldMock("useMockVisa")) {
-        return {
-            id: `note-${Date.now()}`,
-            content: data.content,
-            is_internal: data.is_internal,
-            created_by: "current-user",
-            created_by_name: "Current User",
-            created_at: new Date().toISOString(),
-        };
-    }
-
     const result = await api.post<InternalNote>(
-        `/visa-applications/${id}/notes`,
+        `/api/visa-applications/${id}/notes`,
         data
     );
 
@@ -379,12 +298,8 @@ export async function addApplicationNote(
 export async function getApplicationDocuments(
     id: string
 ): Promise<DocumentAttachment[]> {
-    if (shouldMock("useMockVisa")) {
-        return getMockApplicationDocuments(id);
-    }
-
     const result = await api.get<DocumentAttachment[]>(
-        `/visa-applications/${id}/documents`
+        `/api/visa-applications/${id}/documents`
     );
 
     if (!result.success) {
@@ -400,12 +315,8 @@ export async function getApplicationDocuments(
 export async function getApplicationAuditLog(
     id: string
 ): Promise<AuditLogEntry[]> {
-    if (shouldMock("useMockVisa")) {
-        return getMockApplicationAuditLog(id);
-    }
-
     const result = await api.get<AuditLogEntry[]>(
-        `/visa-applications/${id}/audit`
+        `/api/visa-applications/${id}/audit`
     );
 
     if (!result.success) {
@@ -421,12 +332,8 @@ export async function getApplicationAuditLog(
 export async function getVisaStaff(): Promise<
     { id: string; name: string; email: string }[]
 > {
-    if (shouldMock("useMockVisa")) {
-        return getMockVisaStaff();
-    }
-
     const result = await api.get<{ id: string; name: string; email: string }[]>(
-        "/users/staff?role=visa"
+        "/api/users/staff?role=visa"
     );
 
     if (!result.success) {
@@ -434,4 +341,50 @@ export async function getVisaStaff(): Promise<
     }
 
     return result.data;
+}
+
+// ============================================================================
+// Visa Information Desk API Functions
+// ============================================================================
+
+/**
+ * Get visa information entries
+ */
+export async function getVisaInformation(
+    filters?: { category?: VisaInformationCategory; country?: string }
+): Promise<VisaInformation[]> {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append("category", filters.category);
+    if (filters?.country) params.append("country", filters.country);
+
+    const result = await api.get<VisaInformation[]>(`/api/visa-information?${params.toString()}`);
+    if (!result.success) throw new Error(result.error.error);
+    return result.data;
+}
+
+/**
+ * Create visa information
+ */
+export async function createVisaInformation(data: CreateVisaInformationRequest): Promise<VisaInformation> {
+    const result = await api.post<VisaInformation>("/api/visa-information", data);
+    if (!result.success) throw new Error(result.error.error);
+    return result.data;
+}
+
+/**
+ * Update visa information
+ */
+export async function updateVisaInformation(id: string, data: UpdateVisaInformationRequest): Promise<VisaInformation> {
+    const result = await api.patch<VisaInformation>(`/api/visa-information/${id}`, data);
+    if (!result.success) throw new Error(result.error.error);
+    return result.data;
+}
+
+/**
+ * Delete visa information
+ */
+export async function deleteVisaInformation(id: string): Promise<boolean> {
+    const result = await api.delete<{ success: boolean }>(`/api/visa-information/${id}`);
+    if (!result.success) throw new Error(result.error.error);
+    return true;
 }

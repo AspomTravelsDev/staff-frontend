@@ -42,7 +42,7 @@ export interface Client {
     id: string;
     name: string;
     contactPerson: string;
-    email: string;
+    email?: string | null;
     phone: string | null;
     status: CRMStatus;
     service: string;
@@ -59,7 +59,7 @@ export interface Client {
 export interface CreateClientRequest {
     name: string;
     contactPerson: string;
-    email: string;
+    email?: string | null;
     phone?: string;
     status: CRMStatus;
     service: string;

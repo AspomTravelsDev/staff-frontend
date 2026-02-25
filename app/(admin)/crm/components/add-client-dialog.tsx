@@ -67,8 +67,8 @@ export function AddClientDialog({
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
-    if (!form.name || !form.email || !form.service || !form.source) {
-      setError("Please fill in Name, Email, Service, and Source.");
+    if (!form.name || !form.service || !form.source) {
+      setError("Please fill in Name, Service, and Source.");
       return;
     }
     setError(null);
@@ -118,14 +118,12 @@ export function AddClientDialog({
           {/* Email + Phone */}
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="email">
-                Email <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="client@example.com"
-                value={form.email}
+                value={form.email ?? ""}
                 onChange={(e) => set("email", e.target.value)}
               />
             </div>

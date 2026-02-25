@@ -1,10 +1,18 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { Metadata } from "next";
+import { getVisaInformation } from "@/lib/api/visa";
+import { InformationDeskView } from "@/app/(admin)/visa/information-desk/components/information-desk-view";
 
-export default function Page() {
+export const metadata: Metadata = {
+  title: "Visa Information Desk | Aspom",
+  description: "Visa information, checklists, and FAQs for staff.",
+};
+
+export default async function MyVisaPage() {
+  const information = await getVisaInformation();
+
   return (
-    <PlaceholderPage
-      title="Visa Information Desk"
-      description="Information and resources regarding visa services."
-    />
+    <div className="container py-8 max-w-7xl mx-auto">
+      <InformationDeskView information={information} canManage={false} />
+    </div>
   );
 }

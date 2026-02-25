@@ -53,7 +53,7 @@ export function EditClientDialog({
       setForm({
         name: client.name,
         contactPerson: client.contactPerson,
-        email: client.email,
+        email: client.email ?? undefined,
         phone: client.phone ?? undefined,
         status: client.status,
         service: client.service,
@@ -69,8 +69,8 @@ export function EditClientDialog({
 
   const handleSubmit = async () => {
     if (!client) return;
-    if (!form.name || !form.email) {
-      setError("Name and Email are required.");
+    if (!form.name) {
+      setError("Name is required.");
       return;
     }
     setError(null);
