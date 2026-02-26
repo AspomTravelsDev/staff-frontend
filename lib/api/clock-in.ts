@@ -25,6 +25,7 @@ export interface ClockInSummary {
     this_month: number;
     average_duration_minutes: number;
     total_minutes_logged: number;
+    average_clock_in_time?: string;
 }
 
 export interface StandardResponse<T> {
@@ -88,4 +89,54 @@ export async function getClockInHistory(from?: string, to?: string): Promise<Api
  */
 export async function getClockInSummary(): Promise<ApiResponse<StandardResponse<ClockInSummary>>> {
     return api.get<StandardResponse<ClockInSummary>>("/api/clock-ins/summary");
+}
+
+export interface PaginatedClockInResponse {
+    message: string;
+    code: string;
+    data: {
+        data: ClockInRecord[];
+        meta: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+    };
+}
+
+/**
+ * GET /api/admin/attendance
+ * Get global attendance history with filters
+ */
+export async function getAllClockIns(
+    from?: string,
+    to?: string,
+    userId?: string,
+    perPage = 50
+): Promise<ApiResponse<PaginatedClockInResponse>> {
+    const params = new URLSearchParams();
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+    if (userId && userId !== "all") params.append("user_id", userId);
+    params.append("per_page", perPage.toString());
+
+    return api.get<PaginatedClockInResponse>(`/api/admin/attendance?${params.toString()}`);
+}
+
+/**
+ * GET /api/admin/attendance/stats
+ * Get global summary stats with filters
+ */
+export async function getAllClockInStats(
+    from?: string,
+    to?: string,
+    userId?: string
+): Promise<ApiResponse<StandardResponse<ClockInSummary>>> {
+    const params = new URLSearchParams();
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+    if (userId && userId !== "all") params.append("user_id", userId);
+
+    return api.get<StandardResponse<ClockInSummary>>(`/api/admin/attendance/stats?${params.toString()}`);
 }

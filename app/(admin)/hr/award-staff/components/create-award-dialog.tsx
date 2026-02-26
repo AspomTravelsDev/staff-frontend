@@ -104,8 +104,12 @@ export function CreateAwardDialog() {
       toast.success("Award assigned successfully");
       setOpen(false);
       reset();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to assign award");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to assign award";
+      toast.error(message);
     }
   }
 

@@ -213,6 +213,12 @@ export const departmentNav: NavItem[] = [
         icon: Megaphone,
         allowedRoles: ["admin", "super"]
     },
+    {
+        title: "General Attendance",
+        url: "/attendance",
+        icon: CalendarCheck,
+        allowedRoles: ["hr", "super", "it", "compliance"]
+    },
 
 ];
 
