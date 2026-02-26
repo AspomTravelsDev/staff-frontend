@@ -24,10 +24,12 @@ import type { UserRole } from "@/types/user-types";
 import Image from "next/image";
 import Link from "next/link";
 import { TreePalm } from "lucide-react";
+import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const { state } = useSidebar();
+  const { data: notifications } = useRoleNotifications();
 
   // Filter department nav based on user role
   const filteredDepartmentNav = user
@@ -63,6 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               a.title.localeCompare(b.title),
             )}
             label={user?.role.toLocaleUpperCase() + " Tools"}
+            badges={notifications || {}}
           />
         )}
 
@@ -70,7 +73,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarSeparator className="mx-2" />
 
         {/* General actions - visible to all */}
-        <NavMain items={personalNav} label="General Links" />
+        <NavMain
+          items={personalNav}
+          label="General Links"
+          badges={notifications || {}}
+        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

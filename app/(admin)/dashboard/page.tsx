@@ -159,7 +159,7 @@ export default async function Page() {
       const utcHours = date.getUTCHours();
       const utcMinutes = date.getUTCMinutes();
 
-      const isLate = utcHours > 8 || (utcHours === 8 && utcMinutes > 5);
+      const isLate = utcHours > 9 || (utcHours === 9 && utcMinutes > 5);
 
       if (isLate) {
         lateDays++;

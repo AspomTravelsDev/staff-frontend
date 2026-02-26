@@ -6,6 +6,8 @@ import { QueryProvider } from "@/providers/query-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { FeedbackButton } from "@/components/feedback-button";
+import { getNotifications } from "@/lib/api/notifications";
+import { NotificationsUpdater } from "@/components/notifications-updater";
 
 export default async function AdminLayout({
   children,
@@ -14,14 +16,16 @@ export default async function AdminLayout({
 }) {
   const user = await getCurrentUser();
 
-  // If no user, redirect to logout route which will clear session and redirect to login
   if (!user) {
     redirect("/auth/logout");
   }
 
+  const initialNotifications = await getNotifications();
+
   return (
     <QueryProvider>
       <UserProvider user={user}>
+        <NotificationsUpdater notifications={initialNotifications} />
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>

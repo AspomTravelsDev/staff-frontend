@@ -1,0 +1,56 @@
+
+> aspom-frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./lib/auth/session.ts:1:1
+Ecmascript file had an error
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { cookies } [36mfrom[39m [32m"next/headers"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mimport[39m { validateToken } [36mfrom[39m [32m"./api"[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { [33mUser[39m[33m,[39m [33mLoginUser[39m } [36mfrom[39m [32m"@/types/user-types"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./lib/auth/session.ts
+    ./app/api/proxy/image/[...path]/route.ts
+
+  #2 [Server Component]:
+    ./lib/auth/session.ts
+    ./app/(admin)/activity/page.tsx
+
+  #3 [Server Component]:
+    ./lib/auth/session.ts
+    ./app/actions/auth.ts
+
+  #4 [Client Component Browser]:
+    ./lib/auth/session.ts [Client Component Browser]
+    ./lib/api/client.ts [Client Component Browser]
+    ./lib/api/notifications.ts [Client Component Browser]
+    ./lib/api/hooks/use-notifications.ts [Client Component Browser]
+    ./components/site-header.tsx [Client Component Browser]
+    ./components/site-header.tsx [Server Component]
+    ./app/(admin)/layout.tsx [Server Component]
+
+  #5 [Client Component SSR]:
+    ./lib/auth/session.ts [Client Component SSR]
+    ./lib/api/client.ts [Client Component SSR]
+    ./lib/api/notifications.ts [Client Component SSR]
+    ./lib/api/hooks/use-notifications.ts [Client Component SSR]
+    ./components/site-header.tsx [Client Component SSR]
+    ./components/site-header.tsx [Server Component]
+    ./app/(admin)/layout.tsx [Server Component]
+
+
+    at <unknown> (./lib/auth/session.ts:1:1)

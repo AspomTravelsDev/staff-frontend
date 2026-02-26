@@ -26,9 +26,13 @@ export interface NavItem {
     icon?: LucideIcon;
     isActive?: boolean;
     allowedRoles?: UserRole[];
+    badgeKey?: string;
+    badgeLabel?: string;
     items?: {
         title: string;
         url: string;
+        badgeKey?: string;
+        badgeLabel?: string;
     }[];
 }
 
@@ -175,7 +179,9 @@ export const departmentNav: NavItem[] = [
         title: "All General Requests",
         url: "/admin/requests",
         icon: ClipboardList,
-        allowedRoles: ["admin", "super"]
+        allowedRoles: ["admin", "super"],
+        badgeKey: "requests",
+        badgeLabel: "General requests pending review"
     },
     {
         title: "Inventory",
@@ -217,7 +223,9 @@ export const departmentNav: NavItem[] = [
         title: "Announcements",
         url: "/admin/announcements",
         icon: Megaphone,
-        allowedRoles: ["admin", "super"]
+        allowedRoles: ["admin", "super"],
+        badgeKey: "announcements",
+        badgeLabel: "Announcements pending review"
     },
     {
         title: "General Attendance",
