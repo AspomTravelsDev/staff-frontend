@@ -43,3 +43,20 @@ export async function updateUserStatusAction(
         };
     }
 }
+
+export async function deleteUserAction(
+    userId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { deleteUser } = await import("@/lib/api/employees");
+        await deleteUser(userId);
+        revalidatePath("/hr/employees");
+        return { success: true };
+    } catch (error) {
+        console.error("Delete user error:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to delete user",
+        };
+    }
+}

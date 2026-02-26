@@ -5,6 +5,7 @@ import { EmployeeTable } from "./employee-table";
 import { EmployeeFilters, FilterValues } from "./employee-filters";
 import { useState, useMemo } from "react";
 import type { Employee, EmployeeStats } from "@/lib/api/employees";
+import { TableExportButton } from "@/components/ui/table-export-button";
 
 interface EmployeeListContentProps {
   employees: Employee[];
@@ -74,17 +75,43 @@ export function EmployeeListContent({
     return result;
   }, [employees, filters]);
 
+  const exportColumns = [
+    { header: "Staff ID", key: (emp: Employee) => emp.staff_id || "" },
+    { header: "First Name", key: (emp: Employee) => emp.firstName || "" },
+    { header: "Last Name", key: (emp: Employee) => emp.lastName || "" },
+    { header: "Email", key: (emp: Employee) => emp.email || "" },
+    { header: "Phone", key: (emp: Employee) => emp.phone || "" },
+    { header: "Department", key: (emp: Employee) => emp.department || "" },
+    { header: "Role", key: (emp: Employee) => emp.role || "" },
+    {
+      header: "Date Joined",
+      key: (emp: Employee) =>
+        emp.joinDate ? new Date(emp.joinDate).toLocaleDateString() : "-",
+    },
+    { header: "Status", key: (emp: Employee) => emp.status || "" },
+  ];
+
   return (
     <>
       {/* Stats Cards */}
       <EmployeeStatsCards stats={stats} />
 
-      {/* Filters - Below stats, above table */}
+      {/* Filters and Actions */}
       <EmployeeFilters
         filters={filters}
         onFiltersChange={setFilters}
         departments={departments}
-      />
+      >
+        <div className="shrink-0 flex items-center ml-auto">
+          {filteredAndSortedEmployees.length > 0 && (
+            <TableExportButton
+              data={filteredAndSortedEmployees}
+              columns={exportColumns}
+              filename={`Employee_List_${new Date().toISOString().split("T")[0]}.csv`}
+            />
+          )}
+        </div>
+      </EmployeeFilters>
 
       {/* Employee Table - Instant updates, no loading */}
       <EmployeeTable employees={filteredAndSortedEmployees} />

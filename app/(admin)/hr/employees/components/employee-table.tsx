@@ -16,6 +16,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   MoreHorizontal,
@@ -24,10 +34,11 @@ import {
   Edit,
   Phone,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from "@/lib/api/employees";
-import { updateUserStatusAction } from "../actions";
+import { updateUserStatusAction, deleteUserAction } from "../actions";
 import { toast } from "sonner";
 import { useState } from "react";
 import { EditUserDialog } from "./edit-user-dialog";
@@ -39,6 +50,10 @@ interface EmployeeTableProps {
 export function EmployeeTable({ employees }: EmployeeTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleStatusToggle = async (employee: Employee) => {
     const newStatus = !employee.status || employee.status === "Inactive";
@@ -55,6 +70,24 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
     }
 
     setUpdatingId(null);
+  };
+
+  const handleDelete = async () => {
+    if (!employeeToDelete) return;
+
+    setIsDeleting(true);
+    const result = await deleteUserAction(employeeToDelete.id);
+
+    if (result.success) {
+      toast.success(
+        `${employeeToDelete.firstName} ${employeeToDelete.lastName} has been permanently deleted.`,
+      );
+      setEmployeeToDelete(null);
+    } else {
+      toast.error(result.error || "Failed to delete user");
+    }
+
+    setIsDeleting(false);
   };
 
   return (
@@ -162,7 +195,7 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                       <DropdownMenuSeparator />
                       {employee.status === "Active" ? (
                         <DropdownMenuItem
-                          className="text-destructive"
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           onClick={() => handleStatusToggle(employee)}
                         >
                           <UserX className="mr-2 h-4 w-4" /> Make Inactive
@@ -174,6 +207,13 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                           <UserCheck className="mr-2 h-4 w-4" /> Make Active
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive focus:bg-destructive/10 focus:outline-none"
+                        onClick={() => setEmployeeToDelete(employee)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete Employee
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -188,6 +228,47 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
         open={!!editingEmployee}
         onOpenChange={(open) => !open && setEditingEmployee(null)}
       />
+
+      <AlertDialog
+        open={!!employeeToDelete}
+        onOpenChange={(open) =>
+          !open && !isDeleting && setEmployeeToDelete(null)
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete{" "}
+              <strong className="text-foreground">
+                {employeeToDelete?.firstName} {employeeToDelete?.lastName}
+              </strong>{" "}
+              and erase all related data including clock&#x2011;ins and daily
+              tasks.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Employee"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

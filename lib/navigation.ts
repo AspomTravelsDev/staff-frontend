@@ -129,6 +129,12 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
+        title: "Onboarding Documents",
+        url: "/hr/onboarding",
+        icon: FileText,
+        allowedRoles: ["hr"],
+    },
+    {
         title: "General Tasks & Reports",
         url: "/hr/tasks",
         icon: ClipboardList,
@@ -147,7 +153,7 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["visa"],
     },
     {
-        title: "Gadget Requests",
+        title: "IT Service Desk",
         url: "/it/service-desk",
         icon: Settings2,
         allowedRoles: ["it", "super"],
@@ -177,12 +183,12 @@ export const departmentNav: NavItem[] = [
         icon: ClipboardList,
         allowedRoles: ["admin", "super"]
     },
-    {
-        title: "Visa Client List",
-        url: "/visa/clients",
-        icon: ClipboardList,
-        allowedRoles: ["visa"]
-    },
+    // {
+    //     title: "Visa Client List",
+    //     url: "/visa/clients",
+    //     icon: ClipboardList,
+    //     allowedRoles: ["visa"]
+    // },
     {
         title: "Visa Information Desk",
         url: "/visa/information-desk",
@@ -245,7 +251,7 @@ export const personalNav: NavItem[] = [
         icon: Settings2,
         items: [
             { title: "Report Issue", url: "/my/it-issue" },
-            { title: "Request Gadget", url: "/my/gadget-request" },
+            // { title: "Request Gadget", url: "/my/gadget-request" },
         ],
     },
     {

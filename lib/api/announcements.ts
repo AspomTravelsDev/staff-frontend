@@ -15,12 +15,13 @@ export interface AnnouncementItem {
     id: string;
     type: AnnouncementType;
     title: string;
-    content: string; // HTML from rich text editor
+    content: string;
     author_id: string;
     author_name: string;
     status: AnnouncementStatus;
-    publish_at: string | null; // ISO 8601 — null means publish immediately on approval
-    published_at: string | null; // Set by backend cron when actually published
+    publish_at: string | null;
+    published_at: string | null;
+    rejection_reason?: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -29,7 +30,7 @@ export interface CreateAnnouncementPayload {
     type: AnnouncementType;
     title: string;
     content: string;
-    publish_at?: string | null; // ISO 8601 datetime or null for immediate
+    publish_at?: string | null;
 }
 
 export interface AnnouncementFilters {
@@ -43,6 +44,7 @@ export interface AnnouncementFilters {
 export interface UpdateAnnouncementPayload {
     status?: AnnouncementStatus;
     publish_at?: string | null;
+    rejection_reason?: string | null;
 }
 
 // ============================================================================
@@ -91,6 +93,7 @@ export async function createAnnouncement(
         payload
     );
     if (!result.success) throw new Error(result.error.error);
+    revalidatePath("/admin/announcements");
     revalidatePath("/my/announcement");
     return result.data.announcement;
 }
@@ -109,6 +112,23 @@ export async function updateAnnouncement(
     if (!result.success) throw new Error(result.error.error);
     revalidatePath("/admin/announcements");
     revalidatePath("/my/announcement");
+    return result.data.announcement;
+}
+
+/**
+ * Update announcement content (for authors to edit and resubmit)
+ */
+export async function updateAnnouncementContent(
+    id: string,
+    payload: CreateAnnouncementPayload
+): Promise<AnnouncementItem> {
+    const result = await api.put<{ announcement: AnnouncementItem }>(
+        `/api/announcements/${id}`,
+        payload
+    );
+    if (!result.success) throw new Error(result.error.error);
+    revalidatePath("/my/announcement");
+    revalidatePath("/admin/announcements");
     return result.data.announcement;
 }
 

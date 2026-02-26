@@ -15,7 +15,6 @@ export function ClockInWidget() {
       const response = await clockOut();
       if (response.success) {
         toast.success("Successfully clocked out");
-        // Optional: Show duration or summary in toast
         if (response.data.data.duration_minutes) {
           const hours = Math.floor(response.data.data.duration_minutes / 60);
           const minutes = response.data.data.duration_minutes % 60;

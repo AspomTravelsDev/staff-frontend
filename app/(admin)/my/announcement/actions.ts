@@ -1,6 +1,10 @@
 "use server";
 
-import { createAnnouncement, deleteAnnouncement } from "@/lib/api/announcements";
+import {
+    createAnnouncement,
+    deleteAnnouncement,
+    updateAnnouncementContent,
+} from "@/lib/api/announcements";
 import type { AnnouncementFormValues } from "@/lib/validations/announcements";
 
 export async function createAnnouncementAction(
@@ -11,7 +15,6 @@ export async function createAnnouncementAction(
             type: data.type,
             title: data.title,
             content: data.content,
-            // Convert Date → ISO string for the API; omit if not set
             publish_at: data.publish_at ? data.publish_at.toISOString() : null,
         });
         return { success: true };
@@ -21,6 +24,28 @@ export async function createAnnouncementAction(
             success: false,
             error:
                 error instanceof Error ? error.message : "Failed to submit announcement",
+        };
+    }
+}
+
+export async function updateAnnouncementContentAction(
+    id: string,
+    data: AnnouncementFormValues
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await updateAnnouncementContent(id, {
+            type: data.type,
+            title: data.title,
+            content: data.content,
+            publish_at: data.publish_at ? data.publish_at.toISOString() : null,
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Update announcement error:", error);
+        return {
+            success: false,
+            error:
+                error instanceof Error ? error.message : "Failed to update announcement",
         };
     }
 }

@@ -23,6 +23,7 @@ import type { AnnouncementItem } from "@/lib/api/announcements";
 import { deleteAnnouncementAction } from "../actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { EditAnnouncementDialog } from "./edit-announcement-dialog";
 
 interface AnnouncementCardProps {
   announcement: AnnouncementItem;
@@ -81,6 +82,7 @@ export function AnnouncementCard({
   onDeleted,
 }: AnnouncementCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const status = STATUS_CONFIG[announcement.status];
   const type = TYPE_CONFIG[announcement.type];
@@ -150,25 +152,52 @@ export function AnnouncementCard({
             </span>
           )}
           {announcement.status === "rejected" && (
-            <p className="text-xs text-destructive">
-              This submission was not approved.
-            </p>
+            <div className="flex flex-col gap-1 w-full text-xs text-destructive mb-2">
+              <span className="font-semibold">
+                This submission was rejected.
+              </span>
+              {announcement.rejection_reason && (
+                <span className="text-muted-foreground p-2 bg-destructive/5 rounded-md border border-destructive/10">
+                  <strong className="text-destructive mr-1">Reason:</strong>
+                  {announcement.rejection_reason}
+                </span>
+              )}
+            </div>
           )}
-          {!scheduledDate && announcement.status !== "rejected" && <span />}
-          {announcement.status === "pending" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
-            </Button>
+
+          {announcement.status === "pending" ||
+          announcement.status === "rejected" ? (
+            <div className="flex gap-2 ml-auto">
+              {announcement.status === "rejected" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit & Resubmit
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            </div>
+          ) : (
+            <span />
           )}
         </div>
       </CardFooter>
+      <EditAnnouncementDialog
+        announcement={announcement}
+        open={isEditing}
+        onOpenChange={setIsEditing}
+      />
     </Card>
   );
 }

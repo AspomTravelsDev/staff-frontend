@@ -66,9 +66,13 @@ export function AnnouncementsTable({
   };
 
   const handleReject = async (item: AnnouncementItem) => {
+    const reason = window.prompt("Reason for rejection (Optional):");
+    if (reason === null) return; // User cancelled the prompt
+
     setLoadingId(item.id);
     const result = await updateAnnouncementAction(item.id, {
       status: "rejected",
+      rejection_reason: reason,
     });
     setLoadingId(null);
     if (!result.success) {
@@ -76,7 +80,7 @@ export function AnnouncementsTable({
       return;
     }
     toast.success("Announcement rejected");
-    onUpdate(item.id, { status: "rejected" });
+    onUpdate(item.id, { status: "rejected", rejection_reason: reason });
   };
 
   const handleDelete = async (id: string) => {

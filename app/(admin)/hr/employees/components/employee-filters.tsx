@@ -21,12 +21,14 @@ interface EmployeeFiltersProps {
   filters: FilterValues;
   onFiltersChange: (filters: FilterValues) => void;
   departments: string[];
+  children?: React.ReactNode;
 }
 
 export function EmployeeFilters({
   filters,
   onFiltersChange,
   departments,
+  children,
 }: EmployeeFiltersProps) {
   const handleClearFilters = () => {
     onFiltersChange({
@@ -160,6 +162,8 @@ export function EmployeeFilters({
           Clear Filters
         </Button>
       )}
+
+      {children}
     </div>
   );
 }

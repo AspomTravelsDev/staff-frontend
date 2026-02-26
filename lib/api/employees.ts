@@ -252,3 +252,14 @@ export async function updateUser(
 export async function getCurrentUser(): Promise<User | null> {
     return getSessionUser();
 }
+
+/**
+ * Delete a user permanently
+ */
+export async function deleteUser(userId: string): Promise<void> {
+    const result = await api.delete<{ message: string; code: string }>(`/api/users/${userId}`);
+
+    if (!result.success) {
+        throw new Error(result.error.error || "Failed to delete user");
+    }
+}

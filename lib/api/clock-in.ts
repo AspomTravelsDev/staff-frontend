@@ -1,6 +1,7 @@
 "use server";
 
 import { api, type ApiResponse } from "@/lib/api/client";
+import { revalidatePath } from "next/cache";
 
 export interface ClockInRecord {
     id: number;
@@ -50,6 +51,7 @@ export async function clockIn(
     location?: LocationData,
     client_ip?: string
 ): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    revalidatePath("/my/attendance");
     return api.post<StandardResponse<ClockInRecord>>("/api/clock-in", {
         location,
         client_ip
