@@ -1,0 +1,395 @@
+
+> aspom-frontend@0.1.0 lint
+> eslint
+
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\accounts\current-rates\components\current-rates-form.tsx
+  54:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\accounts\current-rates\queries.ts
+  9:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\admin\invite\components\invite-form.tsx
+  47:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\admin\invite\components\invite-form.tsx:47:7
+  45 |     if (state?.success) {
+  46 |       formRef.current?.reset();
+> 47 |       setSelectedRole("");
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  48 |       setDepartment("");
+  49 |       setDateJoined(undefined);
+  50 |     }  react-hooks/set-state-in-effect
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\attendance\components\admin-attendance-table.tsx
+  13:10  warning  'Avatar' is defined but never used                @typescript-eslint/no-unused-vars
+  13:18  warning  'AvatarFallback' is defined but never used        @typescript-eslint/no-unused-vars
+  13:34  warning  'AvatarImage' is defined but never used           @typescript-eslint/no-unused-vars
+  57:9   warning  'getInitials' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  91:34  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\attendance\components\attendance-client.tsx
+  103:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\attendance\components\attendance-client.tsx:103:7
+  101 |
+  102 |     if (hasChanges) {
+> 103 |       setIsPending(true);
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  104 |       router.push(`${pathname}?${params.toString()}`);
+  105 |     } else {
+  106 |       setIsPending(false);  react-hooks/set-state-in-effect
+  111:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\attendance\components\attendance-client.tsx:111:5
+  109 |
+  110 |   useEffect(() => {
+> 111 |     setIsPending(false);
+      |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  112 |   }, [history, stats]);
+  113 |
+  114 |   const exportColumns = [                                                    react-hooks/set-state-in-effect
+  117:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  123:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  127:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  134:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  141:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  149:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  153:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\attendance\components\attendance-stats.tsx
+  12:42  warning  'isLoading' is defined but never used     @typescript-eslint/no-unused-vars
+  15:45  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\attendance\page.tsx
+  16:50  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+  20:49  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+  24:59  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\compliance\components\add-occurrence-dialog.tsx
+  59:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\crm\components\add-client-dialog.tsx
+  23:3  warning  'Client' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\crm\components\crm-table.tsx
+  117:9  warning  'handleClientUpdated' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\crm\components\edit-client-dialog.tsx
+  53:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\crm\components\edit-client-dialog.tsx:53:7
+  51 |   useEffect(() => {
+  52 |     if (client) {
+> 53 |       setForm({
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  54 |         name: client.name,
+  55 |         contactPerson: client.contactPerson,
+  56 |         email: client.email ?? undefined,  react-hooks/set-state-in-effect
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\dashboard\page.tsx
+   88:5   warning  'todayStatusResponse' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  110:25  error    Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+  128:7   warning  'lateDays' is assigned a value but never used             @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\hr\docs\components\document-list-table.tsx
+  221:61  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  221:73  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\hr\employees\components\edit-user-dialog.tsx
+  121:23  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\hr\employees\components\edit-user-dialog.tsx:121:23
+  119 |
+  120 |   // Auto-suggest department when role changes (only if department is empty or was previously auto-suggested)
+> 121 |   const watchedRole = watch("role");
+      |                       ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  122 |   const watchedDepartment = watch("department");
+  123 |   useEffect(() => {
+  124 |     const suggested = ROLE_TO_DEPARTMENT[watchedRole];  react-hooks/incompatible-library
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\hr\staff-requests\components\staff-request-actions.tsx
+  34:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\hr\staff-requests\components\staff-requests-table.tsx
+  13:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\hr\tasks\components\all-tasks-table.tsx
+  19:3  warning  'Clock' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\attendance\page.tsx
+  13:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\awards\page.tsx
+  14:10  warning  'Avatar' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  14:18  warning  'AvatarFallback' is defined but never used                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  14:34  warning  'AvatarImage' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  48:26  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  57:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\clients\components\add-client-dialog.tsx
+  23:3  warning  'Client' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\clients\components\crm-table.tsx
+  108:9  warning  'handleClientUpdated' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\clients\components\edit-client-dialog.tsx
+  53:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\clients\components\edit-client-dialog.tsx:53:7
+  51 |   useEffect(() => {
+  52 |     if (client) {
+> 53 |       setForm({
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  54 |         name: client.name,
+  55 |         contactPerson: client.contactPerson,
+  56 |         email: client.email ?? undefined,  react-hooks/set-state-in-effect
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\leave\actions.ts
+  6:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\leave\queries.ts
+  20:37  warning  'userId' is defined but never used  @typescript-eslint/no-unused-vars
+  30:39  warning  'userId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\profile\components\awards-card.tsx
+  10:30  warning  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\request-staff\components\request-staff-modal.tsx
+  76:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\request-staff\components\request-staff-table.tsx
+  12:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\request-staff\page.tsx
+  9:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  9:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\tasks\components\task-list.tsx
+   14:28  warning  'AlertTriangle' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   50:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\my\tasks\components\task-list.tsx:50:7
+  48 |   useEffect(() => {
+  49 |     if (records && records.length > 0) {
+> 50 |       setLocalTasks(records[0].tasks);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  51 |     } else {
+  52 |       // Initialize with one empty task if no record exists
+  53 |       setLocalTasks([]);  react-hooks/set-state-in-effect
+  101:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  111:14  warning  'error' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  111:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  134:18  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react/no-unescaped-entities
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\visa\documents\components\document-list-table.tsx
+  214:61  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  214:73  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\visa\information-desk\actions.ts
+  17:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\visa\information-desk\components\information-accordion.tsx
+  246:63  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  246:76  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\visa\information-desk\manage\manage-info-form.tsx
+  75:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(admin)\visa\information-desk\manage\manage-info-form.tsx:75:5
+  73 |   useEffect(() => {
+  74 |     if (!infoRecord) return;
+> 75 |     setCategory(infoRecord.category);
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  76 |     setCountry(infoRecord.country ?? "");
+  77 |     setTitle(infoRecord.title);
+  78 |     try {  react-hooks/set-state-in-effect
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(auth)\login\components\login-form.tsx
+  59:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(auth)\login\components\login-form.tsx:59:7
+  57 |       );
+  58 |     } else {
+> 59 |       setIsLocating(false);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  60 |     }
+  61 |   }, []);
+  62 |  react-hooks/set-state-in-effect
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\(public)\applicant\[id]\layout.tsx
+  8:11  warning  'id' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\app\error.tsx
+  22:11  warning  'performLogout' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  44:15  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-1-personal.tsx
+  20:60  warning  'currentStep' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  26:9   warning  'getVal' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  27:28  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-2-employment.tsx
+   35:26  warning  'setEducationCount' is assigned a value but never used    @typescript-eslint/no-unused-vars
+   38:9   warning  'handleAddEmployment' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  191:45  error    Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+  201:33  error    Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+  211:33  error    Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-3-legal.tsx
+   56:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  109:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-4-guarantors.tsx
+   19:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   22:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  108:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  195:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-5-referee.tsx
+   18:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  169:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-6-media.tsx
+  142:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  176:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-8-upload-signed.tsx
+  12:34  warning  'resetForm' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\applicant\step-indicator.tsx
+  21:27  warning  'index' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\avatar-upload.tsx
+  43:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\component-example.tsx
+  84:9  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\dashboard\clock-in-action.tsx
+  66:6  warning  React Hook useEffect has a missing dependency: 'updateTimer'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\icons\aspom-logo.tsx
+  5:3  warning  'size' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  6:3  warning  'strokeWidth' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  7:3  warning  'color' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  8:6  warning  'props' is defined but never used                 @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\nav-projects.tsx
+  24:11  warning  'isMobile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\profile-form.tsx
+  84:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\components\ui\table-export-button.tsx
+  29:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\compliance.ts
+  3:10  warning  'api' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\crm.ts
+  4:10  warning  'shouldMock' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\files.ts
+  45:22  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  58:21  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\hooks\use-awards.ts
+  4:10  warning  'queryKeys' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\hooks\use-tasks.ts
+  12:10  warning  'toast' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\hr-requests.ts
+   7:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\inventory.ts
+  125:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  272:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\notifications.ts
+  18:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\api\requests.ts
+   4:15  warning  'shouldMock' is defined but never used                @typescript-eslint/no-unused-vars
+  60:7   warning  'getMockRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\store\applicant-store.ts
+  73:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\stores\visa-form-store.ts
+  325:29  warning  '_step' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gabri\Documents\Projects\work\aspom\aspom-frontend\lib\utils\export.ts
+   9:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 131 problems (75 errors, 56 warnings)
+

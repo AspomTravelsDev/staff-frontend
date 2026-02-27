@@ -49,7 +49,7 @@ export const SiteHeader = () => {
                   <PopoverTrigger className="bg-primary cursor-pointer hover:bg-primary/80 relative">
                     <BellIcon className="h-4 w-4 text-primary-foreground" />
                     {totalNotifications > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 ring-2 ring-background"></span>
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[8px] text-white">{totalNotifications}</span>
                     )}
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-[300px] p-0">
@@ -66,7 +66,6 @@ export const SiteHeader = () => {
                           ([key, count]) => {
                             if (count <= 0) return null;
 
-                            // Find the matching nav item to get its label and url
                             const navItem = allNavItems.find(
                               (item) => item.badgeKey === key,
                             );

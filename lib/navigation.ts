@@ -176,6 +176,14 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
+        title: "Staff Requests",
+        url: "/hr/staff-requests",
+        icon: Users,
+        allowedRoles: ["hr", "super"],
+        badgeKey: "hrRequests",
+        badgeLabel: "Staff requests pending review"
+    },
+    {
         title: "All General Requests",
         url: "/admin/requests",
         icon: ClipboardList,
@@ -251,6 +259,7 @@ export const personalNav: NavItem[] = [
             { title: "Attendance", url: "/my/attendance" },
             { title: "Employee HandBook", url: "/my/documents" },
             { title: "Appraisal", url: "/my/performance" },
+            { title: "Request Staff", url: "/my/request-staff" },
         ],
     },
     {
@@ -268,7 +277,7 @@ export const personalNav: NavItem[] = [
         icon: CreditCard,
         items: [
             {
-                title: "Payment Confirmation", url: "/my/payment"
+                title: "Payment Confirmation", url: "https://staff.aspomportal.com/sales_1"
             },
             {
                 title: "Expenses", url: "/my/expenses"

@@ -111,7 +111,7 @@ export function NavMain({
                   <div className="flex w-full items-center justify-between">
                     <span>{item.title}</span>
                     {badges && item.badgeKey && badges[item.badgeKey] > 0 && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
                         {badges[item.badgeKey]}
                       </span>
                     )}
