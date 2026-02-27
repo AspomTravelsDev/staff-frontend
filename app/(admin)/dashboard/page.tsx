@@ -12,6 +12,7 @@ import {
   MailIcon,
   TreePalm,
   Trophy,
+  Lock,
 } from "lucide-react";
 
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
@@ -31,6 +32,7 @@ interface QuickLinkButtonProps {
   url: string;
   color?: string;
   target?: "_blank" | "_self";
+  disabled?: boolean;
 }
 
 function QuickLinkButton({
@@ -39,6 +41,7 @@ function QuickLinkButton({
   url,
   color = "blue",
   target = "_blank",
+  disabled = false,
 }: QuickLinkButtonProps) {
   const colorStyles = {
     blue: "text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-100",
@@ -54,16 +57,25 @@ function QuickLinkButton({
   };
 
   return (
-    <Link href={url} target={target} className="flex items-center gap-2 ">
-      <Button
-        variant="outline"
-        className={`h-10 w-fit flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-          colorStyles[color as keyof typeof colorStyles]
+    <Link
+      href={disabled ? "#" : url}
+      target={disabled ? "_self" : target}
+      className={`flex items-center gap-2 ${disabled ? "pointer-events-none" : ""}`}
+      onClick={(e) => disabled && e.preventDefault()}
+    >
+      <button
+        type="button"
+        disabled={disabled}
+        className={`h-10 px-4 rounded-md border flex items-center justify-center gap-2 transition-all cursor-pointer text-sm font-medium ${
+          disabled
+            ? "opacity-50 grayscale border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+            : colorStyles[color as keyof typeof colorStyles]
         }`}
       >
-        <Icon className="h-6 w-6" />
+        <Icon className="h-5 w-5" />
         <span className="font-semibold">{title}</span>
-      </Button>
+        {disabled && <Lock className="h-3 w-3 text-red-500" />}
+      </button>
     </Link>
   );
 }
@@ -277,6 +289,7 @@ export default async function Page() {
             url="/my/leave"
             target="_self"
             color="rose"
+            disabled={true}
           />
           <QuickLinkButton
             icon={FileText}

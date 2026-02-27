@@ -28,11 +28,13 @@ export interface NavItem {
     allowedRoles?: UserRole[];
     badgeKey?: string;
     badgeLabel?: string;
+    disabled?: boolean;
     items?: {
         title: string;
         url: string;
         badgeKey?: string;
         badgeLabel?: string;
+        disabled?: boolean;
     }[];
 }
 
@@ -56,7 +58,7 @@ export const dashboardNav: NavItem[] = [
 export const departmentNav: NavItem[] = [
     {
         title: "Payment Confirmation",
-        url: "/accounts/confirmation",
+        url: "https://staff.aspomportal.com/sales_1",
         icon: CreditCard,
         allowedRoles: ["account"],
     },
@@ -65,12 +67,14 @@ export const departmentNav: NavItem[] = [
         url: "/accounts/expenses",
         icon: Receipt,
         allowedRoles: ["account"],
+        disabled: true,
     },
     {
         title: "Outstanding Payments",
         url: "/accounts/outstanding",
         icon: CreditCard,
         allowedRoles: ["account"],
+        disabled: true,
     },
     // {
     //     title: "Assigned Projects",
@@ -83,6 +87,7 @@ export const departmentNav: NavItem[] = [
         url: "/visa/applications",
         icon: FileSearch,
         allowedRoles: ["visa"],
+        disabled: true,
     },
     {
         title: "Employee Documents",
@@ -95,18 +100,21 @@ export const departmentNav: NavItem[] = [
         url: "/hr/leave",
         icon: CalendarCheck,
         allowedRoles: ["hr"],
+        disabled: true,
     },
     {
         title: "Performance Reviews",
         url: "/hr/performance",
         icon: ClipboardList,
         allowedRoles: ["hr"],
+        disabled: true,
     },
     {
         title: "Compliance Dashboard",
         url: "/compliance",
         icon: ShieldCheck,
         allowedRoles: ["compliance"],
+        disabled: true,
     },
     {
         title: "Invite Staff",
@@ -119,6 +127,7 @@ export const departmentNav: NavItem[] = [
         url: "/activity",
         icon: Activity,
         allowedRoles: ["super", "it"],
+        disabled: true,
     },
     {
         title: "Customer Database (CRM)",
@@ -131,6 +140,7 @@ export const departmentNav: NavItem[] = [
         url: "/hr/applications",
         icon: FileText,
         allowedRoles: ["hr"],
+        disabled: true,
     },
     {
         title: "Onboarding Documents",
@@ -156,12 +166,12 @@ export const departmentNav: NavItem[] = [
         icon: FileText,
         allowedRoles: ["visa"],
     },
-    {
-        title: "IT Service Desk",
-        url: "/it/service-desk",
-        icon: Settings2,
-        allowedRoles: ["it", "super"],
-    },
+    // {
+    //     title: "IT Service Desk",
+    //     url: "/it/service-desk",
+    //     icon: Settings2,
+    //     allowedRoles: ["it", "super"],
+    // },
     {
         title: "All IT Issues",
         url: "/it/report-issues",
@@ -191,7 +201,7 @@ export const departmentNav: NavItem[] = [
         icon: ClipboardList,
         allowedRoles: ["admin", "super"],
         badgeKey: "requests",
-        badgeLabel: "General requests pending review"
+        badgeLabel: "General requests pending review",
     },
     {
         title: "Inventory",
@@ -215,7 +225,8 @@ export const departmentNav: NavItem[] = [
         title: "Information Desk",
         url: "/it/information-desk",
         icon: FolderOpen,
-        allowedRoles: ["it", "super"]
+        allowedRoles: ["it", "super"],
+        disabled: true,
     },
     {
         title: "Award Staff",
@@ -233,7 +244,7 @@ export const departmentNav: NavItem[] = [
         title: "Announcements",
         url: "/admin/announcements",
         icon: Megaphone,
-        allowedRoles: ["admin", "super"],
+        allowedRoles: ["it", "super"],
         badgeKey: "announcements",
         badgeLabel: "Announcements pending review"
     },
@@ -256,11 +267,11 @@ export const personalNav: NavItem[] = [
         url: "",
         icon: Users,
         items: [
-            { title: "Leave", url: "/my/leave" },
+            { title: "Leave", url: "/my/leave", disabled: true },
             { title: "To-Do & Reports", url: "/my/tasks" },
             { title: "Attendance", url: "/my/attendance" },
             { title: "Employee HandBook", url: "/my/documents" },
-            { title: "Appraisal", url: "/my/performance" },
+            { title: "Appraisal", url: "/my/performance", disabled: true },
             { title: "Request Staff", url: "/my/request-staff" },
         ],
     },
@@ -282,7 +293,7 @@ export const personalNav: NavItem[] = [
                 title: "Payment Confirmation", url: "https://staff.aspomportal.com/sales_1"
             },
             {
-                title: "Expenses", url: "/my/expenses"
+                title: "Expenses", url: "/my/expenses", disabled: true,
             }
         ]
     },
@@ -309,11 +320,11 @@ export const personalNav: NavItem[] = [
             {
                 title: "Visa Information Desk", url: "/my/visa"
             },
+            // {
+            //     title: "Birth Services Information Desk", url: "/my/birth-services"
+            // },
             {
-                title: "Birth Services Information Desk", url: "/my/birth-services"
-            },
-            {
-                title: "IT Information Desk", url: "/my/it"
+                title: "IT Information Desk", url: "/my/it", disabled: true,
             }
         ]
     },
@@ -321,7 +332,7 @@ export const personalNav: NavItem[] = [
         title: "My Compliance Record",
         url: "/my/compliance",
         icon: ShieldCheck,
-
+        disabled: true,
     },
     {
         title: "Make Announcement",
@@ -332,6 +343,7 @@ export const personalNav: NavItem[] = [
         title: "Chat",
         url: "/chat",
         icon: MessageCircle,
+        disabled: true,
 
     },
 

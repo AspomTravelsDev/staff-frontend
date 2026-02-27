@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -53,17 +53,30 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    disabled={item.disabled}
+                    className={
+                      item.disabled ? "opacity-50 cursor-not-allowed" : ""
+                    }
+                  >
                     {item.icon && <item.icon />}
                     <div className="flex w-full items-center justify-between">
-                      <span>{item.title}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{item.title}</span>
+                        {item.disabled && (
+                          <Lock className="h-3 w-3 text-red-500" />
+                        )}
+                      </div>
                       {badges && item.badgeKey && badges[item.badgeKey] > 0 && (
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
                           {badges[item.badgeKey]}
                         </span>
                       )}
                     </div>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    {!item.disabled && (
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    )}
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -75,11 +88,27 @@ export function NavMain({
                           isActive={subItem.url === pathname}
                         >
                           <Link
-                            href={subItem.url}
-                            onClick={() => isMobile && setOpenMobile(false)}
+                            href={subItem.disabled ? "#" : subItem.url}
+                            onClick={(e) => {
+                              if (subItem.disabled) {
+                                e.preventDefault();
+                                return;
+                              }
+                              isMobile && setOpenMobile(false);
+                            }}
+                            className={
+                              subItem.disabled
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
                           >
                             <div className="flex w-full items-center justify-between">
-                              <span>{subItem.title}</span>
+                              <div className="flex items-center gap-2">
+                                <span>{subItem.title}</span>
+                                {subItem.disabled && (
+                                  <Lock className="h-3 w-3 text-red-500" />
+                                )}
+                              </div>
                               {badges &&
                                 subItem.badgeKey &&
                                 badges[subItem.badgeKey] > 0 && (
@@ -104,12 +133,26 @@ export function NavMain({
                 isActive={item.url === pathname}
               >
                 <Link
-                  href={item.url}
-                  onClick={() => isMobile && setOpenMobile(false)}
+                  href={item.disabled ? "#" : item.url}
+                  onClick={(e) => {
+                    if (item.disabled) {
+                      e.preventDefault();
+                      return;
+                    }
+                    isMobile && setOpenMobile(false);
+                  }}
+                  className={
+                    item.disabled ? "pointer-events-none opacity-50" : ""
+                  }
                 >
                   {item.icon && <item.icon />}
                   <div className="flex w-full items-center justify-between">
-                    <span>{item.title}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{item.title}</span>
+                      {item.disabled && (
+                        <Lock className="h-3 w-3 text-red-500" />
+                      )}
+                    </div>
                     {badges && item.badgeKey && badges[item.badgeKey] > 0 && (
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
                         {badges[item.badgeKey]}
