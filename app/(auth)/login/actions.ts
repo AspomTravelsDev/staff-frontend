@@ -4,6 +4,7 @@
 import { login } from "@/lib/auth/api";
 import { setSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
+import { headers } from "next/headers";
 
 export type LoginState = {
     error?: string;
@@ -24,13 +25,17 @@ export async function loginAction(
     prevState: LoginState,
     formData: FormData
 ): Promise<LoginState> {
+    const headerStack = await headers();
+    const xForwardedFor = headerStack.get("x-forwarded-for");
+    const clientIpFromFormData = formData.get("client_ip") as string;
+
     const rawData = {
         email: formData.get("email") as string,
         password: formData.get("password") as string,
         location: formData.get("location")
             ? JSON.parse(formData.get("location") as string)
             : undefined,
-        client_ip: (formData.get("client_ip") as string) || undefined,
+        client_ip: clientIpFromFormData || xForwardedFor || undefined,
     };
 
     const validatedFields = loginSchema.safeParse({ email: rawData.email, password: rawData.password });
