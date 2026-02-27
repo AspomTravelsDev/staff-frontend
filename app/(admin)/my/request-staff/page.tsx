@@ -11,12 +11,7 @@ export default async function RequestStaffPage() {
   let requests = [];
   try {
     const response = await getMyHrRequests();
-    console.log(
-      "[My Requests Page] API Response:",
-      JSON.stringify(response, null, 2),
-    );
     requests = response.data?.data || response.data || [];
-    console.log("[My Requests Page] Extracted data:", requests);
   } catch (error) {
     console.error("[My Requests Page] Failed to fetch custom requests:", error);
   }

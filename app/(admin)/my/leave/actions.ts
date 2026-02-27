@@ -19,7 +19,7 @@ export async function requestLeave(prevState: any, formData: FormData) {
         return { error: 'Number of days must be at least 1' }
     }
 
-    console.log('Leave request:', { userId, type, days, startDate, reason })
+
 
     revalidatePath('/my/leave')
     redirect('/my/leave')

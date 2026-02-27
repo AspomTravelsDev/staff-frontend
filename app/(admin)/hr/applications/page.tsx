@@ -16,7 +16,6 @@ import { getApplications } from "@/lib/api/hr";
 export default async function AdminDashboardPage() {
   const applications = await getApplications();
 
-  // Calculate stats from real data
   const stats = {
     total: applications.length,
     invited: applications.filter((a) => a.status === "invited").length,

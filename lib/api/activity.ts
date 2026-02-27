@@ -105,7 +105,7 @@ export async function getUnreadActivityCount(): Promise<number> {
 export async function markActivityRead(id: string): Promise<void> {
     if (shouldMock("useMockActivity")) {
         // In mock mode, we can't persist this change
-        console.log(`Mock: Marking activity ${id} as read`);
+
         return;
     }
 
@@ -121,7 +121,7 @@ export async function markActivityRead(id: string): Promise<void> {
  */
 export async function markAllActivitiesRead(): Promise<void> {
     if (shouldMock("useMockActivity")) {
-        console.log("Mock: Marking all activities as read");
+
         return;
     }
 

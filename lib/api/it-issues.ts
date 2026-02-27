@@ -80,10 +80,10 @@ export async function createItIssue(payload: CreateItIssuePayload): Promise<ApiR
 }
 
 export async function updateItIssue(id: string, payload: UpdateItIssuePayload): Promise<ApiResponse<ItIssue>> {
-    console.log("[updateItIssue] →", { id, payload });
+
     const result = await api.patch<ItIssue>(`/api/it-issues/${id}`, payload);
     if (result.success) {
-        console.log("[updateItIssue] ✓ success:", result.data);
+
         revalidatePath("/my/it-issue");
         revalidatePath("/it/report-issues");
     } else {

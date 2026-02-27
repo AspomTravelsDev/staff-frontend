@@ -24,7 +24,7 @@ export async function saveDraft(
     if (USE_MOCK) {
         // Simulate network delay
         await new Promise((resolve) => setTimeout(resolve, 500))
-        console.log("Mock: Saving draft", { applicationId, country, currentStep, formData })
+
         return { success: true }
     }
 
@@ -144,7 +144,7 @@ export async function submitApplication(
 ): Promise<ActionResult> {
     if (USE_MOCK) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
-        console.log("Mock: Submitting application", { applicationId, country, formData })
+
         return { success: true }
     }
 

@@ -31,7 +31,7 @@ export async function createApplication(
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
         const publicUrl = `${baseUrl}/visa/apply/${country}/${applicationId}`
 
-        console.log("Mock: Creating application", { applicationId, country, prefillData })
+
 
         return {
             success: true,
@@ -130,7 +130,7 @@ export async function updateApplicationStatus(
 ): Promise<ActionResult> {
     if (USE_MOCK) {
         await new Promise((resolve) => setTimeout(resolve, 300))
-        console.log("Mock: Updating status", { applicationId, status, notes })
+
         return { success: true }
     }
 

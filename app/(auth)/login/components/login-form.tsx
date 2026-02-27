@@ -47,7 +47,6 @@ export function LoginForm({ redirect }: { redirect?: string }) {
           setIsLocating(false);
         },
         (error) => {
-          console.log("Location access denied or failed:", error.message);
           setLocationError(
             "Location access denied. Some features may be restricted.",
           );

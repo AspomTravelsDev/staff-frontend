@@ -6,12 +6,7 @@ export default async function StaffRequestsPage() {
   let requests = [];
   try {
     const response = await getAllHrRequests();
-    console.log(
-      "[HR Requests Page] API Response:",
-      JSON.stringify(response, null, 2),
-    );
     requests = response.data?.data || response.data || [];
-    console.log("[HR Requests Page] Extracted data:", requests);
   } catch (error) {
     console.error("[HR Requests Page] Failed to fetch hr requests:", error);
   }

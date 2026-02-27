@@ -167,7 +167,7 @@ export async function getComplianceStats(): Promise<ComplianceStats> {
 
 export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): Promise<void> {
     if (shouldMock("useMockCompliance")) {
-        console.log("Mock: Adding compliance occurrence", data);
+
         return;
     }
     // Real API call would go here
