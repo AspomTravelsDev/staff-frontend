@@ -16,7 +16,9 @@ interface EmployeeOfTheMonthCardProps {
 export function EmployeeOfTheMonthCard({
   employee,
 }: EmployeeOfTheMonthCardProps) {
-  if (!employee) return null;
+  if (!employee) return (
+    null
+  );
 
   return (
     <Card className="flex flex-col justify-between h-full w-full lg:w-2/7">
