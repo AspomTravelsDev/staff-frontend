@@ -92,12 +92,12 @@ export function NavUser() {
                   My Profile
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <Link href="/notifications" className="flex items-center gap-2">
                   <Bell />
                   Notifications
                 </Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => logoutAction()}>

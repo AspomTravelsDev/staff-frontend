@@ -26,14 +26,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
-import type { NewsItem } from "@/lib/api/dashboard";
+import type { AnnouncementItem } from "@/lib/api/announcements";
 
 const ITEMS_PER_PAGE = 5;
 
 interface RecentUpdatesProps {
   className?: string;
-  updates: NewsItem[];
+  updates: AnnouncementItem[];
 }
 
 export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
@@ -82,8 +83,8 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Published</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -94,26 +95,24 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
                   <TableCell className="font-medium">
                     <Link
                       href={`/announcements/${item.id}`}
-                      className="underline"
+                      className="hover:underline font-bold"
                     >
                       {item.title}
                     </Link>
                   </TableCell>
-                  <TableCell>{item.category}</TableCell>
+                  <TableCell className="capitalize">{item.type}</TableCell>
                   <TableCell>
-                    {new Date(item.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {format(
+                      new Date(item.published_at ?? item.created_at),
+                      "MMM dd, yyyy",
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        item.status === "Important" || item.status === "Alert"
-                          ? "destructive"
-                          : "secondary"
+                        item.status === "approved" ? "default" : "secondary"
                       }
+                      className="uppercase text-[10px]"
                     >
                       {item.status}
                     </Badge>
@@ -142,7 +141,6 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
                 />
               </PaginationItem>
 
-              {/* Basic page numbers */}
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                 (page) => (
                   <PaginationItem key={page}>

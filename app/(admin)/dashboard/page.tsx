@@ -68,16 +68,6 @@ export default async function Page() {
     ? ((ratesPayload as any)?.data ?? ratesPayload)
     : null;
 
-  // Map approved AnnouncementItems → NewsItem shape for RecentUpdates
-  const updates = (announcementsData.items ?? []).map((a) => ({
-    id: a.id,
-    title: a.title,
-    category: (a.type === "newsletter" ? "Other" : "Other") as "Other",
-    date: a.published_at ?? a.updated_at,
-    status: "New" as const,
-    content: a.content,
-  }));
-
   // const todayRecord = todayStatusResponse.success
   //   ? todayStatusResponse.data.data
   //   : null;
@@ -255,7 +245,13 @@ export default async function Page() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        <RecentUpdates className="lg:w-5/7" updates={updates} />
+        <RecentUpdates
+          className="lg:w-5/7"
+          updates={(announcementsData.items ?? []).filter((a) => {
+            if (!a.publish_at) return true;
+            return new Date(a.publish_at) <= new Date();
+          })}
+        />
         <EmployeeOfTheMonthCard employee={employeeOfTheMonth} />
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getAnnouncementById } from "@/lib/api/announcements";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarIcon, Megaphone, Newspaper } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon, Megaphone, Newspaper, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 
 interface PageProps {
@@ -21,41 +22,71 @@ export default async function AnnouncementPage({ params }: PageProps) {
   const TypeIcon = announcement.type === "newsletter" ? Newspaper : Megaphone;
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <Badge variant="outline" className="capitalize gap-1.5">
-              <TypeIcon className="h-3.5 w-3.5" />
+    <div className="mx-auto w-full px-4 sm:px-8 md:px-16 py-8 sm:py-12">
+      {/* Navigation */}
+      <div className="mb-10 md:mb-16">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="-ml-3 text-muted-foreground hover:text-foreground transition-all duration-300"
+        >
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4 text-primary animate-in slide-in-from-right-1 fade-in duration-700" />
+            <span className="font-medium tracking-tight">
+              Back to Dashboard
+            </span>
+          </Link>
+        </Button>
+      </div>
+
+      {/* Integrated Article Layout */}
+      <div className="space-y-12 md:space-y-16">
+        <header className="space-y-8 md:space-y-12">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge
+              variant="secondary"
+              className="px-3 py-1 capitalize gap-2 text-[10px] font-black tracking-wider ring-1 ring-inset ring-primary/20"
+            >
+              <TypeIcon className="h-4 w-4 text-primary" />
               {announcement.type === "newsletter"
                 ? "Newsletter"
                 : "Announcement"}
             </Badge>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <CalendarIcon className="mr-1 h-3 w-3" />
+            <div className="flex items-center gap-2 text-xs md:text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">
+              <CalendarIcon className="h-4 w-4 opacity-50" />
               {format(
                 new Date(announcement.published_at ?? announcement.updated_at),
-                "dd MMMM yyyy",
+                "MMMM dd, yyyy",
               )}
             </div>
           </div>
 
-          <CardTitle className="text-2xl leading-snug">
-            {announcement.title}
-          </CardTitle>
+          <div className="space-y-6 md:space-y-8">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.95] text-balance">
+              {announcement.title}
+            </h1>
+            <div className="flex items-center gap-4 text-base md:text-xl lg:text-2xl text-muted-foreground/80">
+              <span className="h-1 w-12 bg-primary/30 rounded-full hidden sm:block"></span>
+              <p className="font-medium">
+                By{" "}
+                <strong className="text-foreground font-black">
+                  {announcement.author_name}
+                </strong>
+              </p>
+            </div>
+          </div>
+        </header>
 
-          <p className="text-sm text-muted-foreground">
-            By <strong>{announcement.author_name}</strong>
-          </p>
-        </CardHeader>
+        <hr className="border-t-2 border-muted/50" />
 
-        <CardContent>
+        <article className="w-full max-w-4xl">
           <div
-            className="prose prose-sm dark:prose-invert max-w-none"
+            className="prose prose-base sm:prose-lg md:prose-xl lg:prose-2xl dark:prose-invert max-w-none wrap-break-word [word-break:normal] overflow-x-hidden leading-relaxed sm:leading-loose selection:bg-primary/20"
             dangerouslySetInnerHTML={{ __html: announcement.content }}
           />
-        </CardContent>
-      </Card>
+        </article>
+      </div>
     </div>
   );
 }

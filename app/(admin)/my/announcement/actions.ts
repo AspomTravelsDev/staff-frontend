@@ -1,5 +1,6 @@
 "use server";
 
+import { format } from "date-fns";
 import {
     createAnnouncement,
     deleteAnnouncement,
@@ -15,7 +16,9 @@ export async function createAnnouncementAction(
             type: data.type,
             title: data.title,
             content: data.content,
-            publish_at: data.publish_at ? data.publish_at.toISOString() : null,
+            publish_at: data.publish_at
+                ? format(data.publish_at, "yyyy-MM-dd'T'HH:mm:ssXXX")
+                : null,
         });
         return { success: true };
     } catch (error) {
@@ -37,7 +40,9 @@ export async function updateAnnouncementContentAction(
             type: data.type,
             title: data.title,
             content: data.content,
-            publish_at: data.publish_at ? data.publish_at.toISOString() : null,
+            publish_at: data.publish_at
+                ? format(data.publish_at, "yyyy-MM-dd'T'HH:mm:ssXXX")
+                : null,
         });
         return { success: true };
     } catch (error) {

@@ -21,7 +21,7 @@ import type {
   AnnouncementStatus,
 } from "@/lib/api/announcements";
 import { AnnouncementsTable } from "./announcements-table";
-import { AnnouncementPreviewDialog } from "./announcement-preview-dialog";
+import { AnnouncementPreviewSheet } from "./announcement-preview-sheet";
 
 interface AdminAnnouncementsContentProps {
   initialAnnouncements: AnnouncementItem[];
@@ -166,7 +166,7 @@ export function AdminAnnouncementsContent({
         </CardContent>
       </Card>
 
-      <AnnouncementPreviewDialog
+      <AnnouncementPreviewSheet
         item={previewItem}
         open={!!previewItem}
         onOpenChange={(open) => {
