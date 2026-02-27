@@ -19,6 +19,7 @@ import {
   departmentNav,
   filterNavByRole,
   personalNav,
+  type NavItem,
 } from "@/lib/navigation";
 import type { UserRole } from "@/types/user-types";
 import Image from "next/image";
@@ -35,6 +36,55 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const filteredDepartmentNav = user
     ? filterNavByRole(departmentNav, user.role as UserRole)
     : [];
+
+  // Group tools by department for super admins
+  const getGroupedNav = (items: NavItem[]) => {
+    if (user?.role !== "super") {
+      return [
+        {
+          label: user?.role.toLocaleUpperCase() + " Tools",
+          items: items.sort((a, b) => a.title.localeCompare(b.title)),
+        },
+      ];
+    }
+
+    const groups: Record<string, NavItem[]> = {
+      "HR Tools": [],
+      "Account Tools": [],
+      "Visa Tools": [],
+      "IT Tools": [],
+      "Admin Tools": [],
+      "Compliance Tools": [],
+      "Other Tools": [],
+    };
+
+    items.forEach((item) => {
+      if (!item.allowedRoles) {
+        groups["Other Tools"].push(item);
+        return;
+      }
+      if (item.allowedRoles.includes("hr")) groups["HR Tools"].push(item);
+      else if (item.allowedRoles.includes("account"))
+        groups["Account Tools"].push(item);
+      else if (item.allowedRoles.includes("visa"))
+        groups["Visa Tools"].push(item);
+      else if (item.allowedRoles.includes("it")) groups["IT Tools"].push(item);
+      else if (item.allowedRoles.includes("admin"))
+        groups["Admin Tools"].push(item);
+      else if (item.allowedRoles.includes("compliance"))
+        groups["Compliance Tools"].push(item);
+      else groups["Other Tools"].push(item);
+    });
+
+    return Object.entries(groups)
+      .filter(([_, groupItems]) => groupItems.length > 0)
+      .map(([label, groupItems]) => ({
+        label,
+        items: groupItems.sort((a, b) => a.title.localeCompare(b.title)),
+      }));
+  };
+
+  const groupedDepartmentNav = getGroupedNav(filteredDepartmentNav);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -59,15 +109,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarSeparator className="mx-2" />
 
         {/* Department-specific tools */}
-        {filteredDepartmentNav.length > 0 && (
-          <NavMain
-            items={filteredDepartmentNav.sort((a, b) =>
-              a.title.localeCompare(b.title),
+        {groupedDepartmentNav.map((group, index) => (
+          <React.Fragment key={group.label}>
+            <NavMain
+              items={group.items}
+              label={group.label}
+              badges={notifications || {}}
+            />
+            {index < groupedDepartmentNav.length - 1 && (
+              <SidebarSeparator className="mx-2" />
             )}
-            label={user?.role.toLocaleUpperCase() + " Tools"}
-            badges={notifications || {}}
-          />
-        )}
+          </React.Fragment>
+        ))}
 
         {/* Divider */}
         <SidebarSeparator className="mx-2" />

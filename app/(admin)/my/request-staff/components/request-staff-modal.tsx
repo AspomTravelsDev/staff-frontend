@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { createHrRequest } from "@/lib/api/hr-requests";
 import { Plus } from "lucide-react";
 import { getRolesForSelect } from "@/types/user-types";
+import { getDepartmentFromRoleOrField } from "@/lib/utils/role-department";
 
 const formSchema = z.object({
   request_type: z.enum(["intern", "corps member", "full staff"]),
@@ -67,7 +68,17 @@ export function RequestStaffModal({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
-      await createHrRequest(values);
+
+      // Determine the canonical department name based on the selected role value
+      const mappedDepartment =
+        getDepartmentFromRoleOrField(null, values.department) ||
+        values.department;
+
+      await createHrRequest({
+        ...values,
+        department: mappedDepartment,
+      });
+
       toast.success("Request submitted", {
         description: "Your HR request has been successfully submitted.",
       });
@@ -157,11 +168,16 @@ export function RequestStaffModal({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {getRolesForSelect().map((role) => (
-                        <SelectItem key={role.value} value={role.label}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
+                      {getRolesForSelect().map((role) => {
+                        const deptName =
+                          getDepartmentFromRoleOrField(null, role.value) ||
+                          role.label;
+                        return (
+                          <SelectItem key={role.value} value={role.value}>
+                            {deptName}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <FormMessage />
