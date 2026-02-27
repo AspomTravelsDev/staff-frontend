@@ -9,6 +9,7 @@ import {
   CheckCircle,
   XCircle,
   CalendarClock,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -17,6 +18,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AnnouncementItem } from "@/lib/api/announcements";
@@ -83,6 +94,7 @@ export function AnnouncementCard({
 }: AnnouncementCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const status = STATUS_CONFIG[announcement.status];
   const type = TYPE_CONFIG[announcement.type];
@@ -90,7 +102,6 @@ export function AnnouncementCard({
   const TypeIcon = type.icon;
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this submission?")) return;
     setIsDeleting(true);
     try {
       const result = await deleteAnnouncementAction(announcement.id);
@@ -100,6 +111,7 @@ export function AnnouncementCard({
       }
       toast.success("Submission deleted");
       onDeleted(announcement.id);
+      setDeleteDialogOpen(false);
     } finally {
       setIsDeleting(false);
     }
@@ -181,7 +193,7 @@ export function AnnouncementCard({
                 variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={handleDelete}
+                onClick={() => setDeleteDialogOpen(true)}
                 disabled={isDeleting}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
@@ -193,6 +205,37 @@ export function AnnouncementCard({
           )}
         </div>
       </CardFooter>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              announcement submission &quot;{announcement.title}&quot;.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EditAnnouncementDialog
         announcement={announcement}
         open={isEditing}

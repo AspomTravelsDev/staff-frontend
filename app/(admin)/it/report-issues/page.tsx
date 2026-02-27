@@ -1,90 +1,59 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/stats-card";
-import {
-  AlertTriangle,
-  Clock,
-  Inbox,
-  MoreHorizontal,
-  UserX,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Inbox } from "lucide-react";
+import { getItIssues, getItIssueStats } from "@/lib/api/it-issues";
+import { ItIssuesTable } from "./components/it-issues-table";
 
-interface Ticket {
-  id: string;
-  subject: string;
-  requester: string;
-  priority: "Critical" | "High" | "Medium" | "Low";
-  assignedTo: string;
-  status: "Open" | "In Progress" | "Resolved";
-}
+export default async function IssueTrackerAdminPage() {
+  const [issuesResult, statsResult] = await Promise.all([
+    getItIssues(),
+    getItIssueStats(),
+  ]);
 
-export default function IssueTrackerAdminPage() {
-  const stats = {
-    openInfo: 0,
-    critical: 0,
-    avgResponse: "0m",
-    unassigned: 0,
-  };
-
-  const tickets: Ticket[] = [];
+  const issues = issuesResult.success ? issuesResult.data.data : [];
+  const stats = statsResult.success
+    ? statsResult.data
+    : { open: 0, in_progress: 0, resolved: 0, critical: 0 };
 
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Issue Tracker</h1>
-          <p className="text-muted-foreground">
-            Monitor and resolve incoming support tickets
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">Team Performance</Button>
-          <Button>Assign Tickets</Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Issue Tracker</h1>
+        <p className="text-muted-foreground">
+          Monitor and resolve incoming IT support tickets
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
-          title="Unassigned Tickets"
-          icon={UserX}
-          value={stats.unassigned}
-          description="Tickets needing attention"
-          iconClassName="text-orange-600"
+          title="Open Tickets"
+          icon={Inbox}
+          value={stats.open}
+          description="Awaiting action"
+          iconClassName="text-orange-500"
         />
-
+        <StatsCard
+          title="In Progress"
+          icon={Clock}
+          value={stats.in_progress}
+          description="Currently being worked on"
+          iconClassName="text-blue-500"
+        />
+        <StatsCard
+          title="Resolved"
+          icon={CheckCircle}
+          value={stats.resolved}
+          description="Closed successfully"
+          iconClassName="text-green-500"
+        />
         <StatsCard
           title="Critical Issues"
           icon={AlertTriangle}
           value={stats.critical}
           description="High priority tickets"
           iconClassName="text-destructive"
-        />
-
-        <StatsCard
-          title="Avg Response Time"
-          icon={Clock}
-          value={stats.avgResponse}
-          description="Performance metric"
-          iconClassName="text-blue-600"
-        />
-
-        <StatsCard
-          title="Open Tickets"
-          icon={Inbox}
-          value={stats.openInfo}
-          description="Total active tickets"
-          iconClassName="text-muted-foreground"
         />
       </div>
 
@@ -94,64 +63,7 @@ export default function IssueTrackerAdminPage() {
           <CardTitle>Ticket Queue</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Requester</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Manage</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tickets.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs font-medium">
-                    {t.id}
-                  </TableCell>
-                  <TableCell>{t.subject}</TableCell>
-                  <TableCell>{t.requester}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        t.priority === "Critical"
-                          ? "destructive"
-                          : t.priority === "High"
-                            ? "default"
-                            : "outline"
-                      }
-                    >
-                      {t.priority}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {t.assignedTo}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        t.status === "Open"
-                          ? "secondary"
-                          : t.status === "Resolved"
-                            ? "outline"
-                            : "default"
-                      }
-                    >
-                      {t.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ItIssuesTable issues={issues} />
         </CardContent>
       </Card>
     </div>

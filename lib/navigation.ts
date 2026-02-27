@@ -167,6 +167,8 @@ export const departmentNav: NavItem[] = [
         url: "/it/report-issues",
         icon: MessageCircle,
         allowedRoles: ["it", "super"],
+        badgeKey: "itIssues",
+        badgeLabel: "IT issues open or in progress",
     },
     {
 

@@ -18,6 +18,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,13 +38,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Edit, Eye, Trash2, Search, X } from "lucide-react";
+import {
+  MoreHorizontal,
+  Edit,
+  Eye,
+  Trash2,
+  Search,
+  X,
+  Loader2,
+} from "lucide-react";
 import { Client, CRMStatus, CRM_STATUS_OPTIONS } from "@/lib/api/crm-constants";
 import { deleteClientAction } from "../actions";
 import { EditClientDialog } from "./edit-client-dialog";
 import { ClientDetailSheet } from "./client-detail-sheet";
 import { useEmployees } from "@/lib/api/hooks/use-employees";
 import { TableExportButton } from "@/components/ui/table-export-button";
+import { toast } from "sonner";
 import type { ExportColumn } from "@/lib/utils/export";
 
 interface CRMTableProps {
@@ -83,6 +102,8 @@ export function CRMTable({ clients }: CRMTableProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [toDelete, setToDelete] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filtered = clients.filter((c) => {
     const matchesSearch =
@@ -118,12 +139,21 @@ export function CRMTable({ clients }: CRMTableProps) {
     // revalidatePath in the server action handles refreshing the data
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this customer?")) {
-      const result = await deleteClientAction(id);
-      if (!result.success) {
-        alert("Failed to delete client");
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    setIsDeleting(true);
+    try {
+      const result = await deleteClientAction(toDelete.id);
+      if (result.success) {
+        toast.success("Client deleted");
+        setToDelete(null);
+      } else {
+        toast.error("Failed to delete client");
       }
+    } catch (error) {
+      toast.error("An error occurred while deleting");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -350,7 +380,7 @@ export function CRMTable({ clients }: CRMTableProps) {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(client.id)}
+                            onClick={() => setToDelete(client)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Remove
                           </DropdownMenuItem>
@@ -376,6 +406,40 @@ export function CRMTable({ clients }: CRMTableProps) {
         onOpenChange={setDetailOpen}
         client={detailClient}
       />
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={!!toDelete}
+        onOpenChange={(open) => !open && setToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the
+              customer &quot;{toDelete?.name}&quot; and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
