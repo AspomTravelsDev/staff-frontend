@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { getRoleLabel, User } from "@/types/user-types";
 import {
@@ -28,6 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { RequestItem } from "@/lib/api/requests";
+import { RequestDetailsSheet } from "./request-details-sheet";
+import { RequestStatusSelect } from "./request-status-select";
 
 interface RequestsTableProps {
   requests: RequestItem[];
@@ -70,6 +73,10 @@ function getStatusVariant(status: RequestItem["status"]) {
 }
 
 export function RequestsTable({ requests }: RequestsTableProps) {
+  const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(
+    null,
+  );
+
   if (requests.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -80,94 +87,104 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Requester</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Details</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead className="w-[70px]"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {requests.map((request) => {
-          const CategoryIcon = categoryIcons[request.category] || HelpCircle;
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Requester</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Details</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right w-[150px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {requests.map((request) => {
+            const CategoryIcon = categoryIcons[request.category] || HelpCircle;
 
-          return (
-            <TableRow key={request.id}>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{request.requester_name}</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full ${roleColors[request.requester_role as User["role"]] || "bg-gray-400"}`}
-                    />
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {request.requester_role
-                        ? getRoleLabel(request.requester_role as User["role"])
-                        : "User"}
+            return (
+              <TableRow
+                key={request.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setSelectedRequest(request)}
+              >
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">
+                      {request.requester_name}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className={`inline-block h-2 w-2 rounded-full ${roleColors[request.requester_role as User["role"]] || "bg-gray-400"}`}
+                      />
+                      <span className="text-xs text-muted-foreground capitalize">
+                        {request.requester_role
+                          ? getRoleLabel(request.requester_role as User["role"])
+                          : "User"}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-muted">
+                      <CategoryIcon className="h-4 w-4 text-foreground/70" />
+                    </div>
+                    <span className="font-medium text-sm">
+                      {request.category}
                     </span>
                   </div>
-                </div>
-              </TableCell>
+                </TableCell>
 
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-muted">
-                    <CategoryIcon className="h-4 w-4 text-foreground/70" />
+                <TableCell>
+                  <div className="flex flex-col max-w-[300px]">
+                    <span className="font-medium text-sm truncate">
+                      {request.reason}
+                    </span>
+                    <span
+                      className="text-xs text-muted-foreground truncate"
+                      title={request.details}
+                    >
+                      {request.details}
+                    </span>
                   </div>
-                  <span className="font-medium text-sm">
-                    {request.category}
-                  </span>
-                </div>
-              </TableCell>
+                </TableCell>
 
-              <TableCell>
-                <div className="flex flex-col max-w-[300px]">
-                  <span className="font-medium text-sm truncate">
-                    {request.reason}
-                  </span>
-                  <span
-                    className="text-xs text-muted-foreground truncate"
-                    title={request.details}
-                  >
-                    {request.details}
-                  </span>
-                </div>
-              </TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(request.status)}>
+                    {request.status.replace("_", " ")}
+                  </Badge>
+                </TableCell>
 
-              <TableCell>
-                <Badge variant={getStatusVariant(request.status)}>
-                  {request.status.replace("_", " ")}
-                </Badge>
-              </TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+                  {formatDistanceToNow(new Date(request.request_date), {
+                    addSuffix: true,
+                  })}
+                </TableCell>
 
-              <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
-                {formatDistanceToNow(new Date(request.request_date), {
-                  addSuffix: true,
-                })}
-              </TableCell>
-
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View details</DropdownMenuItem>
-                    <DropdownMenuItem>Update status</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                <TableCell
+                  className="text-right"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <RequestStatusSelect
+                    id={request.id}
+                    currentStatus={request.status}
+                  />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      <RequestDetailsSheet
+        request={selectedRequest}
+        open={!!selectedRequest}
+        onOpenChange={(open) => {
+          if (!open) setSelectedRequest(null);
+        }}
+      />
+    </>
   );
 }

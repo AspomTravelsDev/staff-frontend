@@ -44,6 +44,7 @@ import type { RequestItem } from "@/lib/api/requests";
 import { deleteRequestAction, updateRequestAction } from "../actions";
 import { toast } from "sonner";
 import { useState } from "react";
+import { RequestDetailsSheet } from "../../../admin/requests/components/request-details-sheet";
 
 interface MyRequestsTableProps {
   requests: RequestItem[];
@@ -78,6 +79,7 @@ function getStatusVariant(status: RequestItem["status"]) {
 export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [viewRequest, setViewRequest] = useState<RequestItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -135,7 +137,11 @@ export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
             const CategoryIcon = categoryIcons[request.category] || HelpCircle;
 
             return (
-              <TableRow key={request.id}>
+              <TableRow
+                key={request.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setViewRequest(request)}
+              >
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-md bg-muted">
@@ -179,7 +185,7 @@ export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
                   })}
                 </TableCell>
 
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
@@ -283,6 +289,14 @@ export function MyRequestsTable({ requests, onEdit }: MyRequestsTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RequestDetailsSheet
+        request={viewRequest}
+        open={!!viewRequest}
+        onOpenChange={(open) => {
+          if (!open) setViewRequest(null);
+        }}
+      />
     </>
   );
 }
