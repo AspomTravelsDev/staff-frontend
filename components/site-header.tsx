@@ -17,13 +17,43 @@ export const SiteHeader = () => {
 
   // Find badge labels from all navigation config for the user's role
   const allNav = user ? getNavigationForUser(user.role as UserRole) : null;
+  // Flatten all navigation items to include sub-items for badge matching
   const allNavItems = allNav
-    ? [...allNav.dashboard, ...allNav.department, ...allNav.personal]
+    ? [...allNav.dashboard, ...allNav.department, ...allNav.personal].reduce(
+        (acc, item) => {
+          acc.push(item);
+          if (item.items) {
+            acc.push(...item.items);
+          }
+          return acc;
+        },
+        [] as any[],
+      )
     : [];
 
-  const totalNotifications = notifications
-    ? Object.values(notifications).reduce((a, b) => a + b, 0)
-    : 0;
+  // Filter notifications to only those that have a corresponding visible navigation item
+  const visibleNotifications = Object.entries(notifications || {}).reduce(
+    (acc, [key, count]) => {
+      if (count <= 0) return acc;
+
+      const navItem = allNavItems.find((item) => item.badgeKey === key);
+      if (navItem) {
+        acc[key] = {
+          count,
+          label: navItem.badgeLabel || `${key} pending`,
+          url: navItem.url || "#",
+        };
+      }
+      return acc;
+    },
+    {} as Record<string, { count: number; label: string; url: string }>,
+  );
+
+  const totalNotifications = Object.values(visibleNotifications).reduce(
+    (sum, item) => sum + item.count,
+    0,
+  );
+
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-background border-b mb-4">
       <div className="flex items-center gap-2 px-4">
@@ -61,26 +91,17 @@ export const SiteHeader = () => {
                           No new notifications
                         </div>
                       ) : (
-                        Object.entries(notifications || {}).map(
-                          ([key, count]) => {
-                            if (count <= 0) return null;
-
-                            const navItem = allNavItems.find(
-                              (item) => item.badgeKey === key,
-                            );
-                            const label =
-                              navItem?.badgeLabel || `${key} pending`;
-                            const url = navItem?.url || "#";
-
+                        Object.entries(visibleNotifications).map(
+                          ([key, data]) => {
                             return (
                               <Link
                                 key={key}
-                                href={url}
+                                href={data.url}
                                 className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b last:border-0 transition-colors"
                               >
-                                <span className="text-sm">{label}</span>
+                                <span className="text-sm">{data.label}</span>
                                 <span className="flex h-5 items-center justify-center rounded-full bg-red-100 px-2 text-[10px] font-medium text-red-600">
-                                  {count}
+                                  {data.count}
                                 </span>
                               </Link>
                             );

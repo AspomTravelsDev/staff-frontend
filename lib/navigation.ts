@@ -232,7 +232,9 @@ export const departmentNav: NavItem[] = [
         title: "Award Staff",
         url: "/hr/award-staff",
         icon: Trophy,
-        allowedRoles: ["hr", "super"]
+        allowedRoles: ["hr", "super"],
+        badgeKey: "awardStaff",
+        badgeLabel: "Award Staff of the month"
     },
     {
         title: "Current Rates",
@@ -268,8 +270,18 @@ export const personalNav: NavItem[] = [
         icon: Users,
         items: [
             { title: "Leave", url: "/my/leave", disabled: true },
-            { title: "To-Do & Reports", url: "/my/tasks" },
-            { title: "Attendance", url: "/my/attendance" },
+            {
+                title: "To-Do & Reports",
+                url: "/my/tasks",
+                badgeKey: "myTasks",
+                badgeLabel: "Submit your to-do list"
+            },
+            {
+                title: "Attendance",
+                url: "/my/attendance",
+                badgeKey: "attendance",
+                badgeLabel: "Clock in for today"
+            },
             { title: "Employee HandBook", url: "/my/documents" },
             { title: "Appraisal", url: "/my/performance", disabled: true },
             { title: "Request Staff", url: "/my/request-staff" },

@@ -128,7 +128,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* General actions - visible to all */}
         <NavMain
           items={personalNav}
-          label="General Links"
+          label="Personal Tools"
           badges={notifications || {}}
         />
       </SidebarContent>
