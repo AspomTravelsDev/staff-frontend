@@ -23,8 +23,8 @@ export function AdminAttendanceTable({
 }: AdminAttendanceTableProps) {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
 
     const period = hours >= 12 ? "PM" : "AM";
     const displayHours = hours % 12 || 12;
@@ -40,14 +40,13 @@ export function AdminAttendanceTable({
       year: "numeric",
       month: "short",
       day: "numeric",
-      timeZone: "UTC",
     });
   };
 
   const isLate = (dateString: string) => {
     const date = new Date(dateString);
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
 
     if (hours > 9) return true;
     if (hours === 9 && minutes > 5) return true;

@@ -40,7 +40,6 @@ export default async function Page() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
-  // Fetch both history and today's status in parallel
   const [
     clockInResponse,
     todayStatusResponse,
@@ -51,8 +50,8 @@ export default async function Page() {
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getTodayStatus(),
-    getAllAwards().catch(() => []), // Fail gracefully
-    getMyAwards().catch(() => []), // Fail gracefully
+    getAllAwards().catch(() => []),
+    getMyAwards().catch(() => []),
     getRates().catch(() => ({
       success: false as const,
       error: { code: "500", error: "Failed" },
@@ -67,10 +66,6 @@ export default async function Page() {
   const rates = ratesPayload
     ? ((ratesPayload as any)?.data ?? ratesPayload)
     : null;
-
-  // const todayRecord = todayStatusResponse.success
-  //   ? todayStatusResponse.data.data
-  //   : null;
 
   let totalAttendance = 0;
   let lateDays = 0;

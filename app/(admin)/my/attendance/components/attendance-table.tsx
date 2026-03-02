@@ -18,9 +18,9 @@ interface AttendanceTableProps {
 export function AttendanceTable({ history }: AttendanceTableProps) {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    // Use UTC methods to avoid timezone conversion
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
+    // Use local methods to respect the timezone offset from the server
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
 
     // Format as 12-hour time
     const period = hours >= 12 ? "PM" : "AM";
@@ -32,20 +32,19 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    // Use UTC methods to avoid timezone conversion
+    // Use local methods
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
       day: "numeric",
-      timeZone: "UTC",
     });
   };
 
   const isLate = (dateString: string) => {
     const date = new Date(dateString);
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
 
     if (hours > 9) return true;
     if (hours === 9 && minutes > 5) return true;
