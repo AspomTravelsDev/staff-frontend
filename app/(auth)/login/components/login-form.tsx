@@ -64,19 +64,16 @@ export function LoginForm({ redirect }: { redirect?: string }) {
       toast.error(state.error);
     }
     if (state?.success) {
-      if (state.clocked_in) {
-        toast.success("Login successful & clocked in!");
-      } else if (state.clocked_in === false) {
-        // Logged in but failed to clock in
-        toast.success("Login successful");
-        if (state.clock_in_message) {
+      toast.success("Login successful");
+
+      if (state.clock_in_message) {
+        if (state.clocked_in) {
+          toast.success(state.clock_in_message);
+        } else {
           toast.warning(state.clock_in_message, {
             duration: 6000,
           });
         }
-      } else {
-        // Fallback for old API response or simple login
-        toast.success("Login successful");
       }
 
       if (state.destination) {

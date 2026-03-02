@@ -34,10 +34,7 @@ export const SiteHeader = () => {
         />
       </div>
 
-      <div className="flex items-center justify-between w-full pr-8">
-        <span className="text-sm text-muted-foreground font-bold">
-          Welcome back, {user?.name || "User"}!
-        </span>
+      <div className="flex items-center justify-end w-full pr-8">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-5">
             {/* Clock In Widget */}
@@ -49,7 +46,9 @@ export const SiteHeader = () => {
                   <PopoverTrigger className="bg-primary cursor-pointer hover:bg-primary/80 relative">
                     <BellIcon className="h-4 w-4 text-primary-foreground" />
                     {totalNotifications > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[8px] text-white">{totalNotifications}</span>
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[8px] text-white">
+                        {totalNotifications}
+                      </span>
                     )}
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-[300px] p-0">

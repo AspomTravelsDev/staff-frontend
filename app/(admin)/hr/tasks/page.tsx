@@ -6,6 +6,8 @@ import { format } from "date-fns";
 interface PageProps {
   searchParams: Promise<{
     date?: string;
+    start_date?: string;
+    end_date?: string;
     report_submitted?: string;
     user_id?: string;
   }>;
@@ -14,7 +16,9 @@ interface PageProps {
 export default async function HRTasksPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const filters = {
-    date: params.date || format(new Date(), "yyyy-MM-dd"),
+    date: params.date,
+    start_date: params.start_date,
+    end_date: params.end_date,
     report_submitted:
       params.report_submitted === "true"
         ? true
@@ -23,6 +27,11 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
           : undefined,
     user_id: params.user_id,
   };
+
+  // Default to today only if no date filter is provided
+  if (!filters.date && !filters.start_date && !filters.end_date) {
+    filters.date = format(new Date(), "yyyy-MM-dd");
+  }
 
   const records = await getHRTasks(filters);
 
@@ -39,7 +48,7 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <TaskFilters filters={filters} />
+      <TaskFilters filters={filters} records={records} />
 
       <AllTasksTable records={records} isLoading={false} />
     </div>

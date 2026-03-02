@@ -6,7 +6,7 @@ import { ClockInRecord, ClockInSummary } from "@/lib/api/clock-in";
 import { Employee } from "@/lib/api/employees";
 import { AttendanceStats } from "./attendance-stats";
 import { AdminAttendanceTable } from "./admin-attendance-table";
-import { DatePickerWithRange } from "./date-range-picker";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { Button } from "@/components/ui/button";
 import { Filter, Users } from "lucide-react";

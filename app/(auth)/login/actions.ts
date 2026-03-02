@@ -17,7 +17,7 @@ export type LoginState = {
 const ERROR_MESSAGES: Record<string, string> = {
     INVALID_CREDENTIALS: "Wrong email or password.",
     ACCOUNT_DISABLED: "Your account is disabled. Please contact an administrator.",
-    LOCATION_RESTRICTED: "Login not allowed from your location. Please be within office premises or connect to office WiFi.",
+    LOCATION_RESTRICTED: "Attendance not recorded. Not within office premises and not connected to office WiFi.",
     NETWORK_ERROR: "Network error. Please check your connection."
 };
 
