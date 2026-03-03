@@ -9,11 +9,13 @@ import { revalidatePath } from "next/cache";
 // ============================================================================
 
 export type AnnouncementType = "announcement" | "newsletter";
+export type AnnouncementPriority = "low" | "medium" | "high" | "urgent";
 export type AnnouncementStatus = "pending" | "approved" | "rejected";
 
 export interface AnnouncementItem {
     id: string;
     type: AnnouncementType;
+    priority: AnnouncementPriority;
     title: string;
     content: string;
     author_id: string;
@@ -21,6 +23,7 @@ export interface AnnouncementItem {
     status: AnnouncementStatus;
     publish_at: string | null;
     published_at: string | null;
+    visibility_days: number | null;
     rejection_reason?: string | null;
     created_at: string;
     updated_at: string;
@@ -28,9 +31,11 @@ export interface AnnouncementItem {
 
 export interface CreateAnnouncementPayload {
     type: AnnouncementType;
+    priority?: AnnouncementPriority;
     title: string;
     content: string;
     publish_at?: string | null;
+    visibility_days?: number | null;
 }
 
 export interface AnnouncementFilters {

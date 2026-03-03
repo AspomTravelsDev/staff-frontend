@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, CalendarClock } from "lucide-react";
+import { Loader2, CalendarClock, Clock10 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -56,9 +56,11 @@ export function AnnouncementForm({
     resolver: zodResolver(announcementSchema),
     defaultValues: {
       type: "announcement",
+      priority: "medium",
       title: "",
       content: "",
       publish_at: null,
+      visibility_days: null,
     },
   });
 
@@ -66,9 +68,11 @@ export function AnnouncementForm({
     if (open) {
       form.reset({
         type: "announcement",
+        priority: "medium",
         title: "",
         content: "",
         publish_at: null,
+        visibility_days: null,
       });
       setScheduleEnabled(false);
       setTimeInput("09:00");
@@ -133,39 +137,62 @@ export function AnnouncementForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            {/* Type */}
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="announcement">
-                        📢 Announcement
-                      </SelectItem>
-                      <SelectItem value="newsletter">
-                        📰 Newsletter Suggestion
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Type & Priority Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <FormField
+                control={form.control as any}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="announcement">
+                          📢 Announcement
+                        </SelectItem>
+                        <SelectItem value="newsletter">
+                          📰 Newsletter Suggestion
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Title */}
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="title"
               render={({ field }) => (
                 <FormItem>
@@ -183,7 +210,7 @@ export function AnnouncementForm({
 
             {/* Content – Rich Text */}
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="content"
               render={({ field }) => (
                 <FormItem>
@@ -200,76 +227,121 @@ export function AnnouncementForm({
               )}
             />
 
-            {/* Scheduled Publish — optional */}
-            <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    Schedule Publishing
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScheduleEnabled((v) => !v);
-                    if (scheduleEnabled) form.setValue("publish_at", null);
-                  }}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-                    scheduleEnabled ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}
-                  aria-label="Toggle scheduling"
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                      scheduleEnabled ? "translate-x-4" : "translate-x-0.5"
+            {/* Scheduling & Visibility */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Scheduled Publish — optional */}
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      Schedule Publishing
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleEnabled((v) => !v);
+                      if (scheduleEnabled) form.setValue("publish_at", null);
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                      scheduleEnabled ? "bg-primary" : "bg-muted-foreground/30"
                     }`}
+                    aria-label="Toggle scheduling"
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                        scheduleEnabled ? "translate-x-4" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {scheduleEnabled && (
+                  <FormField
+                    control={form.control as any}
+                    name="publish_at"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormDescription className="text-xs">
+                          Auto-publish at the scheduled time.
+                        </FormDescription>
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">
+                              Date
+                            </p>
+                            <FormControl>
+                              <DatePicker
+                                value={field.value ?? undefined}
+                                onChange={handleDateChange}
+                                placeholder="Pick a date"
+                                minDate={new Date()}
+                              />
+                            </FormControl>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium">
+                              Time
+                            </p>
+                            <Input
+                              type="time"
+                              value={timeInput}
+                              onChange={handleTimeChange}
+                              className="h-7 text-xs w-full"
+                            />
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </button>
+                )}
               </div>
 
-              {scheduleEnabled && (
+              {/* Visibility Duration */}
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Clock10 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    Visibility Duration
+                  </span>
+                </div>
                 <FormField
-                  control={form.control}
-                  name="publish_at"
+                  control={form.control as any}
+                  name="visibility_days"
                   render={({ field }) => (
                     <FormItem>
                       <FormDescription className="text-xs">
-                        Leave unset to publish immediately once approved. The
-                        backend will auto-publish at the scheduled time via cron
-                        job.
+                        How many days should this stay visible? Leave empty for
+                        forever.
                       </FormDescription>
-                      <div className="grid grid-cols-2 gap-3 mt-3">
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground font-medium">
-                            Date
-                          </p>
-                          <FormControl>
-                            <DatePicker
-                              value={field.value ?? undefined}
-                              onChange={handleDateChange}
-                              placeholder="Pick a date"
-                              minDate={new Date()}
-                            />
-                          </FormControl>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground font-medium">
-                            Time
-                          </p>
+                      <FormControl>
+                        <div className="flex items-center gap-2 mt-2">
                           <Input
-                            type="time"
-                            value={timeInput}
-                            onChange={handleTimeChange}
-                            className="h-7 text-xs w-full"
+                            type="number"
+                            placeholder="e.g., 7"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ""
+                                  ? null
+                                  : parseInt(e.target.value),
+                              )
+                            }
+                            className="w-24"
                           />
+                          <span className="text-xs text-muted-foreground">
+                            Days
+                          </span>
                         </div>
-                      </div>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
+              </div>
             </div>
 
             <DialogFooter>

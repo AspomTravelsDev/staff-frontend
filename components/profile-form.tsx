@@ -38,8 +38,10 @@ import {
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
+  staff_id: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
-  dob: z.string().nullable().optional(), // We'll handle Date <-> String conversion manually or let hook form handle it if we use a date picker that returns a date object, but actions expects string. actually actions expects what we send.
+  dob: z.string().nullable().optional(),
+  date_joined: z.string().nullable().optional(),
   contract_type: z
     .enum(["full_time", "part_time", "contract", "nysc", "intern"])
     .nullable()
@@ -60,8 +62,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
     defaultValues: {
       name: user.name,
       email: user.email,
+      staff_id: user.staff_id || null,
       phone: user.phone || null,
       dob: user.dob || null,
+      date_joined: user.date_joined || null,
       contract_type: user.contract_type || null,
     },
   });
@@ -71,11 +75,14 @@ export function ProfileForm({ user }: ProfileFormProps) {
       try {
         const payload = {
           ...values,
+          email: user.email,
+          contract_type: user.contract_type,
+          staff_id: values.staff_id || null,
           phone: values.phone || null,
           dob: values.dob || null,
-          contract_type: values.contract_type || null,
+          date_joined: values.date_joined || null,
         };
-        const result = await updateProfile(payload);
+        const result = await updateProfile(payload as any);
         if (result?.error) {
           toast.error(result.error);
         } else {
@@ -92,7 +99,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {/* Personal Infomation Section */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Personal Information</h3>
+          <h3 className="text-lg font-medium border-b pb-2">
+            Personal Information
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
@@ -101,7 +110,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} disabled />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,12 +124,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="john@example.com"
-                      type="email"
-                      {...field}
-                      disabled
-                    />
+                    <Input type="email" {...field} disabled />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -144,13 +148,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 </FormItem>
               )}
             />
-          </div>
-        </div>
 
-        {/* Employment Details Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Employment Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
               name="dob"
@@ -158,7 +156,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem className="flex flex-col">
                   <FormLabel>Date of Birth</FormLabel>
                   <Popover>
-                    <PopoverTrigger asChild disabled>
+                    <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={"outline"}
@@ -166,7 +164,80 @@ export function ProfileForm({ user }: ProfileFormProps) {
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground",
                           )}
-                          disabled
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={
+                          field.value ? new Date(field.value) : undefined
+                        }
+                        onSelect={(date) =>
+                          field.onChange(
+                            date ? format(date, "yyyy-MM-dd") : null,
+                          )
+                        }
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Employment Details Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium border-b pb-2">
+            Employment Details
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="staff_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Staff ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="EMP001"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="date_joined"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Date Joined</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground",
+                          )}
                         >
                           {field.value ? (
                             format(new Date(field.value), "PPP")
@@ -229,6 +300,50 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 </FormItem>
               )}
             />
+
+            <FormItem>
+              <FormLabel>Net Pay</FormLabel>
+              <FormControl>
+                <Input value={user.net_pay || "N/A"} disabled />
+              </FormControl>
+            </FormItem>
+          </div>
+        </div>
+
+        {/* System Details Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium border-b pb-2">System Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormItem>
+              <FormLabel>Role</FormLabel>
+              <FormControl>
+                <Input value={user.role} disabled />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Department</FormLabel>
+              <FormControl>
+                <Input value={user.department || "N/A"} disabled />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Supervisor Status</FormLabel>
+              <FormControl>
+                <Input value={user.is_supervisor ? "Yes" : "No"} disabled />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Account Status</FormLabel>
+              <FormControl>
+                <Input
+                  value={user.is_active ? "Active" : "Inactive"}
+                  disabled
+                />
+              </FormControl>
+            </FormItem>
           </div>
         </div>
 

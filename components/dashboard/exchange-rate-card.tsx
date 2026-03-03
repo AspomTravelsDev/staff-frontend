@@ -1,5 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { Rates } from "@/lib/api/rates";
+import { format } from "date-fns";
 
 interface ExchangeRateCardProps {
   rates: Rates | null;
@@ -12,6 +19,9 @@ export function ExchangeRateCard({ rates }: ExchangeRateCardProps) {
     <Card>
       <CardHeader>
         <CardTitle>Dollar Billing Rate</CardTitle>
+        <CardDescription className="capitalize">
+          for {format(new Date(rates.updated_at), "EEEE, MMMM d")}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3 mt-3">

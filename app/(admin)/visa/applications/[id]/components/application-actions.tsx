@@ -13,6 +13,7 @@ import {
 
 import type { ApplicationDetail } from "../../queries";
 import { updateApplicationStatus, deleteApplication } from "../../new/actions";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +74,9 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
 
     if (result.error) {
       console.error("Failed to update status:", result.error);
+      toast.error(result.error || "Failed to update status");
     } else {
+      toast.success(`Status updated to ${newStatus}`);
       router.refresh();
     }
   };
@@ -85,7 +88,9 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
 
     if (result.error) {
       console.error("Failed to delete:", result.error);
+      toast.error(result.error || "Failed to delete application");
     } else {
+      toast.success("Application deleted successfully");
       router.push("/visa/applications");
     }
   };

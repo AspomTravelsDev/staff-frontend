@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { deleteVisaInformationAction } from "../actions";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -175,10 +176,16 @@ export function InformationAccordion({ items, canManage, onEdit }: Props) {
     );
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, title: string) => {
     setDeletingId(id);
-    await deleteVisaInformationAction(id);
+    const result = await deleteVisaInformationAction(id);
     setDeletingId(null);
+
+    if (result.success) {
+      toast.success(`"${title}" deleted successfully`);
+    } else {
+      toast.error(result.error || "Failed to delete");
+    }
   };
 
   return (
@@ -250,7 +257,7 @@ export function InformationAccordion({ items, canManage, onEdit }: Props) {
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         variant="destructive"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item.id, item.title)}
                       >
                         Delete
                       </AlertDialogAction>

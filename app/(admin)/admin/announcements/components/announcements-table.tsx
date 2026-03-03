@@ -12,6 +12,7 @@ import {
   Trash2,
   FileQuestion,
   Loader2,
+  Clock10,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,15 @@ const STATUS_STYLES: Record<string, string> = {
     "bg-green-100  text-green-800  border-green-200  dark:bg-green-900/30  dark:text-green-400",
   rejected:
     "bg-red-100    text-red-800    border-red-200    dark:bg-red-900/30    dark:text-red-400",
+};
+
+const PRIORITY_STYLES: Record<string, string> = {
+  low: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900/30 dark:text-slate-400",
+  medium:
+    "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400",
+  high: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400",
+  urgent:
+    "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 animate-pulse",
 };
 
 export function AnnouncementsTable({
@@ -156,9 +166,11 @@ export function AnnouncementsTable({
           <TableRow>
             <TableHead>Author</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Priority</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Scheduled</TableHead>
+            <TableHead>Expires</TableHead>
             <TableHead>Submitted</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -185,6 +197,18 @@ export function AnnouncementsTable({
                   </Badge>
                 </TableCell>
 
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={
+                      PRIORITY_STYLES[item.priority] +
+                      " uppercase text-[10px] px-1.5 h-auto"
+                    }
+                  >
+                    {item.priority}
+                  </Badge>
+                </TableCell>
+
                 <TableCell className="max-w-[220px]">
                   <span className="text-sm font-medium line-clamp-2 leading-snug">
                     {item.title}
@@ -208,6 +232,23 @@ export function AnnouncementsTable({
                     </span>
                   ) : (
                     <span className="text-xs italic">Immediate</span>
+                  )}
+                </TableCell>
+
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {item.published_at && item.visibility_days ? (
+                    <span className="flex items-center gap-1">
+                      <Clock10 className="h-3.5 w-3.5" />
+                      {format(
+                        new Date(
+                          new Date(item.published_at).getTime() +
+                            item.visibility_days * 24 * 60 * 60 * 1000,
+                        ),
+                        "dd MMM yy",
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-xs italic">Never</span>
                   )}
                 </TableCell>
 

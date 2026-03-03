@@ -17,6 +17,7 @@ import {
   createVisaInformationAction,
   updateVisaInformationAction,
 } from "../actions";
+import { toast } from "sonner";
 
 // Dynamically import react-quill to avoid SSR issues
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -159,10 +160,15 @@ export function ManageInfoForm({ infoRecord }: Props) {
     setLoading(false);
 
     if (result.success) {
+      toast.success(
+        `${category} ${isEditing ? "updated" : "created"} successfully`,
+      );
       router.push("/visa/information-desk");
       router.refresh();
     } else {
-      setError(result.error ?? "Failed to save. Please try again.");
+      const errorMsg = result.error ?? "Failed to save. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 

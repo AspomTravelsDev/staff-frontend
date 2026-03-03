@@ -19,6 +19,8 @@ export async function createAnnouncementAction(
             publish_at: data.publish_at
                 ? format(data.publish_at, "yyyy-MM-dd'T'HH:mm:ssXXX")
                 : null,
+            priority: data.priority,
+            visibility_days: data.visibility_days,
         });
         return { success: true };
     } catch (error) {
@@ -43,6 +45,8 @@ export async function updateAnnouncementContentAction(
             publish_at: data.publish_at
                 ? format(data.publish_at, "yyyy-MM-dd'T'HH:mm:ssXXX")
                 : null,
+            priority: data.priority,
+            visibility_days: data.visibility_days,
         });
         return { success: true };
     } catch (error) {

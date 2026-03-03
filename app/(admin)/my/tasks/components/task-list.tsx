@@ -106,10 +106,20 @@ export function TaskList({ initialData }: TaskListProps) {
 
   const handleSubmitReport = async () => {
     try {
+      // If there are unsaved changes, save them first
+      if (hasUnsavedChanges) {
+        const validTasks = localTasks.filter((t) => t.text.trim() !== "");
+        if (validTasks.length > 0) {
+          await updateTasks.mutateAsync({ tasks: validTasks });
+          setHasUnsavedChanges(false);
+        }
+      }
+
       await submitReport.mutateAsync();
       toast.success("Report submitted successfully");
     } catch (error: any) {
-      toast.error("Failed to submit report");
+      console.error("Failed to submit report:", error);
+      toast.error(error.message || "Failed to submit report");
     }
   };
 
@@ -159,31 +169,6 @@ export function TaskList({ initialData }: TaskListProps) {
                 : ""}
             </Badge>
           )}
-
-          {!isLocked && (
-            <>
-              {hasUnsavedChanges && (
-                <Badge
-                  variant="outline"
-                  className="text-yellow-600 border-yellow-200 bg-yellow-50"
-                >
-                  Unsaved Changes
-                </Badge>
-              )}
-              <Button
-                onClick={handleSave}
-                disabled={updateTasks.isPending}
-                variant={hasUnsavedChanges ? "default" : "secondary"}
-              >
-                {updateTasks.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Save Changes
-              </Button>
-            </>
-          )}
         </div>
       </div>
 
@@ -217,7 +202,27 @@ export function TaskList({ initialData }: TaskListProps) {
       </div>
 
       {!isLocked && localTasks.length > 0 && (
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          {hasUnsavedChanges && (
+            <Badge
+              variant="outline"
+              className="text-yellow-600 border-yellow-200 bg-yellow-50"
+            >
+              Unsaved Changes
+            </Badge>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={updateTasks.isPending}
+            variant={hasUnsavedChanges ? "default" : "secondary"}
+          >
+            {updateTasks.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Save Changes
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700">
