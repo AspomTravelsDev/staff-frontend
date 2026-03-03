@@ -263,3 +263,25 @@ export async function deleteUser(userId: string): Promise<void> {
         throw new Error(result.error.error || "Failed to delete user");
     }
 }
+
+/**
+ * Get users with birthdays in the current month
+ */
+export async function getUpcomingBirthdays(): Promise<Employee[]> {
+    const result = await api.get<UsersApiResponse>("/api/birthdays/upcoming");
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data.data.map(mapUserToEmployee);
+}
+
+/**
+ * Get users with birthdays today
+ */
+export async function getTodayBirthdays(): Promise<Employee[]> {
+    const result = await api.get<UsersApiResponse>("/api/birthdays/today");
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data.data.map(mapUserToEmployee);
+}

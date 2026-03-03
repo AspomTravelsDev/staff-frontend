@@ -27,6 +27,10 @@ import { deleteVisaDocumentAction } from "../actions";
 import { useState, useEffect } from "react";
 import { getFileDownloadToken } from "@/lib/api/files";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Search, Tag, Pencil } from "lucide-react";
+import { UploadDocumentDialog } from "./upload-document-dialog";
 
 interface DocumentListTableProps {
   documents: DocumentFile[];
@@ -41,6 +45,8 @@ export function DocumentListTable({
 }: DocumentListTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
 
   useEffect(() => {
     getFileDownloadToken().then(setToken);
@@ -59,6 +65,24 @@ export function DocumentListTable({
       setDeletingId(null);
     }
   };
+
+  // Filter documents
+  const filteredDocuments = documents.filter((doc) => {
+    const matchesSearch =
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesTag =
+      !tagFilter ||
+      doc.tags?.some((t) => t.toLowerCase().includes(tagFilter.toLowerCase()));
+
+    return matchesSearch && matchesTag;
+  });
+
+  // Get unique tags for quick filtering
+  const allTags = Array.from(
+    new Set(documents.flatMap((doc) => doc.tags || [])),
+  ).sort();
 
   const handleDownload = async (doc: DocumentFile) => {
     try {
@@ -125,7 +149,7 @@ export function DocumentListTable({
     );
   }
 
-  if (documents.length === 0) {
+  if (documents.length === 0 && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg bg-muted/10 text-muted-foreground border-dashed">
         <FileText className="h-10 w-10 mb-2 opacity-50" />
@@ -135,104 +159,171 @@ export function DocumentListTable({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Uploaded</TableHead>
-            <TableHead>Uploaded By</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {documents.map((doc) => (
-            <TableRow key={doc.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-red-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span>{doc.title}</span>
-                    {doc.description && (
-                      <span className="text-xs text-muted-foreground">
-                        {doc.description}
+    <div className="space-y-4">
+      {/* Filtering UI */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search documents..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="relative w-full sm:w-[200px]">
+          <Tag className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Filter by tag..."
+            className="pl-9"
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+            list="tags-list"
+          />
+          <datalist id="tags-list">
+            {allTags.map((tag) => (
+              <option key={tag} value={tag} />
+            ))}
+          </datalist>
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Tags</TableHead>
+              <TableHead>Size</TableHead>
+              <TableHead>Uploaded</TableHead>
+              <TableHead>Uploaded By</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDocuments.map((doc) => (
+              <TableRow key={doc.id}>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                    <div className="flex flex-col">
+                      <span>{doc.title}</span>
+                      {doc.description && (
+                        <span className="text-xs text-muted-foreground line-clamp-1">
+                          {doc.description}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {doc.tags && doc.tags.length > 0 ? (
+                      doc.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0 h-5"
+                        >
+                          {tag}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        No tags
                       </span>
                     )}
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                {(doc.file_size / 1024 / 1024).toFixed(2)} MB
-              </TableCell>
-              <TableCell>
-                {format(new Date(doc.created_at), "MMM dd, yyyy")}
-              </TableCell>
-              <TableCell>{doc.uploaded_by?.name || "System"}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  {token ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDownload(doc)}
-                      title="Download"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled
-                      title="Loading..."
-                    >
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </Button>
-                  )}
+                </TableCell>
+                <TableCell>
+                  {(doc.file_size / 1024 / 1024).toFixed(2)} MB
+                </TableCell>
+                <TableCell>
+                  {format(new Date(doc.created_at), "MMM dd, yyyy")}
+                </TableCell>
+                <TableCell>{doc.uploaded_by?.name || "System"}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {token ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownload(doc)}
+                        title="Download"
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled
+                        title="Loading..."
+                      >
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </Button>
+                    )}
 
-                  {showDelete && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+                    <UploadDocumentDialog
+                      document={doc}
+                      trigger={
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          disabled={deletingId === doc.id}
+                          title="Edit"
+                          className="text-muted-foreground hover:text-primary"
                         >
-                          {deletingId === doc.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Document?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{doc.title}"? This
-                            action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(doc.id)}
-                            className="bg-destructive hover:bg-destructive/90"
+                      }
+                    />
+
+                    {showDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            disabled={deletingId === doc.id}
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                            {deletingId === doc.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete Document?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{doc.title}"?
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(doc.id)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,21 +13,50 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadVisaDocumentAction } from "../actions";
-import { Loader2, UploadCloud, AlertTriangle } from "lucide-react";
+import { uploadVisaDocumentAction, updateVisaDocumentAction } from "../actions";
+import { Loader2, UploadCloud, AlertTriangle, Pencil } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { DocumentFile } from "@/types/file-types";
 
-export function UploadDocumentDialog() {
+interface UploadDocumentDialogProps {
+  document?: DocumentFile;
+  trigger?: React.ReactNode;
+}
+
+export function UploadDocumentDialog({
+  document: existingDoc,
+  trigger,
+}: UploadDocumentDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  // Category is forced to 'visa' in the backend/actions so we don't need it as state here.
+  const [tags, setTags] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isEditing = !!existingDoc;
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (existingDoc && open) {
+      setTitle(existingDoc.title);
+      setDescription(existingDoc.description || "");
+      setTags(existingDoc.tags?.join(", ") || "");
+      setError(null);
+      setFile(null); // Reset file selection on open
+    } else if (!existingDoc && open) {
+      // Clear form for new upload
+      setTitle("");
+      setDescription("");
+      setTags("");
+      setError(null);
+      setFile(null);
+    }
+  }, [existingDoc, open]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -53,8 +82,8 @@ export function UploadDocumentDialog() {
     setFile(selectedFile);
   };
 
-  const handleUpload = async () => {
-    if (!file) {
+  const handleSubmit = async () => {
+    if (!isEditing && !file) {
       setError("Please select a file to upload.");
       return;
     }
@@ -64,23 +93,32 @@ export function UploadDocumentDialog() {
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    if (file) formData.append("file", file);
     formData.append("title", title);
     if (description) formData.append("description", description);
+    if (tags) formData.append("tags", tags);
 
     try {
       setIsPending(true);
-      const result = await uploadVisaDocumentAction(formData);
+      const result = isEditing
+        ? await updateVisaDocumentAction(existingDoc.id, formData)
+        : await uploadVisaDocumentAction(formData);
+
       if (result.error) {
         setError(result.error);
         return;
       }
-      toast("Document uploaded successfully");
+      toast.success(
+        isEditing
+          ? "Document updated successfully"
+          : "Document uploaded successfully",
+      );
       setOpen(false);
       // Reset form
       setFile(null);
       setTitle("");
       setDescription("");
+      setTags("");
       setError(null);
     } catch (err) {
       console.error(err);
@@ -93,17 +131,22 @@ export function UploadDocumentDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UploadCloud className="mr-2 h-4 w-4" />
-          Upload Sample
-        </Button>
+        {trigger || (
+          <Button>
+            <UploadCloud className="mr-2 h-4 w-4" />
+            Upload Sample
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Upload Visa Sample Document</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Visa Sample" : "Upload Visa Sample Document"}
+          </DialogTitle>
           <DialogDescription>
-            Upload a PDF document to serve as a sample for clients. Max file
-            size is 2MB.
+            {isEditing
+              ? "Update the details for this sample document."
+              : "Upload a PDF document to serve as a sample for clients. Max file size is 2MB."}
           </DialogDescription>
         </DialogHeader>
 
@@ -119,6 +162,19 @@ export function UploadDocumentDialog() {
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="tags">Tags (optional)</Label>
+            <Input
+              id="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="e.g. Passport, Bank Statement, Form"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Separate tags with commas
+            </p>
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <Textarea
               id="description"
@@ -129,7 +185,9 @@ export function UploadDocumentDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="file">Select PDF *</Label>
+            <Label htmlFor="file">
+              {isEditing ? "Replace PDF (Optional)" : "Select PDF *"}
+            </Label>
             <Input
               id="file"
               type="file"
@@ -165,11 +223,11 @@ export function UploadDocumentDialog() {
             Cancel
           </Button>
           <Button
-            onClick={handleUpload}
-            disabled={!file || !title || !!error || isPending}
+            onClick={handleSubmit}
+            disabled={(!isEditing && !file) || !title || !!error || isPending}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Upload
+            {isEditing ? "Save Changes" : "Upload"}
           </Button>
         </DialogFooter>
       </DialogContent>

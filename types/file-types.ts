@@ -6,6 +6,7 @@ export interface DocumentFile {
     title: string;
     description: string | null;
     category: string;
+    tags: string[] | null;
     file_path: string;
     file_size: number;
     mime_type: string;
@@ -21,7 +22,8 @@ export interface DocumentFile {
 
 export interface CreateDocumentRequest {
     title: string;
-    category: DocumentCategory;
+    category: string;
+    tags?: string; // Comma-separated for upload
     description?: string;
 }
 
@@ -32,5 +34,6 @@ export interface UploadDocumentResponse {
 
 export interface DocumentFilters {
     category?: string;
+    tags?: string;
     search?: string;
 }

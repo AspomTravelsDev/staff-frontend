@@ -69,6 +69,7 @@ export async function getAllDocuments(filters: DocumentFilters = {}): Promise<Ap
     const params = new URLSearchParams();
     if (filters.category) params.append("category", filters.category);
     if (filters.search) params.append("search", filters.search);
+    if (filters.tags) params.append("tags", filters.tags);
 
     const result = await api.get<DataWrapper<DocumentFile[]>>(`/api/documents?${params.toString()}`);
     if (!result.success) return result;
@@ -83,6 +84,39 @@ export async function deleteDocument(id: string): Promise<ApiResponse<void>> {
     const result = await api.delete<{ message: string }>(`/api/documents/${id}`);
     if (!result.success) return result;
     return { success: true, data: undefined };
+}
+
+/**
+ * Update a document
+ * PATCH /api/documents/{id}
+ */
+export async function updateDocument(id: string, formData: FormData): Promise<ApiResponse<DocumentFile>> {
+    try {
+        const token = await import("@/lib/auth/session").then(m => m.getAuthToken());
+
+        const headers: HeadersInit = {
+            Authorization: `Bearer ${token}`,
+        };
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/documents/${id}`, {
+            method: "PATCH",
+            headers,
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Update failed [${response.status}]:`, errorText);
+            return { success: false, error: { error: "Update failed", code: String(response.status) } };
+        }
+
+        const result: UploadDocumentResponse = await response.json();
+        return { success: true, data: result.document };
+
+    } catch (error: any) {
+        console.error("Update exception:", error);
+        return { success: false, error: { error: error.message || "Network error", code: "500" } };
+    }
 }
 
 /**

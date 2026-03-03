@@ -1,7 +1,7 @@
 "use client";
 
 import { StatsCard } from "@/components/stats-card";
-import { Clock, CalendarCheck, AlertTriangle, History } from "lucide-react";
+import { Clock, CalendarCheck, AlertTriangle, Trophy } from "lucide-react";
 import { ClockInSummary } from "@/lib/api/clock-in";
 
 interface AttendanceStatsProps {
@@ -45,14 +45,14 @@ export function AttendanceStats({ stats, isLoading }: AttendanceStatsProps) {
         cardColor="red"
       />
       <StatsCard
-        title="Avg. Clock In Time"
-        icon={History}
-        value={
-          stats && stats.average_clock_in_time
-            ? stats.average_clock_in_time
-            : "00:00 AM"
+        title="Early Bird Recognition"
+        icon={Trophy}
+        value={stats?.earliest_staff_name || "-"}
+        description={
+          stats?.earliest_staff_time
+            ? `Avg. Arrival: ${stats.earliest_staff_time}`
+            : "Consistently early staff"
         }
-        description="Average arrival time"
         variant="dashboard"
         cardColor="purple"
       />

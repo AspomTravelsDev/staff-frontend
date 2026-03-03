@@ -83,6 +83,12 @@ export const departmentNav: NavItem[] = [
     //     allowedRoles: ["account"],
     // },
     {
+        title: "Birthday List",
+        url: "/hr",
+        icon: LayoutDashboard,
+        allowedRoles: ["hr"],
+    },
+    {
         title: "Visa Applications",
         url: "/visa/applications",
         icon: FileSearch,

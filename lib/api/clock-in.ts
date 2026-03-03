@@ -27,6 +27,8 @@ export interface ClockInSummary {
     average_duration_minutes: number;
     total_minutes_logged: number;
     average_clock_in_time?: string;
+    earliest_staff_name?: string;
+    earliest_staff_time?: string;
 }
 
 export interface StandardResponse<T> {
