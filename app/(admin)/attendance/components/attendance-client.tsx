@@ -13,6 +13,11 @@ import { Filter, Users } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
 import {
+  isLate,
+  formatLagosDate,
+  formatLagosTime,
+} from "@/lib/utils/attendance";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -124,26 +129,17 @@ export function AttendanceClient({
     },
     {
       header: "Date",
-      key: (item: any) =>
-        new Date(item.clock_in_at).toLocaleDateString("en-US", {
-          timeZone: "UTC",
-        }),
+      key: (item: any) => formatLagosDate(item.clock_in_at),
     },
     {
       header: "Clock In",
-      key: (item: any) => {
-        const d = new Date(item.clock_in_at);
-        return `${d.getUTCHours() % 12 || 12}:${d.getUTCMinutes().toString().padStart(2, "0")} ${d.getUTCHours() >= 12 ? "PM" : "AM"}`;
-      },
+      key: (item: any) => formatLagosTime(item.clock_in_at),
     },
     {
       header: "Clock Out",
-      key: (item: any) => {
-        if (!item.clock_out_at) return "-";
-        const d = new Date(item.clock_out_at);
-        return `${d.getUTCHours() % 12 || 12}:${d.getUTCMinutes().toString().padStart(2, "0")} ${d.getUTCHours() >= 12 ? "PM" : "AM"}`;
-      },
+      key: (item: any) => formatLagosTime(item.clock_out_at),
     },
+
     {
       header: "Duration (Mins)",
       key: (item: any) => item.duration_minutes || "",
@@ -151,11 +147,7 @@ export function AttendanceClient({
     {
       header: "Late Status",
       key: (item: any) => {
-        const d = new Date(item.clock_in_at);
-        const hours = d.getUTCHours();
-        const minutes = d.getUTCMinutes();
-        const isLate = hours > 9 || (hours === 9 && minutes > 5);
-        return isLate ? "Late" : "On Time";
+        return isLate(item.clock_in_at) ? "Late" : "On Time";
       },
     },
   ];

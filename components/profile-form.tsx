@@ -302,9 +302,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
             />
 
             <FormItem>
-              <FormLabel>Net Pay</FormLabel>
+              <FormLabel>Gross Pay</FormLabel>
               <FormControl>
-                <Input value={user.net_pay || "N/A"} disabled />
+                <Input value={user.gross_pay || "N/A"} disabled />
               </FormControl>
             </FormItem>
           </div>

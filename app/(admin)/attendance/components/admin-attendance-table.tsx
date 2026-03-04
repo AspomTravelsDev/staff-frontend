@@ -11,6 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ClockInRecord } from "@/lib/api/clock-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  isLate,
+  formatLagosTime,
+  formatLagosDate,
+} from "@/lib/utils/attendance";
 
 interface AdminAttendanceTableProps {
   history: ClockInRecord[];
@@ -21,37 +26,7 @@ export function AdminAttendanceTable({
   history,
   isLoading,
 }: AdminAttendanceTableProps) {
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-
-    const period = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 || 12;
-    const displayMinutes = minutes.toString().padStart(2, "0");
-
-    return `${displayHours}:${displayMinutes} ${period}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const isLate = (dateString: string) => {
-    const date = new Date(dateString);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-
-    if (hours > 9) return true;
-    if (hours === 9 && minutes > 5) return true;
-    return false;
-  };
+  // Helpers removed in favor of centralized attendance utils
 
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName) return "A";
@@ -105,13 +80,14 @@ export function AdminAttendanceTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{formatDate(record.clock_in_at)}</TableCell>
-                  <TableCell>{formatTime(record.clock_in_at)}</TableCell>
+                  <TableCell>{formatLagosDate(record.clock_in_at)}</TableCell>
+                  <TableCell>{formatLagosTime(record.clock_in_at)}</TableCell>
                   <TableCell>
                     {record.clock_out_at
-                      ? formatTime(record.clock_out_at)
+                      ? formatLagosTime(record.clock_out_at)
                       : "-"}
                   </TableCell>
+
                   <TableCell>
                     {record.duration_minutes
                       ? `${Math.floor(record.duration_minutes / 60)}h ${

@@ -51,7 +51,7 @@ export interface User {
     department: string | null;
     is_active: boolean;
     is_supervisor: boolean;
-    net_pay: string;
+    gross_pay: string;
     date_joined: string | null; // ISO date string (YYYY-MM-DD)
     created_at: string;
     updated_at: string;

@@ -312,6 +312,9 @@ export const personalNav: NavItem[] = [
             },
             {
                 title: "Expenses", url: "/my/expenses", disabled: true,
+            },
+            {
+                title: "Payslip", url: "/my/payslip"
             }
         ]
     },

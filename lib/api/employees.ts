@@ -24,6 +24,7 @@ export interface Employee {
     exitDate?: string;
     dob: string | null;
     contract_type: string | null;
+    gross_pay: string;
 }
 
 export interface EmployeeStats {
@@ -79,6 +80,7 @@ function mapUserToEmployee(user: User): Employee {
         exitDate: undefined,
         dob: user.dob,
         contract_type: user.contract_type,
+        gross_pay: user.gross_pay,
     };
 }
 
@@ -225,7 +227,7 @@ export interface UpdateUserRequest {
     role?: string;
     department?: string | null;
     is_supervisor?: boolean;
-    net_pay?: number | null;
+    gross_pay?: number | null;
     is_active?: boolean;
     date_joined?: string | null; // ISO date string (YYYY-MM-DD)
     dob?: string | null;

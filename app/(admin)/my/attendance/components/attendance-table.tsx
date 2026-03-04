@@ -10,46 +10,18 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ClockInRecord } from "@/lib/api/clock-in";
+import {
+  isLate,
+  formatLagosTime,
+  formatLagosDate,
+} from "@/lib/utils/attendance";
 
 interface AttendanceTableProps {
   history: ClockInRecord[];
 }
 
 export function AttendanceTable({ history }: AttendanceTableProps) {
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    // Use local methods to respect the timezone offset from the server
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-
-    // Format as 12-hour time
-    const period = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 || 12;
-    const displayMinutes = minutes.toString().padStart(2, "0");
-
-    return `${displayHours}:${displayMinutes} ${period}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    // Use local methods
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const isLate = (dateString: string) => {
-    const date = new Date(dateString);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-
-    if (hours > 9) return true;
-    if (hours === 9 && minutes > 5) return true;
-    return false;
-  };
+  // Helpers removed in favor of centralized attendance utils
 
   return (
     <div className="rounded-md border">
@@ -75,13 +47,14 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
               const late = isLate(record.clock_in_at);
               return (
                 <TableRow key={record.id}>
-                  <TableCell>{formatDate(record.clock_in_at)}</TableCell>
-                  <TableCell>{formatTime(record.clock_in_at)}</TableCell>
+                  <TableCell>{formatLagosDate(record.clock_in_at)}</TableCell>
+                  <TableCell>{formatLagosTime(record.clock_in_at)}</TableCell>
                   <TableCell>
                     {record.clock_out_at
-                      ? formatTime(record.clock_out_at)
+                      ? formatLagosTime(record.clock_out_at)
                       : "-"}
                   </TableCell>
+
                   <TableCell>
                     {record.duration_minutes
                       ? `${Math.floor(record.duration_minutes / 60)}h ${

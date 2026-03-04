@@ -42,7 +42,7 @@ interface EditUserFormData {
   role: string;
   department: string;
   is_supervisor: boolean;
-  net_pay: string;
+  gross_pay: string;
   date_joined: string;
   dob: string;
   contract_type: string;
@@ -89,7 +89,7 @@ export function EditUserDialog({
       role: "",
       department: "",
       is_supervisor: false,
-      net_pay: "",
+      gross_pay: "",
       date_joined: "",
       dob: "",
       contract_type: "",
@@ -108,7 +108,7 @@ export function EditUserDialog({
         role: employee.role,
         department: employee.department || "",
         is_supervisor: employee.is_supervisor,
-        net_pay: "",
+        gross_pay: employee.gross_pay || "",
         date_joined: employee.joinDate ? employee.joinDate.split("T")[0] : "",
         dob: employee.dob ? employee.dob.split("T")[0] : "",
         contract_type: employee.contract_type || "",
@@ -139,7 +139,7 @@ export function EditUserDialog({
       role: data.role,
       department: data.department || null,
       is_supervisor: data.is_supervisor,
-      net_pay: data.net_pay ? parseFloat(data.net_pay) : null,
+      gross_pay: data.gross_pay ? parseFloat(data.gross_pay) : null,
       date_joined: data.date_joined || null,
       dob: data.dob || null,
       contract_type: data.contract_type || null,
@@ -303,14 +303,14 @@ export function EditUserDialog({
               </Select>
             </div>
 
-            {/* Net Pay */}
+            {/* Gross Pay */}
             <div className="grid gap-2">
-              <Label htmlFor="net_pay">Net Pay</Label>
+              <Label htmlFor="gross_pay">Gross Pay</Label>
               <Input
-                id="net_pay"
+                id="gross_pay"
                 type="number"
                 step="0.01"
-                {...register("net_pay")}
+                {...register("gross_pay")}
                 placeholder="5000.00"
               />
             </div>

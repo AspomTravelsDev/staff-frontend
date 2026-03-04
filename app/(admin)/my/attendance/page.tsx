@@ -2,6 +2,7 @@ import { getClockInHistory, getClockInSummary } from "@/lib/api/clock-in";
 import { StatsCard } from "@/components/stats-card";
 import { Clock, CalendarCheck, AlertTriangle, History } from "lucide-react";
 import { AttendanceTable } from "./components/attendance-table";
+import { isLate } from "@/lib/utils/attendance";
 
 export default async function MyAttendancePage() {
   const [summaryResponse, historyResponse] = await Promise.all([
@@ -25,16 +26,9 @@ export default async function MyAttendancePage() {
   }
 
   // Calculate late days locally as well for now, or trust summary if it had it (it doesn't)
-  const lateDays = history.filter((record: any) => {
-    const date = new Date(record.clock_in_at);
-    const hour = date.getUTCHours();
-    const minute = date.getUTCMinutes();
-
-    // Late if after 9:05 AM
-    if (hour > 9) return true;
-    if (hour === 9 && minute > 5) return true;
-    return false;
-  }).length;
+  const lateDays = history.filter((record: any) =>
+    isLate(record.clock_in_at),
+  ).length;
 
   const onTimeDays = history.length - lateDays;
 

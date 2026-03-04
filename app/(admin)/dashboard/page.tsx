@@ -29,6 +29,7 @@ import { QuickLinkButton } from "@/components/dashboard/quick-link-button";
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
 import { getAllAwards, getMyAwards } from "@/lib/api/awards";
+import { isLate } from "@/lib/utils/attendance";
 import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
@@ -98,13 +99,7 @@ export default async function Page() {
         return "absent" as AttendanceStatus;
       }
 
-      const date = new Date(record.clock_in_at);
-      const utcHours = date.getUTCHours();
-      const utcMinutes = date.getUTCMinutes();
-
-      const isLate = utcHours > 9 || (utcHours === 9 && utcMinutes > 5);
-
-      if (isLate) {
+      if (isLate(record.clock_in_at)) {
         lateDays++;
         return "late" as AttendanceStatus;
       }
@@ -224,7 +219,7 @@ export default async function Page() {
           />
           <QuickLinkButton
             icon={FileText}
-            title="Submit Task Report"
+            title="Submit To-Do / Report"
             url="/my/tasks"
             target="_self"
             color="indigo"
