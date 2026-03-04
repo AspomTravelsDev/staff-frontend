@@ -228,11 +228,10 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["visa"]
     },
     {
-        title: "Information Desk",
-        url: "/it/information-desk",
+        title: "Manage IT Information Desk",
+        url: "/admin/it-desk",
         icon: FolderOpen,
         allowedRoles: ["it", "super"],
-        disabled: true,
     },
     {
         title: "Award Staff",
@@ -345,7 +344,7 @@ export const personalNav: NavItem[] = [
             //     title: "Birth Services Information Desk", url: "/my/birth-services"
             // },
             {
-                title: "IT Information Desk", url: "/my/it", disabled: true,
+                title: "IT Information Desk", url: "/my/it",
             }
         ]
     },

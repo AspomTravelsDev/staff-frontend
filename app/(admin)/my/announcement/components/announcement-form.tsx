@@ -37,7 +37,7 @@ import {
 } from "@/lib/validations/announcements";
 import { createAnnouncementAction } from "../actions";
 import { toast } from "sonner";
-import { RichTextEditor } from "./rich-text-editor";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 interface AnnouncementFormProps {
   open: boolean;

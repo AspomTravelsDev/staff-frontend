@@ -37,7 +37,7 @@ import {
 } from "@/lib/validations/announcements";
 import { updateAnnouncementContentAction } from "../actions";
 import { toast } from "sonner";
-import { RichTextEditor } from "./rich-text-editor";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import type { AnnouncementItem } from "@/lib/api/announcements";
 
 interface EditAnnouncementDialogProps {

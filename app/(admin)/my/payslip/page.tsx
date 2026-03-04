@@ -27,46 +27,43 @@ export default async function PayslipPage() {
 
   const annualGross = grossPay * 12;
 
-  // const annualPension = annualGross * 0.08;
-  // const annualNHF = annualGross * 0.025;
   const annualPension = 0;
   const annualNHF = 0;
 
-  const craBase = Math.max(200000, annualGross * 0.01);
-  const craAdditional = annualGross * 0.2;
-  const annualCRA = craBase + craAdditional;
-
-  const taxableIncome = Math.max(
-    0,
-    annualGross - annualPension - annualNHF - annualCRA,
-  );
+  const taxableIncome = Math.max(0, annualGross - annualPension - annualNHF);
 
   let remainingTaxable = taxableIncome;
   let annualTax = 0;
 
+  // Band 1: First ₦800,000 at 0%
   const band1 = Math.min(remainingTaxable, 800000);
+  // No tax on first band
   remainingTaxable -= band1;
 
+  // Band 2: ₦800,001 - ₦3,000,000 at 15%
   if (remainingTaxable > 0) {
-    const band2 = Math.min(remainingTaxable, 2200000);
+    const band2 = Math.min(remainingTaxable, 2200000); // 3,000,000 - 800,000
     annualTax += band2 * 0.15;
     remainingTaxable -= band2;
   }
 
+  // Band 3: ₦3,000,001 - ₦12,000,000 at 18%
   if (remainingTaxable > 0) {
-    const band3 = Math.min(remainingTaxable, 9000000);
+    const band3 = Math.min(remainingTaxable, 9000000); // 12,000,000 - 3,000,000
     annualTax += band3 * 0.18;
     remainingTaxable -= band3;
   }
 
+  // Band 4: ₦12,000,001 - ₦25,000,000 at 21%
   if (remainingTaxable > 0) {
-    const band4 = Math.min(remainingTaxable, 13000000);
+    const band4 = Math.min(remainingTaxable, 13000000); // 25,000,000 - 12,000,000
     annualTax += band4 * 0.21;
     remainingTaxable -= band4;
   }
 
+  // Band 5: Above ₦25,000,000 at 25%
   if (remainingTaxable > 0) {
-    annualTax += remainingTaxable * 0.24;
+    annualTax += remainingTaxable * 0.25;
   }
 
   const monthlyTax = annualTax / 12;
@@ -221,10 +218,7 @@ export default async function PayslipPage() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-medium text-slate-600">
-                            Lagos Income Tax (PAYE)
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Progressive Band Rate
+                            Income Tax (PAYE)
                           </span>
                         </div>
                       </td>
