@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { uploadDocument, deleteDocument, updateDocument } from "@/lib/api/files";
 
 export async function uploadVisaDocumentAction(formData: FormData) {
-    // Specifically set the category to visa
+    // Specifically set categorization fields
+    formData.set("type", "visa");
     formData.set("category", "visa");
+    formData.set("department", "Visa");
 
     const result = await uploadDocument(formData);
-
+    // ... rest of the function remains same
     if (!result.success) {
         return { error: result.error?.error || "Failed to upload document" };
     }
@@ -29,8 +31,10 @@ export async function deleteVisaDocumentAction(fileId: string) {
 }
 
 export async function updateVisaDocumentAction(documentId: string, formData: FormData) {
-    // Specifically set the category to visa
+    // Specifically set categorization fields
+    formData.set("type", "visa");
     formData.set("category", "visa");
+    formData.set("department", "Visa");
 
     const result = await updateDocument(documentId, formData);
 

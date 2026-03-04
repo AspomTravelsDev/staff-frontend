@@ -11,7 +11,7 @@ export function TaskStats({ total, completed, ongoing }: TaskStatsProps) {
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
                 <CardContent className="p-4 pt-4 flex flex-col justify-between h-full">
                    <div className="text-sm font-medium text-muted-foreground">Total Tasks</div>

@@ -1,5 +1,6 @@
 import { AllTasksTable } from "./components/all-tasks-table";
 import { TaskFilters } from "./components/task-filters";
+import { HRTaskStats } from "./components/task-stats";
 import { getHRTasks } from "./queries";
 import { format } from "date-fns";
 
@@ -47,6 +48,8 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
           </p>
         </div>
       </div>
+
+      <HRTaskStats records={records} />
 
       <TaskFilters filters={filters} records={records} />
 

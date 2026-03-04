@@ -20,7 +20,7 @@ export default async function VisaDocumentsPage() {
     redirect("/dashboard");
   }
 
-  const result = await getAllDocuments({ category: "visa" });
+  const result = await getAllDocuments({ type: "visa" });
   const documents = result.success ? result.data : [];
 
   const isSupervisorOrSuper =

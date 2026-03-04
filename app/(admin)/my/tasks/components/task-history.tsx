@@ -1,0 +1,157 @@
+"use client";
+
+import { useState } from "react";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { useMyDailyTasks } from "@/lib/api/hooks/use-tasks";
+import { TaskItem } from "./task-item";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
+import { Loader2, History, Info } from "lucide-react";
+
+export function TaskHistory() {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 7),
+    to: subDays(new Date(), 1), // Exclude today by default
+  });
+
+  const { data: historyRecords, isLoading } = useMyDailyTasks({
+    start_date: dateRange?.from
+      ? format(dateRange.from, "yyyy-MM-dd")
+      : undefined,
+    end_date: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+  });
+
+  // Filter out today's record if it accidentally appears in the range
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const filteredHistory = historyRecords
+    ?.filter(
+      (record) =>
+        format(new Date(record.date || record.created_at), "yyyy-MM-dd") !==
+        todayStr,
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.date || b.created_at).getTime() -
+        new Date(a.date || a.created_at).getTime(),
+    );
+
+  return (
+    <div className="border-none shadow-none bg-transparent">
+      <CardHeader className="px-0 pb-6 flex flex-row items-center justify-between space-y-0">
+        <div className="flex items-center gap-3 px-4">
+          <div className="p-2 bg-primary/10 rounded-xl">
+            <History className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-xl font-bold">Task History</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Review your past daily activities
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <DatePickerWithRange
+            date={dateRange}
+            setDate={setDateRange}
+            className="scale-95 origin-right"
+          />
+        </div>
+      </CardHeader>
+
+      <CardContent className="px-0">
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !filteredHistory || filteredHistory.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl bg-muted/30 border-dashed">
+            <Info className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-muted-foreground font-medium">
+              No task history found for this range.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Try selecting a different date range.
+            </p>
+          </div>
+        ) : (
+          <Accordion type="single" collapsible className="space-y-3">
+            {filteredHistory.map((record) => {
+              const date = new Date(record.date || record.created_at);
+              const completedCount = record.tasks.filter(
+                (t) => t.completed,
+              ).length;
+              const totalCount = record.tasks.length;
+
+              return (
+                <AccordionItem
+                  key={record.id}
+                  value={`item-${record.id}`}
+                  className="border rounded-xl bg-card px-4"
+                >
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center justify-between w-full pr-4 text-left">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-base capitalize">
+                          {format(date, "EEEE, MMM dd, yyyy")}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {totalCount} {totalCount === 1 ? "task" : "tasks"}{" "}
+                            recorded
+                          </span>
+                          {record.report_submitted && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] h-4 py-0 bg-green-50 text-green-700 border-green-200"
+                            >
+                              Locked/Submitted
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-2">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          {completedCount}/{totalCount} completed
+                        </div>
+                        <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="bg-green-500 h-full transition-all"
+                            style={{
+                              width: `${(completedCount / totalCount) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 pt-2">
+                    <div className="space-y-2">
+                      {record.tasks.map((task, idx) => (
+                        <TaskItem
+                          key={idx}
+                          index={idx}
+                          task={task}
+                          onUpdate={() => {}} // Read-only
+                          onRemove={() => {}} // Read-only
+                          disabled={true}
+                        />
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </CardContent>
+    </div>
+  );
+}

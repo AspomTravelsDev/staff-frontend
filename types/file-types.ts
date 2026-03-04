@@ -1,11 +1,16 @@
-export type DocumentCategory = 'handbook' | 'policies' | 'contracts';
+export type DocumentCategory = 'handbook' | 'policies' | 'contracts' | 'visa' | 'general' | 'nysc' | 'other';
+export type DocumentType = 'hr' | 'visa' | 'onboarding' | 'general';
 
 export interface DocumentFile {
     id: string;
-    file_id?: string; // Some endpoints might return this separate file ID
+    file_id?: string;
     title: string;
     description: string | null;
+    type: DocumentType;
+    type_label?: string;
     category: string;
+    category_label?: string;
+    department: string;
     tags: string[] | null;
     file_path: string;
     file_size: number;
@@ -17,13 +22,15 @@ export interface DocumentFile {
         id: string;
         name: string;
     };
-    download_url?: string; // Optional helper from API
+    download_url?: string;
 }
 
 export interface CreateDocumentRequest {
     title: string;
+    type: string;
     category: string;
-    tags?: string; // Comma-separated for upload
+    department: string;
+    tags?: string;
     description?: string;
 }
 
@@ -33,7 +40,9 @@ export interface UploadDocumentResponse {
 }
 
 export interface DocumentFilters {
+    type?: string;
     category?: string;
+    department?: string;
     tags?: string;
     search?: string;
 }

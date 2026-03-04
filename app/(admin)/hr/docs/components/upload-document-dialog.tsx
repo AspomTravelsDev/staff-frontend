@@ -31,6 +31,7 @@ export function UploadDocumentDialog() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("policies");
+  const [department, setDepartment] = useState("HR");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -74,6 +75,7 @@ export function UploadDocumentDialog() {
     formData.append("file", file);
     formData.append("title", title);
     formData.append("category", category);
+    formData.append("department", department);
     if (description) formData.append("description", description);
 
     try {
@@ -83,12 +85,13 @@ export function UploadDocumentDialog() {
         setError(result.error);
         return;
       }
-      toast("Document uploaded successfully");
+      toast.success("Document uploaded successfully");
       setOpen(false);
       // Reset form
       setFile(null);
       setTitle("");
       setCategory("policies");
+      setDepartment("HR");
       setDescription("");
       setError(null);
     } catch (err) {
@@ -126,18 +129,36 @@ export function UploadDocumentDialog() {
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="category">Category *</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="handbook">Handbook</SelectItem>
-                <SelectItem value="policies">Policies</SelectItem>
-                <SelectItem value="contracts">Contracts</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="handbook">Handbook</SelectItem>
+                  <SelectItem value="policies">Policies</SelectItem>
+                  <SelectItem value="contracts">Contracts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="department">Department *</Label>
+              <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="Operation">Operation</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Accounts">Accounts</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-2">

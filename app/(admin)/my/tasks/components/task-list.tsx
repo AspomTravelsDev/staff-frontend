@@ -138,14 +138,17 @@ export function TaskList({ initialData }: TaskListProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">
-            Today's Tasks ({format(new Date(), "MMM dd, yyyy")})
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Manage your daily activities and submit report at end of day.
-          </p>
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between pb-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-500/10 rounded-xl">
+            <Plus className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Today's Tasks</h2>
+            <p className="text-xs text-muted-foreground uppercase font-medium tracking-wider">
+              {format(new Date(), "PPPP")}
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

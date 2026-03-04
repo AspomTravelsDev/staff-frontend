@@ -67,7 +67,9 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
  */
 export async function getAllDocuments(filters: DocumentFilters = {}): Promise<ApiResponse<DocumentFile[]>> {
     const params = new URLSearchParams();
+    if (filters.type) params.append("type", filters.type);
     if (filters.category) params.append("category", filters.category);
+    if (filters.department) params.append("department", filters.department);
     if (filters.search) params.append("search", filters.search);
     if (filters.tags) params.append("tags", filters.tags);
 

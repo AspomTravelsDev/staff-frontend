@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadDocumentAction } from "../actions";
+import { uploadOnboardingDocumentAction } from "../actions";
 import { Loader2, UploadCloud, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,7 @@ export function UploadDocumentDialog() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("general");
+  const [department, setDepartment] = useState("HR");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -40,7 +41,6 @@ export function UploadDocumentDialog() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    // Validate file type
     if (selectedFile.type !== "application/pdf") {
       setError("Only PDF files are allowed.");
       setFile(null);
@@ -48,7 +48,6 @@ export function UploadDocumentDialog() {
       return;
     }
 
-    // Validate file size (2MB = 2 * 1024 * 1024 bytes)
     if (selectedFile.size > 2 * 1024 * 1024) {
       setError("File size must be less than 2MB. Please compress your PDF.");
       setFile(null);
@@ -74,21 +73,22 @@ export function UploadDocumentDialog() {
     formData.append("file", file);
     formData.append("title", title);
     formData.append("category", category);
+    formData.append("department", department);
     if (description) formData.append("description", description);
 
     try {
       setIsPending(true);
-      const result = await uploadDocumentAction(formData);
+      const result = await uploadOnboardingDocumentAction(formData);
       if (result.error) {
         setError(result.error);
         return;
       }
-      toast("Document uploaded successfully");
+      toast.success("Document uploaded successfully");
       setOpen(false);
-      // Reset form
       setFile(null);
       setTitle("");
       setCategory("general");
+      setDepartment("HR");
       setDescription("");
       setError(null);
     } catch (err) {
@@ -122,22 +122,40 @@ export function UploadDocumentDialog() {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Employee Handbook 2026"
+              placeholder="e.g. Onboarding Guide 2026"
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="category">Category *</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General</SelectItem>
-                <SelectItem value="nysc">NYSC</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="nysc">NYSC</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="department">Department *</Label>
+              <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="Operation">Operation</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Accounts">Accounts</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-2">

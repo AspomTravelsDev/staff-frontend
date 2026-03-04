@@ -279,7 +279,7 @@ export const personalNav: NavItem[] = [
             {
                 title: "To-Do & Reports",
                 url: "/my/tasks",
-                badgeKey: "myTasks",
+                badgeKey: "myTasks,reportReminder",
                 badgeLabel: "Submit your to-do list"
             },
             {

@@ -71,7 +71,6 @@ export function DocumentListTable({
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      // Use file_id if available (for documents that have separate file records), otherwise fallback to id
       const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
 
@@ -83,25 +82,17 @@ export function DocumentListTable({
 
       if (!response.ok) {
         console.error("Download failed:", response.status, response.statusText);
-        // Try to parse error message
-        const errorText = await response.text();
-        console.error("Error details:", errorText);
         return;
       }
 
-      // Get filename from header or fallback
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = doc.original_name || `${doc.title}.pdf`; // Default fallback
+      let filename = doc.original_name || `${doc.title}.pdf`;
 
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
         if (filenameMatch && filenameMatch[1]) {
           filename = filenameMatch[1];
         }
-      } else if (!doc.original_name) {
-        // Fallback guess based on mime type if no header and no original name
-        if (doc.mime_type === "image/jpeg") filename = `${doc.title}.jpg`;
-        else if (doc.mime_type === "image/png") filename = `${doc.title}.png`;
       }
 
       const blob = await response.blob();
@@ -141,6 +132,7 @@ export function DocumentListTable({
         <TableHeader>
           <TableRow>
             <TableHead>Title</TableHead>
+            <TableHead>Department</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Size</TableHead>
             <TableHead>Uploaded</TableHead>
@@ -165,9 +157,21 @@ export function DocumentListTable({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="capitalize">
-                  {doc.category}
+                <Badge variant="secondary" className="w-fit">
+                  {doc.department}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1">
+                  <Badge variant="outline" className="capitalize w-fit">
+                    {doc.category_label || doc.category}
+                  </Badge>
+                  {doc.type_label && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {doc.type_label}
+                    </span>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 {(doc.file_size / 1024 / 1024).toFixed(2)} MB

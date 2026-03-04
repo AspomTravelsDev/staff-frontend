@@ -68,11 +68,20 @@ export function NavMain({
                           <Lock className="h-3 w-3 text-red-500" />
                         )}
                       </div>
-                      {badges && item.badgeKey && badges[item.badgeKey] > 0 && (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                          {badges[item.badgeKey]}
-                        </span>
-                      )}
+                      {badges &&
+                        item.badgeKey &&
+                        (() => {
+                          const keys = item.badgeKey.split(",");
+                          const total = keys.reduce(
+                            (acc, key) => acc + (badges[key.trim()] || 0),
+                            0,
+                          );
+                          return total > 0 ? (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+                              {total}
+                            </span>
+                          ) : null;
+                        })()}
                     </div>
                     {!item.disabled && (
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -111,11 +120,19 @@ export function NavMain({
                               </div>
                               {badges &&
                                 subItem.badgeKey &&
-                                badges[subItem.badgeKey] > 0 && (
-                                  <span className="flex h-4 px-1.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                                    {badges[subItem.badgeKey]}
-                                  </span>
-                                )}
+                                (() => {
+                                  const keys = subItem.badgeKey.split(",");
+                                  const total = keys.reduce(
+                                    (acc, key) =>
+                                      acc + (badges[key.trim()] || 0),
+                                    0,
+                                  );
+                                  return total > 0 ? (
+                                    <span className="flex h-4 px-1.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+                                      {total}
+                                    </span>
+                                  ) : null;
+                                })()}
                             </div>
                           </Link>
                         </SidebarMenuSubButton>
@@ -153,11 +170,20 @@ export function NavMain({
                         <Lock className="h-3 w-3 text-red-500" />
                       )}
                     </div>
-                    {badges && item.badgeKey && badges[item.badgeKey] > 0 && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
-                        {badges[item.badgeKey]}
-                      </span>
-                    )}
+                    {badges &&
+                      item.badgeKey &&
+                      (() => {
+                        const keys = item.badgeKey.split(",");
+                        const total = keys.reduce(
+                          (acc, key) => acc + (badges[key.trim()] || 0),
+                          0,
+                        );
+                        return total > 0 ? (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+                            {total}
+                          </span>
+                        ) : null;
+                      })()}
                   </div>
                 </Link>
               </SidebarMenuButton>

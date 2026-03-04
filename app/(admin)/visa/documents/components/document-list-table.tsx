@@ -193,6 +193,8 @@ export function DocumentListTable({
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Uploaded</TableHead>
@@ -214,6 +216,26 @@ export function DocumentListTable({
                         </span>
                       )}
                     </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-2 py-0 h-5"
+                  >
+                    {doc.department}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-medium capitalize">
+                      {doc.category_label || doc.category}
+                    </span>
+                    {doc.type_label && (
+                      <span className="text-[9px] text-muted-foreground uppercase tracking-tighter">
+                        {doc.type_label}
+                      </span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

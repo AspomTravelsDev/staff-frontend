@@ -46,11 +46,24 @@ export const SiteHeader = () => {
     (acc, [key, count]) => {
       if (count <= 0) return acc;
 
-      const navItem = allNavItems.find((item) => item.badgeKey === key);
+      const navItem = allNavItems.find((item) => {
+        if (!item.badgeKey) return false;
+        const keys = item.badgeKey.split(",");
+        return keys.some((k: string) => k.trim() === key);
+      });
+
       if (navItem) {
+        let label = navItem.badgeLabel || `${key} pending`;
+        // Custom labels for specific keys if they share a nav item
+        if (key === "reportReminder") {
+          label = "Submit your daily report";
+        } else if (key === "myTasks") {
+          label = "Submit your to-do list";
+        }
+
         acc[key] = {
           count: count as number,
-          label: navItem.badgeLabel || `${key} pending`,
+          label,
           url: navItem.url || "#",
         };
       }
