@@ -6,7 +6,7 @@ import { type ITGuideFormValues } from "@/lib/validations/it-guides";
 
 export default function CreateITGuidePage() {
   const handleSubmit = async (values: ITGuideFormValues) => {
-    return await createITGuide(values);
+    await createITGuide(values);
   };
 
   return (

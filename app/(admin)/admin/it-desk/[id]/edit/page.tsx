@@ -12,7 +12,8 @@ interface EditITGuidePageProps {
 export default async function EditITGuidePage({
   params,
 }: EditITGuidePageProps) {
-  const guide = await getITGuide(params.id);
+  const { id } = await params;
+  const guide = await getITGuide(id);
 
   if (!guide) {
     notFound();
@@ -20,7 +21,7 @@ export default async function EditITGuidePage({
 
   const handleSubmit = async (values: ITGuideFormValues) => {
     "use server";
-    await updateITGuide(params.id, values);
+    await updateITGuide(id, values);
   };
 
   return (
