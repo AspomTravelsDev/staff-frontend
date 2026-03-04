@@ -83,6 +83,7 @@ const TYPE_CONFIG = {
 /** Strip HTML tags to get a plain text excerpt */
 function stripHtml(html: string): string {
   return html
+    .replace(/&nbsp;/g, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();

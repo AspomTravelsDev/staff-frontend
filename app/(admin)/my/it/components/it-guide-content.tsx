@@ -1,20 +1,34 @@
 "use client";
 
+import { useMemo } from "react";
+
 interface ITGuideContentProps {
   content: string;
 }
 
 export function ITGuideContent({ content }: ITGuideContentProps) {
+  // Replace &nbsp; with regular spaces to allow natural word wrapping.
+  // Quill and other editors often insert these, which can prevent wrapping
+  // and cause "long words" that break mid-character when the container is narrow.
+  const cleanContent = useMemo(() => {
+    if (!content) return "";
+    return content.replace(/&nbsp;/g, " ");
+  }, [content]);
+
   return (
     <>
       <div
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: cleanContent }}
         className="rich-text-content"
       />
       <style jsx global>{`
         .rich-text-content {
           line-height: 1.8;
           color: hsl(var(--foreground));
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: normal;
+          hyphens: auto;
         }
         .rich-text-content h2 {
           font-size: 1.875rem;
@@ -32,6 +46,7 @@ export function ITGuideContent({ content }: ITGuideContentProps) {
         }
         .rich-text-content p {
           margin-bottom: 1.5rem;
+          white-space: normal;
         }
         .rich-text-content ul {
           list-style-type: disc !important;
@@ -71,6 +86,20 @@ export function ITGuideContent({ content }: ITGuideContentProps) {
         .rich-text-content strong,
         .rich-text-content b {
           font-weight: 700;
+        }
+        .rich-text-content pre {
+          overflow-x: auto;
+          white-space: pre-wrap;
+          word-spacing: normal;
+          word-break: normal;
+          word-wrap: break-word;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          background-color: hsl(var(--muted));
+        }
+        .rich-text-content code {
+          word-break: normal;
+          overflow-wrap: break-word;
         }
       `}</style>
     </>

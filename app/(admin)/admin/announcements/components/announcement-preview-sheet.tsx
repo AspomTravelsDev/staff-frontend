@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Megaphone, Newspaper, User } from "lucide-react";
 import type { AnnouncementItem } from "@/lib/api/announcements";
+import { AnnouncementContent } from "@/app/(admin)/my/announcement/components/announcement-content";
 
 interface PreviewSheetProps {
   item: AnnouncementItem | null;
@@ -65,7 +66,10 @@ export function AnnouncementPreviewSheet({
               <div className="flex items-center gap-2">
                 <User className="h-3.5 w-3.5" />
                 <span>
-                  By <strong className="text-foreground">{item.author_name}</strong>
+                  By{" "}
+                  <strong className="text-foreground">
+                    {item.author_name}
+                  </strong>
                 </span>
               </div>
 
@@ -73,14 +77,20 @@ export function AnnouncementPreviewSheet({
                 <div className="flex items-center gap-1.5">
                   <CalendarIcon className="h-3.5 w-3.5" />
                   <span>
-                    Sent: <strong>{format(new Date(item.created_at), "MMM dd, HH:mm")}</strong>
+                    Sent:{" "}
+                    <strong>
+                      {format(new Date(item.created_at), "MMM dd, HH:mm")}
+                    </strong>
                   </span>
                 </div>
                 {item.publish_at && (
                   <div className="flex items-center gap-1.5">
                     <CalendarIcon className="h-3.5 w-3.5" />
                     <span>
-                      Sched: <strong>{format(new Date(item.publish_at), "MMM dd, HH:mm")}</strong>
+                      Sched:{" "}
+                      <strong>
+                        {format(new Date(item.publish_at), "MMM dd, HH:mm")}
+                      </strong>
                     </span>
                   </div>
                 )}
@@ -88,12 +98,11 @@ export function AnnouncementPreviewSheet({
             </div>
           </div>
         </SheetHeader>
-
         <div className="py-6">
           <div className="p-5">
-            <div
-              className="prose prose-sm dark:prose-invert max-w-none [word-break:normal] wrap-break-word overflow-x-hidden leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: item.content }}
+            <AnnouncementContent
+              content={item.content}
+              className="prose prose-sm dark:prose-invert max-w-none leading-relaxed"
             />
           </div>
           <div className="mt-4 flex flex-col items-center gap-1">

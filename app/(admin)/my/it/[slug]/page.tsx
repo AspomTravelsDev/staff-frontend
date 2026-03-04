@@ -35,28 +35,28 @@ export default async function ITGuideDetailPage({
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumbs */}
-      <div className="bg-muted/30 border-b">
+      <div className="bg-muted/30 border-b w-full">
         <div className="container mx-auto max-w-4xl px-4 py-4">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground overflow-x-auto whitespace-nowrap">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <Link
               href="/dashboard"
-              className="hover:text-primary flex items-center gap-1"
+              className="hover:text-primary flex items-center gap-1 shrink-0"
             >
               <Home className="h-3.5 w-3.5" /> Dashboard
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <Link href="/my/it" className="hover:text-primary">
+            <Link href="/my/it" className="hover:text-primary shrink-0">
               IT Information Desk
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <span className="text-foreground font-medium truncate">
+            <span className="text-foreground font-medium wrap-break-word md:truncate">
               {guide.title}
             </span>
           </nav>
         </div>
       </div>
 
-      <article className="container mx-auto max-w-4xl px-4 py-12">
+      <article className="container mx-auto max-w-4xl px-4 py-12 w-full overflow-hidden">
         {/* Header */}
         <header className="mb-12">
           <Link
@@ -123,13 +123,6 @@ export default async function ITGuideDetailPage({
                 className="h-8 w-8 rounded-full hover:bg-background"
               >
                 <Share2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-background"
-              >
-                <Printer className="h-4 w-4" />
               </Button>
             </div>
           </div>
