@@ -109,6 +109,26 @@ export function DocumentListTable({
     }
   };
 
+  const getFileExtension = (filename: string | undefined) => {
+    if (!filename) return "";
+    return filename.split(".").pop()?.toLowerCase() || "";
+  };
+
+  const renderFileIcon = (originalName: string | undefined) => {
+    const ext = getFileExtension(originalName);
+
+    if (ext === "pdf") {
+      return <FileText className="h-4 w-4 text-red-500 shrink-0" />;
+    }
+    if (ext === "doc" || ext === "docx") {
+      return <FileText className="h-4 w-4 text-blue-500 shrink-0" />;
+    }
+    if (ext === "ppt" || ext === "pptx") {
+      return <FileText className="h-4 w-4 text-orange-500 shrink-0" />;
+    }
+    return <FileText className="h-4 w-4 text-gray-500 shrink-0" />;
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 text-center text-muted-foreground">
@@ -134,6 +154,7 @@ export function DocumentListTable({
             <TableHead>Title</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Category</TableHead>
+            <TableHead>Format</TableHead>
             <TableHead>Size</TableHead>
             <TableHead>Uploaded</TableHead>
             <TableHead>Uploaded By</TableHead>
@@ -145,7 +166,7 @@ export function DocumentListTable({
             <TableRow key={doc.id}>
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                  {renderFileIcon(doc.original_name)}
                   <div className="flex flex-col">
                     <span>{doc.title}</span>
                     {doc.description && (
@@ -172,6 +193,9 @@ export function DocumentListTable({
                     </span>
                   )}
                 </div>
+              </TableCell>
+              <TableCell>
+                {getFileExtension(doc.original_name).toUpperCase() || "N/A"}
               </TableCell>
               <TableCell>
                 {(doc.file_size / 1024 / 1024).toFixed(2)} MB
@@ -222,8 +246,7 @@ export function DocumentListTable({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Document?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete "{doc.title}"? This
-                            action cannot be undone.
+                            {`Are you sure you want to delete "${doc.title}"? This action cannot be undone.`}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

@@ -1,5 +1,5 @@
-import { DocumentListTable } from "./components/document-list-table";
 import { UploadDocumentDialog } from "./components/upload-document-dialog";
+import { DocumentViewWrapper } from "./components/document-view-wrapper";
 import { getDocuments } from "./queries";
 
 export default async function HRDocumentsPage() {
@@ -19,11 +19,7 @@ export default async function HRDocumentsPage() {
         <UploadDocumentDialog />
       </div>
 
-      <DocumentListTable
-        documents={documents}
-        isLoading={false}
-        showDelete={true}
-      />
+      <DocumentViewWrapper documents={documents} showDelete={true} />
     </div>
   );
 }

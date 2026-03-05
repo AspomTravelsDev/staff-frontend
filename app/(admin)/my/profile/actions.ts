@@ -93,12 +93,10 @@ export async function updateProfile(data: ProfileFormValues) {
     try {
         const updateRes = await api.patch(`/api/users/${user.id}`, {
             name: data.name,
-            email: data.email,
             staff_id: data.staff_id,
             phone: data.phone,
             dob: data.dob,
             date_joined: data.date_joined,
-            contract_type: data.contract_type,
         });
 
         if (!updateRes.success) {

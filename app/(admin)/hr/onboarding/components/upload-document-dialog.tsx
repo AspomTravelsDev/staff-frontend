@@ -41,8 +41,16 @@ export function UploadDocumentDialog() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    if (selectedFile.type !== "application/pdf") {
-      setError("Only PDF files are allowed.");
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ];
+
+    if (!allowedTypes.includes(selectedFile.type)) {
+      setError("Only PDF, Word, and PowerPoint files are allowed.");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
@@ -111,7 +119,7 @@ export function UploadDocumentDialog() {
         <DialogHeader>
           <DialogTitle>Upload Onboarding Document</DialogTitle>
           <DialogDescription>
-            Upload a PDF document and provide details. Max file size is 2MB.
+            Upload a PDF, Word, or PowerPoint document. Max file size is 2MB.
           </DialogDescription>
         </DialogHeader>
 
@@ -169,11 +177,11 @@ export function UploadDocumentDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="file">Select PDF *</Label>
+            <Label htmlFor="file">Select File *</Label>
             <Input
               id="file"
               type="file"
-              accept=".pdf"
+              accept=".pdf,.doc,.docx,.ppt,.pptx"
               onChange={handleFileChange}
               ref={fileInputRef}
               disabled={isPending}

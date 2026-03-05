@@ -289,7 +289,7 @@ export const personalNav: NavItem[] = [
                 badgeKey: "attendance",
                 badgeLabel: "Clock in for today"
             },
-            { title: "Employee HandBook", url: "/my/documents" },
+            { title: "Employee Documents", url: "/my/documents" },
             { title: "Appraisal", url: "/my/performance", disabled: true },
             { title: "Request Staff", url: "/my/request-staff" },
         ],

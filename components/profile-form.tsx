@@ -74,9 +74,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     startTransition(async () => {
       try {
         const payload = {
-          ...values,
-          email: user.email,
-          contract_type: user.contract_type,
+          name: values.name,
           staff_id: values.staff_id || null,
           phone: values.phone || null,
           dob: values.dob || null,

@@ -25,6 +25,7 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
 
         const headers: HeadersInit = {
             Authorization: `Bearer ${token}`,
+            Accept: "application/json",
         };
 
         // Note: New API endpoint is /api/documents
@@ -42,7 +43,7 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
             try {
                 const jsonError = JSON.parse(errorText);
                 errorMessage = jsonError.message || jsonError.error || errorMessage;
-            } catch (e) {
+            } catch (_) {
                 if (response.status === 413) errorMessage = "File too large (server limit)";
                 else if (response.status === 401) errorMessage = "Unauthorized";
                 else if (response.status === 403) errorMessage = "Forbidden (HR/Super only)";
@@ -55,9 +56,10 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
         const result: UploadDocumentResponse = await response.json();
         return { success: true, data: result.document };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Upload exception:", error);
-        return { success: false, error: { error: error.message || "Network error", code: "500" } };
+        const errorMessage = error instanceof Error ? error.message : "Network error";
+        return { success: false, error: { error: errorMessage, code: "500" } };
     }
 }
 
@@ -98,6 +100,7 @@ export async function updateDocument(id: string, formData: FormData): Promise<Ap
 
         const headers: HeadersInit = {
             Authorization: `Bearer ${token}`,
+            Accept: "application/json",
         };
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/documents/${id}`, {
@@ -115,9 +118,10 @@ export async function updateDocument(id: string, formData: FormData): Promise<Ap
         const result: UploadDocumentResponse = await response.json();
         return { success: true, data: result.document };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Update exception:", error);
-        return { success: false, error: { error: error.message || "Network error", code: "500" } };
+        const errorMessage = error instanceof Error ? error.message : "Network error";
+        return { success: false, error: { error: errorMessage, code: "500" } };
     }
 }
 

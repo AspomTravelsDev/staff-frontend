@@ -1,4 +1,4 @@
-import { DocumentListTable } from "../../hr/docs/components/document-list-table";
+import { DocumentViewWrapper } from "../../hr/docs/components/document-view-wrapper";
 import { getDocuments } from "./queries";
 
 export default async function MyDocumentsPage() {
@@ -9,19 +9,15 @@ export default async function MyDocumentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Documents & Handbooks
+            Employee Documents
           </h1>
           <p className="text-muted-foreground">
-            Download official company documents and policies.
+            Access your onboarding and official company documents.
           </p>
         </div>
       </div>
 
-      <DocumentListTable
-        documents={documents}
-        isLoading={false}
-        showDelete={false}
-      />
+      <DocumentViewWrapper documents={documents} showDelete={false} />
     </div>
   );
 }
