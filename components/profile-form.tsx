@@ -80,13 +80,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
           dob: values.dob || null,
           date_joined: values.date_joined || null,
         };
-        const result = await updateProfile(payload as any);
+        const result = await updateProfile(payload);
         if (result?.error) {
           toast.error(result.error);
         } else {
           toast.success("Profile updated successfully");
         }
-      } catch (error) {
+      } catch {
         toast.error("Something went wrong");
       }
     });

@@ -75,12 +75,12 @@ export async function uploadProfileImage(formData: FormData) {
 
 export interface ProfileFormValues {
     name: string;
-    email: string;
+    email?: string;
     staff_id: string | null;
     phone: string | null;
     dob: string | null;
     date_joined: string | null;
-    contract_type: string | null;
+    contract_type?: string | null;
 }
 
 export async function updateProfile(data: ProfileFormValues) {
