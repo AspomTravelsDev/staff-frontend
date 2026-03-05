@@ -16,11 +16,15 @@ import { Input } from "@/components/ui/input";
 
 interface ITGuideShareDialogProps {
   title: string;
+  slug: string;
 }
 
-export function ITGuideShareDialog({ title }: ITGuideShareDialogProps) {
+export function ITGuideShareDialog({ title, slug }: ITGuideShareDialogProps) {
   const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined" ? window.location.href : "";
+
+  // Construct the full URL using the slug to ensure it's always correct
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${baseUrl}/my/it/${slug}`;
 
   const handleCopy = async () => {
     try {

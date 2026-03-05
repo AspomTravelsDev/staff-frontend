@@ -121,7 +121,7 @@ export default async function ITGuideDetailPage({
               <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:hidden mr-auto">
                 Actions
               </span>
-              <ITGuideShareDialog title={guide.title} />
+              <ITGuideShareDialog title={guide.title} slug={slug} />
             </div>
           </div>
         </header>

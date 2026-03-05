@@ -245,7 +245,9 @@ export const departmentNav: NavItem[] = [
         title: "Current Rates",
         url: "/accounts/current-rates",
         icon: Coins,
-        allowedRoles: ["account"]
+        allowedRoles: ["account"],
+        badgeKey: "dollarRate",
+        badgeLabel: "Enter today's dollar rate",
     },
     {
         title: "Announcements",
