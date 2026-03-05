@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ClockInRecord } from "@/lib/api/clock-in";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   isLate,
   formatLagosTime,
@@ -27,11 +26,6 @@ export function AdminAttendanceTable({
   isLoading,
 }: AdminAttendanceTableProps) {
   // Helpers removed in favor of centralized attendance utils
-
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName) return "A";
-    return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ""}`;
-  };
 
   if (isLoading) {
     return (
@@ -50,6 +44,8 @@ export function AdminAttendanceTable({
             <TableHead>Date</TableHead>
             <TableHead>Clock In</TableHead>
             <TableHead>Clock Out</TableHead>
+            <TableHead>Method</TableHead>
+            <TableHead>Distance</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -57,14 +53,16 @@ export function AdminAttendanceTable({
         <TableBody>
           {history.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No attendance records found for the selected criteria.
               </TableCell>
             </TableRow>
           ) : (
-            history.map((record: any) => {
+            history.map((record: ClockInRecord) => {
               const late = isLate(record.clock_in_at);
-              const user = record.user || {};
+              const user = record.user;
+              const method = record.location_method || "ip";
+              const isGps = method === "gps";
 
               return (
                 <TableRow key={record.id}>
@@ -72,10 +70,10 @@ export function AdminAttendanceTable({
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col">
                         <span className="font-medium text-sm">
-                          {user.first_name} {user.last_name}
+                          {user?.first_name} {user?.last_name}
                         </span>
                         <span className="text-xs text-muted-foreground hidden md:inline-block">
-                          {user.email}
+                          {user?.email}
                         </span>
                       </div>
                     </div>
@@ -89,6 +87,42 @@ export function AdminAttendanceTable({
                   </TableCell>
 
                   <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-bold uppercase tracking-wider px-1.5 h-5 ${
+                        isGps
+                          ? "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          : "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                      }`}
+                    >
+                      {isGps ? "GPS" : "WiFi"}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell className="text-sm font-mono text-muted-foreground">
+                    {record.distance !== undefined ? (
+                      <div className="flex flex-col">
+                        <span
+                          className={
+                            record.distance > 500
+                              ? "text-destructive font-bold"
+                              : ""
+                          }
+                        >
+                          {record.distance}m
+                        </span>
+                        {isGps && record.accuracy && (
+                          <span className="text-[9px] opacity-60">
+                            ±{Math.round(record.accuracy)}m
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+
+                  <TableCell>
                     {record.duration_minutes
                       ? `${Math.floor(record.duration_minutes / 60)}h ${
                           record.duration_minutes % 60
@@ -98,7 +132,11 @@ export function AdminAttendanceTable({
                   <TableCell>
                     <Badge
                       variant={late ? "destructive" : "default"}
-                      className={!late ? "bg-green-600 hover:bg-green-700" : ""}
+                      className={
+                        !late
+                          ? "bg-green-600 hover:bg-green-700 text-[10px]"
+                          : "text-[10px]"
+                      }
                     >
                       {late ? "Late" : "On Time"}
                     </Badge>

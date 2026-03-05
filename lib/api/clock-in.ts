@@ -12,6 +12,15 @@ export interface ClockInRecord {
     is_clocked_in?: boolean; // Sometimes returned by /today
     location_method?: "gps" | "ip";
     ip_address?: string;
+    distance?: number;
+    accuracy?: number;
+    user?: {
+        name: string;
+        email: string;
+        image_url?: string;
+        first_name?: string;
+        last_name?: string;
+    };
 }
 
 export interface LocationData {
