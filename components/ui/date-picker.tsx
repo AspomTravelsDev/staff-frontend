@@ -22,6 +22,9 @@ interface DatePickerProps {
   maxDate?: Date;
   className?: string;
   "aria-invalid"?: boolean;
+  captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years";
+  startMonth?: Date;
+  endMonth?: Date;
 }
 
 function DatePicker({
@@ -33,6 +36,9 @@ function DatePicker({
   maxDate,
   className,
   "aria-invalid": ariaInvalid,
+  captionLayout,
+  startMonth,
+  endMonth,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -58,6 +64,9 @@ function DatePicker({
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
+          captionLayout={captionLayout}
+          startMonth={startMonth}
+          endMonth={endMonth}
           selected={value}
           onSelect={(date) => {
             onChange?.(date);

@@ -55,3 +55,23 @@ export async function inviteAction(
 
     return { success: true, message: result.data.message, invite_url: result.data.invite_url };
 }
+
+export async function deleteInviteAction(id: string) {
+    const token = await getAuthToken();
+    const result = await sendDeleteInvite(id, token ?? undefined);
+
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/admin/invite");
+
+    return { success: true, message: result.data.message };
+}
+
+// Internal helper for delete
+async function sendDeleteInvite(id: string, token?: string) {
+    const { deleteInvite } = await import("@/lib/auth/api");
+    return deleteInvite(id, token);
+}

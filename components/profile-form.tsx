@@ -177,6 +177,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
+                        captionLayout="dropdown"
+                        startMonth={new Date(1900, 0)}
+                        endMonth={new Date()}
                         selected={
                           field.value ? new Date(field.value) : undefined
                         }
@@ -251,6 +254,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
+                        captionLayout="dropdown"
+                        startMonth={new Date(2010, 0)}
+                        endMonth={new Date(new Date().getFullYear() + 1, 11)}
                         selected={
                           field.value ? new Date(field.value) : undefined
                         }
@@ -260,7 +266,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
                           )
                         }
                         disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
+                          date > new Date("2100-01-01") ||
+                          date < new Date("1900-01-01")
                         }
                         initialFocus
                       />

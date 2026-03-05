@@ -140,6 +140,31 @@ export async function acceptInvite(
 }
 
 /**
+ * GET /api/invites
+ * Get all pending invites
+ */
+export interface InviteRecord extends InviteData {
+    id: string;
+    token: string;
+    used: boolean;
+    expires_at: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export async function getInvites(token?: string): Promise<ApiResponse<{ data: InviteRecord[] }>> {
+    return api.get<{ data: InviteRecord[] }>("/api/invites", { token });
+}
+
+/**
+ * DELETE /api/invites/{id}
+ * Cancel an invite
+ */
+export async function deleteInvite(id: string, token?: string): Promise<ApiResponse<MessageResponse>> {
+    return api.delete<MessageResponse>(`/api/invites/${id}`, { token });
+}
+
+/**
  * GET /api/auth/user
  * Validate token and get current user
  * Success: User
