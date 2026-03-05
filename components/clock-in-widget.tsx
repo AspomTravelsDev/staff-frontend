@@ -10,6 +10,17 @@ import {
 } from "@/lib/api/clock-in";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function ClockInWidget() {
   const [loading, setLoading] = useState(false);
@@ -63,18 +74,38 @@ export function ClockInWidget() {
   return (
     <div className="flex items-center gap-3">
       {isClockedIn ? (
-        <Button
-          onClick={handleClockOut}
-          disabled={loading}
-          variant="destructive"
-          size="sm"
-          className="gap-2 h-8 px-3"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          <span className="text-xs font-bold uppercase tracking-wider">
-            {loading ? "Clocking Out..." : "Clock Out"}
-          </span>
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              disabled={loading}
+              variant="destructive"
+              size="sm"
+              className="gap-2 h-8 px-3"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {loading ? "Clocking Out..." : "Clock Out"}
+              </span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmation</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to clock out for today?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleClockOut}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Confirm Clock Out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ) : (
         <Badge
           variant="outline"

@@ -30,11 +30,27 @@ const CATEGORY_ICONS: Record<string, any> = {
   "Portal Guide": BookOpen,
 };
 
-export default async function ITInformationDeskPage() {
+export default async function ITInformationDeskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category: activeCategory } = await searchParams;
+
   const { items: guides } = await getITGuides({
     status: "published",
     limit: 50,
+    category: activeCategory === "All" ? undefined : activeCategory,
   });
+
+  const categories = [
+    "All",
+    "Portal Guide",
+    "Software",
+    "Hardware",
+    "Network",
+    "Security",
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/30">
@@ -50,44 +66,44 @@ export default async function ITInformationDeskPage() {
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6">
             IT Information Desk
           </h1>
-          <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto leading-relaxed">
             Everything you need to know about our IT systems, software, and
             hardware. Detailed guides and documentation to keep you productive.
           </p>
-
-          <div className="relative max-w-xl mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Search for guides, troubleshooting, or software..."
-              className="pl-10 h-12 bg-background text-foreground rounded-full shadow-lg border-none"
-            />
-          </div>
         </div>
       </section>
 
       {/* Main Content */}
       <main className="container mx-auto max-w-6xl py-12 px-4 grow">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <h2 className="text-2xl font-bold tracking-tight">
-            Latest IT Guides
+            {activeCategory && activeCategory !== "All"
+              ? `${activeCategory} Guides`
+              : "Latest IT Guides"}
           </h2>
-          <div className="flex gap-2">
-            {[
-              "All",
-              "Portal Guide",
-              "Software",
-              "Hardware",
-              "Network",
-              "Security",
-            ].map((cat) => (
-              <Badge
-                key={cat}
-                variant="outline"
-                className="px-4 py-1.5 cursor-pointer hover:bg-muted transition-colors"
-              >
-                {cat}
-              </Badge>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => {
+              const isActive =
+                activeCategory === cat || (!activeCategory && cat === "All");
+              return (
+                <Link
+                  key={cat}
+                  href={cat === "All" ? "/my/it" : `/my/it?category=${cat}`}
+                  scroll={false}
+                >
+                  <Badge
+                    variant={isActive ? "default" : "outline"}
+                    className={`px-4 py-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+                      isActive
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    {cat}
+                  </Badge>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
@@ -163,26 +179,18 @@ export default async function ITInformationDeskPage() {
             Can't find what you're looking for?
           </h3>
           <p className="text-muted-foreground mb-8">
-            Our IT team is here to help! If you still need assistance after
-            checking these guides, please open an IT issue or contact us
-            directly.
+            If you still need assistance after checking these guides, please
+            open an IT issue or contact us directly.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/my/it-issue">
               <Button
                 size="lg"
-                className="h-14 px-8 rounded-full font-bold shadow-lg"
+                className="h-14 px-8 rounded-full font-bold shadow-lg hover:cursor-pointer"
               >
                 Report an IT Issue
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 rounded-full font-bold"
-            >
-              Chat with IT Support
-            </Button>
           </div>
         </div>
       </section>

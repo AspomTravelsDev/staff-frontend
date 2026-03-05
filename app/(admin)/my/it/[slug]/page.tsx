@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ITGuideContent } from "../components/it-guide-content";
+import { ITGuideShareDialog } from "../components/it-guide-share-dialog";
 
 interface ITGuideDetailPageProps {
   params: {
@@ -49,7 +50,7 @@ export default async function ITGuideDetailPage({
               IT Information Desk
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <span className="text-foreground font-medium wrap-break-word md:truncate">
+            <span className="text-foreground font-medium break-all md:truncate">
               {guide.title}
             </span>
           </nav>
@@ -81,30 +82,30 @@ export default async function ITGuideDetailPage({
             {guide.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-y-4 gap-x-8 text-sm text-muted-foreground bg-muted/20 p-4 rounded-xl border">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <User className="h-4 w-4" />
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-y-4 gap-x-8 text-sm text-muted-foreground bg-muted/20 p-4 rounded-xl border">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <User className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-foreground uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">
                   Author
                 </p>
-                <p className="font-medium text-foreground">
+                <p className="font-semibold text-foreground leading-none">
                   {guide.author_name}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                <Calendar className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-foreground uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">
                   Published
                 </p>
-                <p className="font-medium text-foreground">
+                <p className="font-semibold text-foreground leading-none">
                   {guide.published_at
                     ? new Date(guide.published_at).toLocaleDateString("en-US", {
                         month: "long",
@@ -116,14 +117,11 @@ export default async function ITGuideDetailPage({
               </div>
             </div>
 
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-background"
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
+            <div className="sm:ml-auto flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 w-full sm:w-auto">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:hidden mr-auto">
+                Actions
+              </span>
+              <ITGuideShareDialog title={guide.title} />
             </div>
           </div>
         </header>

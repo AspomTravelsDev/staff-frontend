@@ -67,6 +67,7 @@ export function AvatarUpload({ user, initials }: AvatarUploadProps) {
         <AvatarImage
           src={toProxiedImageUrl(user.image_url) || ""}
           alt={user.name}
+          className="object-cover object-top"
         />
         <AvatarFallback className="rounded-lg text-lg">
           {initials}
