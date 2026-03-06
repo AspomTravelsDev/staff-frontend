@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "./components/application-actions";
 import { getApplications } from "@/lib/api/hr";
+import { formatLagosDate } from "@/lib/utils/attendance";
 
 export default async function AdminDashboardPage() {
   const applications = await getApplications();
@@ -120,9 +121,7 @@ export default async function AdminDashboardPage() {
                       {app.status.replace("_", " ")}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {new Date(app.invited_at).toLocaleDateString()}
-                  </TableCell>
+                  <TableCell>{formatLagosDate(app.invited_at)}</TableCell>
                   <TableCell>
                     <ApplicationActions
                       id={app.id}

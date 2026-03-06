@@ -6,6 +6,7 @@ import { EmployeeFilters, FilterValues } from "./employee-filters";
 import { useState, useMemo } from "react";
 import type { Employee, EmployeeStats } from "@/lib/api/employees";
 import { TableExportButton } from "@/components/ui/table-export-button";
+import { formatLagosDate } from "@/lib/utils/attendance";
 
 interface EmployeeListContentProps {
   employees: Employee[];
@@ -86,7 +87,7 @@ export function EmployeeListContent({
     {
       header: "Date Joined",
       key: (emp: Employee) =>
-        emp.joinDate ? new Date(emp.joinDate).toLocaleDateString() : "-",
+        emp.joinDate ? formatLagosDate(emp.joinDate) : "-",
     },
     { header: "Status", key: (emp: Employee) => emp.status || "" },
   ];

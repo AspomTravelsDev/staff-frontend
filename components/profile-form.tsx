@@ -177,7 +177,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                         mode="single"
                         captionLayout="dropdown"
                         startMonth={new Date(1900, 0)}
-                        endMonth={new Date()}
+                        endMonth={new Date(new Date().getFullYear() + 1, 11)}
                         selected={
                           field.value ? new Date(field.value) : undefined
                         }

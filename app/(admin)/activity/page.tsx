@@ -13,7 +13,11 @@ import { getActivities } from "@/lib/api/activity";
 export default async function ActivityPage() {
   const user = await getCurrentUser();
 
-  if (!user || !["super", "it"].includes(user.role)) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!["super", "it"].includes(user.role)) {
     redirect("/dashboard");
   }
 

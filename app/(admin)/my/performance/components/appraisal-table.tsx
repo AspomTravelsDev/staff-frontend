@@ -83,18 +83,17 @@ export function AppraisalTable({ appraisals }: AppraisalTableProps) {
             {appraisals.map((appraisal) => (
               <TableRow key={appraisal.id}>
                 <TableCell className="font-medium">
-                  {new Date(appraisal.period_start).toLocaleDateString(
-                    "en-US",
-                    {
-                      month: "short",
-                      year: "numeric",
-                    },
-                  )}{" "}
-                  -{" "}
-                  {new Date(appraisal.period_end).toLocaleDateString("en-US", {
+                  {new Intl.DateTimeFormat("en-US", {
+                    timeZone: "Africa/Lagos",
                     month: "short",
                     year: "numeric",
-                  })}
+                  }).format(new Date(appraisal.period_start))}{" "}
+                  -{" "}
+                  {new Intl.DateTimeFormat("en-US", {
+                    timeZone: "Africa/Lagos",
+                    month: "short",
+                    year: "numeric",
+                  }).format(new Date(appraisal.period_end))}
                 </TableCell>
                 <TableCell>{appraisal.appraisal_type}</TableCell>
                 <TableCell>{getStatusBadge(appraisal.status)}</TableCell>
@@ -109,9 +108,9 @@ export function AppraisalTable({ appraisals }: AppraisalTableProps) {
                 </TableCell>
                 <TableCell>
                   {appraisal.self_submitted_at
-                    ? new Date(appraisal.self_submitted_at).toLocaleDateString(
-                        "en-US",
-                      )
+                    ? new Intl.DateTimeFormat("en-US", {
+                        timeZone: "Africa/Lagos",
+                      }).format(new Date(appraisal.self_submitted_at))
                     : "Not submitted"}
                 </TableCell>
                 <TableCell className="text-right">

@@ -93,12 +93,30 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
               return (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
-                    <Link
-                      href={`/announcements/${item.id}`}
-                      className="hover:underline font-bold"
-                    >
-                      {item.title}
-                    </Link>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        href={`/announcements/${item.id}`}
+                        className="hover:underline font-bold"
+                      >
+                        {item.title}
+                      </Link>
+                      {item.priority === "urgent" && (
+                        <Badge
+                          variant="destructive"
+                          className="uppercase text-[9px] px-1.5 py-0 h-4 tracking-wider animate-pulse"
+                        >
+                          Important
+                        </Badge>
+                      )}
+                      {item.priority === "high" && (
+                        <Badge
+                          variant="secondary"
+                          className="uppercase text-[9px] px-1.5 py-0 h-4 tracking-wider bg-orange-100 text-orange-800 hover:bg-orange-100 dark:bg-orange-900/40 dark:text-orange-400 border-none"
+                        >
+                          High Priority
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="capitalize">{item.type}</TableCell>
                   <TableCell>

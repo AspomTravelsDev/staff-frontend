@@ -16,7 +16,11 @@ export default async function CompliancePage() {
   const user = await getCurrentUser();
 
   // Access control
-  if (!user || !["super", "admin", "hr", "compliance"].includes(user.role)) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!["super", "admin", "hr", "compliance"].includes(user.role)) {
     redirect("/dashboard");
   }
 

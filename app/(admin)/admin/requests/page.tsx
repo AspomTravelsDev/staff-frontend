@@ -14,7 +14,11 @@ import { getRequests, getRequestStats } from "@/lib/api/requests";
 export default async function RequestsPage() {
   const user = await getCurrentUser();
 
-  if (!user || !["super", "it", "admin"].includes(user.role)) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!["super", "it", "admin"].includes(user.role)) {
     redirect("/dashboard");
   }
 

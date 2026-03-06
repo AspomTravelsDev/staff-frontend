@@ -10,6 +10,7 @@ import {
 import type { TimelineEntry } from "@/lib/validations/visa";
 import type { FieldDefinition } from "@/lib/visa/fields";
 import { cn } from "@/lib/utils";
+import { formatLagosDate } from "@/lib/utils/attendance";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,7 @@ export function TimelineField({
     if (oldestDate > requiredStartDate) {
       return {
         hasGaps: true,
-        message: `Your history should go back to ${requiredStartDate.toLocaleDateString()}`,
+        message: `Your history should go back to ${formatLagosDate(requiredStartDate)}`,
       };
     }
 
@@ -117,7 +118,7 @@ export function TimelineField({
       if (gapDays > 1) {
         return {
           hasGaps: true,
-          message: `Gap detected between ${previousEnd.toLocaleDateString()} and ${currentStart.toLocaleDateString()}`,
+          message: `Gap detected between ${formatLagosDate(previousEnd)} and ${formatLagosDate(currentStart)}`,
         };
       }
     }
@@ -235,8 +236,8 @@ export function TimelineField({
                 </div>
                 {entry.start_date && entry.end_date && (
                   <div className="text-muted-foreground text-xs">
-                    {new Date(entry.start_date as string).toLocaleDateString()}{" "}
-                    – {new Date(entry.end_date as string).toLocaleDateString()}
+                    {formatLagosDate(entry.start_date as string)} –{" "}
+                    {formatLagosDate(entry.end_date as string)}
                   </div>
                 )}
               </div>

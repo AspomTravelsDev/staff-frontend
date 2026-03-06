@@ -9,9 +9,9 @@ import {
   Globe,
 } from "lucide-react";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatLagosDate } from "@/lib/utils/attendance";
 import {
   Card,
   CardContent,
@@ -158,7 +158,7 @@ export default async function ITInformationDeskPage({
                         <span>•</span>
                         <span>
                           {guide.published_at
-                            ? new Date(guide.published_at).toLocaleDateString()
+                            ? formatLagosDate(guide.published_at)
                             : "Draft"}
                         </span>
                       </div>

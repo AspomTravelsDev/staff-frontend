@@ -53,3 +53,19 @@ export function formatLagosDate(dateString: string | Date): string {
         day: "numeric",
     }).format(date);
 }
+
+/**
+ * Formats a date string specifically as YYYY-MM-DD (Lagos perspective) for HTML date inputs.
+ */
+export function formatLagosDateForInput(dateString: string | Date | null | undefined): string {
+    if (!dateString) return "";
+    const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+
+    // en-CA natively formats as YYYY-MM-DD
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Lagos",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(date);
+}

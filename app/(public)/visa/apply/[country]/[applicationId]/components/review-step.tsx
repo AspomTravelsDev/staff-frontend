@@ -15,6 +15,7 @@ import type {
   TimelineEntry,
   UploadedFile,
 } from "@/lib/validations/visa";
+import { formatLagosDate } from "@/lib/utils/attendance";
 
 import {
   Card,
@@ -45,7 +46,7 @@ export function ReviewStep({ country, formData, onEditStep }: ReviewStepProps) {
     // Handle dates
     if (typeof value === "string" && value.match(/^\d{4}-\d{2}-\d{2}/)) {
       try {
-        return new Date(value).toLocaleDateString();
+        return formatLagosDate(value);
       } catch {
         return value;
       }
@@ -101,9 +102,9 @@ export function ReviewStep({ country, formData, onEditStep }: ReviewStepProps) {
 
             const dates =
               entry.start_date && entry.end_date
-                ? `${new Date(entry.start_date as string).toLocaleDateString()} – ${new Date(entry.end_date as string).toLocaleDateString()}`
+                ? `${formatLagosDate(entry.start_date as string)} – ${formatLagosDate(entry.end_date as string)}`
                 : entry.entry_date && entry.exit_date
-                  ? `${new Date(entry.entry_date as string).toLocaleDateString()} – ${new Date(entry.exit_date as string).toLocaleDateString()}`
+                  ? `${formatLagosDate(entry.entry_date as string)} – ${formatLagosDate(entry.exit_date as string)}`
                   : null;
 
             return (

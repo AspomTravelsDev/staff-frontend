@@ -107,11 +107,12 @@ export default async function ITGuideDetailPage({
                 </p>
                 <p className="font-semibold text-foreground leading-none">
                   {guide.published_at
-                    ? new Date(guide.published_at).toLocaleDateString("en-US", {
+                    ? new Intl.DateTimeFormat("en-US", {
+                        timeZone: "Africa/Lagos",
                         month: "long",
                         day: "numeric",
                         year: "numeric",
-                      })
+                      }).format(new Date(guide.published_at))
                     : "Draft"}
                 </p>
               </div>

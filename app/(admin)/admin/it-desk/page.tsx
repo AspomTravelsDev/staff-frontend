@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatLagosDate } from "@/lib/utils/attendance";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -183,7 +184,7 @@ export default async function ITDeskManagementPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Date(guide.created_at).toLocaleDateString()}
+                    {formatLagosDate(guide.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -42,6 +42,7 @@ import { updateUserStatusAction, deleteUserAction } from "../actions";
 import { toast } from "sonner";
 import { useState } from "react";
 import { EditUserDialog } from "./edit-user-dialog";
+import { formatLagosDate } from "@/lib/utils/attendance";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -151,13 +152,7 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {employee.joinDate
-                    ? new Date(employee.joinDate).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "-"}
+                  {employee.joinDate ? formatLagosDate(employee.joinDate) : "-"}
                 </TableCell>
                 <TableCell>
                   <Badge

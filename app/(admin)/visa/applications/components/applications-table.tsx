@@ -10,6 +10,7 @@ import {
   IconFilter,
 } from "@tabler/icons-react";
 import { useState } from "react";
+import { formatLagosDate } from "@/lib/utils/attendance";
 
 import type { ApplicationListItem } from "../queries";
 import { cn } from "@/lib/utils";
@@ -93,11 +94,7 @@ export function ApplicationsTable({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatLagosDate(dateString);
   };
 
   return (

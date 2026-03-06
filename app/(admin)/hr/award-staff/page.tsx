@@ -15,7 +15,11 @@ export const metadata = {
 export default async function AwardStaffPage() {
   const user = await getCurrentUser();
 
-  if (!user || (user.role !== "hr" && user.role !== "super")) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (user.role !== "hr" && user.role !== "super") {
     redirect("/dashboard");
   }
 

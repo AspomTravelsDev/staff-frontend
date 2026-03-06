@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { getRolesForSelect } from "@/types/user-types";
 import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
+import { formatLagosDateForInput } from "@/lib/utils/attendance";
 
 interface EditUserDialogProps {
   employee: Employee | null;
@@ -109,8 +110,8 @@ export function EditUserDialog({
         department: employee.department || "",
         is_supervisor: employee.is_supervisor,
         gross_pay: employee.gross_pay || "",
-        date_joined: employee.joinDate ? employee.joinDate.split("T")[0] : "",
-        dob: employee.dob ? employee.dob.split("T")[0] : "",
+        date_joined: formatLagosDateForInput(employee.joinDate),
+        dob: formatLagosDateForInput(employee.dob),
         contract_type: employee.contract_type || "",
         is_active: employee.status === "Active",
       });

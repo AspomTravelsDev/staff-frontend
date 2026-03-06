@@ -6,7 +6,11 @@ import { AdminAnnouncementsContent } from "./components/admin-announcements-cont
 export default async function AdminAnnouncementsPage() {
   const user = await getCurrentUser();
 
-  if (!user || !["admin", "super"].includes(user.role)) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!["admin", "super", "it"].includes(user.role)) {
     redirect("/dashboard");
   }
 

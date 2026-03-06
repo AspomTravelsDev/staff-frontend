@@ -32,10 +32,11 @@ export function AppraisalStatsCards({ stats }: AppraisalStatsCardsProps) {
     {
       title: "Last Review",
       value: stats.last_review_date
-        ? new Date(stats.last_review_date).toLocaleDateString("en-US", {
+        ? new Intl.DateTimeFormat("en-US", {
+            timeZone: "Africa/Lagos",
             month: "short",
             year: "numeric",
-          })
+          }).format(new Date(stats.last_review_date))
         : "N/A",
       description: "Most recent",
       icon: Calendar,

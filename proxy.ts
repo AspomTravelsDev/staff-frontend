@@ -24,6 +24,18 @@ const protectedRoutes = [
     "/visa",
     "/admin",
     "/my",
+    "/activity",
+    "/announcements",
+    "/attendance",
+    "/chat",
+    "/crm",
+    "/it",
+];
+
+// Routes that are always public, even if they match a protected prefix
+const publicRoutes = [
+    "/visa/apply",
+    "/applicant",
 ];
 
 // Routes only for unauthenticated users
@@ -32,6 +44,15 @@ const authRoutes = ["/login", "/reset-password", "/update-password", "/accept-in
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+
+    // First check if it's a public route (whitelist)
+    const isPublicRoute = publicRoutes.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+
+    if (isPublicRoute) {
+        return NextResponse.next();
+    }
 
     // Check if accessing a protected route without auth
     const isProtectedRoute = protectedRoutes.some(
@@ -55,6 +76,8 @@ export function proxy(request: NextRequest) {
 
     return NextResponse.next();
 }
+
+export { proxy as middleware };
 
 export const config = {
     matcher: [
