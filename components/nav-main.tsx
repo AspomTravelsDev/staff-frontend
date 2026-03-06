@@ -29,7 +29,7 @@ export function NavMain({
 }: {
   items: NavItem[];
   label?: string;
-  badges?: Record<string, number>;
+  badges?: Record<string, number | { count: number; latest_id: string | null }>;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -72,10 +72,15 @@ export function NavMain({
                         item.badgeKey &&
                         (() => {
                           const keys = item.badgeKey.split(",");
-                          const total = keys.reduce(
-                            (acc, key) => acc + (badges[key.trim()] || 0),
-                            0,
-                          );
+                          const total = keys.reduce((acc, key) => {
+                            const val = badges[key.trim()];
+                            return (
+                              acc +
+                              (typeof val === "object" && val !== null
+                                ? val.count
+                                : val || 0)
+                            );
+                          }, 0);
                           return total > 0 ? (
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
                               {total}
@@ -122,11 +127,15 @@ export function NavMain({
                                 subItem.badgeKey &&
                                 (() => {
                                   const keys = subItem.badgeKey.split(",");
-                                  const total = keys.reduce(
-                                    (acc, key) =>
-                                      acc + (badges[key.trim()] || 0),
-                                    0,
-                                  );
+                                  const total = keys.reduce((acc, key) => {
+                                    const val = badges[key.trim()];
+                                    return (
+                                      acc +
+                                      (typeof val === "object" && val !== null
+                                        ? val.count
+                                        : val || 0)
+                                    );
+                                  }, 0);
                                   return total > 0 ? (
                                     <span className="flex h-4 px-1.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
                                       {total}
@@ -174,10 +183,15 @@ export function NavMain({
                       item.badgeKey &&
                       (() => {
                         const keys = item.badgeKey.split(",");
-                        const total = keys.reduce(
-                          (acc, key) => acc + (badges[key.trim()] || 0),
-                          0,
-                        );
+                        const total = keys.reduce((acc, key) => {
+                          const val = badges[key.trim()];
+                          return (
+                            acc +
+                            (typeof val === "object" && val !== null
+                              ? val.count
+                              : val || 0)
+                          );
+                        }, 0);
                         return total > 0 ? (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
                             {total}
