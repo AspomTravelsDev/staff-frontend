@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, Megaphone, Newspaper, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { AnnouncementContent } from "@/app/(admin)/my/announcement/components/announcement-content";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -81,9 +82,9 @@ export default async function AnnouncementPage({ params }: PageProps) {
         <hr className="border-t-2 border-muted/50" />
 
         <article className="w-full max-w-4xl">
-          <div
+          <AnnouncementContent
             className="prose prose-base sm:prose-lg md:prose-xl lg:prose-2xl dark:prose-invert max-w-none wrap-break-word [word-break:normal] overflow-x-hidden leading-relaxed sm:leading-loose selection:bg-primary/20"
-            dangerouslySetInnerHTML={{ __html: announcement.content }}
+            content={announcement.content}
           />
         </article>
       </div>
