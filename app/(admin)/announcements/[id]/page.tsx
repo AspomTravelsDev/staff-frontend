@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon, Megaphone, Newspaper, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { AnnouncementContent } from "@/app/(admin)/my/announcement/components/announcement-content";
+import { AnnouncementReadTracker } from "./components/announcement-read-tracker";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -24,6 +25,8 @@ export default async function AnnouncementPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto w-full px-4 sm:px-8 md:px-16 py-8 sm:py-12">
+      <AnnouncementReadTracker id={id} />
+
       {/* Navigation */}
       <div className="mb-10 md:mb-16">
         <Button

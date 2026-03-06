@@ -6,7 +6,10 @@ import { useQueryClient } from "@tanstack/react-query";
 export function NotificationsUpdater({
   notifications,
 }: {
-  notifications: Record<string, number>;
+  notifications: Record<
+    string,
+    number | { count: number; latest_id: string | null }
+  >;
 }) {
   const queryClient = useQueryClient();
 

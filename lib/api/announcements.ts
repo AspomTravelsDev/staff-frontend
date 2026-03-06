@@ -27,6 +27,7 @@ export interface AnnouncementItem {
     rejection_reason?: string | null;
     created_at: string;
     updated_at: string;
+    has_read?: boolean;
 }
 
 export interface CreateAnnouncementPayload {
@@ -166,6 +167,19 @@ export async function getAnnouncementById(
 
     const all = [...approved.items, ...pending.items, ...rejected.items];
     return all.find((item) => item.id === id) ?? null;
+}
+
+/**
+ * Mark an announcement as read by the current user
+ */
+export async function markAnnouncementAsRead(id: string): Promise<void> {
+    const result = await api.post<{ message: string }>(
+        `/api/announcements/${id}/read`
+    );
+    if (!result.success) throw new Error(result.error.error);
+    // Revalidating these paths ensures the unread count/dashboard feed updates immediately
+    revalidatePath("/dashboard");
+    revalidatePath("/my/announcement");
 }
 
 

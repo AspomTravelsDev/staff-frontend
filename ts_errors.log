@@ -1,0 +1,8 @@
+components/app-sidebar.tsx(117,15): error TS2322: Type 'Record<string, number | { count: number; latest_id: string | null; }>' is not assignable to type 'Record<string, number>'.
+  'string' index signatures are incompatible.
+    Type 'number | { count: number; latest_id: string | null; }' is not assignable to type 'number'.
+      Type '{ count: number; latest_id: string | null; }' is not assignable to type 'number'.
+components/app-sidebar.tsx(132,11): error TS2322: Type 'Record<string, number | { count: number; latest_id: string | null; }>' is not assignable to type 'Record<string, number>'.
+  'string' index signatures are incompatible.
+    Type 'number | { count: number; latest_id: string | null; }' is not assignable to type 'number'.
+      Type '{ count: number; latest_id: string | null; }' is not assignable to type 'number'.

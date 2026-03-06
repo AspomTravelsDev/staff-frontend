@@ -44,7 +44,11 @@ export const SiteHeader = () => {
   // Filter notifications to only those that have a corresponding visible navigation item
   const visibleNotifications = Object.entries(notifications || {}).reduce(
     (acc, [key, count]) => {
-      if (count <= 0) return acc;
+      const actualCount =
+        typeof count === "object" && count !== null
+          ? count.count
+          : (count as number);
+      if (actualCount <= 0) return acc;
 
       const navItem = allNavItems.find((item) => {
         if (!item.badgeKey) return false;
@@ -61,10 +65,27 @@ export const SiteHeader = () => {
           label = "Submit your to-do list";
         }
 
+        let targetUrl = navItem.url || "#";
+        let displayCount = 0;
+
+        if (typeof count === "object" && count !== null) {
+          displayCount = count.count;
+          // Dynamic routing for announcements
+          if (key === "unreadAnnouncements") {
+            if (displayCount === 1 && count.latest_id) {
+              targetUrl = `/announcements/${count.latest_id}`;
+            } else {
+              targetUrl = "/dashboard#announcements";
+            }
+          }
+        } else {
+          displayCount = count as number;
+        }
+
         acc[key] = {
-          count: count as number,
+          count: displayCount,
           label,
-          url: navItem.url || "#",
+          url: targetUrl,
         };
       }
       return acc;

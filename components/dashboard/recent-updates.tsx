@@ -71,7 +71,7 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
   };
 
   return (
-    <Card className={className}>
+    <Card id="announcements" className={className}>
       <CardHeader>
         <CardTitle>Newsletter & Announcements</CardTitle>
         <CardDescription>
@@ -90,16 +90,28 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
           </TableHeader>
           <TableBody>
             {currentItems.map((item) => {
+              const isUnread = item.has_read === false;
               return (
-                <TableRow key={item.id}>
+                <TableRow
+                  key={item.id}
+                  className={isUnread ? "bg-primary/5 dark:bg-primary/10" : ""}
+                >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         href={`/announcements/${item.id}`}
-                        className="hover:underline font-bold"
+                        className={`hover:underline ${isUnread ? "font-black" : "font-semibold"}`}
                       >
                         {item.title}
                       </Link>
+                      {isUnread && (
+                        <Badge
+                          variant="default"
+                          className="uppercase text-[9px] px-1.5 py-0 h-4 tracking-wider bg-primary text-primary-foreground"
+                        >
+                          New
+                        </Badge>
+                      )}
                       {item.priority === "urgent" && (
                         <Badge
                           variant="destructive"

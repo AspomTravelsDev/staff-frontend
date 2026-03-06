@@ -2,9 +2,9 @@
 
 import { api } from "./client";
 
-export async function getNotifications(): Promise<Record<string, number>> {
+export async function getNotifications(): Promise<Record<string, number | { count: number; latest_id: string | null }>> {
 
-    const result = await api.get<Record<string, number>>("/api/notifications");
+    const result = await api.get<Record<string, any>>("/api/notifications");
 
 
     if (!result.success) {
@@ -18,5 +18,5 @@ export async function getNotifications(): Promise<Record<string, number>> {
     const actualData = (result.data as any).data || result.data;
 
 
-    return actualData as Record<string, number>;
+    return actualData;
 }

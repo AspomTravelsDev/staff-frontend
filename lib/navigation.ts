@@ -46,6 +46,8 @@ export const dashboardNav: NavItem[] = [
         title: "Dashboard",
         url: "/dashboard",
         icon: LayoutDashboard,
+        badgeKey: "unreadAnnouncements",
+        badgeLabel: "New announcements",
     },
 ];
 
