@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">HR Dashboard</h1>
+          <h1 className="text-3xl font-bold">Applications Dashboard</h1>
           <p className="text-muted-foreground">
             Manage onboarding applications and track progress
           </p>

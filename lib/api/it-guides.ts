@@ -128,3 +128,10 @@ export async function deleteITGuide(id: string): Promise<void> {
     revalidatePath("/admin/it-desk");
     revalidatePath("/my/it");
 }
+
+/**
+ * Mark an IT guide as read for the current user
+ */
+export async function markITGuideAsRead(id: string): Promise<void> {
+    await api.post(`/api/it-guides/${id}/mark-read`, {});
+}

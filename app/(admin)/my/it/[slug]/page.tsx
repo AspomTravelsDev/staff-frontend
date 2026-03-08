@@ -1,4 +1,4 @@
-import { getITGuide } from "@/lib/api/it-guides";
+import { getITGuide, markITGuideAsRead } from "@/lib/api/it-guides";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -32,6 +32,9 @@ export default async function ITGuideDetailPage({
   if (!guide) {
     notFound();
   }
+
+  // Mark as read so the notification clears
+  await markITGuideAsRead(guide.id).catch(() => {});
 
   return (
     <div className="min-h-screen bg-background">

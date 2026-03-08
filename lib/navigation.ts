@@ -148,7 +148,6 @@ export const departmentNav: NavItem[] = [
         url: "/hr/applications",
         icon: FileText,
         allowedRoles: ["hr"],
-        disabled: true,
     },
     {
         title: "Onboarding Documents",
@@ -349,6 +348,8 @@ export const personalNav: NavItem[] = [
             // },
             {
                 title: "IT Information Desk", url: "/my/it",
+                badgeKey: "unreadITGuides",
+                badgeLabel: "New IT guides available",
             }
         ]
     },

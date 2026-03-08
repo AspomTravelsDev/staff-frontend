@@ -78,6 +78,14 @@ export const SiteHeader = () => {
               targetUrl = "/dashboard#announcements";
             }
           }
+          // Dynamic routing for IT guides
+          if (key === "unreadITGuides") {
+            if (displayCount === 1 && count.latest_id) {
+              targetUrl = `/my/it/${count.latest_id}`;
+            } else {
+              targetUrl = "/my/it";
+            }
+          }
         } else {
           displayCount = count as number;
         }
