@@ -25,7 +25,8 @@ const SALARY_PERCENTAGES = {
   passages: 0.1146,
 };
 
-const TAX_PERCENTAGE = 0.153;
+// Static simple tax percentage unused now in favor of PAYE logic
+// const TAX_PERCENTAGE = 0.153;
 
 export function CreateApplicationForm() {
   const router = useRouter();
@@ -36,6 +37,34 @@ export function CreateApplicationForm() {
   // Derive breakdown from grossSalary using useMemo
   const breakdown = React.useMemo(() => {
     if (grossSalary > 0) {
+      // Calculate PAYE Tax exactly as Payslip does
+      let remainingTaxable = grossSalary * 12;
+      let annualTax = 0;
+
+      const band1 = Math.min(remainingTaxable, 800000);
+      remainingTaxable -= band1;
+
+      if (remainingTaxable > 0) {
+        const band2 = Math.min(remainingTaxable, 2200000);
+        annualTax += band2 * 0.15;
+        remainingTaxable -= band2;
+      }
+      if (remainingTaxable > 0) {
+        const band3 = Math.min(remainingTaxable, 9000000);
+        annualTax += band3 * 0.18;
+        remainingTaxable -= band3;
+      }
+      if (remainingTaxable > 0) {
+        const band4 = Math.min(remainingTaxable, 13000000);
+        annualTax += band4 * 0.21;
+        remainingTaxable -= band4;
+      }
+      if (remainingTaxable > 0) {
+        annualTax += remainingTaxable * 0.25;
+      }
+
+      const calculated_tax = Math.round((annualTax / 12) * 100) / 100;
+
       const calculated = {
         basic: Math.round(grossSalary * SALARY_PERCENTAGES.basic * 100) / 100,
         rent_housing:
@@ -57,8 +86,7 @@ export function CreateApplicationForm() {
           Math.round(grossSalary * SALARY_PERCENTAGES.clothing * 100) / 100,
         passages:
           Math.round(grossSalary * SALARY_PERCENTAGES.passages * 100) / 100,
-        statutory_tax_deduction:
-          Math.round(grossSalary * TAX_PERCENTAGE * 100) / 100,
+        statutory_tax_deduction: calculated_tax,
         net_salary: 0,
       };
       calculated.net_salary =
@@ -89,6 +117,7 @@ export function CreateApplicationForm() {
     setIsPending(true);
 
     const formData = new FormData(e.currentTarget);
+    const applicant_name = formData.get("applicant_name") as string;
     const applicant_email = formData.get("applicant_email") as string;
     const position_title = formData.get("position_title") as string;
     const reporting_to = formData.get("reporting_to") as string;
@@ -99,6 +128,7 @@ export function CreateApplicationForm() {
 
     try {
       await createApplication({
+        applicant_name,
         applicant_email,
         position_title,
         reporting_to,
@@ -143,6 +173,17 @@ export function CreateApplicationForm() {
           <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="applicant_name">Applicant Full Name</Label>
+            <Input
+              id="applicant_name"
+              name="applicant_name"
+              type="text"
+              required
+              placeholder="e.g., John Doe"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="applicant_email">Applicant Email</Label>
             <Input
@@ -379,7 +420,7 @@ export function CreateApplicationForm() {
 
           <div className="space-y-2">
             <Label htmlFor="statutory_tax_deduction">
-              Statutory Tax Deduction (14.97%)
+              Statutory Tax Deduction (PAYE calculated)
             </Label>
             <Input
               id="statutory_tax_deduction"

@@ -86,52 +86,61 @@ export default async function AdminDashboardPage() {
           <CardTitle>Recent Applications</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {applications.map((app) => (
-                <TableRow key={app.id}>
-                  {/* We don't have 'name' yet, using email or need to add name to schema? 
-                      Schema had applicant_email. We'll use email for now or duplicate it.
-                  */}
-                  <TableCell className="font-medium">
-                    {app.applicant_email.split("@")[0]}
-                  </TableCell>
-                  <TableCell>{app.applicant_email}</TableCell>
-                  <TableCell>{app.position_title}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        app.status === "completed"
-                          ? "default"
-                          : app.status === "in_progress"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {app.status.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatLagosDate(app.invited_at)}</TableCell>
-                  <TableCell>
-                    <ApplicationActions
-                      id={app.id}
-                      step={app.form_data.currentStep || 1}
-                    />
-                  </TableCell>
+          {applications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No applications yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create your first onboarding application to get started.
+              </p>
+              <Button asChild className="mt-4" size="sm">
+                <Link href="/hr/applications/new">Create Application</Link>
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {applications.map((app) => (
+                  <TableRow key={app.id}>
+                    <TableCell className="font-medium">
+                      {app.applicant_name || app.applicant_email.split("@")[0]}
+                    </TableCell>
+                    <TableCell>{app.applicant_email}</TableCell>
+                    <TableCell>{app.position_title}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          app.status === "completed"
+                            ? "default"
+                            : app.status === "in_progress"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {app.status.replaceAll("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatLagosDate(app.invited_at)}</TableCell>
+                    <TableCell>
+                      <ApplicationActions
+                        id={app.id}
+                        step={app.form_data?.currentStep ?? 1}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

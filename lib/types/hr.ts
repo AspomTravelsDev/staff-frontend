@@ -188,33 +188,39 @@ export interface OnboardingFormData {
 
 export interface OnboardingApplication {
     id: string; // uuid
-    application_id: string; // unique reference
+    application_id: string; // unique reference e.g. ASPOM-IT OFFICER-2026-000001
 
-    // Core fields from schema
+    // Core columns
+    applicant_name: string | null;
     applicant_email: string;
     position_title: string;
     salary_gross: number;
-    salary_net: number; // Added as top-level for convenience
-
     status: ApplicationStatus;
 
-    // Additional fields (likely stored in form_data or added columns)
-    reporting_to: string;
-    effective_date: string; // ISO date string
-
-    // The main data blob
-    form_data: Partial<OnboardingFormData>;
-
-    // Detailed breakdown
-    salary_breakdown: SalaryBreakdown;
+    // The main data blob (all form steps + employment_terms)
+    form_data: Partial<OnboardingFormData> & {
+        employment_terms?: {
+            staff_designation: string;
+            reporting_to: string;
+            effective_date: string;
+            gross_salary: number;
+            salary_breakdown: SalaryBreakdown;
+            statutory_tax_deduction: number;
+            net_salary: number;
+        };
+        [key: string]: unknown;
+    };
 
     // Metadata
     invited_at: string;
-    completed_at?: string;
-    created_by?: string;
+    completed_at?: string | null;
+    created_by?: string | null;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface CreateApplicationRequest {
+    applicant_name?: string;
     applicant_email: string;
     position_title: string;
     reporting_to: string;
@@ -222,3 +228,4 @@ export interface CreateApplicationRequest {
     salary_gross: number;
     salary_breakdown: SalaryBreakdown;
 }
+

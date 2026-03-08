@@ -36,6 +36,7 @@ const protectedRoutes = [
 const publicRoutes = [
     "/visa/apply",
     "/applicant",
+    "/api",
 ];
 
 // Routes only for unauthenticated users

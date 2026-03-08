@@ -1,60 +1,100 @@
-"use client";
+import { notFound } from "next/navigation";
+import { getPublicApplication } from "@/lib/api/hr";
+import { StepIndicator } from "../components/step-indicator";
+import { Step1Personal } from "../components/step-1-personal";
+import { Step2Employment } from "../components/step-2-employment";
+import { Step3Legal } from "../components/step-3-legal";
+import { Step4Guarantors } from "../components/step-4-guarantors";
+import { Step5Referee } from "../components/step-5-referee";
+import { Step6Media } from "../components/step-6-media";
+import { Step7Documents } from "../components/step-7-documents";
+import { Step8UploadSigned } from "../components/step-8-upload-signed";
 
-import { notFound, useParams } from "next/navigation";
-import { useEffect } from "react";
-import { useApplicantStore } from "@/lib/store/applicant-store";
-import { StepIndicator } from "@/components/applicant/step-indicator";
-import { Step1Personal } from "@/components/applicant/step-1-personal";
-import { Step2Employment } from "@/components/applicant/step-2-employment";
-import { Step3Legal } from "@/components/applicant/step-3-legal";
-import { Step4Guarantors } from "@/components/applicant/step-4-guarantors";
-import { Step5Referee } from "@/components/applicant/step-5-referee";
-import { Step6Media } from "@/components/applicant/step-6-media";
-import { Step7Documents } from "@/components/applicant/step-7-documents";
-import { Step8UploadSigned } from "@/components/applicant/step-8-upload-signed";
-import { Card, CardContent } from "@/components/ui/card";
-
-export default function ApplicantStepPage() {
-  const params = useParams();
-  const step = params.step as string;
+export default async function ApplicantStepPage({
+  params,
+}: {
+  params: Promise<{ id: string; step: string }>;
+}) {
+  const { id, step } = await params;
   const stepNumber = parseInt(step);
-  const { setStep } = useApplicantStore();
 
+  // Validate step is between 1-8
   if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > 8) {
     notFound();
   }
 
-  // Sync store with URL
-  useEffect(() => {
-    setStep(stepNumber);
-  }, [stepNumber, setStep]);
+  let application;
+
+  try {
+    application = await getPublicApplication(id);
+  } catch (error) {
+    notFound();
+  }
+
+  if (!application) {
+    notFound();
+  }
+
+  const formData = (application.form_data || {}) as any;
 
   return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Software Engineer Application</h1>
-        <p className="text-muted-foreground">Application ID: {params.id}</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-bold">{application.position_title}</h2>
+        <p className="text-muted-foreground">
+          Applicant ID: {application.application_id}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Email: {application.applicant_email}
+        </p>
       </div>
 
       {/* Step Indicator */}
       <div className="relative">
-        <StepIndicator />
+        <StepIndicator currentStep={stepNumber} />
       </div>
 
       {/* Step Content */}
-      <Card>
-        <CardContent className="pt-6">
-          {stepNumber === 1 && <Step1Personal />}
-          {stepNumber === 2 && <Step2Employment />}
-          {stepNumber === 3 && <Step3Legal />}
-          {stepNumber === 4 && <Step4Guarantors />}
-          {stepNumber === 5 && <Step5Referee />}
-          {stepNumber === 6 && <Step6Media />}
-          {stepNumber === 7 && <Step7Documents />}
-          {stepNumber === 8 && <Step8UploadSigned />}
-        </CardContent>
-      </Card>
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        {stepNumber === 1 && (
+          <Step1Personal applicationId={id} initialData={formData.personal} />
+        )}
+        {stepNumber === 2 && (
+          <Step2Employment
+            applicationId={id}
+            initialData={formData.employmentFinance}
+            employmentTerms={formData.employment_terms}
+          />
+        )}
+        {stepNumber === 3 && (
+          <Step3Legal applicationId={id} initialData={formData.legal} />
+        )}
+        {stepNumber === 4 && (
+          <Step4Guarantors
+            applicationId={id}
+            initialData={formData.guarantorReferee}
+          />
+        )}
+        {stepNumber === 5 && (
+          <Step5Referee
+            applicationId={id}
+            initialData={formData.guarantorReferee}
+          />
+        )}
+        {stepNumber === 6 && (
+          <Step6Media applicationId={id} initialData={formData.media} />
+        )}
+        {stepNumber === 7 && (
+          <Step7Documents applicationId={id} initialData={formData.media} />
+        )}
+        {stepNumber === 8 && (
+          <Step8UploadSigned
+            applicationId={id}
+            initialData={formData.signedDocuments}
+          />
+        )}
+      </div>
     </div>
   );
 }
