@@ -206,7 +206,7 @@ export const departmentNav: NavItem[] = [
         title: "All General Requests",
         url: "/admin/requests",
         icon: ClipboardList,
-        allowedRoles: ["admin", "super"],
+        allowedRoles: ["admin","it", "super"],
         badgeKey: "requests",
         badgeLabel: "General requests pending review",
     },
@@ -214,7 +214,7 @@ export const departmentNav: NavItem[] = [
         title: "Inventory",
         url: "/admin/inventory",
         icon: ClipboardList,
-        allowedRoles: ["admin", "super"]
+        allowedRoles: ["admin","it",  "super"]
     },
     // {
     //     title: "Visa Client List",
