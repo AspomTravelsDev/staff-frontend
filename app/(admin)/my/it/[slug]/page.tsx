@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ITGuideContent } from "../components/it-guide-content";
 import { ITGuideShareDialog } from "../components/it-guide-share-dialog";
+import { AvatarStack } from "@/components/avatar-stack";
+import { ITGuideReadTracker } from "./components/it-guide-read-tracker";
 
 interface ITGuideDetailPageProps {
   params: {
@@ -33,11 +35,9 @@ export default async function ITGuideDetailPage({
     notFound();
   }
 
-  // Mark as read so the notification clears
-  await markITGuideAsRead(guide.id).catch(() => {});
-
   return (
     <div className="min-h-screen bg-background">
+      <ITGuideReadTracker id={guide.id} />
       {/* Breadcrumbs */}
       <div className="bg-muted/30 border-b w-full">
         <div className="container mx-auto max-w-4xl px-4 py-4">
@@ -98,6 +98,10 @@ export default async function ITGuideDetailPage({
                   {guide.author_name}
                 </p>
               </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <AvatarStack users={guide.readers || []} />
             </div>
 
             <div className="flex items-center gap-3">

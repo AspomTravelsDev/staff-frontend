@@ -23,6 +23,11 @@ export interface ITGuideItem {
     published_at: string | null;
     created_at: string;
     updated_at: string;
+    readers?: {
+        id: string;
+        name: string;
+        image_url: string | null;
+    }[];
 }
 
 export interface CreateITGuidePayload {
@@ -133,5 +138,11 @@ export async function deleteITGuide(id: string): Promise<void> {
  * Mark an IT guide as read for the current user
  */
 export async function markITGuideAsRead(id: string): Promise<void> {
-    await api.post(`/api/it-guides/${id}/mark-read`, {});
+    const result = await api.post<{ message: string }>(`/api/it-guides/${id}/mark-read`, {});
+    if (result.success) {
+        revalidatePath("/my/it");
+        revalidatePath("/admin/it-desk");
+        // We might not know the slug here, but normally this is called from the detail page
+        // which will have the slug. However, revalidatePath works with the path.
+    }
 }
