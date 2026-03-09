@@ -1,0 +1,134 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import {
+  deleteApplicationAction,
+  generateDocumentsAction,
+} from "../../actions";
+
+interface ApplicationActionsClientProps {
+  applicationId: string; // The UUID for API calls
+  readableId: string; // The formatted ID (e.g. ASPOM-...)
+  status: string | null;
+}
+
+export function ApplicationActionsClient({
+  applicationId,
+  readableId,
+  status,
+}: ApplicationActionsClientProps) {
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteApplicationAction(applicationId);
+      toast.success("Application deleted successfully");
+      router.push("/hr/applications");
+    } catch (error) {
+      toast.error("Failed to delete application");
+      console.error(error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleGenerateDocuments = async () => {
+    setIsGenerating(true);
+    try {
+      await generateDocumentsAction(applicationId);
+      toast.success("Documents generated successfully");
+      router.refresh(); // Refresh to show new documents in preview
+    } catch (error) {
+      toast.error("Failed to generate documents");
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSendReminder = async () => {
+    setIsSendingReminder(true);
+    // Dummy implementation for now
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    toast.success("Reminder email sent (simulation)");
+    setIsSendingReminder(false);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Actions</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGenerateDocuments}
+            disabled={isGenerating}
+          >
+            {isGenerating ? "Generating..." : "Generate Documents"}
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleSendReminder}
+            disabled={isSendingReminder || status === "completed"}
+          >
+            {isSendingReminder ? "Sending..." : "Send Reminder Email"}
+          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={isDeleting}>
+                {isDeleting ? "Deleting..." : "Delete Application"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the application for{" "}
+                  <strong>{readableId}</strong> and all associated documents.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {status === "completed"
+            ? "This application is completed. Some actions are restricted."
+            : "Actions to manage the application process."}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

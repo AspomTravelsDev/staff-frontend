@@ -7,6 +7,7 @@ import { CalendarIcon, Megaphone, Newspaper, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { AnnouncementContent } from "@/app/(admin)/my/announcement/components/announcement-content";
 import { AnnouncementReadTracker } from "./components/announcement-read-tracker";
+import { AvatarStack } from "@/components/avatar-stack";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -78,6 +79,10 @@ export default async function AnnouncementPage({ params }: PageProps) {
                   {announcement.author_name}
                 </strong>
               </p>
+            </div>
+
+            <div className="pt-2">
+              <AvatarStack users={announcement.readers || []} />
             </div>
           </div>
         </header>

@@ -28,6 +28,11 @@ export interface AnnouncementItem {
     created_at: string;
     updated_at: string;
     has_read?: boolean;
+    readers?: {
+        id: string;
+        name: string;
+        image_url: string | null;
+    }[];
 }
 
 export interface CreateAnnouncementPayload {
@@ -151,22 +156,16 @@ export async function deleteAnnouncement(id: string): Promise<void> {
 }
 
 /**
- * Fetch a single announcement by ID.
- * Resolves from the full list since a dedicated single-item endpoint
- * may not be available on the backend yet.
+ * Fetch a single announcement by ID with readers data.
  */
 export async function getAnnouncementById(
     id: string
 ): Promise<AnnouncementItem | null> {
-    // Try fetching all statuses so the detail page works for any status
-    const [approved, pending, rejected] = await Promise.all([
-        getAnnouncements({ limit: 200, status: "approved" }).catch(() => ({ items: [] as AnnouncementItem[] })),
-        getAnnouncements({ limit: 200, status: "pending" }).catch(() => ({ items: [] as AnnouncementItem[] })),
-        getAnnouncements({ limit: 200, status: "rejected" }).catch(() => ({ items: [] as AnnouncementItem[] })),
-    ]);
-
-    const all = [...approved.items, ...pending.items, ...rejected.items];
-    return all.find((item) => item.id === id) ?? null;
+    const result = await api.get<{ announcement: AnnouncementItem }>(
+        `/api/announcements/${id}`
+    );
+    if (!result.success) return null;
+    return result.data.announcement;
 }
 
 /**
@@ -180,6 +179,7 @@ export async function markAnnouncementAsRead(id: string): Promise<void> {
     // Revalidating these paths ensures the unread count/dashboard feed updates immediately
     revalidatePath("/dashboard");
     revalidatePath("/my/announcement");
+    revalidatePath(`/announcements/${id}`);
 }
 
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthToken } from "@/lib/auth/session";
 
 export async function GET(request: NextRequest) {
     const url = request.nextUrl.searchParams.get("url");
@@ -19,8 +20,12 @@ export async function GET(request: NextRequest) {
         targetUrl = targetUrl.replace("http://localhost:8000", "http://127.0.0.1:8000");
     }
 
+    const token = await getAuthToken();
+
     try {
-        const response = await fetch(targetUrl);
+        const response = await fetch(targetUrl, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
 
         if (!response.ok) {
             throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);

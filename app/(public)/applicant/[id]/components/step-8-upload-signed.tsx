@@ -52,12 +52,32 @@ export function Step8UploadSigned({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  const [fileErrors, setFileErrors] = useState<{
+    [key: string]: string | null;
+  }>({});
+
   const handleFilePreview = (
     e: React.ChangeEvent<HTMLInputElement>,
     setPreview: (value: string | null) => void,
+    fieldName: string,
   ) => {
     const file = e.target.files?.[0];
+    setFileErrors((prev) => ({ ...prev, [fieldName]: null }));
+
     if (file) {
+      // Validate file type
+      const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        setFileErrors((prev) => ({
+          ...prev,
+          [fieldName]:
+            "Please upload a PDF, PNG, or JPEG. WebP is not supported.",
+        }));
+        setPreview(null);
+        e.target.value = ""; // Clear input
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (event) => {
         setPreview(event.target?.result as string);
@@ -217,9 +237,17 @@ export function Step8UploadSigned({
             id="guarantor1_signed"
             name="guarantor1_signed"
             accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => handleFilePreview(e, setGuarantor1Preview)}
+            onChange={(e) =>
+              handleFilePreview(e, setGuarantor1Preview, "guarantor1")
+            }
             className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
+
+          {fileErrors.guarantor1 && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileErrors.guarantor1}
+            </p>
+          )}
 
           {(guarantor1Preview ||
             initialData?.guarantor1Signed?.storagePath) && (
@@ -248,9 +276,17 @@ export function Step8UploadSigned({
             id="guarantor2_signed"
             name="guarantor2_signed"
             accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => handleFilePreview(e, setGuarantor2Preview)}
+            onChange={(e) =>
+              handleFilePreview(e, setGuarantor2Preview, "guarantor2")
+            }
             className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
+
+          {fileErrors.guarantor2 && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileErrors.guarantor2}
+            </p>
+          )}
 
           {(guarantor2Preview ||
             initialData?.guarantor2Signed?.storagePath) && (
@@ -279,9 +315,15 @@ export function Step8UploadSigned({
             id="referee_signed"
             name="referee_signed"
             accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => handleFilePreview(e, setRefereePreview)}
+            onChange={(e) => handleFilePreview(e, setRefereePreview, "referee")}
             className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
+
+          {fileErrors.referee && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileErrors.referee}
+            </p>
+          )}
 
           {(refereePreview || initialData?.refereeSigned?.storagePath) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-600">

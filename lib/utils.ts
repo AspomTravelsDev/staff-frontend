@@ -39,3 +39,16 @@ export function parseLocalDate(dateString: string | null | undefined): Date | un
     return undefined;
   }
 }
+
+/**
+ * Returns a proxied URL for a backend file to handle authentication
+ * via cookies in standard <img> tags.
+ */
+export function getProxiedImageUrl(
+  url: string | null | undefined,
+): string | undefined {
+  if (!url) return undefined;
+  if (!url.startsWith("http")) return url; // Already local or data URL
+
+  return `/api/proxy-file?url=${encodeURIComponent(url)}`;
+}

@@ -53,9 +53,24 @@ export function Step5Referee({
         : "",
   );
 
+  const [fileError, setFileError] = useState<string | null>(null);
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setFileError(null);
+
     if (file) {
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        setFileError(
+          "Please upload a PNG or JPEG image. WebP is not supported.",
+        );
+        setRefereePhotoPreview(null);
+        e.target.value = ""; // Clear input
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (event) => {
         setRefereePhotoPreview(event.target?.result as string);
@@ -363,6 +378,12 @@ export function Step5Referee({
             onChange={handlePhotoChange}
             className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50"
           />
+
+          {fileError && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileError}
+            </p>
+          )}
 
           {refereePhotoPreview && (
             <div className="mt-4">

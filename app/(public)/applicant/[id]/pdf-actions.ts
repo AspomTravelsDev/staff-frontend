@@ -3,6 +3,7 @@
 import { renderToBuffer } from '@react-pdf/renderer'
 import { GuarantorFormPdf } from './pdf-templates/guarantor-form'
 import { RefereeFormPdf } from './pdf-templates/referee-form'
+import { OfferLetterPdf } from './pdf-templates/offer-letter'
 import { COMPANY_LOGO_URL } from './pdf-templates/styles'
 import { ApplicationFormData } from '@/lib/types/form-data'
 import { getPublicApplication, uploadPublicFile, savePublicFormStep } from '@/lib/api/hr'
@@ -39,10 +40,10 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
 /** Helper to read the company logo from the public directory and convert to base64 */
 async function fetchLogoAsBase64(): Promise<string | undefined> {
     try {
-        const logoPath = path.join(process.cwd(), 'public', 'aspom-logo.webp');
+        const logoPath = path.join(process.cwd(), 'public', 'aspom-logo.png');
         if (fs.existsSync(logoPath)) {
             const logoBuffer = fs.readFileSync(logoPath);
-            return `data:image/webp;base64,${logoBuffer.toString('base64')}`;
+            return `data:image/png;base64,${logoBuffer.toString('base64')}`;
         }
         return undefined;
     } catch (error) {
@@ -56,6 +57,7 @@ type PdfDownloadResult = {
     guarantor1Url?: string
     guarantor2Url?: string
     refereeUrl?: string
+    offerLetterUrl?: string
 }
 
 type PdfMetadata = {
@@ -68,6 +70,7 @@ type GeneratedPdfs = {
     guarantor1?: PdfMetadata
     guarantor2?: PdfMetadata
     referee?: PdfMetadata
+    offerLetter?: PdfMetadata
 }
 
 async function generateAndUploadPdf(
@@ -135,99 +138,110 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
         // Generate Guarantor 1 PDF
         const guarantor1 = formData.guarantorReferee?.guarantors?.[0]
         if (guarantor1) {
-            if (existingPdfs?.guarantor1?.storagePath) {
-                results.guarantor1Url = existingPdfs.guarantor1.storagePath
-            } else {
-                const base64Photo = await fetchImageAsBase64(guarantor1.passportPhoto?.storagePath);
+            const base64Photo = await fetchImageAsBase64(guarantor1.passportPhoto?.storagePath);
 
-                const result = await generateAndUploadPdf(
-                    uuid,
-                    'guarantor_1_form.pdf',
-                    'guarantor_1_form',
-                    React.createElement(GuarantorFormPdf, {
-                        guarantor: guarantor1,
-                        applicant: personal,
-                        guarantorIndex: 1,
-                        applicationId,
-                        positionTitle,
-                        generatedAt,
-                        companyLogoUrl: logoUrl,
-                        passportPhotoUrl: base64Photo,
-                        applicantSignatureUrl,
-                    })
-                )
+            const result = await generateAndUploadPdf(
+                uuid,
+                'guarantor_1_form.pdf',
+                'guarantor_1_form',
+                React.createElement(GuarantorFormPdf, {
+                    guarantor: guarantor1,
+                    applicant: personal,
+                    guarantorIndex: 1,
+                    applicationId,
+                    positionTitle,
+                    generatedAt,
+                    companyLogoUrl: logoUrl,
+                    passportPhotoUrl: base64Photo,
+                    applicantSignatureUrl,
+                })
+            )
 
-                if ('error' in result) return { error: result.error }
+            if ('error' in result) return { error: result.error }
 
-                results.guarantor1Url = result.url
-                updatedGeneratedPdfs.guarantor1 = result.metadata
-                newPdfsGenerated = true
-            }
+            results.guarantor1Url = result.url
+            updatedGeneratedPdfs.guarantor1 = result.metadata
+            newPdfsGenerated = true
         }
 
         // Generate Guarantor 2 PDF
         const guarantor2 = formData.guarantorReferee?.guarantors?.[1]
         if (guarantor2) {
-            if (existingPdfs?.guarantor2?.storagePath) {
-                results.guarantor2Url = existingPdfs.guarantor2.storagePath
-            } else {
-                const base64Photo = await fetchImageAsBase64(guarantor2.passportPhoto?.storagePath);
+            const base64Photo = await fetchImageAsBase64(guarantor2.passportPhoto?.storagePath);
 
-                const result = await generateAndUploadPdf(
-                    uuid,
-                    'guarantor_2_form.pdf',
-                    'guarantor_2_form',
-                    React.createElement(GuarantorFormPdf, {
-                        guarantor: guarantor2,
-                        applicant: personal,
-                        guarantorIndex: 2,
-                        applicationId,
-                        positionTitle,
-                        generatedAt,
-                        companyLogoUrl: logoUrl,
-                        passportPhotoUrl: base64Photo,
-                        applicantSignatureUrl,
-                    })
-                )
+            const result = await generateAndUploadPdf(
+                uuid,
+                'guarantor_2_form.pdf',
+                'guarantor_2_form',
+                React.createElement(GuarantorFormPdf, {
+                    guarantor: guarantor2,
+                    applicant: personal,
+                    guarantorIndex: 2,
+                    applicationId,
+                    positionTitle,
+                    generatedAt,
+                    companyLogoUrl: logoUrl,
+                    passportPhotoUrl: base64Photo,
+                    applicantSignatureUrl,
+                })
+            )
 
-                if ('error' in result) return { error: result.error }
+            if ('error' in result) return { error: result.error }
 
-                results.guarantor2Url = result.url
-                updatedGeneratedPdfs.guarantor2 = result.metadata
-                newPdfsGenerated = true
-            }
+            results.guarantor2Url = result.url
+            updatedGeneratedPdfs.guarantor2 = result.metadata
+            newPdfsGenerated = true
         }
 
         // Generate Referee PDF
         const referee = formData.guarantorReferee?.referee
         if (referee) {
-            if (existingPdfs?.referee?.storagePath) {
-                results.refereeUrl = existingPdfs.referee.storagePath
-            } else {
-                const base64Photo = await fetchImageAsBase64(referee.passportPhoto?.storagePath);
+            const base64Photo = await fetchImageAsBase64(referee.passportPhoto?.storagePath);
 
-                const result = await generateAndUploadPdf(
-                    uuid,
-                    'referee_form.pdf',
-                    'referee_form',
-                    React.createElement(RefereeFormPdf, {
-                        referee,
-                        applicant: personal,
-                        applicationId,
-                        positionTitle,
-                        generatedAt,
-                        companyLogoUrl: logoUrl,
-                        passportPhotoUrl: base64Photo,
-                        applicantSignatureUrl,
-                    })
-                )
+            const result = await generateAndUploadPdf(
+                uuid,
+                'referee_form.pdf',
+                'referee_form',
+                React.createElement(RefereeFormPdf, {
+                    referee,
+                    applicant: personal,
+                    applicationId,
+                    positionTitle,
+                    generatedAt,
+                    companyLogoUrl: logoUrl,
+                    passportPhotoUrl: base64Photo,
+                    applicantSignatureUrl,
+                })
+            )
 
-                if ('error' in result) return { error: result.error }
+            if ('error' in result) return { error: result.error }
 
-                results.refereeUrl = result.url
-                updatedGeneratedPdfs.referee = result.metadata
-                newPdfsGenerated = true
-            }
+            results.refereeUrl = result.url
+            updatedGeneratedPdfs.referee = result.metadata
+            newPdfsGenerated = true
+        }
+
+        // Generate Offer Letter PDF
+        const employmentTerms = (formData as any).employment_terms
+        if (employmentTerms) {
+            const result = await generateAndUploadPdf(
+                uuid,
+                'offer_letter.pdf',
+                'offer_letter',
+                React.createElement(OfferLetterPdf, {
+                    applicant: personal,
+                    employmentTerms,
+                    applicationId: applicationId || '',
+                    generatedAt,
+                    companyLogoUrl: logoUrl,
+                })
+            )
+
+            if ('error' in result) return { error: result.error }
+
+            results.offerLetterUrl = result.url
+            updatedGeneratedPdfs.offerLetter = result.metadata
+            newPdfsGenerated = true
         }
 
         // Output to Laravel (save PDF metadata)

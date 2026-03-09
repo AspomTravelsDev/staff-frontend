@@ -35,9 +35,25 @@ export function Step6Media({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [signatureError, setSignatureError] = useState<string | null>(null);
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setFileError(null);
+
     if (file) {
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        setFileError(
+          "Please upload a PNG or JPEG image. WebP is not supported for PDF generation.",
+        );
+        setPhotoPreview(null);
+        e.target.value = ""; // Clear input
+        return;
+      }
+
       // Preview only - upload will happen on form submit
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -98,14 +114,26 @@ export function Step6Media({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setSignaturePreview(null);
+    setSignatureError(null);
   };
 
   const saveSignature = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Check if canvas is empty (simplified check)
+    const ctx = canvas.getContext("2d");
+    const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height).data;
+    const hasDrawing = imageData?.some((channel) => channel !== 0);
+
+    if (!hasDrawing) {
+      setSignatureError("Please draw your signature before confirming.");
+      return;
+    }
+
     const signatureData = canvas.toDataURL("image/png");
     setSignaturePreview(signatureData);
+    setSignatureError(null);
   };
 
   const handleSubmitAction = async (
@@ -210,6 +238,10 @@ export function Step6Media({
             required
           />
 
+          {fileError && (
+            <p className="text-sm font-medium text-destructive">{fileError}</p>
+          )}
+
           {photoPreview && (
             <div className="rounded-lg border p-4">
               <p className="text-xs font-medium mb-3">Preview:</p>
@@ -255,6 +287,11 @@ export function Step6Media({
               >
                 Confirm Signature
               </Button>
+              {signatureError && (
+                <p className="text-sm font-medium text-destructive mt-2">
+                  {signatureError}
+                </p>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border bg-muted p-4">

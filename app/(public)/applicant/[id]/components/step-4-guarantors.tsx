@@ -49,13 +49,35 @@ export function Step4Guarantors({
   );
   const [isUploadingG1, setIsUploadingG1] = useState(false);
   const [isUploadingG2, setIsUploadingG2] = useState(false);
+  const [fileErrors, setFileErrors] = useState<{
+    [key: number]: string | null;
+  }>({
+    0: null,
+    1: null,
+  });
 
   const handlePhotoChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     guarantorIndex: number,
   ) => {
     const file = e.target.files?.[0];
+    setFileErrors((prev) => ({ ...prev, [guarantorIndex]: null }));
+
     if (file) {
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        setFileErrors((prev) => ({
+          ...prev,
+          [guarantorIndex]:
+            "Please upload a PNG or JPEG image. WebP is not supported.",
+        }));
+        if (guarantorIndex === 0) setGuarantor1Preview(null);
+        else setGuarantor2Preview(null);
+        e.target.value = ""; // Clear input
+        return;
+      }
+
       // Preview only - upload will happen on form submit
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -492,6 +514,12 @@ export function Step4Guarantors({
             onChange={(e) => handlePhotoChange(e, index)}
             className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
+
+          {fileErrors[index] && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileErrors[index]}
+            </p>
+          )}
 
           {preview ||
           (index === 0 &&

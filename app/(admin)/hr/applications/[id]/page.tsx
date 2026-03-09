@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { getApplication } from "@/lib/api/hr";
 import { CopyLinkButton } from "./components/copy-link-button";
 import { DocumentPreviews } from "./components/document-previews";
+import { ApplicationActionsClient } from "./components/application-actions-client";
 
 export default async function ApplicationDetailPage({
   params,
@@ -211,27 +212,11 @@ export default async function ApplicationDetailPage({
       />
 
       {/* Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" disabled>
-              Generate Documents
-            </Button>
-            <Button variant="outline" disabled>
-              Send Reminder Email
-            </Button>
-            <Button variant="destructive" disabled>
-              Delete Application
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Actions will be enabled based on application status
-          </p>
-        </CardContent>
-      </Card>
+      <ApplicationActionsClient
+        applicationId={application.id}
+        readableId={application.application_id}
+        status={application.status}
+      />
     </div>
   );
 }

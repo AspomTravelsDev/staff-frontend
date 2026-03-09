@@ -2,7 +2,7 @@ import { StyleSheet } from "@react-pdf/renderer";
 
 // Company Logo URL
 // Uses the locally downloaded public image to avoid React-PDF server-side Fetch/CORS rendering issues
-export const COMPANY_LOGO_URL = "/aspom-logo.webp";
+export const COMPANY_LOGO_URL = "/aspom-logo.png";
 
 // Company Address Lines
 export const COMPANY_ADDRESSES = {
@@ -252,6 +252,71 @@ export const pdfStyles = StyleSheet.create({
         fontSize: 10,
         paddingLeft: 3,
         marginBottom: 3,
+    },
+
+    // Letter Styles
+    paragraph: {
+        fontSize: 10,
+        marginBottom: 8,
+        textAlign: "justify",
+        lineHeight: 1.5,
+    },
+    bold: {
+        fontFamily: "Times-Bold",
+    },
+    underline: {
+        textDecoration: "underline",
+    },
+    list: {
+        marginTop: 5,
+        marginBottom: 10,
+    },
+    listItem: {
+        flexDirection: "row",
+        marginBottom: 4,
+        paddingLeft: 15,
+    },
+    listNumber: {
+        width: 25,
+        fontSize: 10,
+        fontFamily: "Times-Bold",
+    },
+    listContent: {
+        flex: 1,
+        fontSize: 10,
+        textAlign: "justify",
+    },
+    salaryTable: {
+        marginTop: 10,
+        marginBottom: 10,
+        border: "0.5pt solid #000",
+    },
+    tableRow: {
+        flexDirection: "row",
+        borderBottom: "0.5pt solid #000",
+        minHeight: 18,
+        alignItems: "center",
+    },
+    tableCellLabel: {
+        flex: 1,
+        paddingLeft: 5,
+        fontSize: 9,
+        borderRight: "0.5pt solid #000",
+    },
+    tableCellValue: {
+        width: 100,
+        textAlign: "right",
+        paddingRight: 5,
+        fontSize: 9,
+        fontFamily: "Times-Bold",
+    },
+    noBorder: {
+        borderBottom: "non" as any,
+    },
+    footerContainer: {
+        marginTop: 30,
+        borderTop: "1pt solid #000",
+        paddingTop: 10,
     },
 });
 

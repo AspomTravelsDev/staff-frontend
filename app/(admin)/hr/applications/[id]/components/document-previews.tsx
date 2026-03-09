@@ -29,6 +29,7 @@ interface DocumentPreviewsProps {
     guarantor1?: GeneratedPdf;
     guarantor2?: GeneratedPdf;
     referee?: GeneratedPdf;
+    offerLetter?: GeneratedPdf;
   };
   signedDocuments?: {
     guarantor1Signed?: SignedDocument;
@@ -231,6 +232,13 @@ export function DocumentPreviews({
               description="Professional reference form"
               documentUrl={generatedPdfs?.referee?.storagePath}
               uploadedAt={generatedPdfs?.referee?.generatedAt}
+              type="unsigned"
+            />
+            <DocumentCard
+              title="Offer Letter"
+              description="Official employment offer"
+              documentUrl={generatedPdfs?.offerLetter?.storagePath}
+              uploadedAt={generatedPdfs?.offerLetter?.generatedAt}
               type="unsigned"
             />
           </div>
