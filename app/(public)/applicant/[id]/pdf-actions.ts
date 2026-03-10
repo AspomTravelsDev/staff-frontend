@@ -160,7 +160,10 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
 
         const positionTitle = application.position_title
         const applicationId = application.application_id
-        const personal = formData.personal || {}
+        const personal = formData.personal || {
+            firstName: application.applicant_name?.split(' ')[0] || '',
+            lastName: application.applicant_name?.split(' ').slice(1).join(' ') || ''
+        }
 
         // Fetch applicant signature
         const applicantSignatureUrl = await fetchImageAsBase64(formData.media?.signature?.storagePath);

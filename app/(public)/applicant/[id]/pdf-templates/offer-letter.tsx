@@ -79,7 +79,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
       ]
         .filter(Boolean)
         .join(", ")
-    : "Not Provided";
+    : "";
 
   const jobTitle = (
     employmentTerms?.staff_designation || "Staff Member"
@@ -128,7 +128,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
         </View>
 
         <View style={{ marginBottom: 15 }}>
-          <Text style={pdfStyles.text}>Dear {applicant?.firstName},</Text>
+          <Text style={pdfStyles.text}>Dear {applicantFullName},</Text>
         </View>
 
         {/* Subject */}
@@ -257,7 +257,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
           </View>
         </View>
 
-        <View break />
+        {/* <View break /> */}
 
         {/* Continued Sections */}
         <View style={pdfStyles.list}>
