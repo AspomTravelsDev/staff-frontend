@@ -15,10 +15,11 @@ import {
   Lock,
 } from "lucide-react";
 
+import { getUpcomingBirthdays, getTodayBirthdays } from "@/lib/api/employees";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
-import { EmployeeOfTheMonthCard } from "@/components/dashboard/employee-of-month-card";
+import { DashboardCelebrationCard } from "@/components/dashboard/dashboard-celebration-card";
 import {
   AttendanceStatusBlocks,
   AttendanceStatus,
@@ -48,6 +49,7 @@ export default async function Page() {
     myAwards,
     ratesResponse,
     announcementsData,
+    todayBirthdays,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getTodayStatus(),
@@ -61,6 +63,7 @@ export default async function Page() {
       items: [],
       pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
     })),
+    getTodayBirthdays().catch(() => []),
   ]);
 
   const ratesPayload = ratesResponse.success ? ratesResponse.data : null;
@@ -242,7 +245,10 @@ export default async function Page() {
             return new Date(a.publish_at) <= new Date();
           })}
         />
-        <EmployeeOfTheMonthCard employee={employeeOfTheMonth} />
+        <DashboardCelebrationCard
+          employeeOfTheMonth={employeeOfTheMonth}
+          todayBirthdays={todayBirthdays}
+        />
       </div>
     </div>
   );

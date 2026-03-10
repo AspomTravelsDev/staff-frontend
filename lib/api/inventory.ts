@@ -59,6 +59,7 @@ export interface InventoryFilters {
     search?: string;
     category?: string;
     status?: InventoryStatus;
+    conditionRating?: InventoryConditionRating;
 }
 
 export type InventoryItemPayload = Omit<InventoryItem, "id" | "createdAt" | "updatedAt"> & { notes?: string };
@@ -115,6 +116,10 @@ export async function getInventory(
             filtered = filtered.filter(i => i.category === filters.category);
         }
 
+        if (filters.conditionRating) {
+            filtered = filtered.filter(i => i.conditionRating === filters.conditionRating);
+        }
+
         const page = filters.page ?? 1;
         const limit = filters.limit ?? 20;
         const total = filtered.length;
@@ -140,6 +145,7 @@ export async function getInventory(
         if (filters.search) queryParams.set("search", filters.search);
         if (filters.category) queryParams.set("category", filters.category);
         if (filters.status) queryParams.set("status", filters.status);
+        if (filters.conditionRating) queryParams.set("condition_rating", filters.conditionRating);
 
         const response = await api.get<any>(`/api/admin/inventory?${queryParams.toString()}`);
 

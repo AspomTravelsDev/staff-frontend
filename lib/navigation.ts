@@ -86,7 +86,7 @@ export const departmentNav: NavItem[] = [
     // },
     {
         title: "Birthday List",
-        url: "/hr",
+        url: "/hr/birthdays",
         icon: LayoutDashboard,
         allowedRoles: ["hr"],
     },

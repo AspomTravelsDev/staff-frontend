@@ -25,6 +25,7 @@ export interface Employee {
     dob: string | null;
     contract_type: string | null;
     gross_pay: string;
+    image_url: string | null;
 }
 
 export interface EmployeeStats {
@@ -81,6 +82,7 @@ function mapUserToEmployee(user: User): Employee {
         dob: user.dob,
         contract_type: user.contract_type,
         gross_pay: user.gross_pay,
+        image_url: user.image_url,
     };
 }
 
@@ -267,10 +269,14 @@ export async function deleteUser(userId: string): Promise<void> {
 }
 
 /**
- * Get users with birthdays in the current month
+ * Get users with birthdays
+ * @param month Optional month (1-12)
  */
-export async function getUpcomingBirthdays(): Promise<Employee[]> {
-    const result = await api.get<UsersApiResponse>("/api/birthdays/upcoming");
+export async function getUpcomingBirthdays(month?: number): Promise<Employee[]> {
+    const params = new URLSearchParams();
+    if (month) params.append("month", month.toString());
+
+    const result = await api.get<UsersApiResponse>(`/api/birthdays/upcoming?${params.toString()}`);
     if (!result.success) {
         throw new Error(result.error.error);
     }

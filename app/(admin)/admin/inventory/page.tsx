@@ -1,30 +1,43 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getInventory, getInventoryStats } from "@/lib/api/inventory";
+import {
+  getInventory,
+  getInventoryStats,
+  InventoryStatus,
+  InventoryConditionRating,
+} from "@/lib/api/inventory";
 import { getAllEmployees } from "@/app/(admin)/hr/employees/queries";
 import { InventoryStatsCards } from "./components/inventory-stats";
-import { InventoryTable } from "./components/inventory-table";
 import { InventoryAddButton } from "./components/inventory-add-button";
-// import { USER_ROLES } from "@/types/user-types";
+import { InventoryClientManager } from "./components/inventory-client-manager";
 
-export default async function InventoryPage() {
+interface InventoryPageProps {
+  searchParams: Promise<{
+    category?: string;
+    status?: string;
+    condition_rating?: string;
+  }>;
+}
+
+export default async function InventoryPage({
+  searchParams,
+}: InventoryPageProps) {
+  const params = await searchParams;
   const user = await getCurrentUser();
   // Only allow super, admin, or it roles
   if (!user) {
     redirect("/login");
   }
-  // const allowedRoles = [
-  //   USER_ROLES.SUPER_ADMIN,
-  //   USER_ROLES.ADMIN_OFFICER,
-  //   USER_ROLES.IT_OFFICER,
-  // ];
-  // if (!allowedRoles.includes(user.role)) {
-  //   redirect("/");
-  // }
 
   // Fetch data in parallel (including employees)
+  // Server-side filtering for category, status, and condition
   const [inventoryData, stats, employees] = await Promise.all([
-    getInventory({ limit: 100 }),
+    getInventory({
+      limit: 500,
+      category: params.category,
+      status: params.status as InventoryStatus,
+      conditionRating: params.condition_rating as InventoryConditionRating,
+    }),
     getInventoryStats(),
     getAllEmployees(),
   ]);
@@ -43,7 +56,15 @@ export default async function InventoryPage() {
 
       <InventoryStatsCards stats={stats} />
 
-      <InventoryTable items={inventoryData.items} employees={employees} />
+      <InventoryClientManager
+        initialItems={inventoryData.items}
+        employees={employees}
+        serverFilters={{
+          category: params.category || "all",
+          status: params.status || "all",
+          condition: params.condition_rating || "all",
+        }}
+      />
     </div>
   );
 }

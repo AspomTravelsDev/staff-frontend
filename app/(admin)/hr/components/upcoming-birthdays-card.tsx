@@ -12,13 +12,21 @@ export async function UpcomingBirthdaysCard() {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-linear-to-r from-pink-500/10 to-transparent">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Cake className="h-4 w-4 text-pink-500" />
-          Birthdays This Month
-        </CardTitle>
-        <span className="text-xs text-muted-foreground font-normal">
-          {format(new Date(), "MMMM yyyy")}
-        </span>
+        <div className="flex flex-col gap-1">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Cake className="h-4 w-4 text-pink-500" />
+            Birthdays This Month
+          </CardTitle>
+          <span className="text-xs text-muted-foreground font-normal">
+            {format(new Date(), "MMMM yyyy")}
+          </span>
+        </div>
+        <Link
+          href="/hr/birthdays"
+          className="text-xs font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors"
+        >
+          View All
+        </Link>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-4">
@@ -43,7 +51,7 @@ export async function UpcomingBirthdaysCard() {
                 >
                   <Avatar className="h-9 w-9 ring-offset-background group-hover:ring-2 group-hover:ring-pink-500 transition-all">
                     <AvatarImage
-                      src={toProxiedImageUrl(employee.dob)}
+                      src={toProxiedImageUrl(employee.image_url)}
                       alt={`${employee.firstName} ${employee.lastName}`}
                     />
                     <AvatarFallback className="bg-pink-100 text-pink-700 text-xs">
