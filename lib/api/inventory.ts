@@ -8,6 +8,7 @@ import { shouldMock, api } from "./client";
 // ============================================================================
 
 export type InventoryStatus = "Storage" | "Assigned" | "Repairs";
+export type InventoryConditionRating = "Excellent" | "Good" | "Fair" | "Poor" | "Broken";
 
 export interface TechnicianDetails {
     name: string;
@@ -21,10 +22,28 @@ export interface InventoryItem {
     category: "Laptop" | "Phone" | "Gadget" | "Other";
     serialNumber: string;
     status: InventoryStatus;
+    conditionRating: InventoryConditionRating;
+    conditionDetails?: string;
     assignedTo?: string;            // Only present if status is "Assigned"
     technicianDetails?: TechnicianDetails; // Only present if status is "Repairs"
     createdAt?: string;
     updatedAt?: string;
+    history?: InventoryHistory[];
+}
+
+export interface InventoryHistory {
+    id: string;
+    inventoryItemId: string;
+    status: InventoryStatus;
+    conditionRating: InventoryConditionRating;
+    conditionDetails?: string;
+    notes?: string;
+    assignedTo?: string;
+    assignedToName?: string;
+    technicianDetails?: TechnicianDetails;
+    changedBy: string;
+    changerName?: string;
+    createdAt: string;
 }
 
 export interface InventoryStats {
@@ -42,7 +61,7 @@ export interface InventoryFilters {
     status?: InventoryStatus;
 }
 
-export type InventoryItemPayload = Omit<InventoryItem, "id" | "createdAt" | "updatedAt">;
+export type InventoryItemPayload = Omit<InventoryItem, "id" | "createdAt" | "updatedAt"> & { notes?: string };
 
 // ============================================================================
 // Mock Data Loader
@@ -135,10 +154,26 @@ export async function getInventory(
                 category: item.category,
                 serialNumber: item.serial_number,
                 status: item.status,
+                conditionRating: item.condition_rating,
+                conditionDetails: item.condition_details,
                 assignedTo: item.assigned_to,
                 technicianDetails: item.technician_details,
                 createdAt: item.created_at,
                 updatedAt: item.updated_at,
+                history: item.history?.map((h: any) => ({
+                    id: h.id.toString(),
+                    inventoryItemId: h.inventory_item_id.toString(),
+                    status: h.status,
+                    conditionRating: h.condition_rating,
+                    conditionDetails: h.condition_details,
+                    notes: h.notes,
+                    assignedTo: h.assigned_to,
+                    assignedToName: h.assigned_to_user?.name,
+                    technicianDetails: h.technician_details,
+                    changedBy: h.changed_by,
+                    changerName: h.changer?.name,
+                    createdAt: h.created_at,
+                })) || [],
             })),
             pagination: response.data.pagination,
         };
@@ -198,6 +233,9 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
             category: payload.category,
             serial_number: payload.serialNumber,
             status: payload.status,
+            condition_rating: payload.conditionRating,
+            condition_details: payload.conditionDetails,
+            notes: payload.notes,
             assigned_to: payload.assignedTo,
             technician_details: payload.technicianDetails,
         });
@@ -213,6 +251,8 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
             category: item.category,
             serialNumber: item.serial_number,
             status: item.status,
+            conditionRating: item.condition_rating,
+            conditionDetails: item.condition_details,
             assignedTo: item.assigned_to,
             technicianDetails: item.technician_details,
             createdAt: item.created_at,
@@ -233,9 +273,12 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
     try {
         const response = await api.patch<any>(`/api/admin/inventory/${id}`, {
             name: payload.name,
-            category: payload.category, // using partial is fine, undefined won't be sent or Laravel handles validation skip
+            category: payload.category,
             serial_number: payload.serialNumber,
             status: payload.status,
+            condition_rating: payload.conditionRating,
+            condition_details: payload.conditionDetails,
+            notes: payload.notes,
             assigned_to: payload.assignedTo,
             technician_details: payload.technicianDetails,
         });
@@ -251,6 +294,8 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
             category: item.category,
             serialNumber: item.serial_number,
             status: item.status,
+            conditionRating: item.condition_rating,
+            conditionDetails: item.condition_details,
             assignedTo: item.assigned_to,
             technicianDetails: item.technician_details,
             createdAt: item.created_at,
@@ -277,5 +322,136 @@ export async function deleteInventoryItem(id: string): Promise<void> {
     } catch (error) {
         console.error(`Error deleting inventory item ${id}`, error);
         throw error;
+    }
+}
+
+export async function getInventoryHistory(id: string): Promise<PaginatedResponse<InventoryHistory>> {
+    try {
+        const response = await api.get<any>(`/api/admin/inventory/${id}/history`);
+        if (!response.success) throw new Error("Failed to fetch history");
+
+        return {
+            items: response.data.data.map((h: any) => ({
+                id: h.id.toString(),
+                inventoryItemId: h.inventory_item_id.toString(),
+                status: h.status,
+                conditionRating: h.condition_rating,
+                conditionDetails: h.condition_details,
+                notes: h.notes,
+                assignedTo: h.assigned_to,
+                assignedToName: h.assigned_to_user?.name,
+                technicianDetails: h.technician_details,
+                changedBy: h.changed_by,
+                changerName: h.changer?.name,
+                createdAt: h.created_at,
+            })),
+            pagination: {
+                page: response.data.current_page,
+                limit: response.data.per_page,
+                total: response.data.total,
+                total_pages: response.data.last_page,
+            }
+        };
+    } catch (error) {
+        console.error("Error fetching inventory history", error);
+        return { items: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } };
+    }
+}
+
+export async function logInventoryInspection(id: string, payload: { conditionRating: InventoryConditionRating, conditionDetails?: string, notes?: string }): Promise<void> {
+    try {
+        const response = await api.post<any>(`/api/admin/inventory/${id}/inspect`, {
+            condition_rating: payload.conditionRating,
+            condition_details: payload.conditionDetails,
+            notes: payload.notes,
+        });
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to log inspection");
+        }
+    } catch (error) {
+        console.error("Error logging inspection", error);
+        throw error;
+    }
+}
+
+export async function getMyInventory(): Promise<InventoryItem[]> {
+    try {
+        const response = await api.get<any>("/api/my-inventory");
+        if (!response.success) throw new Error("Failed to fetch personal inventory");
+
+        return response.data.map((item: any) => ({
+            id: item.id.toString(),
+            name: item.name,
+            category: item.category,
+            serialNumber: item.serial_number,
+            status: item.status,
+            conditionRating: item.condition_rating,
+            conditionDetails: item.condition_details,
+            assignedTo: item.assigned_to,
+            technicianDetails: item.technician_details,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+        }));
+    } catch (error) {
+        console.error("Error fetching my inventory", error);
+        return [];
+    }
+}
+
+export async function updateMyInventory(id: string, payload: { status?: InventoryStatus, conditionRating?: InventoryConditionRating, conditionDetails?: string, notes: string }): Promise<void> {
+    try {
+        const response = await api.patch<any>(`/api/my-inventory/${id}`, {
+            status: payload.status,
+            condition_rating: payload.conditionRating,
+            condition_details: payload.conditionDetails,
+            notes: payload.notes,
+        });
+        if (!response.success) throw new Error("Failed to update asset status");
+    } catch (error) {
+        console.error("Error updating my inventory", error);
+        throw error;
+    }
+}
+
+export async function getMyInventoryHistory(
+    id: string,
+    params?: { page?: number; limit?: number }
+): Promise<PaginatedResponse<InventoryHistory>> {
+    try {
+        const query = new URLSearchParams();
+        if (params?.page) query.append("page", params.page.toString());
+        if (params?.limit) query.append("limit", params.limit.toString());
+
+        const response = await api.get<any>(`/api/my-inventory/${id}/history?${query}`);
+
+        if (!response.success) {
+            throw new Error(response.error?.error || "Failed to fetch inventory history");
+        }
+
+        return {
+            items: response.data.data.map((h: any) => ({
+                id: h.id.toString(),
+                inventoryItemId: h.inventory_item_id.toString(),
+                status: h.status,
+                conditionRating: h.condition_rating,
+                conditionDetails: h.condition_details,
+                notes: h.notes,
+                assignedTo: h.assigned_to,
+                assignedToName: h.assigned_to_user?.name,
+                technicianDetails: h.technician_details,
+                changedBy: h.changed_by,
+                changerName: h.changer?.name,
+                createdAt: h.created_at,
+            })),
+            pagination: {
+                page: response.data.current_page,
+                limit: response.data.per_page,
+                total: response.data.total,
+                total_pages: response.data.last_page,
+            }
+        };
+    } catch (error) {
+        console.error("Error fetching my inventory history", error);
+        return { items: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } };
     }
 }

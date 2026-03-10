@@ -24,9 +24,9 @@ export default async function ApplicantLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-indigo-950/20 text-foreground">
       {/* Header */}
-      <header className="border-b bg-white shadow-sm">
+      <header className="border-b bg-white dark:bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-center">
             <h1 className="text-xl font-bold">Aspom HR Onboarding</h1>
@@ -40,7 +40,7 @@ export default async function ApplicantLayout({
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-4 text-center text-sm text-muted-foreground">
+      <footer className="border-t bg-white dark:bg-card py-4 text-center text-sm text-muted-foreground">
         <p>© {new Date().getFullYear()} Aspom Travels. All rights reserved.</p>
       </footer>
     </div>

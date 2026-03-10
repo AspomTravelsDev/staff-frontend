@@ -8,6 +8,8 @@ import {
   InventoryItemPayload,
 } from "@/lib/api/inventory";
 import { ManageInventoryDialog } from "./inventory-dialog";
+import { InventoryHistoryDialog } from "./inventory-history-dialog";
+import { LogInspectionDialog } from "./log-inspection-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +45,8 @@ import {
   Replace,
   MapPin,
   Phone,
+  History,
+  ClipboardCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/lib/api/inventory";
@@ -58,6 +62,10 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
   const router = useRouter();
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [itemHistory, setItemHistory] = useState<InventoryItem | null>(null);
+  const [itemToInspect, setItemToInspect] = useState<InventoryItem | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
 
   const getStatusVariant = (status: string) => {
@@ -70,6 +78,23 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         return "destructive";
       default:
         return "outline";
+    }
+  };
+
+  const getConditionColor = (rating: string) => {
+    switch (rating) {
+      case "Excellent":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+      case "Good":
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
+      case "Fair":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "Poor":
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
+      case "Broken":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      default:
+        return "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400";
     }
   };
 
@@ -99,6 +124,7 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
             <TableHead>Device Model</TableHead>
             <TableHead>Serial Number</TableHead>
             <TableHead>Category</TableHead>
+            <TableHead>Condition</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Tracking Details</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -107,7 +133,7 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 No tracking devices found.
               </TableCell>
             </TableRow>
@@ -119,6 +145,13 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                   {item.serialNumber}
                 </TableCell>
                 <TableCell>{item.category}</TableCell>
+                <TableCell>
+                  <div
+                    className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${getConditionColor(item.conditionRating)}`}
+                  >
+                    {item.conditionRating}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(item.status)}>
                     {item.status}
@@ -178,6 +211,14 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                         <Replace className="mr-2 h-4 w-4" /> Reassign Device
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setItemToInspect(item)}>
+                        <ClipboardCheck className="mr-2 h-4 w-4" /> Log
+                        Inspection
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setItemHistory(item)}>
+                        <History className="mr-2 h-4 w-4" /> View History
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive font-medium"
                         onClick={() => setItemToDelete(item)}
@@ -199,6 +240,18 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         initialData={itemToEdit}
         onSubmit={handleUpdate}
         employees={employees}
+      />
+
+      <InventoryHistoryDialog
+        open={!!itemHistory}
+        onOpenChange={(open) => !open && setItemHistory(null)}
+        item={itemHistory}
+      />
+
+      <LogInspectionDialog
+        open={!!itemToInspect}
+        onOpenChange={(open) => !open && setItemToInspect(null)}
+        item={itemToInspect}
       />
 
       <AlertDialog

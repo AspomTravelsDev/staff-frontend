@@ -40,7 +40,7 @@ export default async function ApplicantStepPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="rounded-lg bg-card text-card-foreground p-6 shadow-sm border">
         <h2 className="text-2xl font-bold">{application.position_title}</h2>
         <p className="text-muted-foreground">
           Applicant ID: {application.application_id}
@@ -55,8 +55,7 @@ export default async function ApplicantStepPage({
         <StepIndicator currentStep={stepNumber} />
       </div>
 
-      {/* Step Content */}
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="rounded-lg bg-card text-card-foreground p-6 shadow-sm border">
         {stepNumber === 1 && (
           <Step1Personal applicationId={id} initialData={formData.personal} />
         )}

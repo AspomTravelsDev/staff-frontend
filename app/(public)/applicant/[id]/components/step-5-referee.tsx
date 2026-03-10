@@ -215,7 +215,7 @@ export function Step5Referee({
 
       {/* Basic Referee Information */}
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_fullName" className="text-sm">
               Full Name *
@@ -240,7 +240,7 @@ export function Step5Referee({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_phoneNumberAlternate" className="text-sm">
               Alternate Phone Number
@@ -264,7 +264,7 @@ export function Step5Referee({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_organization" className="text-sm">
               Organization / Company
@@ -287,7 +287,7 @@ export function Step5Referee({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_position" className="text-sm">
               Position / Job Title
@@ -310,7 +310,7 @@ export function Step5Referee({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_relationshipType" className="text-sm">
               Relationship Type
@@ -402,7 +402,7 @@ export function Step5Referee({
 
           {!refereePhotoPreview && refereePhotoUrl && (
             <div className="mt-4">
-              <p className="text-xs text-green-700 bg-green-50 p-2 rounded">
+              <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-2 rounded">
                 ✓ Photo uploaded
               </p>
             </div>
@@ -470,7 +470,7 @@ export function Step5Referee({
             </div>
 
             {/* Q4: Skills and Improvements */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="assessment_primarySkills" className="text-sm">
                   4a. Primary positive skills and qualities

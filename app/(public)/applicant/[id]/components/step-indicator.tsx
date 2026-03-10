@@ -14,17 +14,20 @@ export function StepIndicator({ currentStep }: { currentStep: number }) {
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-start md:justify-between overflow-x-auto pb-4 gap-6 md:gap-0 snap-x hide-scrollbar">
         {steps.map((step, index) => (
-          <div key={step.number} className="flex flex-col items-center">
+          <div
+            key={step.number}
+            className="flex flex-col items-center shrink-0 min-w-[60px] snap-center"
+          >
             {/* Step Circle */}
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-full font-medium text-sm ${
                 step.number < currentStep
                   ? "bg-green-500 text-white"
                   : step.number === currentStep
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 text-gray-600"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 text-gray-600"
               }`}
             >
               {step.number < currentStep ? "✓" : step.number}

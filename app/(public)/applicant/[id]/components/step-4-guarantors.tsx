@@ -266,7 +266,7 @@ export function Step4Guarantors({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}firstName`} className="text-sm">
               First Name *
@@ -302,7 +302,7 @@ export function Step4Guarantors({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}ageDob`} className="text-sm">
               Date of Birth (YYYY-MM-DD)
@@ -327,7 +327,7 @@ export function Step4Guarantors({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}alternatePhone`} className="text-sm">
               Alternate Phone
@@ -362,7 +362,7 @@ export function Step4Guarantors({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor={`${prefix}city`} className="text-sm">
               City
@@ -406,7 +406,7 @@ export function Step4Guarantors({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}position`} className="text-sm">
               Position/Job Title
@@ -440,7 +440,7 @@ export function Step4Guarantors({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}relationship`} className="text-sm">
               Relationship to Applicant
@@ -553,7 +553,7 @@ export function Step4Guarantors({
             <div className="mt-4">
               <p className="text-xs font-medium mb-2">Preview:</p>
               {preview === "stored" ? (
-                <div className="h-32 w-24 rounded border border-dashed border-muted-foreground flex items-center justify-center bg-muted">
+                <div className="h-32 w-24 rounded border border-dashed border-muted-foreground flex items-center justify-center bg-muted/50 dark:bg-muted/20">
                   <p className="text-xs text-muted-foreground">Photo stored</p>
                 </div>
               ) : preview ? (

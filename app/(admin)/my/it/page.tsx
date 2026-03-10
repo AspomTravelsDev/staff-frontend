@@ -183,6 +183,15 @@ export default async function ITInformationDeskPage({
             open an IT issue or contact us directly.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/my/it/assets">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 rounded-full font-bold shadow-sm hover:cursor-pointer"
+              >
+                View My Assigned Devices
+              </Button>
+            </Link>
             <Link href="/my/it-issue">
               <Button
                 size="lg"

@@ -139,7 +139,7 @@ export function Step2Employment({
         <div className="space-y-4">
           <Separator />
           <h4 className="font-medium">Your Employment Terms</h4>
-          <div className="rounded-md bg-blue-50 p-4 space-y-3">
+          <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 p-4 space-y-3">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">

@@ -254,8 +254,10 @@ export function Step6Media({
           )}
 
           {!photoPreview && initialData?.passportPhoto?.base64 && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <p className="text-xs text-green-700">✓ Photo uploaded</p>
+            <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-4">
+              <p className="text-xs text-green-700 dark:text-green-400">
+                ✓ Photo uploaded
+              </p>
             </div>
           )}
         </div>
@@ -269,7 +271,7 @@ export function Step6Media({
           </p>
 
           {!signaturePreview ? (
-            <div className="rounded-lg border bg-muted p-4">
+            <div className="rounded-lg border bg-muted/50 dark:bg-muted/20 p-4">
               <canvas
                 ref={canvasRef}
                 width={500}
@@ -278,7 +280,7 @@ export function Step6Media({
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
-                className="w-full cursor-crosshair rounded-lg border-2 border-gray-300 bg-white"
+                className="w-full cursor-crosshair rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-zinc-900 touch-none"
               />
               <Button
                 type="button"
@@ -294,7 +296,7 @@ export function Step6Media({
               )}
             </div>
           ) : (
-            <div className="rounded-lg border bg-muted p-4">
+            <div className="rounded-lg border bg-muted/50 dark:bg-muted/20 p-4">
               <p className="text-xs font-medium mb-3">Your Signature:</p>
               <img
                 src={signaturePreview}
@@ -317,7 +319,7 @@ export function Step6Media({
       {/* Submission Note */}
       <div className="space-y-4">
         <Separator />
-        <div className="rounded-lg bg-blue-50 p-4">
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-4">
           <p className="text-sm">
             <strong>Note:</strong> Your passport photo and digital signature
             will be used on all official documents and agreements.
@@ -328,7 +330,7 @@ export function Step6Media({
       {/* Submit Button */}
       <Separator />
       {state?.error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
           {state.error}
         </div>
       )}

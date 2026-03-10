@@ -37,6 +37,9 @@ const formSchema = z
     category: z.enum(["Laptop", "Phone", "Gadget", "Other"]),
     serialNumber: z.string().min(1, "Serial number is required"),
     status: z.enum(["Storage", "Assigned", "Repairs"]),
+    conditionRating: z.enum(["Excellent", "Good", "Fair", "Poor", "Broken"]),
+    conditionDetails: z.string().optional(),
+    notes: z.string().optional(),
     assignedTo: z.string().optional(),
     technicianDetails: z
       .object({
@@ -106,6 +109,9 @@ export function ManageInventoryDialog({
       category: initialData?.category || "Laptop",
       serialNumber: initialData?.serialNumber || "",
       status: initialData?.status || "Storage",
+      conditionRating: initialData?.conditionRating || "Good",
+      conditionDetails: initialData?.conditionDetails || "",
+      notes: "",
       assignedTo: initialData?.assignedTo || "",
       technicianDetails: {
         name: initialData?.technicianDetails?.name || "",
@@ -123,6 +129,9 @@ export function ManageInventoryDialog({
         category: initialData.category || "Laptop",
         serialNumber: initialData.serialNumber || "",
         status: initialData.status || "Storage",
+        conditionRating: initialData.conditionRating || "Good",
+        conditionDetails: initialData.conditionDetails || "",
+        notes: "",
         assignedTo: initialData.assignedTo || "",
         technicianDetails: {
           name: initialData.technicianDetails?.name || "",
@@ -137,6 +146,9 @@ export function ManageInventoryDialog({
         category: "Laptop",
         serialNumber: "",
         status: "Storage",
+        conditionRating: "Good",
+        conditionDetails: "",
+        notes: "",
         assignedTo: "",
         technicianDetails: {
           name: "",
@@ -157,6 +169,9 @@ export function ManageInventoryDialog({
         category: values.category,
         serialNumber: values.serialNumber,
         status: values.status,
+        conditionRating: values.conditionRating,
+        conditionDetails: values.conditionDetails,
+        notes: values.notes,
       };
       if (values.status === "Assigned") {
         cleanPayload.assignedTo = values.assignedTo;
@@ -253,29 +268,93 @@ export function ManageInventoryDialog({
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Storage">In Storage</SelectItem>
+                        <SelectItem value="Assigned">
+                          Assigned to Staff
+                        </SelectItem>
+                        <SelectItem value="Repairs">Out for Repairs</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="conditionRating"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Condition Rating</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Condition" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Excellent">Excellent</SelectItem>
+                        <SelectItem value="Good">Good</SelectItem>
+                        <SelectItem value="Fair">Fair</SelectItem>
+                        <SelectItem value="Poor">Poor</SelectItem>
+                        <SelectItem value="Broken">Broken</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="status"
+              name="conditionDetails"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Storage">In Storage</SelectItem>
-                      <SelectItem value="Assigned">
-                        Assigned to Staff
-                      </SelectItem>
-                      <SelectItem value="Repairs">Out for Repairs</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Condition Details</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Minor scuffs on lid, battery healthy"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>History / Audit Notes</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Reason for this change or inspection notes..."
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -59,19 +59,25 @@ function DocumentCard({
   fileId,
 }: DocumentCardProps) {
   // Use secure download route if fileId is available, otherwise fallback to the provided URL
-  const downloadUrl = fileId ? `/api/files/download/${fileId}` : documentUrl;
-  const proxiedUrl = downloadUrl ? getProxiedImageUrl(downloadUrl) : undefined;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const backendDownloadUrl = fileId
+    ? `${baseUrl}/api/files/download/${fileId}`
+    : documentUrl;
+  const proxiedUrl = backendDownloadUrl
+    ? getProxiedImageUrl(backendDownloadUrl)
+    : undefined;
   const [isHovering, setIsHovering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDownload = async () => {
-    if (!documentUrl) return;
+    const targetUrl = proxiedUrl || backendDownloadUrl || documentUrl;
+    if (!targetUrl) return;
 
     setIsLoading(true);
     try {
       // In a real environment with CORS issues, you might just window.open()
       // or dispatch to a download server action. We try direct fetch here.
-      const response = await fetch(documentUrl);
+      const response = await fetch(targetUrl);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -84,7 +90,7 @@ function DocumentCard({
     } catch (error) {
       console.error("Download failed:", error);
       // Fallback
-      window.open(documentUrl, "_blank");
+      window.open(targetUrl, "_blank");
     } finally {
       setIsLoading(false);
     }
