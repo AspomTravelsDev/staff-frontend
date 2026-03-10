@@ -39,6 +39,7 @@ export const inviteSchema = z.object({
     department: z.string().optional(), // Can be obtained from role, but editable
     date_joined: z.string().optional(), // ISO date string (YYYY-MM-DD)
     staff_id: z.string().optional(),
+    is_department_account: z.boolean().optional().default(false),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

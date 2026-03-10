@@ -114,7 +114,7 @@ export const departmentNav: NavItem[] = [
         title: "Performance Reviews",
         url: "/hr/performance",
         icon: ClipboardList,
-        allowedRoles: ["hr"],
+        allowedRoles: ["hr", "compliance"],
         disabled: true,
     },
     {
@@ -159,7 +159,7 @@ export const departmentNav: NavItem[] = [
         title: "General Tasks & Reports",
         url: "/hr/tasks",
         icon: ClipboardList,
-        allowedRoles: ["hr"],
+        allowedRoles: ["hr", "compliance"],
     },
     // {
     //     title: "Applications",
@@ -198,7 +198,7 @@ export const departmentNav: NavItem[] = [
         title: "Staff Requests",
         url: "/hr/staff-requests",
         icon: Users,
-        allowedRoles: ["hr", "super"],
+        allowedRoles: ["hr", "super", "compliance"],
         badgeKey: "hrRequests",
         badgeLabel: "Staff requests pending review"
     },
@@ -206,7 +206,7 @@ export const departmentNav: NavItem[] = [
         title: "All General Requests",
         url: "/admin/requests",
         icon: ClipboardList,
-        allowedRoles: ["admin","it", "super"],
+        allowedRoles: ["admin", "it", "super", "compliance"],
         badgeKey: "requests",
         badgeLabel: "General requests pending review",
     },
@@ -214,7 +214,7 @@ export const departmentNav: NavItem[] = [
         title: "Inventory",
         url: "/admin/inventory",
         icon: ClipboardList,
-        allowedRoles: ["admin","it",  "super"]
+        allowedRoles: ["admin", "it", "super", "compliance"]
     },
     // {
     //     title: "Visa Client List",
@@ -238,7 +238,7 @@ export const departmentNav: NavItem[] = [
         title: "Award Staff",
         url: "/hr/award-staff",
         icon: Trophy,
-        allowedRoles: ["hr", "super"],
+        allowedRoles: ["hr", "super", "compliance"],
         badgeKey: "awardStaff",
         badgeLabel: "Award Staff of the month"
     },
@@ -394,13 +394,10 @@ export function filterNavByRole(items: NavItem[], role: UserRole): NavItem[] {
     });
 }
 
-/**
- * Get complete navigation for a user
- */
-export function getNavigationForUser(role: UserRole) {
+export function getNavigationForUser(user: { role: UserRole; is_department_account?: boolean }) {
     return {
         dashboard: dashboardNav,
-        department: filterNavByRole(departmentNav, role),
-        personal: personalNav,
+        department: filterNavByRole(departmentNav, user.role),
+        personal: user.is_department_account ? [] : personalNav,
     };
 }

@@ -225,6 +225,24 @@ export function InviteForm() {
                   </div>
                   <Switch id="is_supervisor" name="is_supervisor" />
                 </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm bg-background/50">
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="is_department_account"
+                      className="text-base cursor-pointer"
+                    >
+                      Department Account
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enable for purely functional accounts (e.g. visa@...).
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_department_account"
+                    name="is_department_account"
+                  />
+                </div>
               </div>
             </div>
           </div>

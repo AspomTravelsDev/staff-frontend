@@ -100,6 +100,7 @@ export interface InviteData {
     department?: string;
     date_joined?: string;
     staff_id?: string;
+    is_department_account?: boolean;
 }
 
 /**

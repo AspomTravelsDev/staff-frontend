@@ -22,6 +22,7 @@ export async function inviteAction(
         staff_id: formData.get("staff_id") as string,
         date_joined: formData.get("date_joined") as string,
         is_supervisor: formData.get("is_supervisor") === "on",
+        is_department_account: formData.get("is_department_account") === "on",
     };
 
     // Validate input
@@ -33,7 +34,7 @@ export async function inviteAction(
         return { error: firstError || "Invalid input" };
     }
 
-    const { email, role, department, staff_id, date_joined, is_supervisor } = validatedFields.data;
+    const { email, role, department, staff_id, date_joined, is_supervisor, is_department_account } = validatedFields.data;
 
     // Call API with auth token
     const token = await getAuthToken();
@@ -43,7 +44,8 @@ export async function inviteAction(
         department,
         staff_id,
         date_joined,
-        is_supervisor
+        is_supervisor,
+        is_department_account
     }, token ?? undefined);
 
     if (!result.success) {

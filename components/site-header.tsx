@@ -26,7 +26,7 @@ export const SiteHeader = () => {
   }, [user]);
 
   // Find badge labels from all navigation config for the user's role
-  const allNav = user ? getNavigationForUser(user.role as UserRole) : null;
+  const allNav = user ? getNavigationForUser(user as any) : null;
   // Flatten all navigation items to include sub-items for badge matching
   const allNavItems = allNav
     ? [...allNav.dashboard, ...allNav.department, ...allNav.personal].reduce(
@@ -121,7 +121,7 @@ export const SiteHeader = () => {
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-5">
             {/* Clock In Widget */}
-            <ClockInWidget />
+            {!user?.is_department_account && <ClockInWidget />}
             {/* Popover Notifications */}
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center p-1.5 rounded-md bg-primary cursor-pointer">

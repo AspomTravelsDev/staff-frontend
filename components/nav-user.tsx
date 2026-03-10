@@ -52,7 +52,11 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={img_url} alt={user.name} className="object-cover object-top"/>
+                <AvatarImage
+                  src={img_url}
+                  alt={user.name}
+                  className="object-cover object-top"
+                />
                 <AvatarFallback className="rounded-lg">
                   {initials}
                 </AvatarFallback>
@@ -73,7 +77,11 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={img_url} alt={user.name} className="object-cover object-top"/>
+                  <AvatarImage
+                    src={img_url}
+                    alt={user.name}
+                    className="object-cover object-top"
+                  />
                   <AvatarFallback className="rounded-lg">
                     {initials}
                   </AvatarFallback>
@@ -85,21 +93,22 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Link href="/my/profile" className="flex items-center gap-2">
-                  <BadgeCheck />
-                  My Profile
-                </Link>
-              </DropdownMenuItem>
-              {/* <DropdownMenuItem>
-                <Link href="/notifications" className="flex items-center gap-2">
-                  <Bell />
-                  Notifications
-                </Link>
-              </DropdownMenuItem> */}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            {!user.is_department_account && (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>
+                    <Link
+                      href="/my/profile"
+                      className="flex items-center gap-2"
+                    >
+                      <BadgeCheck />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={() => logoutAction()}>
               <LogOut />
               Log out

@@ -122,15 +122,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </React.Fragment>
         ))}
 
-        {/* Divider */}
-        <SidebarSeparator className="mx-2" />
-
-        {/* General actions - visible to all */}
-        <NavMain
-          items={personalNav}
-          label="Personal Tools"
-          badges={notifications || {}}
-        />
+        {/* General actions - visible to all, except departmental accounts */}
+        {!user?.is_department_account && (
+          <>
+            <SidebarSeparator className="mx-2" />
+            <NavMain
+              items={personalNav}
+              label="Personal Tools"
+              badges={notifications || {}}
+            />
+          </>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

@@ -57,6 +57,7 @@ export interface User {
     updated_at: string;
     dob: string | null;
     contract_type: "full_time" | "part_time" | "contract" | "nysc" | "intern" | null;
+    is_department_account: boolean;
 }
 
 export interface LoginUser {
@@ -69,4 +70,5 @@ export interface LoginUser {
     role: UserRole;
     is_active: boolean;
     is_supervisor: boolean;
+    is_department_account: boolean;
 }
