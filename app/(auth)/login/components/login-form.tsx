@@ -52,7 +52,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
           );
           setIsLocating(false);
         },
-        { timeout: 5000, maximumAge: 60000 },
+        { timeout: 10000, maximumAge: 60000 },
       );
     } else {
       setIsLocating(false);
@@ -173,8 +173,16 @@ export function LoginForm({ redirect }: { redirect?: string }) {
           </Link>
         </div>
 
-        <Button type="submit" className="h-11 w-full" disabled={isPending}>
-          {isPending ? "Signing in..." : "Sign in"}
+        <Button
+          type="submit"
+          className="h-11 w-full"
+          disabled={isPending || isLocating}
+        >
+          {isPending
+            ? "Signing in..."
+            : isLocating
+              ? "Checking location..."
+              : "Sign in"}
         </Button>
       </form>
     </div>

@@ -31,6 +31,11 @@ export async function deleteApplication(id: string): Promise<void> {
     revalidatePath("/hr/applications");
 }
 
+export async function sendInvite(id: string): Promise<void> {
+    const response = await api.post<{ message: string }>(`/api/onboarding-applications/${id}/send-invite`);
+    if (!response.success) throw new Error(response.error.error || "Failed to send invitation email");
+}
+
 // ─── Public endpoints (applicant portal — no auth) ───
 
 export async function getPublicApplication(id: string): Promise<OnboardingApplication> {
@@ -77,9 +82,9 @@ export async function uploadPublicFile(
     id: string,
     file: File,
     fieldName: string
-): Promise<{ fileName: string; storagePath: string; uploadedAt: string }> {
+): Promise<{ fileName: string; storagePath: string; uploadedAt: string; fileId?: string }> {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file, (file as any).name);
     formData.append("field_name", fieldName);
 
     const response = await fetch(`${API_URL}/api/public/onboarding-applications/${id}/upload`, {

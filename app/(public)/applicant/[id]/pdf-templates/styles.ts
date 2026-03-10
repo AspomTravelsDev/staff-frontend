@@ -1,7 +1,5 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
-// Company Logo URL
-// Uses the locally downloaded public image to avoid React-PDF server-side Fetch/CORS rendering issues
 export const COMPANY_LOGO_URL = "/aspom-logo.png";
 
 // Company Address Lines
@@ -15,53 +13,55 @@ export const COMPANY_ADDRESSES = {
 export const pdfStyles = StyleSheet.create({
     // Page
     page: {
-        padding: "20mm",
+        padding: "15mm",
         fontFamily: "Times-Roman",
         fontSize: 11,
-        lineHeight: 1.5,
+        lineHeight: 1.4,
     },
     text: {
         fontSize: 11,
-        marginBottom: 5,
+        marginBottom: 4,
     },
 
     // Header with logo, company info, and photo
     header: {
         flexDirection: "row",
-        alignItems: "flex-start",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 20,
-        borderBottom: "2pt solid #000",
+        borderBottom: "1pt solid #000",
         paddingBottom: 10,
     },
     logoContainer: {
-        width: 100,
+        width: "25%",
     },
     logo: {
         width: 100,
-        height: 60,
-        marginRight: 15,
+        height: 50,
+        objectFit: "contain",
     },
     companyInfo: {
-        flex: 1,
+        width: "50%",
         textAlign: "center",
     },
     companyName: {
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: "Times-Bold",
-        marginBottom: 3,
+        marginBottom: 2,
     },
     companyAddress: {
-        fontSize: 9,
-        marginBottom: 2,
+        fontSize: 8,
+        marginBottom: 1,
     },
 
     // Passport photo box
     photoBox: {
-        width: 170, // Increased to fit two photos if needed
+        width: 100,
         height: 100,
     },
     headerRight: {
-        width: 170,
+        width: "25%",
+        textAlign: "right",
     },
     photoContainer: {
         border: "1pt solid #000",
@@ -73,6 +73,7 @@ export const pdfStyles = StyleSheet.create({
         width: 70,
         height: 80,
         objectFit: "cover",
+        objectPosition: "top",
     },
     photoPlaceholder: {
         width: 70,
@@ -91,6 +92,7 @@ export const pdfStyles = StyleSheet.create({
         width: "100%",
         height: "100%",
         objectFit: "cover",
+        objectPosition: "top",
     },
 
     // Metadata
@@ -104,11 +106,11 @@ export const pdfStyles = StyleSheet.create({
     // Form title
     formTitle: {
         textAlign: "center",
-        fontSize: 14,
+        fontSize: 13,
         fontFamily: "Times-Bold",
         textDecoration: "underline",
-        marginTop: 20,
-        marginBottom: 15,
+        marginTop: 15,
+        marginBottom: 20,
     },
 
     // Section titles
@@ -117,34 +119,34 @@ export const pdfStyles = StyleSheet.create({
         fontFamily: "Times-Bold",
         textDecoration: "underline",
         marginTop: 15,
-        marginBottom: 10,
+        marginBottom: 8,
+        textTransform: "uppercase",
     },
 
     // Field groups
     fieldGroup: {
-        marginBottom: 12,
+        marginBottom: 10,
     },
     fieldLabel: {
-        fontSize: 11,
-        marginBottom: 3,
+        fontSize: 10,
+        marginBottom: 2,
     },
     fieldLabelItalic: {
-        fontSize: 11,
-        marginBottom: 3,
+        fontSize: 10,
+        marginBottom: 2,
         fontFamily: "Times-Italic",
     },
     fieldLine: {
-        borderBottom: "1pt solid #000",
-        minHeight: 20,
-        fontSize: 11,
-        paddingLeft: 5,
-        paddingRight: 5,
-        paddingTop: 2,
+        borderBottom: "0.5pt solid #000",
+        minHeight: 18,
+        fontSize: 10,
+        paddingLeft: 2,
+        paddingTop: 4,
     },
     fieldRow: {
         flexDirection: "row",
-        gap: 20,
-        marginBottom: 12,
+        gap: 15,
+        marginBottom: 10,
     },
     fieldColumn: {
         flex: 1,
@@ -168,31 +170,31 @@ export const pdfStyles = StyleSheet.create({
     // Signature row
     signatureRow: {
         flexDirection: "row",
-        gap: 40,
-        marginTop: 20,
+        justifyContent: "space-between",
+        marginTop: 30,
+        gap: 30,
     },
-    signatureBox: {
-        flex: 1,
-        marginTop: 10,
+    signatureBlock: {
+        width: "45%",
     },
     signatureField: {
         flex: 1,
     },
     signatureLine: {
-        borderBottom: "1pt solid #000",
-        minHeight: 30,
+        borderBottom: "0.5pt solid #000",
+        minHeight: 40,
         marginBottom: 5,
+        justifyContent: "flex-end",
+        alignItems: "center",
     },
-    signatureLabel: {
+    signatureText: {
         fontSize: 9,
         textAlign: "center",
     },
     signatureImage: {
-        width: 100,
-        height: 40,
+        width: 120,
+        height: 50,
         objectFit: "contain",
-        marginBottom: 5,
-        alignSelf: "center",
     },
 
     // Witness section
@@ -259,7 +261,7 @@ export const pdfStyles = StyleSheet.create({
         fontSize: 10,
         marginBottom: 8,
         textAlign: "justify",
-        lineHeight: 1.5,
+        lineHeight: 1.4,
     },
     bold: {
         fontFamily: "Times-Bold",
@@ -273,11 +275,11 @@ export const pdfStyles = StyleSheet.create({
     },
     listItem: {
         flexDirection: "row",
-        marginBottom: 4,
-        paddingLeft: 15,
+        marginBottom: 6,
+        paddingLeft: 10,
     },
     listNumber: {
-        width: 25,
+        width: 20,
         fontSize: 10,
         fontFamily: "Times-Bold",
     },
@@ -289,7 +291,9 @@ export const pdfStyles = StyleSheet.create({
     salaryTable: {
         marginTop: 10,
         marginBottom: 10,
-        border: "0.5pt solid #000",
+        borderTop: "0.5pt solid #000",
+        borderLeft: "0.5pt solid #000",
+        borderRight: "0.5pt solid #000",
     },
     tableRow: {
         flexDirection: "row",
@@ -297,21 +301,29 @@ export const pdfStyles = StyleSheet.create({
         minHeight: 18,
         alignItems: "center",
     },
-    tableCellLabel: {
-        flex: 1,
-        paddingLeft: 5,
-        fontSize: 9,
-        borderRight: "0.5pt solid #000",
-    },
-    tableCellValue: {
-        width: 100,
-        textAlign: "right",
-        paddingRight: 5,
-        fontSize: 9,
+    tableHeaderRow: {
+        backgroundColor: "#f5f5f5",
         fontFamily: "Times-Bold",
     },
+    tableCellLabel: {
+        flex: 3,
+        paddingLeft: 8,
+        fontSize: 9,
+        borderRight: "0.5pt solid #000",
+        height: "100%",
+        justifyContent: "center",
+    },
+    tableCellValue: {
+        flex: 1,
+        textAlign: "right",
+        paddingRight: 8,
+        fontSize: 9,
+        fontFamily: "Times-Bold",
+        height: "100%",
+        justifyContent: "center",
+    },
     noBorder: {
-        borderBottom: "non" as any,
+        borderBottom: "none" as any,
     },
     footerContainer: {
         marginTop: 30,

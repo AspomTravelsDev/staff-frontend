@@ -323,9 +323,13 @@ export function Step5Referee({
                 <SelectValue placeholder="Select relationship" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="academic">Academic</SelectItem>
-                <SelectItem value="personal">Personal</SelectItem>
+                <SelectItem value="professional">
+                  Professional / Colleague
+                </SelectItem>
+                <SelectItem value="academic">Academic / Teacher</SelectItem>
+                <SelectItem value="personal">Personal / Relative</SelectItem>
+                <SelectItem value="Friend">Friend</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
             <input

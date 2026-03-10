@@ -16,12 +16,25 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
     if (!imageUrl) return undefined;
 
     try {
-        // Run through our proxy to normalize URLs and avoid strict CORS
-        const proxyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/proxy-file?url=${encodeURIComponent(imageUrl)}`;
-        const response = await fetch(proxyUrl);
+        // If it's a URL to our backend, we can try to fetch it directly
+        // to avoid self-fetch issues with the proxy route in some environments
+        let targetUrl = imageUrl;
+        if (targetUrl.startsWith('/api/') || targetUrl.startsWith('http://localhost:8000') || targetUrl.startsWith('http://127.0.0.1:8000')) {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+            if (targetUrl.startsWith('/')) {
+                targetUrl = `${apiUrl}${targetUrl}`;
+            } else {
+                // Normalize localhost to 127.0.0.1 for Node fetch stability
+                targetUrl = targetUrl.replace('http://localhost:8000', 'http://127.0.0.1:8000');
+            }
+        } else {
+            // External URL? Use our proxy to avoid CORS/Fetch issues within react-pdf rendering
+            targetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/proxy-file?url=${encodeURIComponent(imageUrl)}`;
+        }
 
+        const response = await fetch(targetUrl);
         if (!response.ok) {
-            console.error(`Failed to fetch image for PDF: ${response.statusText}`);
+            console.error(`Failed to fetch image for PDF from ${targetUrl}: ${response.statusText}`);
             return undefined;
         }
 
@@ -64,6 +77,7 @@ type PdfMetadata = {
     storagePath: string
     generatedAt: string
     fileSize: number
+    fileId?: string
 }
 
 type GeneratedPdfs = {
@@ -87,7 +101,18 @@ async function generateAndUploadPdf(
         const fileBytes = new Uint8Array(pdfBuffer.buffer, pdfBuffer.byteOffset, pdfBuffer.length)
 
         // Create File object for upload
-        const file = new File([fileBytes as any], fileName, { type: 'application/pdf' })
+        // In Node environments where File might not be global, we use Blob
+        const fileContent = [fileBytes as any]
+        const fileOptions = { type: 'application/pdf' }
+        const file = typeof File !== 'undefined'
+            ? new File(fileContent, fileName, fileOptions)
+            : new Blob(fileContent, fileOptions) as any
+
+        // Add name if it's a blob so FormData treats it as a file
+        const isFile = typeof File !== 'undefined' && file instanceof File;
+        if (!isFile && (file as any).name === undefined) {
+            (file as any).name = fileName;
+        }
 
         // Upload to Laravel
         const uploadResult = await uploadPublicFile(uuid, file, fieldName)
@@ -98,6 +123,7 @@ async function generateAndUploadPdf(
                 storagePath: uploadResult.storagePath,
                 generatedAt: uploadResult.uploadedAt,
                 fileSize: pdfBuffer.length,
+                fileId: uploadResult.fileId,
             },
         }
     } catch (error) {
@@ -112,10 +138,18 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
         const application = await getPublicApplication(uuid)
         const formData = (application.form_data || {}) as unknown as ApplicationFormData
         const generatedAt = new Date().toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
+            day: 'numeric',
+            month: 'long',
             year: 'numeric',
         })
+
+        const signatureDate = application.completed_at
+            ? new Date(application.completed_at).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+            })
+            : generatedAt;
 
         // Check if PDFs already exist in metadata
         const existingPdfs = (formData as any).generatedPdfs as GeneratedPdfs | undefined
@@ -234,6 +268,8 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
                     applicationId: applicationId || '',
                     generatedAt,
                     companyLogoUrl: logoUrl,
+                    signatureUrl: applicantSignatureUrl,
+                    signatureDate: signatureDate,
                 })
             )
 
@@ -247,8 +283,8 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
         // Output to Laravel (save PDF metadata)
         if (newPdfsGenerated) {
             // Update the form_data via saveFormStep API without altering current step logic
-            // We use standard step 7 as the current step to hold this update
-            await savePublicFormStep(uuid, formData.currentStep, { generatedPdfs: updatedGeneratedPdfs })
+            // We use standard step 1 or current step to hold this update
+            await savePublicFormStep(uuid, formData.currentStep || 1, { generatedPdfs: updatedGeneratedPdfs })
         }
 
         return results

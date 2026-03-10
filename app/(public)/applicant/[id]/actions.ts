@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { savePublicFormStep, submitPublicApplication, uploadPublicFile } from '@/lib/api/hr'
+import { downloadPdfFormsAction } from './pdf-actions'
 
 /**
  * Server Actions for applicant form submission
@@ -78,6 +79,11 @@ export async function submitApplication(uuid: string, signedDocumentsData?: any)
 
     try {
         await submitPublicApplication(uuid, signedDocumentsData)
+
+        // Regenerate ALL PDFs (this will now include signatures and dates)
+        // This effectively upserts the offer letter and other forms with final data
+        await downloadPdfFormsAction(uuid)
+
         shouldRedirect = true
     } catch (error: any) {
         console.error('Submit error:', error)

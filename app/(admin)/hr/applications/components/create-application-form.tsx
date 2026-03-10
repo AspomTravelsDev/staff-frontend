@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import React from "react";
-import { createApplication } from "@/lib/api/hr";
+import { createApplication, sendInvite } from "@/lib/api/hr";
+import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 import { toast } from "sonner";
 
 // Salary breakdown percentages
@@ -127,25 +128,30 @@ export function CreateApplicationForm() {
     // Check if grossSalary matches? It should if state is up to date.
 
     try {
-      await createApplication({
+      const application = await createApplication({
         applicant_name,
         applicant_email,
         position_title,
         reporting_to,
         effective_date,
-        salary_gross: grossSalary, // Ensure this matches formData logic if needed
+        salary_gross: grossSalary,
         salary_breakdown: breakdown,
       });
 
-      toast.success("Application Created Successfully!");
+      const toastId = toast.loading("Generating initial offer letter...");
+      await downloadPdfFormsAction(application.id);
+
+      toast.loading("Emailing invitation to applicant...", { id: toastId });
+      await sendInvite(application.id);
+
+      toast.success("Application created and invite sent!", { id: toastId });
       setSuccess(true);
 
-      // Redirect after a short delay
       setTimeout(() => {
         router.push("/hr/applications");
       }, 1500);
-    } catch (error) {
-      toast.error("Failed to create application");
+    } catch (error: any) {
+      toast.error(error.message || "An unexpected error occurred");
       console.error(error);
     } finally {
       setIsPending(false);

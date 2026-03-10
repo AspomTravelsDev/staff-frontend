@@ -110,46 +110,50 @@ export const RefereeFormPdf: React.FC<RefereeFormPdfProps> = ({
         {/* Header */}
         <View style={pdfStyles.header}>
           <View style={pdfStyles.logoContainer}>
-            {companyLogoUrl ? (
-              <Image src={companyLogoUrl} style={pdfStyles.logo} />
-            ) : (
-              <View style={pdfStyles.logo} />
-            )}
+            <Image src={companyLogoUrl} style={pdfStyles.logo} />
           </View>
-
           <View style={pdfStyles.companyInfo}>
             <Text style={pdfStyles.companyName}>ASPOM TRAVEL AGENCY</Text>
             <Text style={pdfStyles.companyAddress}>
               {COMPANY_ADDRESSES.head}
             </Text>
             <Text style={pdfStyles.companyAddress}>
-              {COMPANY_ADDRESSES.abuja}
-            </Text>
-            <Text style={pdfStyles.companyAddress}>
               {COMPANY_ADDRESSES.ikeja}
             </Text>
+            <Text style={pdfStyles.companyAddress}>
+              {COMPANY_ADDRESSES.abuja}
+            </Text>
           </View>
-
-          <View style={pdfStyles.photoBox}>
-            {passportPhotoUrl ? (
-              <Image src={passportPhotoUrl} style={pdfStyles.passportPhoto} />
-            ) : (
-              <View style={pdfStyles.photoPlaceholder}>
-                <Text style={pdfStyles.photoPlaceholderText}>
-                  Referee Photo
-                </Text>
-              </View>
-            )}
+          <View style={pdfStyles.headerRight}>
+            <View style={pdfStyles.photoBox}>
+              {passportPhotoUrl ? (
+                <Image src={passportPhotoUrl} style={pdfStyles.passportPhoto} />
+              ) : (
+                <View
+                  style={[
+                    pdfStyles.passportPhoto,
+                    {
+                      backgroundColor: "#f5f5f5",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <Text style={{ fontSize: 7, color: "#999" }}>PHOTO</Text>
+                </View>
+              )}
+            </View>
+            <View style={{ marginTop: 5 }}>
+              <Text style={pdfStyles.metadata}>Ref: {applicationId}</Text>
+              <Text style={pdfStyles.metadata}>Date: {generatedAt}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Metadata */}
-        <Text style={pdfStyles.metadata}>
-          Application ID: {applicationId} | Generated: {generatedAt}
-        </Text>
-
         {/* Confidential Banner */}
-        <Text style={pdfStyles.confidentialBanner}>CONFIDENTIAL</Text>
+        <Text style={pdfStyles.confidentialBanner}>
+          CONFIDENTIAL REFERENCE FORM
+        </Text>
 
         {/* Two-column header: Company address | Applicant info */}
         <View style={pdfStyles.twoColumnHeader}>
@@ -182,54 +186,54 @@ export const RefereeFormPdf: React.FC<RefereeFormPdfProps> = ({
           </View>
         </View>
 
-        {/* Confidential Section */}
-        <View style={pdfStyles.witnessSection}>
-          <Text style={pdfStyles.witnessTitle}>
-            ASPOM TRAVELS - CONFIDENTIAL REPORT
-          </Text>
-          <Text style={pdfStyles.text}>
-            This report is confidential and is for the exclusive use of the HR
-            Department. Please ensure all details are accurate and complete.
-          </Text>
-        </View>
-
         {/* Applicant Declaration and Signature */}
-        <View style={pdfStyles.declarationSection}>
+        <View style={{ marginBottom: 20 }}>
           <Text style={pdfStyles.sectionTitle}>APPLICANT'S DECLARATION</Text>
-          <Text style={pdfStyles.declarationText}>
+          <Text style={pdfStyles.paragraph}>
             I,{" "}
-            <Text style={pdfStyles.declarationFill}>
-              {applicantFullName || "___________"}
+            <Text style={pdfStyles.bold}>
+              {applicantFullName || "____________________"}
             </Text>{" "}
             hereby declare that all the information provided in this application
             is true and correct to the best of my knowledge. I understand that
             any false statement may result in the termination of my employment.
           </Text>
           <View style={pdfStyles.signatureRow}>
-            <View style={pdfStyles.signatureField}>
-              {applicantSignatureUrl && (
-                <Image
-                  src={applicantSignatureUrl}
-                  style={pdfStyles.signatureImage}
-                />
-              )}
-              <View style={pdfStyles.signatureLine} />
-              <Text style={pdfStyles.signatureLabel}>
+            <View style={pdfStyles.signatureBlock}>
+              <View style={pdfStyles.signatureLine}>
+                {applicantSignatureUrl && (
+                  <Image
+                    src={applicantSignatureUrl}
+                    style={pdfStyles.signatureImage}
+                  />
+                )}
+              </View>
+              <Text style={pdfStyles.signatureText}>
                 Applicant's Signature & Date
+              </Text>
+            </View>
+            <View style={pdfStyles.signatureBlock}>
+              <Text style={[pdfStyles.text, { fontSize: 10 }]}>
+                Position Applied For:
+              </Text>
+              <Text
+                style={[
+                  pdfStyles.text,
+                  pdfStyles.bold,
+                  { borderBottom: "0.5pt solid #000" },
+                ]}
+              >
+                {positionTitle || "N/A"}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Introduction */}
-        <Text style={pdfStyles.declarationText}>
+        <Text style={pdfStyles.paragraph}>
           We would appreciate your help in providing us with a reference for the
           individual named above who has applied to work with us for the
           position of{" "}
-          <Text style={pdfStyles.declarationFill}>
-            {positionTitle || "N/A"}
-          </Text>
-          .
+          <Text style={pdfStyles.bold}>{positionTitle || "N/A"}</Text>.
         </Text>
 
         {/* Referee Details */}
@@ -424,8 +428,8 @@ export const RefereeFormPdf: React.FC<RefereeFormPdfProps> = ({
         {/* Declaration */}
         <Text
           style={[
-            pdfStyles.declarationText,
-            { marginTop: 20, fontFamily: "Times-Italic" },
+            pdfStyles.text,
+            { marginTop: 20, fontFamily: "Times-Italic", fontSize: 10 },
           ]}
         >
           I confirm that the details I have provided are accurate to the best of
@@ -434,13 +438,13 @@ export const RefereeFormPdf: React.FC<RefereeFormPdfProps> = ({
 
         {/* Signature */}
         <View style={pdfStyles.signatureRow}>
-          <View style={pdfStyles.signatureField}>
+          <View style={pdfStyles.signatureBlock}>
             <View style={pdfStyles.signatureLine} />
-            <Text style={pdfStyles.signatureLabel}>Signature</Text>
+            <Text style={pdfStyles.signatureText}>Signature</Text>
           </View>
-          <View style={pdfStyles.signatureField}>
+          <View style={pdfStyles.signatureBlock}>
             <View style={pdfStyles.signatureLine} />
-            <Text style={pdfStyles.signatureLabel}>Date</Text>
+            <Text style={pdfStyles.signatureText}>Date</Text>
           </View>
         </View>
       </Page>

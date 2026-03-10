@@ -50,7 +50,6 @@ interface GuarantorFormPdfProps {
   generatedAt: string;
   companyLogoUrl?: string;
   passportPhotoUrl?: string;
-  applicantPhotoUrl?: string;
   applicantSignatureUrl?: string;
 }
 
@@ -63,7 +62,6 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
   generatedAt,
   companyLogoUrl = COMPANY_LOGO_URL,
   passportPhotoUrl,
-  applicantPhotoUrl,
   applicantSignatureUrl,
 }) => {
   const applicantFullName = [
@@ -106,43 +104,45 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
         {/* Header */}
         <View style={pdfStyles.header}>
           <View style={pdfStyles.logoContainer}>
-            {companyLogoUrl ? (
-              <Image src={companyLogoUrl} style={pdfStyles.logo} />
-            ) : (
-              <View style={pdfStyles.logo} />
-            )}
+            <Image src={companyLogoUrl} style={pdfStyles.logo} />
           </View>
-
           <View style={pdfStyles.companyInfo}>
             <Text style={pdfStyles.companyName}>ASPOM TRAVEL AGENCY</Text>
             <Text style={pdfStyles.companyAddress}>
               {COMPANY_ADDRESSES.head}
             </Text>
             <Text style={pdfStyles.companyAddress}>
-              {COMPANY_ADDRESSES.abuja}
-            </Text>
-            <Text style={pdfStyles.companyAddress}>
               {COMPANY_ADDRESSES.ikeja}
             </Text>
+            <Text style={pdfStyles.companyAddress}>
+              {COMPANY_ADDRESSES.abuja}
+            </Text>
           </View>
-
-          <View style={pdfStyles.photoBox}>
-            {passportPhotoUrl ? (
-              <Image src={passportPhotoUrl} style={pdfStyles.passportPhoto} />
-            ) : (
-              <View style={pdfStyles.photoPlaceholder}>
-                <Text style={pdfStyles.photoPlaceholderText}>
-                  Guarantor Photo
-                </Text>
-              </View>
-            )}
+          <View style={pdfStyles.headerRight}>
+            <View style={pdfStyles.photoBox}>
+              {passportPhotoUrl ? (
+                <Image src={passportPhotoUrl} style={pdfStyles.passportPhoto} />
+              ) : (
+                <View
+                  style={[
+                    pdfStyles.passportPhoto,
+                    {
+                      backgroundColor: "#f5f5f5",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <Text style={{ fontSize: 7, color: "#999" }}>PHOTO</Text>
+                </View>
+              )}
+            </View>
+            <View style={{ marginTop: 5 }}>
+              <Text style={pdfStyles.metadata}>Ref: {applicationId}</Text>
+              <Text style={pdfStyles.metadata}>Date: {generatedAt}</Text>
+            </View>
           </View>
         </View>
-
-        {/* Metadata */}
-        <Text style={pdfStyles.metadata}>
-          Application ID: {applicationId} | Generated: {generatedAt}
-        </Text>
 
         {/* Form Title */}
         <Text style={pdfStyles.formTitle}>STAFF GUARANTOR FORM</Text>
@@ -155,17 +155,14 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
           </View>
         </View>
 
-        {/* Introduction Text */}
-        <Text style={pdfStyles.declarationText}>
+        <Text style={pdfStyles.paragraph}>
           The above named individual has applied to our organization for the
           position of a{" "}
-          <Text style={pdfStyles.declarationFill}>
-            {positionTitle || "N/A"}
-          </Text>
-          . She/he is therefore being considered for employment.
+          <Text style={pdfStyles.bold}>{positionTitle || "N/A"}</Text>. She/he
+          is therefore being considered for employment.
         </Text>
 
-        <Text style={pdfStyles.declarationText}>
+        <Text style={pdfStyles.paragraph}>
           You have been selected as his/her Guarantor. In line with our policy,
           it will be appreciated if you could fill this form and assure us that
           while he/she is in our employment and his/her whereabouts is unknown
@@ -284,64 +281,64 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
         </View>
 
         {/* Declaration */}
-        <View style={pdfStyles.declarationSection}>
+        <View style={{ marginTop: 10 }}>
           <Text style={pdfStyles.sectionTitle}>DECLARATION</Text>
-
-          <Text style={pdfStyles.declarationText}>
+          <Text style={pdfStyles.paragraph}>
             I,{" "}
-            <Text style={pdfStyles.declarationFill}>
-              {guarantorFullName || "___________"}
+            <Text style={pdfStyles.bold}>
+              {guarantorFullName || "____________________"}
             </Text>{" "}
-            (Guarantor's name) hereby attest that{" "}
-            <Text style={pdfStyles.declarationFill}>
-              {applicantFullName || "___________"}
+            hereby attest that{" "}
+            <Text style={pdfStyles.bold}>
+              {applicantFullName || "____________________"}
             </Text>{" "}
-            (Employee's name) is being guaranteed financially by me. I do hereby
-            assure my cooperation and total support whenever he/she is found
-            wanting financially on the job. I hereby accept to stand as
-            guarantor for him/her and agree to indemnify{" "}
-            <Text style={pdfStyles.declarationFill}>Aspom Travel Agency</Text>{" "}
-            of all financial losses arising from any malpractice and also
-            promise to pay up any outstanding debt within one month of being
-            contacted and being given full evidence of any indebtedness on his /
-            her part.
+            is being guaranteed financially by me. I do hereby assure my
+            cooperation and total support whenever he/she is found wanting
+            financially on the job. I hereby accept to stand as guarantor for
+            him/her and agree to indemnify{" "}
+            <Text style={pdfStyles.bold}>Aspom Travel Agency</Text> of all
+            financial losses arising from any malpractice and also promise to
+            pay up any outstanding debt within one month of being contacted and
+            being given full evidence of any indebtedness on his/her part.
           </Text>
         </View>
 
-        {/* Guarantor Signature */}
         <View style={pdfStyles.signatureRow}>
-          <View style={pdfStyles.signatureField}>
+          <View style={pdfStyles.signatureBlock}>
             <View style={pdfStyles.signatureLine} />
-            <Text style={pdfStyles.signatureLabel}>Guarantor's Signature</Text>
+            <Text style={pdfStyles.signatureText}>Guarantor's Signature</Text>
           </View>
-          <View style={pdfStyles.signatureField}>
-            <View style={pdfStyles.signatureLine} />
-            <Text style={pdfStyles.signatureLabel}>Date</Text>
+          <View style={pdfStyles.signatureBlock}>
+            <View style={pdfStyles.signatureLine}>
+              <Text style={{ fontSize: 9 }}>{generatedAt}</Text>
+            </View>
+            <Text style={pdfStyles.signatureText}>Date</Text>
           </View>
         </View>
 
         {/* Applicant Declaration and Signature */}
-        <View style={pdfStyles.declarationSection}>
+        <View style={{ marginTop: 20 }}>
           <Text style={pdfStyles.sectionTitle}>APPLICANT'S DECLARATION</Text>
-          <Text style={pdfStyles.declarationText}>
+          <Text style={pdfStyles.paragraph}>
             I,{" "}
-            <Text style={pdfStyles.declarationFill}>
-              {applicantFullName || "___________"}
+            <Text style={pdfStyles.bold}>
+              {applicantFullName || "____________________"}
             </Text>{" "}
             hereby declare that all the information provided in this application
             is true and correct to the best of my knowledge. I understand that
             any false statement may result in the termination of my employment.
           </Text>
           <View style={pdfStyles.signatureRow}>
-            <View style={pdfStyles.signatureField}>
-              {applicantSignatureUrl && (
-                <Image
-                  src={applicantSignatureUrl}
-                  style={pdfStyles.signatureImage}
-                />
-              )}
-              <View style={pdfStyles.signatureLine} />
-              <Text style={pdfStyles.signatureLabel}>
+            <View style={pdfStyles.signatureBlock}>
+              <View style={pdfStyles.signatureLine}>
+                {applicantSignatureUrl && (
+                  <Image
+                    src={applicantSignatureUrl}
+                    style={pdfStyles.signatureImage}
+                  />
+                )}
+              </View>
+              <Text style={pdfStyles.signatureText}>
                 Applicant's Signature & Date
               </Text>
             </View>
@@ -350,38 +347,32 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
 
         {/* Witness Section */}
         <View style={pdfStyles.witnessSection} wrap={false}>
-          <Text style={pdfStyles.witnessTitle}>WITNESS</Text>
+          <Text style={pdfStyles.sectionTitle}>WITNESS</Text>
 
           <View style={pdfStyles.fieldRow}>
             <View style={pdfStyles.fieldColumn}>
               <Text style={pdfStyles.fieldLabel}>Full Name</Text>
-              <View style={pdfStyles.fieldLine}>
-                <Text></Text>
-              </View>
+              <View style={pdfStyles.fieldLine} />
             </View>
             <View style={pdfStyles.fieldColumn}>
               <Text style={pdfStyles.fieldLabel}>Phone Number</Text>
-              <View style={pdfStyles.fieldLine}>
-                <Text></Text>
-              </View>
+              <View style={pdfStyles.fieldLine} />
             </View>
           </View>
 
           <View style={pdfStyles.fieldGroup}>
             <Text style={pdfStyles.fieldLabel}>Address</Text>
-            <View style={pdfStyles.fieldLine}>
-              <Text></Text>
-            </View>
+            <View style={pdfStyles.fieldLine} />
           </View>
 
           <View style={pdfStyles.signatureRow}>
-            <View style={pdfStyles.signatureField}>
+            <View style={pdfStyles.signatureBlock}>
               <View style={pdfStyles.signatureLine} />
-              <Text style={pdfStyles.signatureLabel}>Witness Signature</Text>
+              <Text style={pdfStyles.signatureText}>Witness Signature</Text>
             </View>
-            <View style={pdfStyles.signatureField}>
+            <View style={pdfStyles.signatureBlock}>
               <View style={pdfStyles.signatureLine} />
-              <Text style={pdfStyles.signatureLabel}>Date</Text>
+              <Text style={pdfStyles.signatureText}>Date</Text>
             </View>
           </View>
         </View>

@@ -469,10 +469,34 @@ export function Step1Personal({
             <Label htmlFor="emergencyContact_relationship">
               Relationship *
             </Label>
-            <Input
-              id="emergencyContact_relationship"
-              name="emergencyContact_relationship"
+            <Select
+              defaultValue={initialData?.emergencyContact?.relationship || ""}
+              onValueChange={(value) => {
+                const input = document.querySelector(
+                  'input[name="emergencyContact_relationship"]',
+                ) as HTMLInputElement;
+                if (input) input.value = value;
+              }}
               required
+            >
+              <SelectTrigger id="emergencyContact_relationship">
+                <SelectValue placeholder="Select relationship" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Mother">Mother</SelectItem>
+                <SelectItem value="Father">Father</SelectItem>
+                <SelectItem value="Brother">Brother</SelectItem>
+                <SelectItem value="Sister">Sister</SelectItem>
+                <SelectItem value="Spouse">Spouse</SelectItem>
+                <SelectItem value="Friend">Friend</SelectItem>
+                <SelectItem value="Colleague">Colleague</SelectItem>
+                <SelectItem value="Relative">Relative</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <input
+              type="hidden"
+              name="emergencyContact_relationship"
               defaultValue={initialData?.emergencyContact?.relationship || ""}
             />
           </div>

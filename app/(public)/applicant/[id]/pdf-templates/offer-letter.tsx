@@ -34,11 +34,13 @@ interface OfferLetterPdfProps {
   applicationId: string;
   generatedAt: string;
   companyLogoUrl?: string;
+  signatureUrl?: string;
+  signatureDate?: string;
 }
 
 const formatAmount = (amount?: number) => {
-  if (amount === undefined || amount === null) return "₦0.00";
-  return `₦${amount.toLocaleString("en-US", {
+  if (amount === undefined || amount === null) return "N0.00";
+  return `N${amount.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -56,6 +58,8 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
   applicationId,
   generatedAt,
   companyLogoUrl = COMPANY_LOGO_URL,
+  signatureUrl,
+  signatureDate,
 }) => {
   const applicantFullName = [
     applicant?.firstName,
@@ -108,18 +112,17 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
             </Text>
           </View>
           <View style={pdfStyles.headerRight}>
-            <Text style={pdfStyles.metadata}>ID: {applicationId}</Text>
+            <Text style={pdfStyles.metadata}>Ref: {applicationId}</Text>
             <Text style={pdfStyles.metadata}>Date: {generatedAt}</Text>
           </View>
         </View>
 
         {/* Recipient */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={pdfStyles.text}>{generatedAt}</Text>
-          <Text style={[pdfStyles.text, pdfStyles.bold, { marginTop: 10 }]}>
+        <View style={{ marginBottom: 25 }}>
+          <Text style={[pdfStyles.text, pdfStyles.bold]}>
             {applicantFullName}
           </Text>
-          <Text style={[pdfStyles.text, { width: 250 }]}>
+          <Text style={[pdfStyles.text, { width: 300, fontSize: 10 }]}>
             {applicantAddress}
           </Text>
         </View>
@@ -129,7 +132,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
         </View>
 
         {/* Subject */}
-        <View style={{ marginBottom: 15 }}>
+        <View style={{ marginBottom: 20 }}>
           <Text
             style={[
               pdfStyles.text,
@@ -143,9 +146,9 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
         </View>
 
         <Text style={pdfStyles.paragraph}>
-          With reference to your application and subsequent interview, we are
-          pleased to offer you employment under the following terms and
-          conditions:
+          Following your recent application and interview, we are delighted to
+          offer you employment with ASPOM Travel Agency under the following
+          terms and conditions:
         </Text>
 
         {/* Terms */}
@@ -172,14 +175,12 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>4.</Text>
             <View style={pdfStyles.listContent}>
-              <Text style={pdfStyles.bold}>
-                SALARY & BENEFIT: {formatAmount(grossMonthly)}
-              </Text>
+              <Text style={pdfStyles.bold}>SALARY & BENEFITS:</Text>
               <Text style={{ marginTop: 5 }}>
-                {formatAmount(grossAnnual)} This figure is inclusive of all
-                allowances and is the gross amount before any personal tax. The
-                above amount represents your total fixed salary, which will be
-                structured to your tax efficiency. The breakdown is as follows:
+                Your gross monthly salary will be {formatAmount(grossMonthly)} (
+                {formatAmount(grossAnnual)} per annum). This figure is inclusive
+                of all allowances and is the gross amount before statutory
+                deductions. The breakdown is as follows:
               </Text>
             </View>
           </View>
@@ -187,16 +188,14 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
 
         {/* Salary Breakdown Table */}
         <View style={pdfStyles.salaryTable}>
+          <View style={[pdfStyles.tableRow, pdfStyles.tableHeaderRow]}>
+            <Text style={pdfStyles.tableCellLabel}>ENTITLEMENTS</Text>
+            <Text style={pdfStyles.tableCellValue}>MONTHLY (N)</Text>
+          </View>
           {employmentTerms?.salary_breakdown ? (
             Object.entries(employmentTerms.salary_breakdown).map(
-              ([key, value], idx, arr) => (
-                <View
-                  key={key}
-                  style={[
-                    pdfStyles.tableRow,
-                    idx === arr.length - 1 ? pdfStyles.noBorder : {},
-                  ]}
-                >
+              ([key, value]) => (
+                <View key={key} style={pdfStyles.tableRow}>
                   <Text style={pdfStyles.tableCellLabel}>
                     {key
                       .split("_")
@@ -204,23 +203,25 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
                       .join(" ")}
                   </Text>
                   <Text style={pdfStyles.tableCellValue}>
-                    {formatAmount(value)}
+                    {formatAmount(value).replace("N", "")}
                   </Text>
                 </View>
               ),
             )
           ) : (
-            <View style={[pdfStyles.tableRow, pdfStyles.noBorder]}>
+            <View style={pdfStyles.tableRow}>
               <Text style={pdfStyles.tableCellLabel}>Monthly Gross Salary</Text>
               <Text style={pdfStyles.tableCellValue}>
-                {formatAmount(grossMonthly)}
+                {formatAmount(grossMonthly).replace("N", "")}
               </Text>
             </View>
           )}
-          <View style={[pdfStyles.tableRow, { backgroundColor: "#f0f0f0" }]}>
-            <Text style={pdfStyles.tableCellLabel}>Total</Text>
-            <Text style={pdfStyles.tableCellValue}>
-              {formatAmount(grossMonthly)}
+          <View style={[pdfStyles.tableRow, { backgroundColor: "#f5f5f5" }]}>
+            <Text style={[pdfStyles.tableCellLabel, pdfStyles.bold]}>
+              TOTAL GROSS SALARY
+            </Text>
+            <Text style={[pdfStyles.tableCellValue, pdfStyles.bold]}>
+              {formatAmount(grossMonthly).replace("N", "")}
             </Text>
           </View>
         </View>
@@ -368,12 +369,39 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
               this offer letter and do hereby accept the offer.
             </Text>
             <View style={{ marginTop: 15 }}>
-              <Text style={pdfStyles.text}>
-                Name: ________________________________________________
-              </Text>
-              <Text style={[pdfStyles.text, { marginTop: 10 }]}>
-                Signature: __________________________ Date: ______________
-              </Text>
+              <Text style={pdfStyles.text}>Name: {applicantFullName}</Text>
+              <View
+                style={{
+                  marginTop: 10,
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  gap: 10,
+                }}
+              >
+                <Text style={pdfStyles.text}>Signature:</Text>
+                {signatureUrl ? (
+                  <Image
+                    src={signatureUrl}
+                    style={{
+                      width: 100,
+                      height: 40,
+                      borderBottom: "1pt solid #000",
+                    }}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      pdfStyles.text,
+                      { borderBottom: "1pt solid #000", width: 150 },
+                    ]}
+                  >
+                    {" "}
+                  </Text>
+                )}
+                <Text style={pdfStyles.text}>
+                  Date: {signatureDate || "________________"}
+                </Text>
+              </View>
             </View>
           </View>
         </View>

@@ -445,8 +445,32 @@ export function Step4Guarantors({
             <Label htmlFor={`${prefix}relationship`} className="text-sm">
               Relationship to Applicant
             </Label>
-            <Input
-              id={`${prefix}relationship`}
+            <Select
+              defaultValue={data?.relationship || ""}
+              onValueChange={(value) => {
+                const input = document.querySelector(
+                  `input[name="${prefix}relationship"]`,
+                ) as HTMLInputElement;
+                if (input) input.value = value;
+              }}
+            >
+              <SelectTrigger id={`${prefix}relationship`}>
+                <SelectValue placeholder="Select relationship" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Mother">Mother</SelectItem>
+                <SelectItem value="Father">Father</SelectItem>
+                <SelectItem value="Brother">Brother</SelectItem>
+                <SelectItem value="Sister">Sister</SelectItem>
+                <SelectItem value="Spouse">Spouse</SelectItem>
+                <SelectItem value="Friend">Friend</SelectItem>
+                <SelectItem value="Colleague">Colleague</SelectItem>
+                <SelectItem value="Relative">Relative</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <input
+              type="hidden"
               name={`${prefix}relationship`}
               defaultValue={data?.relationship || ""}
             />
@@ -534,16 +558,17 @@ export function Step4Guarantors({
                 </div>
               ) : preview ? (
                 <img
-                  src={preview}
+                  src={preview || ""}
                   alt={`${title} passport preview`}
                   className="h-32 w-24 rounded border border-muted-foreground object-cover"
                 />
               ) : (
                 <img
                   src={
-                    index === 0
+                    (index === 0
                       ? initialData?.guarantors?.[0]?.passportPhoto?.storagePath
-                      : initialData?.guarantors?.[1]?.passportPhoto?.storagePath
+                      : initialData?.guarantors?.[1]?.passportPhoto
+                          ?.storagePath) || ""
                   }
                   alt={`${title} passport photo`}
                   className="h-32 w-24 rounded border border-muted-foreground object-cover"

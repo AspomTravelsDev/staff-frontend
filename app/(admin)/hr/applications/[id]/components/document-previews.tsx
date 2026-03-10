@@ -10,17 +10,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getProxiedImageUrl } from "@/lib/utils";
 
 interface SignedDocument {
   fileName: string;
   storagePath: string;
   uploadedAt: string;
+  fileId?: string;
 }
 
 interface GeneratedPdf {
   storagePath: string;
   generatedAt: string;
   fileSize: number;
+  fileId?: string;
 }
 
 interface DocumentPreviewsProps {
@@ -44,6 +47,7 @@ interface DocumentCardProps {
   documentUrl?: string;
   uploadedAt?: string;
   type: "unsigned" | "signed";
+  fileId?: string;
 }
 
 function DocumentCard({
@@ -52,7 +56,11 @@ function DocumentCard({
   documentUrl,
   uploadedAt,
   type,
+  fileId,
 }: DocumentCardProps) {
+  // Use secure download route if fileId is available, otherwise fallback to the provided URL
+  const downloadUrl = fileId ? `/api/files/download/${fileId}` : documentUrl;
+  const proxiedUrl = downloadUrl ? getProxiedImageUrl(downloadUrl) : undefined;
   const [isHovering, setIsHovering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -142,13 +150,13 @@ function DocumentCard({
       </div>
 
       {/* Hover Preview & Actions */}
-      {isHovering && documentUrl && (
+      {isHovering && proxiedUrl && (
         <div className="absolute inset-0 rounded-lg bg-black/80 flex flex-col items-center justify-center gap-3 z-10 transition-opacity">
           <div className="flex gap-2">
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => window.open(documentUrl, "_blank")}
+              onClick={() => window.open(proxiedUrl, "_blank")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -213,34 +221,48 @@ export function DocumentPreviews({
             Generated Forms (Unsigned)
           </h4>
           <div className="grid gap-3 md:grid-cols-3">
-            <DocumentCard
-              title="Guarantor 1 Form"
-              description="Form for first guarantor"
-              documentUrl={generatedPdfs?.guarantor1?.storagePath}
-              uploadedAt={generatedPdfs?.guarantor1?.generatedAt}
-              type="unsigned"
-            />
-            <DocumentCard
-              title="Guarantor 2 Form"
-              description="Form for second guarantor"
-              documentUrl={generatedPdfs?.guarantor2?.storagePath}
-              uploadedAt={generatedPdfs?.guarantor2?.generatedAt}
-              type="unsigned"
-            />
-            <DocumentCard
-              title="Referee Form"
-              description="Professional reference form"
-              documentUrl={generatedPdfs?.referee?.storagePath}
-              uploadedAt={generatedPdfs?.referee?.generatedAt}
-              type="unsigned"
-            />
-            <DocumentCard
-              title="Offer Letter"
-              description="Official employment offer"
-              documentUrl={generatedPdfs?.offerLetter?.storagePath}
-              uploadedAt={generatedPdfs?.offerLetter?.generatedAt}
-              type="unsigned"
-            />
+            {!signedDocuments?.guarantor1Signed && (
+              <DocumentCard
+                title="Guarantor 1 Form"
+                description="Form for first guarantor"
+                documentUrl={generatedPdfs?.guarantor1?.storagePath}
+                uploadedAt={generatedPdfs?.guarantor1?.generatedAt}
+                fileId={generatedPdfs?.guarantor1?.fileId}
+                type="unsigned"
+              />
+            )}
+            {!signedDocuments?.guarantor2Signed && (
+              <DocumentCard
+                title="Guarantor 2 Form"
+                description="Form for second guarantor"
+                documentUrl={generatedPdfs?.guarantor2?.storagePath}
+                uploadedAt={generatedPdfs?.guarantor2?.generatedAt}
+                fileId={generatedPdfs?.guarantor2?.fileId}
+                type="unsigned"
+              />
+            )}
+            {!signedDocuments?.refereeSigned && (
+              <DocumentCard
+                title="Referee Form"
+                description="Professional reference form"
+                documentUrl={generatedPdfs?.referee?.storagePath}
+                uploadedAt={generatedPdfs?.referee?.generatedAt}
+                fileId={generatedPdfs?.referee?.fileId}
+                type="unsigned"
+              />
+            )}
+            {/* Offer letter is special: we show it in the unsigned section ONLY if not completed */}
+            {!signedDocuments?.refereeSigned &&
+              !generatedPdfs?.offerLetter?.generatedAt && (
+                <DocumentCard
+                  title="Offer Letter"
+                  description="Official employment offer"
+                  documentUrl={generatedPdfs?.offerLetter?.storagePath}
+                  uploadedAt={generatedPdfs?.offerLetter?.generatedAt}
+                  fileId={generatedPdfs?.offerLetter?.fileId}
+                  type="unsigned"
+                />
+              )}
           </div>
         </div>
 
@@ -255,6 +277,7 @@ export function DocumentPreviews({
               description="Signed by first guarantor"
               documentUrl={signedDocuments?.guarantor1Signed?.storagePath}
               uploadedAt={signedDocuments?.guarantor1Signed?.uploadedAt}
+              fileId={signedDocuments?.guarantor1Signed?.fileId}
               type="signed"
             />
             <DocumentCard
@@ -262,6 +285,7 @@ export function DocumentPreviews({
               description="Signed by second guarantor"
               documentUrl={signedDocuments?.guarantor2Signed?.storagePath}
               uploadedAt={signedDocuments?.guarantor2Signed?.uploadedAt}
+              fileId={signedDocuments?.guarantor2Signed?.fileId}
               type="signed"
             />
             <DocumentCard
@@ -269,6 +293,15 @@ export function DocumentPreviews({
               description="Signed by referee"
               documentUrl={signedDocuments?.refereeSigned?.storagePath}
               uploadedAt={signedDocuments?.refereeSigned?.uploadedAt}
+              fileId={signedDocuments?.refereeSigned?.fileId}
+              type="signed"
+            />
+            <DocumentCard
+              title="Signed Offer Letter"
+              description="Electronic signature applied"
+              documentUrl={generatedPdfs?.offerLetter?.storagePath}
+              uploadedAt={generatedPdfs?.offerLetter?.generatedAt}
+              fileId={generatedPdfs?.offerLetter?.fileId}
               type="signed"
             />
           </div>
