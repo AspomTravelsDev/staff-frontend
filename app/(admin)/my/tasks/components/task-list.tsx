@@ -28,6 +28,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { DailyTaskRecord } from "@/types/task-types";
 
+import { useCallback } from "react";
+import { debounce } from "lodash";
+
 interface TaskListProps {
   initialData: DailyTaskRecord[];
 }
@@ -43,6 +46,7 @@ export function TaskList({ initialData }: TaskListProps) {
 
   const [localTasks, setLocalTasks] = useState<TaskItemType[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isAutosaving, setIsAutosaving] = useState(false);
 
   // Load tasks when data is fetched
   useEffect(() => {
@@ -58,6 +62,53 @@ export function TaskList({ initialData }: TaskListProps) {
   const record = records?.[0];
   const isSubmitted = record?.report_submitted ?? false;
   const isLocked = isSubmitted;
+
+  // Manual save function
+  const handleSave = async () => {
+    const validTasks = localTasks.filter((t) => t.text.trim() !== "");
+    if (validTasks.length === 0) {
+      toast.error("Cannot save empty list");
+      return;
+    }
+
+    try {
+      await updateTasks.mutateAsync({ tasks: validTasks });
+      setHasUnsavedChanges(false);
+      toast.success("Saved successfully");
+    } catch (error: any) {
+      console.error("Failed to save tasks:", error);
+      toast.error(error.message || "Failed to save tasks");
+    }
+  };
+
+  // Debounced save function for autosave
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSave = useCallback(
+    debounce(async (tasks: TaskItemType[]) => {
+      const validTasks = tasks.filter((t) => t.text.trim() !== "");
+      if (validTasks.length === 0) return;
+
+      setIsAutosaving(true);
+      try {
+        await updateTasks.mutateAsync({ tasks: validTasks });
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error("Autosave failed:", error);
+      } finally {
+        setIsAutosaving(false);
+      }
+    }, 2000),
+    [updateTasks]
+  );
+
+  // Trigger autosave when tasks change
+  useEffect(() => {
+    if (hasUnsavedChanges && !isLocked && localTasks.length > 0) {
+      debouncedSave(localTasks);
+    }
+    // Cleanup debounce on unmount
+    return () => debouncedSave.cancel();
+  }, [localTasks, hasUnsavedChanges, isLocked, debouncedSave]);
 
   const handleAddTask = () => {
     setLocalTasks([
@@ -83,25 +134,6 @@ export function TaskList({ initialData }: TaskListProps) {
     const newTasks = localTasks.filter((_, i) => i !== index);
     setLocalTasks(newTasks);
     setHasUnsavedChanges(true);
-  };
-
-  const handleSave = async () => {
-    // Filter out empty tasks before saving
-    const validTasks = localTasks.filter((t) => t.text.trim() !== "");
-
-    if (validTasks.length === 0) {
-      toast.error("Cannot save empty list");
-      return;
-    }
-
-    try {
-      await updateTasks.mutateAsync({ tasks: validTasks });
-      setHasUnsavedChanges(false);
-      toast.success("Saved successfully");
-    } catch (error: any) {
-      console.error("Failed to save tasks:", error);
-      toast.error(error.message || "Failed to save tasks");
-    }
   };
 
   const handleSubmitReport = async () => {
@@ -206,12 +238,27 @@ export function TaskList({ initialData }: TaskListProps) {
 
       {!isLocked && localTasks.length > 0 && (
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          {hasUnsavedChanges && (
+          {isAutosaving ? (
+            <Badge
+              variant="outline"
+              className="text-blue-600 border-blue-200 bg-blue-50 animate-pulse"
+            >
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              Saving...
+            </Badge>
+          ) : hasUnsavedChanges ? (
             <Badge
               variant="outline"
               className="text-yellow-600 border-yellow-200 bg-yellow-50"
             >
               Unsaved Changes
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="text-green-600 border-green-200 bg-green-50"
+            >
+              All changes saved
             </Badge>
           )}
           <Button
