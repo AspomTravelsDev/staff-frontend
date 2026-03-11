@@ -11,10 +11,10 @@ export async function UpcomingBirthdaysCard() {
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-linear-to-r from-pink-500/10 to-transparent">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-linear-to-r from-pink-500/10 dark:from-pink-500/20 to-transparent">
         <div className="flex flex-col gap-1">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Cake className="h-4 w-4 text-pink-500" />
+            <Cake className="h-4 w-4 text-pink-500 dark:text-pink-400" />
             Birthdays This Month
           </CardTitle>
           <span className="text-xs text-muted-foreground font-normal">
@@ -23,7 +23,7 @@ export async function UpcomingBirthdaysCard() {
         </div>
         <Link
           href="/hr/birthdays"
-          className="text-xs font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors"
+          className="text-xs font-medium text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 hover:underline transition-colors"
         >
           View All
         </Link>
@@ -49,12 +49,12 @@ export async function UpcomingBirthdaysCard() {
                   key={employee.id}
                   className="group relative flex items-center gap-3 p-1 rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <Avatar className="h-9 w-9 ring-offset-background group-hover:ring-2 group-hover:ring-pink-500 transition-all">
+                  <Avatar className="h-9 w-9 ring-offset-background group-hover:ring-2 group-hover:ring-pink-500 dark:group-hover:ring-pink-400 transition-all">
                     <AvatarImage
                       src={toProxiedImageUrl(employee.image_url)}
                       alt={`${employee.firstName} ${employee.lastName}`}
                     />
-                    <AvatarFallback className="bg-pink-100 text-pink-700 text-xs">
+                    <AvatarFallback className="bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 text-xs uppercase">
                       {employee.firstName[0]}
                       {employee.lastName[0]}
                     </AvatarFallback>
@@ -64,13 +64,13 @@ export async function UpcomingBirthdaysCard() {
                     <p className="text-sm font-medium leading-none truncate flex items-center gap-1">
                       {employee.firstName} {employee.lastName}
                       {isEmployeeBirthdayToday && (
-                        <span className="inline-flex h-2 w-2 rounded-full bg-pink-500 animate-pulse" />
+                        <span className="inline-flex h-2 w-2 rounded-full bg-pink-500 dark:bg-pink-400 animate-pulse" />
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {birthdayDate ? (
                         isEmployeeBirthdayToday ? (
-                          <span className="text-pink-600 font-medium">
+                          <span className="text-pink-600 dark:text-pink-400 font-medium">
                             Today! 🎂
                           </span>
                         ) : (

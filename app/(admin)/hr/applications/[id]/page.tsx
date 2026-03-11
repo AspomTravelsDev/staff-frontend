@@ -8,6 +8,7 @@ import { getApplication } from "@/lib/api/hr";
 import { CopyLinkButton } from "./components/copy-link-button";
 import { DocumentPreviews } from "./components/document-previews";
 import { ApplicationActionsClient } from "./components/application-actions-client";
+import { BioData } from "./components/bio-data";
 
 export default async function ApplicationDetailPage({
   params,
@@ -129,6 +130,11 @@ export default async function ApplicationDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Bio Data */}
+      {application.form_data && (
+        <BioData formData={application.form_data as any} />
+      )}
 
       {/* Employment Terms */}
       {employmentTerms && (

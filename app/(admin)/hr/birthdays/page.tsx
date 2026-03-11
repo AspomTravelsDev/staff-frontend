@@ -85,22 +85,22 @@ function MonthBirthdayCard({
 
   return (
     <Card
-      className={`overflow-hidden transition-all duration-300 hover:shadow-md ${isCurrentMonth ? "ring-2 ring-pink-500/20" : ""}`}
+      className={`overflow-hidden transition-all duration-300 hover:shadow-md ${isCurrentMonth ? "ring-2 ring-pink-500/20 dark:ring-pink-500/30" : ""}`}
     >
       <CardHeader
-        className={`pb-3 ${isCurrentMonth ? "bg-pink-50 text-pink-900 border-b border-pink-100" : "bg-muted/30 border-b"}`}
+        className={`pb-3 ${isCurrentMonth ? "bg-pink-50 dark:bg-pink-950/30 text-pink-900 dark:text-pink-200 border-b border-pink-100 dark:border-pink-900/30" : "bg-muted/30 border-b"}`}
       >
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <Calendar
-              className={`h-5 w-5 ${isCurrentMonth ? "text-pink-600" : "text-muted-foreground"}`}
+              className={`h-5 w-5 ${isCurrentMonth ? "text-pink-600 dark:text-pink-400" : "text-muted-foreground"}`}
             />
             {monthName}
           </CardTitle>
           {isCurrentMonth && (
             <Badge
               variant="outline"
-              className="bg-pink-100 text-pink-700 border-pink-200 uppercase text-[10px] font-bold"
+              className="bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800/50 uppercase text-[10px] font-bold"
             >
               Current Month
             </Badge>
@@ -121,38 +121,38 @@ function MonthBirthdayCard({
               return (
                 <div
                   key={employee.id}
-                  className={`flex items-center gap-4 p-4 transition-colors group relative ${isToday ? "bg-pink-50/30" : ""}`}
+                  className={`flex items-center gap-4 p-4 transition-colors group relative ${isToday ? "bg-pink-50/30 dark:bg-pink-900/10" : "hover:bg-muted/20"}`}
                 >
                   <Avatar
-                    className={`h-12 w-12 border-2 transition-all group-hover:scale-105 ${isToday ? "border-pink-300 ring-2 ring-pink-100" : "border-transparent"}`}
+                    className={`h-12 w-12 border-2 transition-all group-hover:scale-105 ${isToday ? "border-pink-300 dark:border-pink-800 ring-2 ring-pink-100 dark:ring-pink-900/30" : "border-transparent"}`}
                   >
                     <AvatarImage
                       src={toProxiedImageUrl(employee.image_url)}
                       alt={employee.firstName}
                       className="object-cover object-top"
                     />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
+                    <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium uppercase">
                       {employee.firstName[0]}
                       {employee.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`font-semibold text-sm leading-none truncate ${isToday ? "text-pink-700" : ""}`}
+                      className={`font-semibold text-sm leading-none truncate ${isToday ? "text-pink-700 dark:text-pink-300" : ""}`}
                     >
                       {employee.firstName} {employee.lastName}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
                       {isToday ? (
-                        <span className="text-pink-600 font-bold animate-pulse inline-flex items-center gap-1">
+                        <span className="text-pink-600 dark:text-pink-400 font-bold animate-pulse inline-flex items-center gap-1">
                           Today! <Cake className="h-3 w-3" />
                         </span>
                       ) : (
                         <>
-                          <span className="font-medium text-foreground/80">
+                          <span className="font-medium text-foreground/80 dark:text-foreground/60">
                             {format(dob!, "do")}
                           </span>
-                          <span>{format(dob!, "MMMM")}</span>
+                          <span className="dark:text-muted-foreground/80">{format(dob!, "MMMM")}</span>
                         </>
                       )}
                     </p>
