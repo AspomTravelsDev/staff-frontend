@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aspom Travels Staff Portal - Frontend
 
-## Getting Started
+A premium, modern staff management portal built with Next.js 15, providing tools for HR, Inventory, CRM, and Employee Self-Service.
 
-First, run the development server:
+## 🚀 Key Modules
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **HR Dashboard**: Employee management, birthdays, and performance tracking.
+- **Inventory System**: Asset tracking with history, automated status logging, and filtering.
+- **Onboarding**: Multi-step application processing and document management.
+- **My Portal**: Personal payslips, task management, and request tracking.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠 Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS
+- **Components**: Shadcn/UI (Radix UI)
+- **Icons**: Lucide React
+- **Notifications**: Sonner (Toast)
+- **State/Validation**: Zod + React Hook Form
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🏗 Build Patterns & Architecture
 
-## Learn More
+### 1. Server-First Data Fetching
 
-To learn more about Next.js, take a look at the following resources:
+We prefer fetching data on the server within the `page.tsx` file to minimize client-side waterfalls and improve SEO/Performance.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Pattern**: `page.tsx (Server)` -> Fetch Data -> Pass as props to `ClientManager` or individual `Components`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Centralized API Client
 
-## Deploy on Vercel
+All requests must go through the centralized `apiClient` in `lib/api/client.ts`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Global Handling**: Automatically intercepts `401 Unauthorized` responses to handle session expiration globally.
+- **Session**: Auth tokens are managed via `lib/auth/session.ts` and injected into headers automatically.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 3. Mutations via Server Actions
+
+Use Next.js Server Actions for all data modifications. Actions should be stored in a local `actions.ts` file within the relevant route segment.
+
+### 4. Layout & UI Guide
+
+- **Responsive**: All components must use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`).
+- **Premium Aesthetic**: Use glassmorphism, subtle gradients, and standard Shadcn components for consistency.
+- **Interactions**: Use `toast.promise` for async actions to provide immediate user feedback.
+
+## 🔐 Security
+
+- **Route Protection**: Managed via `proxy.ts` which acts as a fast gatekeeper, checking for the `auth_token` cookie.
+- **Session Management**: Handled by Laravel Sanctum on the backend.
+
+---
+
+© 2026 Aspom Travels

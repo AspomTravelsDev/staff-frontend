@@ -189,22 +189,42 @@ export async function getInventory(
     }
 }
 
-export async function getInventoryStats(): Promise<InventoryStats> {
+export async function getInventoryStats(
+    filters: InventoryFilters = {}
+): Promise<InventoryStats> {
     const isMock = shouldMock("useMockInventory");
 
     if (isMock) {
         const inventory = await getMockInventory();
+        let filtered = [...inventory];
+
+        if (filters.category) {
+            filtered = filtered.filter(i => i.category === filters.category);
+        }
+
+        if (filters.status) {
+            filtered = filtered.filter(i => i.status === filters.status);
+        }
+
+        if (filters.conditionRating) {
+            filtered = filtered.filter(i => i.conditionRating === filters.conditionRating);
+        }
 
         return {
-            totalDevices: inventory.length,
-            inStorage: inventory.filter(i => i.status === "Storage").length,
-            assigned: inventory.filter(i => i.status === "Assigned").length,
-            inRepairs: inventory.filter(i => i.status === "Repairs").length
+            totalDevices: filtered.length,
+            inStorage: filtered.filter(i => i.status === "Storage").length,
+            assigned: filtered.filter(i => i.status === "Assigned").length,
+            inRepairs: filtered.filter(i => i.status === "Repairs").length
         };
     }
 
     try {
-        const response = await api.get<any>("/api/admin/inventory/stats");
+        const queryParams = new URLSearchParams();
+        if (filters.category) queryParams.set("category", filters.category);
+        if (filters.status) queryParams.set("status", filters.status);
+        if (filters.conditionRating) queryParams.set("condition_rating", filters.conditionRating);
+
+        const response = await api.get<any>(`/api/admin/inventory/stats?${queryParams.toString()}`);
 
         if (!response.success) {
             throw new Error(response.error?.error || "Failed to fetch stats");

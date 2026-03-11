@@ -38,7 +38,11 @@ export default async function InventoryPage({
       status: params.status as InventoryStatus,
       conditionRating: params.condition_rating as InventoryConditionRating,
     }),
-    getInventoryStats(),
+    getInventoryStats({
+      category: params.category,
+      status: params.status as InventoryStatus,
+      conditionRating: params.condition_rating as InventoryConditionRating,
+    }),
     getAllEmployees(),
   ]);
 
@@ -48,7 +52,7 @@ export default async function InventoryPage({
         <div>
           <h1 className="text-2xl font-bold">Company Inventory</h1>
           <p className="text-sm text-muted-foreground">
-            Track assets, stock levels, and valuations
+            Track company assets and equipment
           </p>
         </div>
         <InventoryAddButton employees={employees} />

@@ -26,10 +26,8 @@ export function InventoryClientManager({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // local state for search only (instant/client-side)
   const [search, setSearch] = useState<string>("");
 
-  // Push Category/Status/Condition to URL for server-side filtering
   const handleServerFilterChange = (name: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
