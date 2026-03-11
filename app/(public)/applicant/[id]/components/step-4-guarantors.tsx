@@ -110,7 +110,7 @@ export function Step4Guarantors({
           const g1Result = await uploadPublicFile(
             applicationId,
             g1PhotoFile,
-            "guarantor1_pass",
+            `guarantor1_pass_${applicationId}`,
           );
           g1PhotoUrl = g1Result.storagePath;
         } catch (g1Error: any) {
@@ -129,7 +129,7 @@ export function Step4Guarantors({
           const g2Result = await uploadPublicFile(
             applicationId,
             g2PhotoFile,
-            "guarantor2_pass",
+            `guarantor2_pass_${applicationId}`,
           );
           g2PhotoUrl = g2Result.storagePath;
         } catch (g2Error: any) {
@@ -158,7 +158,6 @@ export function Step4Guarantors({
           country: formData.get("guarantor1_country") as string | null,
         },
         occupation: formData.get("guarantor1_occupation") as string,
-        position: formData.get("guarantor1_position") as string | null,
         employerName: formData.get("guarantor1_employerName") as string | null,
         employerAddress: formData.get("guarantor1_employerAddress") as
           | string
@@ -173,13 +172,13 @@ export function Step4Guarantors({
         liabilityAccepted:
           formData.get("guarantor1_liabilityAccepted") === "on",
         liabilityAcceptedAt: new Date().toISOString(),
-        ...(g1PhotoUrl && {
-          passportPhoto: {
-            fileName: g1PhotoFile?.name || "passport_photo.jpg",
-            uploadedAt: new Date().toISOString(),
-            storagePath: g1PhotoUrl,
-          },
-        }),
+        passportPhoto: g1PhotoUrl
+          ? {
+              fileName: g1PhotoFile?.name || "passport_photo.jpg",
+              uploadedAt: new Date().toISOString(),
+              storagePath: g1PhotoUrl,
+            }
+          : initialData?.guarantors?.[0]?.passportPhoto,
       };
 
       // Extract guarantor 2 data
@@ -201,7 +200,6 @@ export function Step4Guarantors({
           country: formData.get("guarantor2_country") as string | null,
         },
         occupation: formData.get("guarantor2_occupation") as string,
-        position: formData.get("guarantor2_position") as string | null,
         employerName: formData.get("guarantor2_employerName") as string | null,
         employerAddress: formData.get("guarantor2_employerAddress") as
           | string
@@ -216,13 +214,13 @@ export function Step4Guarantors({
         liabilityAccepted:
           formData.get("guarantor2_liabilityAccepted") === "on",
         liabilityAcceptedAt: new Date().toISOString(),
-        ...(g2PhotoUrl && {
-          passportPhoto: {
-            fileName: g2PhotoFile?.name || "passport_photo.jpg",
-            uploadedAt: new Date().toISOString(),
-            storagePath: g2PhotoUrl,
-          },
-        }),
+        passportPhoto: g2PhotoUrl
+          ? {
+              fileName: g2PhotoFile?.name || "passport_photo.jpg",
+              uploadedAt: new Date().toISOString(),
+              storagePath: g2PhotoUrl,
+            }
+          : initialData?.guarantors?.[1]?.passportPhoto,
       };
 
       const data = {
@@ -395,26 +393,15 @@ export function Step4Guarantors({
           </div>
         </div>
 
-        <div>
-          <Label htmlFor={`${prefix}occupation`} className="text-sm">
-            Occupation
-          </Label>
-          <Input
-            id={`${prefix}occupation`}
-            name={`${prefix}occupation`}
-            defaultValue={data?.occupation || ""}
-          />
-        </div>
-
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <Label htmlFor={`${prefix}position`} className="text-sm">
-              Position/Job Title
+            <Label htmlFor={`${prefix}occupation`} className="text-sm">
+              Occupation / Job Title
             </Label>
             <Input
-              id={`${prefix}position`}
-              name={`${prefix}position`}
-              defaultValue={data?.position || ""}
+              id={`${prefix}occupation`}
+              name={`${prefix}occupation`}
+              defaultValue={data?.occupation || ""}
             />
           </div>
           <div>
@@ -545,37 +532,46 @@ export function Step4Guarantors({
             </p>
           )}
 
-          {preview ||
-          (index === 0 &&
-            initialData?.guarantors?.[0]?.passportPhoto?.storagePath) ||
-          (index === 1 &&
-            initialData?.guarantors?.[1]?.passportPhoto?.storagePath) ? (
+          {preview && (
             <div className="mt-4">
               <p className="text-xs font-medium mb-2">Preview:</p>
-              {preview === "stored" ? (
-                <div className="h-32 w-24 rounded border border-dashed border-muted-foreground flex items-center justify-center bg-muted/50 dark:bg-muted/20">
-                  <p className="text-xs text-muted-foreground">Photo stored</p>
-                </div>
-              ) : preview ? (
-                <img
-                  src={preview || ""}
-                  alt={`${title} passport preview`}
-                  className="h-32 w-24 rounded border border-muted-foreground object-cover"
-                />
-              ) : (
-                <img
-                  src={
-                    (index === 0
-                      ? initialData?.guarantors?.[0]?.passportPhoto?.storagePath
-                      : initialData?.guarantors?.[1]?.passportPhoto
-                          ?.storagePath) || ""
-                  }
-                  alt={`${title} passport photo`}
-                  className="h-32 w-24 rounded border border-muted-foreground object-cover"
-                />
-              )}
+              <img
+                src={preview}
+                alt={`${title} passport preview`}
+                className="h-32 w-24 rounded border border-muted-foreground object-cover"
+              />
             </div>
-          ) : null}
+          )}
+
+          {!preview &&
+            ((index === 0 &&
+              initialData?.guarantors?.[0]?.passportPhoto?.storagePath) ||
+              (index === 1 &&
+                initialData?.guarantors?.[1]?.passportPhoto?.storagePath)) && (
+              <div className="mt-4 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={
+                      (index === 0
+                        ? initialData?.guarantors?.[0]?.passportPhoto
+                            ?.storagePath
+                        : initialData?.guarantors?.[1]?.passportPhoto
+                            ?.storagePath) || ""
+                    }
+                    alt={`${title} current passport`}
+                    className="h-16 w-12 rounded border object-cover"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-green-700 dark:text-green-400">
+                      ✓ Passport photo stored
+                    </p>
+                    <p className="text-[10px] text-green-600/80 dark:text-green-500/80">
+                      Upload new to replace
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </div>
     );

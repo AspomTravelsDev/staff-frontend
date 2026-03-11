@@ -27,7 +27,7 @@ export function StepIndicator({ currentStep }: { currentStep: number }) {
                   ? "bg-green-500 text-white"
                   : step.number === currentStep
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-600"
+                    : "bg-gray-200 dark:bg-slate-800 text-gray-600 dark:text-gray-400"
               }`}
             >
               {step.number < currentStep ? "✓" : step.number}

@@ -98,11 +98,11 @@ export const RefereeFormPdf: React.FC<RefereeFormPdfProps> = ({
   const refereeName = referee?.fullName || referee?.nameOfReferee || "";
   const assessment = referee?.assessment || {};
 
-  // Combine howLongKnown from both sources
+  // Use howLongKnown from assessment or referee
   const howLongKnown =
     assessment?.howLongKnown ||
     referee?.howLongKnown ||
-    (referee?.yearsKnown ? `${referee.yearsKnown} years` : "");
+    "";
 
   return (
     <Document>

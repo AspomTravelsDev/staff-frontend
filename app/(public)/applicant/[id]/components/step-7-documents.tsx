@@ -62,6 +62,11 @@ export function Step7Documents({
 
       if (result.refereeUrl) {
         await downloadFile(result.refereeUrl, "Referee_Form.pdf");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      if (result.offerLetterUrl) {
+        await downloadFile(result.offerLetterUrl, "Offer_Letter.pdf");
       }
 
       setHasDownloaded(true);
@@ -99,7 +104,7 @@ export function Step7Documents({
 
       <div className="space-y-6">
         {/* Download Forms Info */}
-        <div className="rounded-lg bg-blue-50 p-4 space-y-4">
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-4 space-y-4">
           <div>
             <h4 className="text-sm font-semibold mb-2">Required Documents</h4>
             <p className="text-sm text-muted-foreground">
@@ -139,12 +144,12 @@ export function Step7Documents({
                 : "Download All Forms (3 PDFs)"}
             </Button>
             {downloadError && (
-              <div className="mt-3 rounded text-sm text-red-600 bg-red-50 p-2">
+              <div className="mt-3 rounded text-sm text-destructive bg-destructive/10 p-2 border border-destructive/20">
                 {downloadError}
               </div>
             )}
             {hasDownloaded && (
-              <div className="mt-3 rounded text-sm text-green-600 bg-green-50 p-2">
+              <div className="mt-3 rounded text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 border border-green-100 dark:border-green-900/30">
                 ✓ Forms downloaded successfully. You can now proceed to upload
                 the signed documents.
               </div>
@@ -153,11 +158,11 @@ export function Step7Documents({
         </div>
 
         {/* Instructions */}
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 space-y-2">
-          <h5 className="text-sm font-semibold text-yellow-900">
+        <div className="rounded-lg border border-yellow-200 dark:border-yellow-900/30 bg-yellow-50 dark:bg-yellow-900/10 p-4 space-y-2">
+          <h5 className="text-sm font-semibold text-yellow-900 dark:text-yellow-500">
             Important Instructions
           </h5>
-          <ul className="text-sm text-yellow-800 space-y-1">
+          <ul className="text-sm text-yellow-800 dark:text-yellow-600 space-y-1">
             <li>• Print all three forms</li>
             <li>• Distribute to your guarantors and referee</li>
             <li>• Ensure they complete all required fields</li>
@@ -167,8 +172,8 @@ export function Step7Documents({
         </div>
 
         {/* Next Step Info */}
-        <div className="rounded-lg bg-blue-50 p-4">
-          <p className="text-sm">
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-900/10 p-4 border border-blue-100 dark:border-blue-900/20">
+          <p className="text-sm dark:text-blue-300">
             <strong>Next Step:</strong> After downloading the forms and getting
             them signed, you will upload the signed documents in the final step
             to complete your application.

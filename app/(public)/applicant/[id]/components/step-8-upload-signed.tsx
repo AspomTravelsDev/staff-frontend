@@ -123,7 +123,7 @@ export function Step8UploadSigned({
           const result = await uploadPublicFile(
             applicationId,
             guarantor1File,
-            "guarantor_1_signed",
+            `guarantor_1_signed_${applicationId}`,
           );
           signedDocuments.guarantor1Signed = {
             fileName: guarantor1File.name,
@@ -143,7 +143,7 @@ export function Step8UploadSigned({
           const result = await uploadPublicFile(
             applicationId,
             guarantor2File,
-            "guarantor_2_signed",
+            `guarantor_2_signed_${applicationId}`,
           );
           signedDocuments.guarantor2Signed = {
             fileName: guarantor2File.name,
@@ -163,7 +163,7 @@ export function Step8UploadSigned({
           const result = await uploadPublicFile(
             applicationId,
             refereeFile,
-            "referee_signed",
+            `referee_signed_${applicationId}`,
           );
           signedDocuments.refereeSigned = {
             fileName: refereeFile.name,
@@ -177,16 +177,43 @@ export function Step8UploadSigned({
         }
       }
 
-      // Submit application with signed documents
+      const finalSignedDocuments: SignedDocumentsData = {
+        guarantor1Signed:
+          guarantor1File && guarantor1File.size > 0
+            ? signedDocuments.guarantor1Signed
+            : initialData?.guarantor1Signed,
+        guarantor2Signed:
+          guarantor2File && guarantor2File.size > 0
+            ? signedDocuments.guarantor2Signed
+            : initialData?.guarantor2Signed,
+        refereeSigned:
+          refereeFile && refereeFile.size > 0
+            ? signedDocuments.refereeSigned
+            : initialData?.refereeSigned,
+      };
+
+      // Submit the application with the collected signed documents data
       const result = await submitApplication(applicationId, {
-        signedDocuments,
+        signedDocuments: finalSignedDocuments,
       });
 
       setIsUploading(false);
       return result;
-    } catch (error) {
+    } catch (error: any) {
+      // In Next.js server actions, redirect() throws a special error.
+      // We must not catch it if we want the redirect to work.
+      // However, since this is called in a client action, we can't easily distinguish it without imports.
+      // But submitApplication already handles the redirect.
+      
+      console.error("Submission error:", error);
       setIsUploading(false);
-      return { error: "An error occurred during upload. Please try again." };
+      
+      // If the error message is just about redirect, we can ignore it or re-throw
+      if (error.message?.includes('NEXT_REDIRECT')) {
+        throw error;
+      }
+
+      return { error: "An error occurred during submission. Please try again." };
     }
   };
 
@@ -210,11 +237,11 @@ export function Step8UploadSigned({
       </div>
 
       {/* Instructions */}
-      <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-        <h4 className="text-sm font-semibold text-amber-800 mb-2">
+      <div className="rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 p-4">
+        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-500 mb-2">
           Important Instructions
         </h4>
-        <ul className="text-sm text-amber-700 space-y-1">
+        <ul className="text-sm text-amber-700 dark:text-amber-600 space-y-1">
           <li>• Upload scanned copies or photos of the signed forms</li>
           <li>• Accepted formats: PDF, JPG, PNG (max 10MB each)</li>
           <li>• Ensure signatures are clearly visible</li>
@@ -337,8 +364,8 @@ export function Step8UploadSigned({
       </div>
 
       {/* Completion Note */}
-      <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-        <p className="text-sm text-blue-800">
+      <div className="rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 p-4">
+        <p className="text-sm text-blue-800 dark:text-blue-400">
           <strong>Note:</strong> Once you submit, your application will be
           marked as complete and sent to HR for review. Make sure all documents
           are correctly uploaded before submitting.

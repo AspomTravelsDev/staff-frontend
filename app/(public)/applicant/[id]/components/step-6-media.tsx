@@ -30,7 +30,9 @@ export function Step6Media({
   const [photoUrl, setPhotoUrl] = useState<string | null>(
     initialData?.passportPhoto?.storagePath || null,
   );
-  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(
+    initialData?.signature?.storagePath || null,
+  );
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -196,7 +198,7 @@ export function Step6Media({
           const photoResult = await uploadPublicFile(
             applicationId,
             photoFile,
-            "applicant_pass",
+            `applicant_pass_${applicationId}`,
           );
           photoPublicUrl = photoResult.storagePath;
         } catch (error: any) {
@@ -207,7 +209,7 @@ export function Step6Media({
       // Convert signature dataURL to blob and upload using action
       const signatureResult = await uploadPassportPhoto(
         applicationId,
-        "applicant_signature",
+        `applicant_signature_${applicationId}`,
         signaturePreview,
         "signature.png",
       );
@@ -218,14 +220,13 @@ export function Step6Media({
 
       const data = {
         media: {
-          passportPhoto: {
-            fileName:
-              photoFile?.name ||
-              initialData?.passportPhoto?.fileName ||
-              "photo.jpg",
-            uploadedAt: new Date().toISOString(),
-            storagePath: photoPublicUrl || "",
-          },
+          passportPhoto: photoFile && photoFile.size > 0
+            ? {
+                fileName: photoFile.name,
+                uploadedAt: new Date().toISOString(),
+                storagePath: photoPublicUrl || "",
+              }
+            : initialData?.passportPhoto,
           signature: {
             fileName: "signature.png",
             uploadedAt: new Date().toISOString(),
@@ -290,11 +291,23 @@ export function Step6Media({
             </div>
           )}
 
-          {!photoPreview && initialData?.passportPhoto?.base64 && (
+          {!photoPreview && photoUrl && (
             <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-4">
-              <p className="text-xs text-green-700 dark:text-green-400">
-                ✓ Photo uploaded
-              </p>
+              <div className="flex items-center gap-3">
+                <img
+                  src={photoUrl}
+                  alt="Current passport"
+                  className="h-20 w-16 rounded border object-cover"
+                />
+                <div>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    ✓ Passport photo stored
+                  </p>
+                  <p className="text-xs text-green-600/80 dark:text-green-500/80">
+                    You can upload a new one to replace it.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -13,28 +13,40 @@ import path from 'path'
 
 /** Helper to fetch an image securely (via proxy if needed) and convert to base64 string for React-PDF */
 async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string | undefined> {
-    if (!imageUrl) return undefined;
+    if (!imageUrl) {
+        console.log("fetchImageAsBase64: No URL provided");
+        return undefined;
+    }
 
     try {
-        // If it's a URL to our backend, we can try to fetch it directly
-        // to avoid self-fetch issues with the proxy route in some environments
         let targetUrl = imageUrl;
-        if (targetUrl.startsWith('/api/') || targetUrl.startsWith('http://localhost:8000') || targetUrl.startsWith('http://127.0.0.1:8000')) {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+        // If it's a URL to our backend, ensure it uses the correct internal API URL
+        if (targetUrl.startsWith('/api/') || targetUrl.includes('localhost:8000') || targetUrl.includes('127.0.0.1:8000')) {
             if (targetUrl.startsWith('/')) {
                 targetUrl = `${apiUrl}${targetUrl}`;
             } else {
-                // Normalize localhost to 127.0.0.1 for Node fetch stability
-                targetUrl = targetUrl.replace('http://localhost:8000', 'http://127.0.0.1:8000');
+                // If it's an absolute URL pointing to localhost/127.0.0.1, replace the origin with apiUrl
+                try {
+                    const parsedUrl = new URL(targetUrl);
+                    targetUrl = `${apiUrl}${parsedUrl.pathname}${parsedUrl.search}`;
+                } catch (e) {
+                    // Fallback
+                    targetUrl = targetUrl.replace('http://localhost:8000', apiUrl).replace('http://127.0.0.1:8000', apiUrl);
+                }
             }
-        } else {
+        } else if (!targetUrl.startsWith('data:')) {
             // External URL? Use our proxy to avoid CORS/Fetch issues within react-pdf rendering
-            targetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/proxy-file?url=${encodeURIComponent(imageUrl)}`;
+            targetUrl = `${appUrl}/api/proxy-file?url=${encodeURIComponent(imageUrl)}`;
         }
 
+        console.log(`fetchImageAsBase64: Fetching image from ${targetUrl}`);
+        
         const response = await fetch(targetUrl);
         if (!response.ok) {
-            console.error(`Failed to fetch image for PDF from ${targetUrl}: ${response.statusText}`);
+            console.error(`fetchImageAsBase64: Failed to fetch image. Status: ${response.status} ${response.statusText} from ${targetUrl}`);
             return undefined;
         }
 
@@ -43,9 +55,10 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
         const base64 = buffer.toString('base64');
         const contentType = response.headers.get('content-type') || 'image/jpeg';
 
+        console.log(`fetchImageAsBase64: Successfully fetched image (${base64.length} chars, ${contentType})`);
         return `data:${contentType};base64,${base64}`;
     } catch (error) {
-        console.error('Error converting image to base64:', error);
+        console.error(`fetchImageAsBase64: Error converting image to base64 from ${imageUrl}:`, error);
         return undefined;
     }
 }
@@ -180,7 +193,7 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
             const result = await generateAndUploadPdf(
                 uuid,
                 'guarantor_1_form.pdf',
-                'guarantor_1_form',
+                `guarantor_1_form_${uuid}`,
                 React.createElement(GuarantorFormPdf, {
                     guarantor: guarantor1,
                     applicant: personal,
@@ -209,7 +222,7 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
             const result = await generateAndUploadPdf(
                 uuid,
                 'guarantor_2_form.pdf',
-                'guarantor_2_form',
+                `guarantor_2_form_${uuid}`,
                 React.createElement(GuarantorFormPdf, {
                     guarantor: guarantor2,
                     applicant: personal,
@@ -238,7 +251,7 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
             const result = await generateAndUploadPdf(
                 uuid,
                 'referee_form.pdf',
-                'referee_form',
+                `referee_form_${uuid}`,
                 React.createElement(RefereeFormPdf, {
                     referee,
                     applicant: personal,
@@ -264,7 +277,7 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
             const result = await generateAndUploadPdf(
                 uuid,
                 'offer_letter.pdf',
-                'offer_letter',
+                `offer_letter_${uuid}`,
                 React.createElement(OfferLetterPdf, {
                     applicant: personal,
                     employmentTerms,

@@ -101,7 +101,7 @@ export function Step5Referee({
           const photoResult = await uploadPublicFile(
             applicationId,
             refereePhotoFile,
-            "referee_pass",
+            `referee_pass_${applicationId}`,
           );
           uploadedPhotoUrl = photoResult.storagePath;
         } catch (uploadError: any) {
@@ -136,13 +136,9 @@ export function Step5Referee({
             organization: formData.get("referee_organization") as string | null,
             address: formData.get("referee_address") as string | null,
             occupation: formData.get("referee_occupation") as string | null,
-            position: formData.get("referee_position") as string | null,
             relationshipType: formData.get("referee_relationshipType") as
               | string
               | null,
-            yearsKnown: formData.get("referee_yearsKnown")
-              ? parseInt(formData.get("referee_yearsKnown") as string)
-              : null,
             howLongKnown: formData.get("referee_howLongKnown") as string | null,
             professionalAssessment: formData.get(
               "referee_professionalAssessment",
@@ -179,13 +175,13 @@ export function Step5Referee({
                 "assessment_recommendForPosition",
               ) as string | null,
             },
-            ...(uploadedPhotoUrl && {
-              passportPhoto: {
-                fileName: refereePhotoFile?.name || "referee_passport.jpg",
-                storagePath: uploadedPhotoUrl,
-                uploadedAt: new Date().toISOString(),
-              },
-            }),
+            passportPhoto: uploadedPhotoUrl
+          ? {
+              fileName: refereePhotoFile?.name || "referee_photo.jpg",
+              uploadedAt: new Date().toISOString(),
+              storagePath: uploadedPhotoUrl,
+            }
+          : initialData?.referee?.passportPhoto,
           },
         },
       };
@@ -277,7 +273,7 @@ export function Step5Referee({
           </div>
           <div>
             <Label htmlFor="referee_occupation" className="text-sm">
-              Occupation
+              Occupation / Job Title
             </Label>
             <Input
               id="referee_occupation"
@@ -287,30 +283,18 @@ export function Step5Referee({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="referee_position" className="text-sm">
-              Position / Job Title
-            </Label>
-            <Input
-              id="referee_position"
-              name="referee_position"
-              defaultValue={initialData?.referee?.position || ""}
-            />
-          </div>
-          <div>
-            <Label htmlFor="referee_address" className="text-sm">
-              Address
-            </Label>
-            <Input
-              id="referee_address"
-              name="referee_address"
-              defaultValue={initialData?.referee?.address || ""}
-            />
-          </div>
+        <div>
+          <Label htmlFor="referee_address" className="text-sm">
+            Address
+          </Label>
+          <Input
+            id="referee_address"
+            name="referee_address"
+            defaultValue={initialData?.referee?.address || ""}
+          />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-1">
           <div>
             <Label htmlFor="referee_relationshipType" className="text-sm">
               Relationship Type
@@ -336,18 +320,6 @@ export function Step5Referee({
               type="hidden"
               name="referee_relationshipType"
               value={relationshipType}
-            />
-          </div>
-          <div>
-            <Label htmlFor="referee_yearsKnown" className="text-sm">
-              Years Known (Number)
-            </Label>
-            <Input
-              id="referee_yearsKnown"
-              name="referee_yearsKnown"
-              type="number"
-              min="0"
-              defaultValue={initialData?.referee?.yearsKnown || ""}
             />
           </div>
         </div>
@@ -401,10 +373,22 @@ export function Step5Referee({
           )}
 
           {!refereePhotoPreview && refereePhotoUrl && (
-            <div className="mt-4">
-              <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 p-2 rounded">
-                ✓ Photo uploaded
-              </p>
+            <div className="mt-4 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={refereePhotoUrl}
+                  alt="Current referee passport"
+                  className="h-20 w-16 rounded border object-cover"
+                />
+                <div>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    ✓ Referee passport photo stored
+                  </p>
+                  <p className="text-xs text-green-600/80 dark:text-green-500/80">
+                    Upload new to replace
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -90,9 +90,7 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
     .filter(Boolean)
     .join(", ");
 
-  const occupationPosition = [guarantor?.occupation, guarantor?.position]
-    .filter(Boolean)
-    .join(" - ");
+  const occupationPosition = guarantor?.occupation || "";
 
   const employerInfo = [guarantor?.employerName, guarantor?.employerAddress]
     .filter(Boolean)
