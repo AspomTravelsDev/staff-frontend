@@ -4,11 +4,11 @@ import {
   Employee,
 } from "@/lib/api/employees";
 import { format, parseISO } from "date-fns";
-import { Cake, Gift, Calendar, ChevronRight } from "lucide-react";
+import { parseCalendarDate } from "@/lib/utils/date-utils";
+import { Cake, Gift, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 // --- Sub-components ---
@@ -184,7 +184,7 @@ export default async function BirthdaysPage() {
   const groupedBirthdays = allBirthdays.reduce(
     (acc, employee) => {
       if (!employee.dob) return acc;
-      const dob = parseISO(employee.dob);
+      const dob = parseCalendarDate(employee.dob);
       const month = dob.getMonth();
       if (!acc[month]) acc[month] = [];
       acc[month].push(employee);

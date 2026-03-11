@@ -322,13 +322,23 @@ export function Step6Media({
                 onTouchEnd={stopDrawing}
                 className="w-full cursor-crosshair rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-zinc-900 touch-none"
               />
-              <Button
-                type="button"
-                onClick={saveSignature}
-                className="w-full mt-3"
-              >
-                Confirm Signature
-              </Button>
+              <div className="flex gap-3 mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearSignature}
+                  className="flex-1"
+                >
+                  Clear
+                </Button>
+                <Button
+                  type="button"
+                  onClick={saveSignature}
+                  className="flex-1"
+                >
+                  Confirm Signature
+                </Button>
+              </div>
               {signatureError && (
                 <p className="text-sm font-medium text-destructive mt-2">
                   {signatureError}
