@@ -67,38 +67,75 @@ export function Step6Media({
     await redirectToPreviousStep(applicationId, 6);
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCoordinates = (
+    e:
+      | React.MouseEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+
+    if ("touches" in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  };
+
+  const startDrawing = (
+    e:
+      | React.MouseEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     setIsDrawing(true);
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCoordinates(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
+
+    // Smooth drawing
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#000";
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (
+    e:
+      | React.MouseEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCoordinates(e);
     ctx.lineTo(x, y);
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
     ctx.stroke();
+
+    // Prevent scrolling on touch devices
+    if ("touches" in e && e.cancelable) {
+      e.preventDefault();
+    }
   };
 
   const stopDrawing = () => {
@@ -280,6 +317,9 @@ export function Step6Media({
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
                 className="w-full cursor-crosshair rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-zinc-900 touch-none"
               />
               <Button
