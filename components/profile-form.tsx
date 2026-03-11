@@ -64,8 +64,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
       email: user.email,
       staff_id: user.staff_id || null,
       phone: user.phone || null,
-      dob: user.dob || null,
-      date_joined: user.date_joined || null,
+      dob: user.dob ? user.dob.substring(0, 10) : null,
+      date_joined: user.date_joined ? user.date_joined.substring(0, 10) : null,
       contract_type: user.contract_type || null,
     },
   });
