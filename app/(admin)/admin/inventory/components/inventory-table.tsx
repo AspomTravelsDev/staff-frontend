@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   updateInventoryItem,
   deleteInventoryItem,
@@ -100,20 +101,34 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
 
   const handleUpdate = async (data: InventoryItemPayload) => {
     if (!itemToEdit) return;
-    await updateInventoryItem(itemToEdit.id, data);
-    router.refresh();
+    toast.promise(updateInventoryItem(itemToEdit.id, data), {
+      loading: "Updating inventory item...",
+      success: () => {
+        router.refresh();
+        setItemToEdit(null);
+        return "Item updated successfully";
+      },
+      error: (err: any) => err.message || "Failed to update item",
+    });
   };
 
   const handleDelete = async () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
-    try {
-      await deleteInventoryItem(itemToDelete.id);
-      router.refresh();
-    } finally {
-      setIsDeleting(false);
-      setItemToDelete(null);
-    }
+
+    toast.promise(deleteInventoryItem(itemToDelete.id), {
+      loading: "Removing asset...",
+      success: () => {
+        setIsDeleting(false);
+        setItemToDelete(null);
+        router.refresh();
+        return "Asset removed successfully";
+      },
+      error: (err: any) => {
+        setIsDeleting(false);
+        return err.message || "Failed to remove asset";
+      },
+    });
   };
 
   return (

@@ -96,6 +96,26 @@ export async function apiClient<T>(
         }
 
         if (!response.ok) {
+            // Handle 401 Unauthorized globally (only for true session expiration)
+            if (response.status === 401 && data?.code === "UNAUTHENTICATED" && !endpoint.includes("/login")) {
+                // If in browser context, trigger global redirection
+                if (typeof window !== "undefined") {
+                    const { toast } = await import("sonner");
+                    toast.error("Session expired. Please login again.");
+                    setTimeout(() => {
+                        window.location.href = "/auth/logout";
+                    }, 1500);
+                }
+
+                return {
+                    success: false,
+                    error: {
+                        error: "Your session has expired. Please login again.",
+                        code: "UNAUTHENTICATED",
+                    },
+                };
+            }
+
             return {
                 success: false,
                 error: {

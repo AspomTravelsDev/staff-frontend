@@ -37,13 +37,15 @@ function BirthdayHero({ todayBirthdays }: { todayBirthdays: Employee[] }) {
           </h2>
           <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
             {todayBirthdays.map((employee) => (
-              <Link
+              <div
                 key={employee.id}
-                href={`/hr/employees/${employee.id}`}
-                className="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm rounded-full pl-1 pr-4 py-1 border border-white/20 group"
+                className="flex items-center gap-3 bg-white/10 transition-colors backdrop-blur-sm rounded-full pl-1 pr-4 py-1 border border-white/20 group"
               >
                 <Avatar className="h-10 w-10 border-2 border-white/50 p">
-                  <AvatarImage src={toProxiedImageUrl(employee.image_url)} className="object-cover object-top" />
+                  <AvatarImage
+                    src={toProxiedImageUrl(employee.image_url)}
+                    className="object-cover object-top"
+                  />
                   <AvatarFallback className="bg-pink-100 text-pink-700">
                     {employee.firstName[0]}
                     {employee.lastName[0]}
@@ -52,8 +54,7 @@ function BirthdayHero({ todayBirthdays }: { todayBirthdays: Employee[] }) {
                 <span className="font-bold text-lg">
                   {employee.firstName} {employee.lastName}
                 </span>
-                <ChevronRight className="h-4 w-4 opacity-50 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -118,10 +119,9 @@ function MonthBirthdayCard({
               const isToday = isCurrentMonth && dob?.getDate() === todayDay;
 
               return (
-                <Link
+                <div
                   key={employee.id}
-                  href={`/hr/employees/${employee.id}`}
-                  className={`flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors group relative ${isToday ? "bg-pink-50/30" : ""}`}
+                  className={`flex items-center gap-4 p-4 transition-colors group relative ${isToday ? "bg-pink-50/30" : ""}`}
                 >
                   <Avatar
                     className={`h-12 w-12 border-2 transition-all group-hover:scale-105 ${isToday ? "border-pink-300 ring-2 ring-pink-100" : "border-transparent"}`}
@@ -157,10 +157,7 @@ function MonthBirthdayCard({
                       )}
                     </p>
                   </div>
-                  <ChevronRight
-                    className={`h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-all group-hover:translate-x-1 ${isToday ? "text-pink-400" : ""}`}
-                  />
-                </Link>
+                </div>
               );
             })
           )}

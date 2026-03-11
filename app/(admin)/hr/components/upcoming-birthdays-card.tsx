@@ -81,13 +81,6 @@ export async function UpcomingBirthdaysCard() {
                       )}
                     </p>
                   </div>
-
-                  <Link
-                    href={`/hr/employees/${employee.id}`}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
                 </div>
               );
             })

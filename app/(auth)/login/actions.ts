@@ -18,7 +18,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     INVALID_CREDENTIALS: "Wrong email or password.",
     ACCOUNT_DISABLED: "Your account is disabled. Please contact an administrator.",
     LOCATION_RESTRICTED: "Attendance not recorded. Not within office premises and not connected to office WiFi.",
-    NETWORK_ERROR: "Network error. Please check your connection."
+    NETWORK_ERROR: "Network error. Please check your connection.",
+    HTTP_429: "Too many login attempts. Please wait a minute before trying again."
 };
 
 export async function loginAction(

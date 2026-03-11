@@ -7,6 +7,7 @@ import { ManageInventoryDialog } from "./inventory-dialog";
 import type { Employee } from "@/lib/api/employees";
 import { createInventoryItem, InventoryItemPayload } from "@/lib/api/inventory";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface InventoryAddButtonProps {
   employees: Employee[];
@@ -17,8 +18,15 @@ export function InventoryAddButton({ employees }: InventoryAddButtonProps) {
   const router = useRouter();
 
   const handleCreate = async (data: InventoryItemPayload) => {
-    await createInventoryItem(data);
-    router.refresh();
+    toast.promise(createInventoryItem(data), {
+      loading: "Adding inventory item...",
+      success: () => {
+        router.refresh();
+        setOpen(false);
+        return "Item added successfully";
+      },
+      error: (err: any) => err.message || "Failed to add item",
+    });
   };
 
   return (

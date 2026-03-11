@@ -24,6 +24,17 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   const clientIpRef = useRef<string>("");
   const [isLocating, setIsLocating] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldown > 0) {
+      timer = setInterval(() => {
+        setCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   useEffect(() => {
     // Fetch client IP
@@ -62,6 +73,9 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   useEffect(() => {
     if (state?.error) {
       toast.error(state.error);
+      if (state.error.includes("Too many login attempts")) {
+        setCooldown(60);
+      }
     }
     if (state?.success) {
       toast.success("Login successful");
@@ -176,13 +190,15 @@ export function LoginForm({ redirect }: { redirect?: string }) {
         <Button
           type="submit"
           className="h-11 w-full"
-          disabled={isPending || isLocating}
+          disabled={isPending || isLocating || cooldown > 0}
         >
           {isPending
             ? "Signing in..."
             : isLocating
               ? "Checking location..."
-              : "Sign in"}
+              : cooldown > 0
+                ? `Please wait (${cooldown}s)`
+                : "Sign in"}
         </Button>
       </form>
     </div>
