@@ -12,10 +12,10 @@ export function ComplianceStatsCards({ stats }: ComplianceStatsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <StatsCard
-        title="Avg. Clock-in"
+        title="Open Issues"
         icon={Clock}
-        value={stats.avgClockInTime}
-        description="Company wide average"
+        value={stats.openIssues}
+        description="Pending resolution"
         iconClassName="text-muted-foreground"
       />
 

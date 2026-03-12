@@ -1,7 +1,7 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
-import { shouldMock, api } from "./client";
+import { api } from "./client";
 
 // ============================================================================
 // Types
@@ -64,25 +64,6 @@ export interface InventoryFilters {
 
 export type InventoryItemPayload = Omit<InventoryItem, "id" | "createdAt" | "updatedAt"> & { notes?: string };
 
-// ============================================================================
-// Mock Data Loader
-// ============================================================================
-
-const getMockInventory = async (): Promise<InventoryItem[]> => {
-    if (typeof window === "undefined") {
-        const fs = await import("fs/promises");
-        const path = await import("path");
-        const filePath = path.join(process.cwd(), "data/mock/inventory.json");
-        try {
-            const fileContent = await fs.readFile(filePath, "utf-8");
-            return JSON.parse(fileContent);
-        } catch (error) {
-            console.error("Error reading mock inventory data:", error);
-            return [];
-        }
-    }
-    return [];
-};
 
 // ============================================================================
 // API Functions
@@ -91,52 +72,6 @@ const getMockInventory = async (): Promise<InventoryItem[]> => {
 export async function getInventory(
     filters: InventoryFilters = {}
 ): Promise<PaginatedResponse<InventoryItem>> {
-    const isMock = shouldMock("useMockInventory");
-
-    if (isMock) {
-        const inventory = await getMockInventory();
-        let filtered = [...inventory];
-
-        if (filters.search) {
-            const search = filters.search.toLowerCase();
-            filtered = filtered.filter(
-                (i) =>
-                    i.name.toLowerCase().includes(search) ||
-                    i.serialNumber.toLowerCase().includes(search) ||
-                    (i.assignedTo && i.assignedTo.toLowerCase().includes(search)) ||
-                    (i.technicianDetails && i.technicianDetails.name.toLowerCase().includes(search))
-            );
-        }
-
-        if (filters.status) {
-            filtered = filtered.filter(i => i.status === filters.status);
-        }
-
-        if (filters.category) {
-            filtered = filtered.filter(i => i.category === filters.category);
-        }
-
-        if (filters.conditionRating) {
-            filtered = filtered.filter(i => i.conditionRating === filters.conditionRating);
-        }
-
-        const page = filters.page ?? 1;
-        const limit = filters.limit ?? 20;
-        const total = filtered.length;
-
-        // Sort by name default
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-
-        return {
-            items: filtered.slice((page - 1) * limit, page * limit),
-            pagination: {
-                page,
-                limit,
-                total,
-                total_pages: Math.ceil(total / limit),
-            },
-        };
-    }
 
     try {
         const queryParams = new URLSearchParams();
@@ -192,31 +127,7 @@ export async function getInventory(
 export async function getInventoryStats(
     filters: InventoryFilters = {}
 ): Promise<InventoryStats> {
-    const isMock = shouldMock("useMockInventory");
 
-    if (isMock) {
-        const inventory = await getMockInventory();
-        let filtered = [...inventory];
-
-        if (filters.category) {
-            filtered = filtered.filter(i => i.category === filters.category);
-        }
-
-        if (filters.status) {
-            filtered = filtered.filter(i => i.status === filters.status);
-        }
-
-        if (filters.conditionRating) {
-            filtered = filtered.filter(i => i.conditionRating === filters.conditionRating);
-        }
-
-        return {
-            totalDevices: filtered.length,
-            inStorage: filtered.filter(i => i.status === "Storage").length,
-            assigned: filtered.filter(i => i.status === "Assigned").length,
-            inRepairs: filtered.filter(i => i.status === "Repairs").length
-        };
-    }
 
     try {
         const queryParams = new URLSearchParams();
@@ -248,11 +159,6 @@ export async function getInventoryStats(
 }
 
 export async function createInventoryItem(payload: InventoryItemPayload): Promise<InventoryItem> {
-    const isMock = shouldMock("useMockInventory");
-    if (isMock) {
-        throw new Error("Cannot create items in mock mode. Please connect to a live backend.");
-    }
-
     try {
         const response = await api.post<any>("/api/admin/inventory", {
             name: payload.name,
@@ -291,10 +197,6 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
 }
 
 export async function updateInventoryItem(id: string, payload: Partial<InventoryItemPayload>): Promise<InventoryItem> {
-    const isMock = shouldMock("useMockInventory");
-    if (isMock) {
-        throw new Error("Cannot update items in mock mode. Please connect to a live backend.");
-    }
 
     try {
         const response = await api.patch<any>(`/api/admin/inventory/${id}`, {
@@ -334,10 +236,6 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
 }
 
 export async function deleteInventoryItem(id: string): Promise<void> {
-    const isMock = shouldMock("useMockInventory");
-    if (isMock) {
-        throw new Error("Cannot delete items in mock mode. Please connect to a live backend.");
-    }
 
     try {
         const response = await api.delete<any>(`/api/admin/inventory/${id}`);

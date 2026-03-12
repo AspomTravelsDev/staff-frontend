@@ -1,6 +1,6 @@
 "use server";
 
-import { api, shouldMock } from "./client";
+import { api } from "./client";
 import type { PaginatedResponse } from "./types";
 
 // ============================================================================
@@ -8,23 +8,50 @@ import type { PaginatedResponse } from "./types";
 // ============================================================================
 
 export type Severity = "low" | "medium" | "high" | "critical";
-export type ComplianceStatus = "open" | "resolved" | "dismissed";
+export type ComplianceStatus = "open" | "closed";
+
+export interface ComplianceComment {
+    id: string;
+    occurrence_id: string;
+    user_id: string;
+    comment: string;
+    created_at: string;
+    user?: {
+        id: string;
+        name: string;
+        image_url?: string;
+    };
+}
 
 export interface ComplianceIssue {
     id: string;
     user_id: string;
-    user_name: string;
-    user_department: string;
     type: string;
-    date: string;
-    description: string;
     severity: Severity;
     status: ComplianceStatus;
+    outcome: string;
+    description: string;
+    occurrence_date: string;
+    date?: string; // Mapped for backward compatibility
+    created_at: string;
+    user_name?: string; // Mapped for UI
+    user_department?: string; // Mapped for UI
+    user?: {
+        id: string;
+        name: string;
+        department?: string;
+    };
+    creator?: {
+        id: string;
+        name: string;
+    };
+    comments?: ComplianceComment[];
+    deduction_days?: number;
 }
 
 export interface ComplianceStats {
-    avgClockInTime: string; // e.g., "09:15 AM"
     totalIssues: number;
+    openIssues: number;
     topOffender: {
         name: string;
         count: number;
@@ -42,27 +69,11 @@ export interface ComplianceFilters {
     department?: string;
     severity?: Severity;
     status?: ComplianceStatus;
+    user_id?: string;
+    type?: string;
+    date_from?: string;
+    date_to?: string;
 }
-
-// ============================================================================
-// Mock Data Loader
-// ============================================================================
-
-const getMockComplianceIssues = async (): Promise<ComplianceIssue[]> => {
-    if (typeof window === "undefined") {
-        const fs = await import("fs/promises");
-        const path = await import("path");
-        const filePath = path.join(process.cwd(), "data/mock/compliance.json");
-        try {
-            const fileContent = await fs.readFile(filePath, "utf-8");
-            return JSON.parse(fileContent);
-        } catch (error) {
-            console.error("Error reading mock compliance data:", error);
-            return [];
-        }
-    }
-    return [];
-};
 
 // ============================================================================
 // API Functions
@@ -71,104 +82,77 @@ const getMockComplianceIssues = async (): Promise<ComplianceIssue[]> => {
 export async function getComplianceIssues(
     filters: ComplianceFilters = {}
 ): Promise<PaginatedResponse<ComplianceIssue>> {
-    if (shouldMock("useMockCompliance")) {
-        const issues = await getMockComplianceIssues();
-        let filtered = [...issues];
+    const params = new URLSearchParams();
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.search) params.append("search", filters.search);
+    if (filters.department) params.append("department", filters.department);
+    if (filters.severity) params.append("severity", filters.severity);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.user_id) params.append("user_id", filters.user_id);
+    if (filters.type) params.append("type", filters.type);
+    if (filters.date_from) params.append("date_from", filters.date_from);
+    if (filters.date_to) params.append("date_to", filters.date_to);
 
-        if (filters.search) {
-            const search = filters.search.toLowerCase();
-            filtered = filtered.filter(
-                (i) =>
-                    i.user_name.toLowerCase().includes(search) ||
-                    i.description.toLowerCase().includes(search) ||
-                    i.type.toLowerCase().includes(search)
-            );
-        }
-        if (filters.department) {
-            filtered = filtered.filter((i) => i.user_department === filters.department);
-        }
-        if (filters.severity) {
-            filtered = filtered.filter((i) => i.severity === filters.severity);
-        }
-        if (filters.status) {
-            filtered = filtered.filter((i) => i.status === filters.status);
-        }
-
-        const page = filters.page ?? 1;
-        const limit = filters.limit ?? 20;
-        const total = filtered.length;
-
-        // Sort by date desc
-        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        return {
-            items: filtered.slice((page - 1) * limit, page * limit),
-            pagination: {
-                page,
-                limit,
-                total,
-                total_pages: Math.ceil(total / limit),
-            },
-        };
+    const result = await api.get<PaginatedResponse<ComplianceIssue>>(`/api/compliance?${params.toString()}`);
+    
+    if (!result.success) {
+        throw new Error(result.error.error);
     }
 
-    return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
+    const response = result.data;
+    const items = response.items.map(item => ({
+        ...item,
+        user_name: item.user?.name,
+        user_department: item.user?.department,
+        date: item.occurrence_date,
+    }));
+
+    return { ...response, items };
 }
 
-export async function getComplianceStats(): Promise<ComplianceStats> {
-    if (shouldMock("useMockCompliance")) {
-        const issues = await getMockComplianceIssues();
-
-        // Mock Logic for stats
-        const totalIssues = issues.length;
-
-        // Top Offender
-        const offenderCounts: Record<string, number> = {};
-        issues.forEach(i => {
-            offenderCounts[i.user_name] = (offenderCounts[i.user_name] || 0) + 1;
-        });
-        let topOffender = null;
-        let maxOffenses = 0;
-        Object.entries(offenderCounts).forEach(([name, count]) => {
-            if (count > maxOffenses) {
-                maxOffenses = count;
-                topOffender = { name, count };
-            }
-        });
-
-        const deptCounts: Record<string, number> = {};
-        issues.forEach(i => {
-            deptCounts[i.user_department] = (deptCounts[i.user_department] || 0) + 1;
-        });
-        let topDepartment = null;
-        let maxDeptOffenses = 0;
-        Object.entries(deptCounts).forEach(([name, count]) => {
-            if (count > maxDeptOffenses) {
-                maxDeptOffenses = count;
-                topDepartment = { name, count };
-            }
-        });
-
-        return {
-            avgClockInTime: "09: 02 AM",
-            totalIssues,
-            topOffender,
-            topDepartment,
-        };
+export async function getComplianceStats(filters: { user_id?: string } = {}): Promise<ComplianceStats> {
+    const params = new URLSearchParams();
+    if (filters.user_id) params.append("user_id", filters.user_id);
+    
+    const result = await api.get<ComplianceStats>(`/api/compliance/stats?${params.toString()}`);
+    if (!result.success) {
+        throw new Error(result.error.error);
     }
-
-    return {
-        avgClockInTime: "--:--",
-        totalIssues: 0,
-        topOffender: null,
-        topDepartment: null
-    };
+    return result.data;
 }
 
-export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): Promise<void> {
-    if (shouldMock("useMockCompliance")) {
-
-        return;
+export async function getComplianceDetails(id: string): Promise<ComplianceIssue> {
+    const result = await api.get<ComplianceIssue>(`/api/compliance/${id}`);
+    if (!result.success) {
+        throw new Error(result.error.error);
     }
-    // Real API call would go here
+    return result.data;
+}
+
+export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): Promise<ComplianceIssue> {
+    const result = await api.post<ComplianceIssue>("/api/compliance", data);
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data;
+}
+
+export async function addComplianceComment(id: string, comment: string): Promise<ComplianceComment> {
+    const result = await api.post<ComplianceComment>(`/api/compliance/${id}/comments`, { comment });
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data;
+}
+
+export async function resolveComplianceOccurrence(id: string, outcome: string, deductionDays?: number): Promise<ComplianceIssue> {
+    const result = await api.post<ComplianceIssue>(`/api/compliance/${id}/resolve`, { 
+        outcome,
+        deduction_days: deductionDays
+    });
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data;
 }

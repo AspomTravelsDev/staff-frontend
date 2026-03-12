@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,17 +23,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { addComplianceOccurrence } from "@/lib/api/compliance";
+import { type Employee } from "@/lib/api/employees";
+import { toast } from "sonner";
 
-// Mock users for the select dropdown
-const mockUsers = [
-  { id: "usr_123", name: "John Doe", dept: "IT" },
-  { id: "usr_456", name: "Jane Smith", dept: "Visa" },
-  { id: "usr_789", name: "Mike Johnson", dept: "Sales" },
-  { id: "usr_101", name: "Sarah Williams", dept: "Visa" },
-  { id: "usr_202", name: "Robert Brown", dept: "HR" },
-];
+interface AddOccurrenceDialogProps {
+  employees: Employee[];
+  departments: string[];
+}
 
-export function AddOccurrenceDialog() {
+export function AddOccurrenceDialog({
+  employees,
+  departments,
+}: AddOccurrenceDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -49,19 +50,28 @@ export function AddOccurrenceDialog() {
     setLoading(true);
 
     try {
-      const selectedUser = mockUsers.find((u) => u.id === formData.user_id);
-
       await addComplianceOccurrence({
-        ...formData,
-        user_name: selectedUser?.name,
-        user_department: selectedUser?.dept,
-        status: "open",
-      } as any);
+        user_id: formData.user_id,
+        type: formData.type,
+        occurrence_date: formData.date,
+        severity: formData.severity as any,
+        description: formData.description,
+      });
 
+      toast.success("Compliance occurrence added successfully");
       setOpen(false);
-      // In a real app, we'd trigger a re-fetch here
+      setFormData({
+        user_id: "",
+        type: "",
+        date: "",
+        severity: "",
+        description: "",
+      });
+      // Refresh the page or trigger a re-fetch
+      window.location.reload();
     } catch (error) {
       console.error("Failed to add occurrence", error);
+      toast.error("Failed to add compliance occurrence");
     } finally {
       setLoading(false);
     }
@@ -75,7 +85,7 @@ export function AddOccurrenceDialog() {
           Add Occurrence
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add Compliance Occurrence</DialogTitle>
@@ -98,9 +108,9 @@ export function AddOccurrenceDialog() {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockUsers.map((user) => (
+                  {employees.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.name} ({user.dept})
+                      {user.firstName} {user.lastName} ({user.department})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -144,6 +154,7 @@ export function AddOccurrenceDialog() {
                 onChange={(e) =>
                   setFormData({ ...formData, date: e.target.value })
                 }
+                required
               />
             </div>
 
@@ -180,6 +191,7 @@ export function AddOccurrenceDialog() {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
+                required
               />
             </div>
           </div>

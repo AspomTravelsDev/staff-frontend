@@ -10,10 +10,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getComplianceIssues, getComplianceStats } from "@/lib/api/compliance";
+import { getComplianceIssues, getComplianceStats, Severity, ComplianceStatus } from "@/lib/api/compliance";
+import { getEmployees } from "@/lib/api/employees";
+import { ComplianceClientManager } from "./components/compliance-client-manager";
 
-export default async function CompliancePage() {
+interface PageProps {
+  searchParams: Promise<{
+    status?: ComplianceStatus;
+    severity?: Severity;
+    type?: string;
+    date_from?: string;
+    date_to?: string;
+    page?: string;
+  }>;
+}
+
+export default async function CompliancePage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
+  const params = await searchParams;
 
   // Access control
   if (!user) {
@@ -24,11 +38,27 @@ export default async function CompliancePage() {
     redirect("/dashboard");
   }
 
+  const page = params.page ? parseInt(params.page) : 1;
+
   // Fetch data
-  const [issuesData, stats] = await Promise.all([
-    getComplianceIssues({ limit: 50 }),
+  const [issuesData, stats, employeesData] = await Promise.all([
+    getComplianceIssues({ 
+      limit: 500, 
+      page,
+      status: params.status,
+      severity: params.severity,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    }),
     getComplianceStats(),
+    getEmployees({ limit: 1000, status: "Active" }),
   ]);
+
+  const employees = employeesData.items;
+  // Derive unique departments from employees
+  const departments = Array.from(
+    new Set(employees.map((e) => e.department).filter(Boolean))
+  ).sort();
 
   const { items: issues, pagination } = issuesData;
 
@@ -43,24 +73,22 @@ export default async function CompliancePage() {
             Monitor and manage company-wide compliance and occurrences.
           </p>
         </div>
-        <AddOccurrenceDialog />
+        <AddOccurrenceDialog employees={employees} departments={departments} />
       </div>
 
       {/* Stats Cards */}
       <ComplianceStatsCards stats={stats} />
 
-      {/* Issues Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Occurrences</CardTitle>
-          <CardDescription>
-            Showing {issues.length} of {pagination.total} records
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ComplianceTable issues={issues} />
-        </CardContent>
-      </Card>
+      <ComplianceClientManager 
+        initialIssues={issues}
+        isAdmin={true}
+        serverFilters={{
+          status: params.status,
+          severity: params.severity,
+          date_from: params.date_from,
+          date_to: params.date_to,
+        }}
+      />
     </div>
   );
 }

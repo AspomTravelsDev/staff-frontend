@@ -122,7 +122,6 @@ export const departmentNav: NavItem[] = [
         url: "/compliance",
         icon: ShieldCheck,
         allowedRoles: ["compliance"],
-        disabled: true,
     },
     {
         title: "Invite Staff",
@@ -358,7 +357,6 @@ export const personalNav: NavItem[] = [
         title: "My Compliance Record",
         url: "/my/compliance",
         icon: ShieldCheck,
-        disabled: true,
     },
     {
         title: "Make Announcement",

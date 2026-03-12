@@ -25,9 +25,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ComplianceIssue, Severity } from "@/lib/api/compliance";
+import { ComplianceDetailsDialog } from "./compliance-details-dialog";
+import { useState } from "react";
 
 interface ComplianceTableProps {
   issues: ComplianceIssue[];
+  isAdmin?: boolean;
 }
 
 const severityConfig: Record<
@@ -52,7 +55,10 @@ const severityConfig: Record<
   low: { label: "Low", color: "bg-blue-100 text-blue-700", icon: Info },
 };
 
-export function ComplianceTable({ issues }: ComplianceTableProps) {
+export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProps) {
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   if (issues.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -63,6 +69,7 @@ export function ComplianceTable({ issues }: ComplianceTableProps) {
   }
 
   return (
+    <>
     <Table>
       <TableHeader>
         <TableRow>
@@ -87,7 +94,7 @@ export function ComplianceTable({ issues }: ComplianceTableProps) {
               <TableCell>{issue.user_department}</TableCell>
               <TableCell>{issue.type}</TableCell>
               <TableCell
-                className="max-w-[300px] truncate"
+                className="max-w-[200px] truncate"
                 title={issue.description}
               >
                 {issue.description}
@@ -110,7 +117,7 @@ export function ComplianceTable({ issues }: ComplianceTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
-                {formatDistanceToNow(new Date(issue.date), { addSuffix: true })}
+                {issue.occurrence_date && formatDistanceToNow(new Date(issue.occurrence_date), { addSuffix: true })}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -121,8 +128,16 @@ export function ComplianceTable({ issues }: ComplianceTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View details</DropdownMenuItem>
-                    <DropdownMenuItem>Mark as resolved</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                        setSelectedIssueId(issue.id);
+                        setDetailsOpen(true);
+                    }}>View details</DropdownMenuItem>
+                    {isAdmin && issue.status === "open" && (
+                         <DropdownMenuItem onClick={() => {
+                            setSelectedIssueId(issue.id);
+                            setDetailsOpen(true);
+                        }}>Add Response/Outcome</DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -131,5 +146,13 @@ export function ComplianceTable({ issues }: ComplianceTableProps) {
         })}
       </TableBody>
     </Table>
+
+    <ComplianceDetailsDialog 
+        issueId={selectedIssueId}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        isAdmin={isAdmin}
+    />
+    </>
   );
 }
