@@ -45,6 +45,7 @@ export function AdminAttendanceTable({
             <TableHead>Clock In</TableHead>
             <TableHead>Clock Out</TableHead>
             <TableHead>Method</TableHead>
+            <TableHead>Office</TableHead>
             <TableHead>Distance</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
@@ -53,7 +54,7 @@ export function AdminAttendanceTable({
         <TableBody>
           {history.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={9} className="h-24 text-center">
                 No attendance records found for the selected criteria.
               </TableCell>
             </TableRow>
@@ -111,7 +112,7 @@ export function AdminAttendanceTable({
                         }`}
                       >
                         {method === "ip"
-                          ? "WiFi"
+                          ? "Office WiFi"
                           : method === "exempt"
                           ? "Exempt"
                           : method === "disabled"
@@ -124,6 +125,12 @@ export function AdminAttendanceTable({
                         </span>
                       )}
                     </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <span className="text-sm font-medium">
+                      {record.office_name || "-"}
+                    </span>
                   </TableCell>
 
                   <TableCell className="text-sm font-mono text-muted-foreground">

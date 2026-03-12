@@ -14,6 +14,7 @@ export interface ClockInRecord {
     ip_address?: string;
     distance?: number;
     accuracy?: number;
+    office_name?: string;
     user?: {
         name: string;
         email: string;
