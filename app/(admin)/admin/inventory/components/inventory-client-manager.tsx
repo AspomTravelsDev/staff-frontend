@@ -77,6 +77,8 @@ export function InventoryClientManager({
           handleServerFilterChange("condition_rating", val)
         }
         onClear={handleClear}
+        items={filteredItems}
+        employees={employees}
       />
       <InventoryTable items={filteredItems} employees={employees} />
     </div>

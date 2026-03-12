@@ -4,6 +4,8 @@ import { useState } from "react";
 import { InventoryItem, getMyInventoryHistory } from "@/lib/api/inventory";
 import { ReportIssueDialog } from "./report-issue-dialog";
 import { InventoryHistoryDialog } from "../../../admin/inventory/components/inventory-history-dialog";
+import { TableExportButton } from "@/components/ui/table-export-button";
+import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -71,8 +73,29 @@ export function MyInventoryTable({ items }: MyInventoryTableProps) {
     }
   };
 
+  const exportColumns = [
+    { header: "Device Model", key: (item: InventoryItem) => item.name },
+    { header: "Serial Number", key: (item: InventoryItem) => item.serialNumber },
+    { header: "Category", key: (item: InventoryItem) => item.category },
+    {
+      header: "Condition",
+      key: (item: InventoryItem) => item.conditionRating,
+    },
+    { header: "Status", key: (item: InventoryItem) => item.status },
+  ];
+
   return (
-    <div className="rounded-md border bg-card">
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        {items.length > 0 && (
+          <TableExportButton
+            data={items}
+            columns={exportColumns}
+            filename={`My_Inventory_${format(new Date(), "yyyy-MM-dd")}`}
+          />
+        )}
+      </div>
+      <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
@@ -165,6 +188,7 @@ export function MyInventoryTable({ items }: MyInventoryTableProps) {
         item={itemHistory}
         fetchHistoryFn={(id) => getMyInventoryHistory(id)}
       />
+    </div>
     </div>
   );
 }

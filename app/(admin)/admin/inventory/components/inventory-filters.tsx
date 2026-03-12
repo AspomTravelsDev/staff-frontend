@@ -11,6 +11,10 @@ import {
 } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TableExportButton } from "@/components/ui/table-export-button";
+import { InventoryItem } from "@/lib/api/inventory";
+import { Employee } from "@/lib/api/employees";
+import { format } from "date-fns";
 
 interface InventoryFiltersProps {
   search: string;
@@ -22,6 +26,8 @@ interface InventoryFiltersProps {
   condition: string;
   onConditionChange: (value: string) => void;
   onClear: () => void;
+  items?: InventoryItem[];
+  employees?: Employee[];
 }
 
 export function InventoryFilters({
@@ -34,6 +40,8 @@ export function InventoryFilters({
   condition = "all",
   onConditionChange,
   onClear,
+  items = [],
+  employees = [],
 }: InventoryFiltersProps) {
   const [localSearch, setLocalSearch] = useState(search);
 
@@ -56,6 +64,46 @@ export function InventoryFilters({
 
   const hasFilters =
     search || category !== "all" || status !== "all" || condition !== "all";
+
+  const exportColumns = [
+    { header: "Device Model", key: (item: InventoryItem) => item.name },
+    { header: "Serial Number", key: (item: InventoryItem) => item.serialNumber },
+    { header: "Category", key: (item: InventoryItem) => item.category },
+    {
+      header: "Condition",
+      key: (item: InventoryItem) => item.conditionRating,
+    },
+    { header: "Status", key: (item: InventoryItem) => item.status },
+    {
+      header: "Assigned To",
+      key: (item: InventoryItem) => {
+        if (item.status !== "Assigned" || !item.assignedTo) return "-";
+        const emp = employees.find((e) => e.id === item.assignedTo);
+        return emp ? `${emp.firstName} ${emp.lastName}` : item.assignedTo;
+      },
+    },
+    {
+      header: "Technician Name",
+      key: (item: InventoryItem) =>
+        item.status === "Repairs" && item.technicianDetails
+          ? item.technicianDetails.name
+          : "-",
+    },
+    {
+      header: "Technician Phone",
+      key: (item: InventoryItem) =>
+        item.status === "Repairs" && item.technicianDetails
+          ? item.technicianDetails.phone
+          : "-",
+    },
+    {
+      header: "Technician Address",
+      key: (item: InventoryItem) =>
+        item.status === "Repairs" && item.technicianDetails
+          ? item.technicianDetails.address
+          : "-",
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -118,6 +166,14 @@ export function InventoryFilters({
             Reset
             <X className="ml-2 h-4 w-4" />
           </Button>
+        )}
+
+        {items.length > 0 && (
+          <TableExportButton
+            data={items}
+            columns={exportColumns}
+            filename={`Inventory_Export_${format(new Date(), "yyyy-MM-dd")}`}
+          />
         )}
       </div>
     </div>
