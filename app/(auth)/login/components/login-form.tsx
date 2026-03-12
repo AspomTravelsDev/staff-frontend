@@ -37,37 +37,31 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   }, [cooldown]);
 
   useEffect(() => {
-    // Fetch client IP
-    fetch("https://api.ipify.org?format=json")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ip) clientIpRef.current = data.ip;
-      })
-      .catch((err) => console.error("Failed to fetch IP:", err));
+    const initLocationData = async () => {
+      const { getGPSLocation, getPublicIP } = await import("@/lib/utils/location");
+      
+      // Fetch client IP
+      getPublicIP()
+        .then((ip) => {
+          clientIpRef.current = ip;
+        })
+        .catch((err) => console.error("Failed to fetch IP:", err));
 
-    // Attempt to get location immediately on mount
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const data = JSON.stringify({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-          locationRef.current = data;
+      // Attempt to get location
+      getGPSLocation()
+        .then((location) => {
+          locationRef.current = JSON.stringify(location);
           setIsLocating(false);
-        },
-        (error) => {
+        })
+        .catch((err) => {
           setLocationError(
             "Location access denied. Some features may be restricted.",
           );
           setIsLocating(false);
-        },
-        { timeout: 10000, maximumAge: 60000 },
-      );
-    } else {
-      setIsLocating(false);
-    }
+        });
+    };
+
+    initLocationData();
   }, []);
 
   useEffect(() => {

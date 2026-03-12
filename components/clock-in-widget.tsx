@@ -47,7 +47,22 @@ export function ClockInWidget() {
   const handleClockOut = async () => {
     try {
       setLoading(true);
-      const response = await clockOut();
+      
+      // Attempt to get location and IP
+      let location = undefined;
+      let client_ip = undefined;
+      
+      try {
+        const { getGPSLocation, getPublicIP } = await import("@/lib/utils/location");
+        [location, client_ip] = await Promise.all([
+          getGPSLocation().catch(() => undefined),
+          getPublicIP().catch(() => undefined)
+        ]);
+      } catch (err) {
+        console.error("Failed to fetch location/IP:", err);
+      }
+
+      const response = await clockOut(location, client_ip);
       if (response.success) {
         toast.success("Successfully clocked out");
         setStatus(response.data.data);
