@@ -10,7 +10,7 @@ export interface ClockInRecord {
     clock_out_at: string | null;
     duration_minutes: number | null;
     is_clocked_in?: boolean; // Sometimes returned by /today
-    location_method?: "gps" | "ip";
+    location_method?: "gps" | "ip" | "exempt" | "disabled";
     ip_address?: string;
     distance?: number;
     accuracy?: number;

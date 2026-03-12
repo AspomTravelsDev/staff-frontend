@@ -49,6 +49,7 @@ export async function loginAction(
 
     const { email, password } = validatedFields.data;
 
+    console.log(rawData.location, rawData.client_ip)
     // Call API
     const result = await login(email, password, rawData.location, rawData.client_ip);
 

@@ -107,7 +107,6 @@ export function LoginForm({ redirect }: { redirect?: string }) {
 
       <form
         action={(formData) => {
-          // Append location data before submitting
           if (locationRef.current) {
             formData.set("location", locationRef.current);
           }

@@ -70,10 +70,18 @@ export function AdminAttendanceTable({
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col">
                         <span className="font-medium text-sm">
-                          {user?.first_name} {user?.last_name}
+                          {user ? (
+                            user.first_name || user.last_name ? (
+                              `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()
+                            ) : (
+                              user.name || "Unknown Staff"
+                            )
+                          ) : (
+                            "Unknown Staff"
+                          )}
                         </span>
                         <span className="text-xs text-muted-foreground hidden md:inline-block">
-                          {user?.email}
+                          {user?.email || "No email"}
                         </span>
                       </div>
                     </div>
@@ -87,16 +95,35 @@ export function AdminAttendanceTable({
                   </TableCell>
 
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-bold uppercase tracking-wider px-1.5 h-5 ${
-                        isGps
-                          ? "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                          : "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
-                      }`}
-                    >
-                      {isGps ? "GPS" : "WiFi"}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-bold uppercase tracking-wider px-1.5 h-5 w-fit ${
+                          method === "gps"
+                            ? "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            : method === "ip"
+                            ? "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                            : method === "exempt"
+                            ? "border-purple-200 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                            : method === "disabled"
+                            ? "border-red-200 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                            : "border-gray-200 bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
+                        }`}
+                      >
+                        {method === "ip"
+                          ? "WiFi"
+                          : method === "exempt"
+                          ? "Exempt"
+                          : method === "disabled"
+                          ? "Disabled"
+                          : method}
+                      </Badge>
+                      {record.ip_address && (
+                        <span className="text-[9px] font-mono text-muted-foreground opacity-70">
+                          {record.ip_address}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell className="text-sm font-mono text-muted-foreground">
@@ -138,7 +165,7 @@ export function AdminAttendanceTable({
                           : "text-[10px]"
                       }
                     >
-                      {late ? "Late" : "On Time"}
+                      {late ? "Late Arrival" : "On Time"}
                     </Badge>
                   </TableCell>
                 </TableRow>
