@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  clockIn,
   clockOut,
   getTodayStatus,
   type ClockInRecord,
@@ -44,19 +45,56 @@ export function ClockInWidget() {
     fetchStatus();
   }, []);
 
-  const handleClockOut = async () => {
+  const handleClockIn = async () => {
     try {
       setLoading(true);
-      
+
       // Attempt to get location and IP
       let location = undefined;
       let client_ip = undefined;
-      
+
       try {
-        const { getGPSLocation, getPublicIP } = await import("@/lib/utils/location");
+        const { getGPSLocation, getPublicIP } = await import(
+          "@/lib/utils/location"
+        );
         [location, client_ip] = await Promise.all([
           getGPSLocation().catch(() => undefined),
-          getPublicIP().catch(() => undefined)
+          getPublicIP().catch(() => undefined),
+        ]);
+      } catch (err) {
+        console.error("Failed to fetch location/IP:", err);
+      }
+
+      const response = await clockIn(location, client_ip);
+      if (response.success) {
+        toast.success(response.data.message || "Successfully clocked in");
+        setStatus(response.data.data);
+      } else {
+        toast.error(response.error?.error || "Failed to clock in");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Something went wrong during clock-in");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClockOut = async () => {
+    try {
+      setLoading(true);
+
+      // Attempt to get location and IP
+      let location = undefined;
+      let client_ip = undefined;
+
+      try {
+        const { getGPSLocation, getPublicIP } = await import(
+          "@/lib/utils/location"
+        );
+        [location, client_ip] = await Promise.all([
+          getGPSLocation().catch(() => undefined),
+          getPublicIP().catch(() => undefined),
         ]);
       } catch (err) {
         console.error("Failed to fetch location/IP:", err);
@@ -121,16 +159,29 @@ export function ClockInWidget() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      ) : (
+      ) : status?.clock_out_at ? (
         <Badge
           variant="outline"
           className="h-8 gap-2 px-3 border-muted-foreground/20 text-muted-foreground font-medium"
         >
           <Clock className="h-3.5 w-3.5" />
           <span className="text-[10px] uppercase tracking-widest">
-            {status?.clock_out_at ? "Work Completed" : "Not Clocked In"}
+            Work Completed
           </span>
         </Badge>
+      ) : (
+        <Button
+          disabled={loading}
+          onClick={handleClockIn}
+          variant="outline"
+          size="sm"
+          className="gap-2 h-8 px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+        >
+          <Clock className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">
+            {loading ? "Clocking In..." : "Clock In Now"}
+          </span>
+        </Button>
       )}
     </div>
   );

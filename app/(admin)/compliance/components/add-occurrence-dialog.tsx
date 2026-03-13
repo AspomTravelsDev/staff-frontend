@@ -53,7 +53,7 @@ export function AddOccurrenceDialog({
       await addComplianceOccurrence({
         user_id: formData.user_id,
         type: formData.type,
-        occurrence_date: formData.date,
+        occurrence_date: `${formData.date} 12:00:00`,
         severity: formData.severity as any,
         description: formData.description,
       });
@@ -130,13 +130,17 @@ export function AddOccurrenceDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Lateness">Lateness</SelectItem>
-                  <SelectItem value="Policy Violation">
-                    Policy Violation
-                  </SelectItem>
+                  <SelectItem value="Unauthorized Absence">Unauthorized Absence</SelectItem>
+                  <SelectItem value="Extended Breaks">Extended Breaks</SelectItem>
                   <SelectItem value="Misconduct">Misconduct</SelectItem>
-                  <SelectItem value="Procedural Error">
-                    Procedural Error
-                  </SelectItem>
+                  <SelectItem value="Insubordination">Insubordination</SelectItem>
+                  <SelectItem value="Unprofessional Conduct">Unprofessional Conduct</SelectItem>
+                  <SelectItem value="Workplace Harassment">Workplace Harassment</SelectItem>
+                  <SelectItem value="Policy Violation">Policy Violation</SelectItem>
+                  <SelectItem value="Information Security Breach">Information Security Breach</SelectItem>
+                  <SelectItem value="Confidentiality Breach">Confidentiality Breach</SelectItem>
+                  <SelectItem value="Procedural Error">Procedural Error</SelectItem>
+                  <SelectItem value="Negligence">Negligence</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -148,7 +152,7 @@ export function AddOccurrenceDialog({
               </Label>
               <Input
                 id="date"
-                type="datetime-local"
+                type="date"
                 className="col-span-3"
                 value={formData.date}
                 onChange={(e) =>

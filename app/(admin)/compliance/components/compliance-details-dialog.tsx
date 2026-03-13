@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
+import { useUser } from "@/providers/user-provider";
+
 interface ComplianceDetailsDialogProps {
     issueId: string | null;
     open: boolean;
@@ -45,6 +47,7 @@ export function ComplianceDetailsDialog({
     onOpenChange,
     isAdmin = false
 }: ComplianceDetailsDialogProps) {
+    const { user: currentUser } = useUser();
     const [issue, setIssue] = useState<ComplianceIssue | null>(null);
     const [loading, setLoading] = useState(false);
     const [comment, setComment] = useState("");
@@ -152,29 +155,38 @@ export function ComplianceDetailsDialog({
                     {/* Comments Thread */}
                     <div className="space-y-4">
                         <h4 className="font-semibold text-sm">Communication Thread</h4>
-                        <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                        <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
                             {issue?.comments?.length === 0 ? (
                                 <p className="text-sm text-muted-foreground italic">No comments yet.</p>
                             ) : (
-                                issue?.comments?.map((c) => (
-                                    <div key={c.id} className="flex gap-3">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={c.user?.image_url} />
-                                            <AvatarFallback>{c.user?.name?.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-semibold">{c.user?.name}</span>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    {format(new Date(c.created_at), "MMM d, h:mm a")}
-                                                </span>
-                                            </div>
-                                            <div className="bg-muted p-2 rounded-md text-sm">
-                                                {c.comment}
+                                issue?.comments?.map((c) => {
+                                    const isMine = c.user_id === currentUser?.id;
+                                    return (
+                                        <div key={c.id} className={`flex gap-3 ${isMine ? 'flex-row-reverse' : ''}`}>
+                                            {!isMine && (
+                                                <Avatar className="h-8 w-8 shrink-0">
+                                                    <AvatarImage src={c.user?.image_url} />
+                                                    <AvatarFallback>{c.user?.name?.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                            )}
+                                            <div className={`flex flex-col gap-1 max-w-[80%] ${isMine ? 'items-end' : 'items-start'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    {!isMine && <span className="text-[10px] font-semibold">{c.user?.name}</span>}
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        {format(new Date(c.created_at), "MMM d, h:mm a")}
+                                                    </span>
+                                                </div>
+                                                <div className={`p-3 rounded-2xl text-sm ${
+                                                    isMine 
+                                                    ? 'bg-primary text-primary-foreground rounded-tr-none shadow-sm' 
+                                                    : 'bg-muted rounded-tl-none'
+                                                }`}>
+                                                    {c.comment}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -208,14 +220,14 @@ export function ComplianceDetailsDialog({
                                             <SelectValue placeholder="Select outcome" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Closed">Close without action</SelectItem>
-                                            <SelectItem value="Sanction">Issue Sanction</SelectItem>
+                                            <SelectItem value="Resolved (No Action)">Resolve with no Action</SelectItem>
+                                            <SelectItem value="Warning (No Deduction)">Warning (no deduction)</SelectItem>
                                             <SelectItem value="Suspension">Suspension</SelectItem>
                                             <SelectItem value="Termination">Termination</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                {(outcome === "Suspension" || outcome === "Sanction") && (
+                                {outcome === "Suspension" && (
                                     <div className="w-[120px] space-y-2">
                                         <Label htmlFor="deduction">Deduction (Days)</Label>
                                         <Input 

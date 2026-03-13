@@ -122,6 +122,8 @@ export const departmentNav: NavItem[] = [
         url: "/compliance",
         icon: ShieldCheck,
         allowedRoles: ["compliance"],
+        badgeKey: "complianceReplies",
+        badgeLabel: "Staff replies pending review"
     },
     {
         title: "Invite Staff",
@@ -357,6 +359,8 @@ export const personalNav: NavItem[] = [
         title: "My Compliance Record",
         url: "/my/compliance",
         icon: ShieldCheck,
+        badgeKey: "compliance",
+        badgeLabel: "New compliance query"
     },
     {
         title: "Make Announcement",

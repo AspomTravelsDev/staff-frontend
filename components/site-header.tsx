@@ -63,6 +63,10 @@ export const SiteHeader = () => {
           label = "Submit your daily report";
         } else if (key === "myTasks") {
           label = "Submit your to-do list";
+        } else if (key === "compliance") {
+          label = "New compliance query issued";
+        } else if (key === "complianceReplies") {
+          label = "Staff reply to compliance query";
         }
 
         let targetUrl = navItem.url || "#";

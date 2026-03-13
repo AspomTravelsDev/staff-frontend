@@ -47,11 +47,14 @@ export interface ComplianceIssue {
     };
     comments?: ComplianceComment[];
     deduction_days?: number;
+    has_new_replies?: boolean;
 }
 
 export interface ComplianceStats {
     totalIssues: number;
     openIssues: number;
+    resolvedIssues: number;
+    totalDeductions: number;
     topOffender: {
         name: string;
         count: number;

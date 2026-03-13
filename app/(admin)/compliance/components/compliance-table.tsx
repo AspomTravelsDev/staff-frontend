@@ -89,12 +89,25 @@ export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProp
           const SeverityIcon = severity.icon;
 
           return (
-            <TableRow key={issue.id}>
-              <TableCell className="font-medium">{issue.user_name}</TableCell>
-              <TableCell>{issue.user_department}</TableCell>
-              <TableCell>{issue.type}</TableCell>
+            <TableRow 
+              key={issue.id}
+              className={issue.has_new_replies ? "bg-primary/5 dark:bg-primary/10" : ""}
+            >
+              <TableCell className={`flex items-center gap-2 ${issue.has_new_replies ? "font-black" : "font-medium"}`}>
+                {issue.user_name}
+                {issue.has_new_replies && (
+                  <Badge
+                    variant="default"
+                    className="uppercase text-[9px] px-1.5 py-0 h-4 tracking-wider bg-primary text-primary-foreground"
+                  >
+                    New
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell className={issue.has_new_replies ? "font-bold" : ""}>{issue.user_department}</TableCell>
+              <TableCell className={issue.has_new_replies ? "font-bold" : ""}>{issue.type}</TableCell>
               <TableCell
-                className="max-w-[200px] truncate"
+                className={`max-w-[200px] truncate ${issue.has_new_replies ? "font-bold" : ""}`}
                 title={issue.description}
               >
                 {issue.description}
@@ -116,7 +129,7 @@ export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProp
                   {issue.status}
                 </Badge>
               </TableCell>
-              <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+              <TableCell className={`whitespace-nowrap text-sm ${issue.has_new_replies ? "text-primary font-bold" : "text-muted-foreground"}`}>
                 {issue.occurrence_date && formatDistanceToNow(new Date(issue.occurrence_date), { addSuffix: true })}
               </TableCell>
               <TableCell>
