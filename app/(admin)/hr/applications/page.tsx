@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "./components/application-actions";
+import { ApplicationExportButton } from "./components/application-export-button";
 import { getApplications } from "@/lib/api/hr";
 import { formatLagosDate } from "@/lib/utils/attendance";
 
@@ -34,9 +35,12 @@ export default async function AdminDashboardPage() {
             Manage onboarding applications and track progress
           </p>
         </div>
-        <Button asChild>
-          <Link href="/hr/applications/new">Create Application</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ApplicationExportButton applications={applications} />
+          <Button asChild>
+            <Link href="/hr/applications/new">Create Application</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}

@@ -9,6 +9,7 @@ import { CopyLinkButton } from "./components/copy-link-button";
 import { DocumentPreviews } from "./components/document-previews";
 import { ApplicationActionsClient } from "./components/application-actions-client";
 import { BioData } from "./components/bio-data";
+import { ApplicationExportButton } from "../components/application-export-button";
 
 export default async function ApplicationDetailPage({
   params,
@@ -75,9 +76,15 @@ export default async function ApplicationDetailPage({
           </div>
           <p className="text-muted-foreground">{application.position_title}</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/hr/applications">Back to List</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ApplicationExportButton
+            applications={[application]}
+            filename={application.application_id || "hr-application"}
+          />
+          <Button variant="outline" asChild>
+            <Link href="/hr/applications">Back to List</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Applicant Information */}
