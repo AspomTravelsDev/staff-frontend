@@ -4,6 +4,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { GuarantorFormPdf } from './pdf-templates/guarantor-form'
 import { RefereeFormPdf } from './pdf-templates/referee-form'
 import { OfferLetterPdf } from './pdf-templates/offer-letter'
+import { NdaLetterPdf } from './pdf-templates/nda'
 import { COMPANY_LOGO_URL } from './pdf-templates/styles'
 import { ApplicationFormData } from '@/lib/types/form-data'
 import { getPublicApplication, uploadPublicFile, savePublicFormStep } from '@/lib/api/hr'
@@ -43,7 +44,7 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
         }
 
         console.log(`fetchImageAsBase64: Fetching image from ${targetUrl}`);
-        
+
         const response = await fetch(targetUrl);
         if (!response.ok) {
             console.error(`fetchImageAsBase64: Failed to fetch image. Status: ${response.status} ${response.statusText} from ${targetUrl}`);
@@ -84,6 +85,8 @@ type PdfDownloadResult = {
     guarantor2Url?: string
     refereeUrl?: string
     offerLetterUrl?: string
+    ndaUrl?: string
+    indemnityUrl?: string
 }
 
 type PdfMetadata = {
@@ -98,6 +101,8 @@ type GeneratedPdfs = {
     guarantor2?: PdfMetadata
     referee?: PdfMetadata
     offerLetter?: PdfMetadata
+    nda?: PdfMetadata
+    indemnity?: PdfMetadata
 }
 
 async function generateAndUploadPdf(
@@ -173,6 +178,8 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
 
         const positionTitle = application.position_title
         const applicationId = application.application_id
+        const indemnityFileName = 'ASPOM_INDEMNITY_-_DUBAI.pdf'
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
         const personal = formData.personal || {
             firstName: application.applicant_name?.split(' ')[0] || '',
             lastName: application.applicant_name?.split(' ').slice(1).join(' ') || ''
@@ -295,6 +302,48 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
             updatedGeneratedPdfs.offerLetter = result.metadata
             newPdfsGenerated = true
         }
+
+        // Generate NDA PDF
+        const personalAddress = personal?.residentialAddress
+            ? `${personal.residentialAddress.street || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
+                .replace(/\s+,/g, ',')
+                .replace(/^,\s*/, '')
+                .replace(/,\s*,/g, ', ')
+            : ''
+
+        const ndaResult = await generateAndUploadPdf(
+            uuid,
+            'nda_agreement.pdf',
+            `nda_agreement_${uuid}`,
+            React.createElement(NdaLetterPdf, {
+                employeeName: `${personal.firstName || ''} ${personal.middleName || ''} ${personal.lastName || ''}`.trim() || application.applicant_name || 'Applicant',
+                employeeAddress: personalAddress,
+                jobTitle: positionTitle,
+                executionDate: generatedAt,
+                applicationId: applicationId || '',
+                generatedAt,
+                companyLogoUrl: logoUrl,
+                signatureUrl: applicantSignatureUrl,
+                signatureDate,
+            })
+        )
+
+        if ('error' in ndaResult) {
+            return { error: ndaResult.error }
+        }
+
+        results.ndaUrl = ndaResult.url
+        updatedGeneratedPdfs.nda = ndaResult.metadata
+        newPdfsGenerated = true
+
+        const indemnityPublicUrl = `${apiUrl}/api/public/onboarding-applications/${uuid}/assets/${encodeURIComponent(indemnityFileName)}`
+        results.indemnityUrl = indemnityPublicUrl
+        updatedGeneratedPdfs.indemnity = {
+            storagePath: indemnityPublicUrl,
+            generatedAt: new Date().toISOString(),
+            fileSize: 0,
+        }
+        newPdfsGenerated = true
 
         // Output to Laravel (save PDF metadata)
         if (newPdfsGenerated) {

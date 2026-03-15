@@ -33,11 +33,15 @@ interface DocumentPreviewsProps {
     guarantor2?: GeneratedPdf;
     referee?: GeneratedPdf;
     offerLetter?: GeneratedPdf;
+    nda?: GeneratedPdf;
+    indemnity?: GeneratedPdf;
   };
   signedDocuments?: {
     guarantor1Signed?: SignedDocument;
     guarantor2Signed?: SignedDocument;
     refereeSigned?: SignedDocument;
+    ndaSigned?: SignedDocument;
+    indemnitySigned?: SignedDocument;
   };
 }
 
@@ -257,6 +261,26 @@ export function DocumentPreviews({
                 type="unsigned"
               />
             )}
+            {!signedDocuments?.ndaSigned && (
+              <DocumentCard
+                title="NDA Agreement"
+                description="Personalized non-disclosure agreement"
+                documentUrl={generatedPdfs?.nda?.storagePath}
+                uploadedAt={generatedPdfs?.nda?.generatedAt}
+                fileId={generatedPdfs?.nda?.fileId}
+                type="unsigned"
+              />
+            )}
+            {!signedDocuments?.indemnitySigned && (
+              <DocumentCard
+                title="Indemnity Form"
+                description="Standard indemnity document"
+                documentUrl={generatedPdfs?.indemnity?.storagePath}
+                uploadedAt={generatedPdfs?.indemnity?.generatedAt}
+                fileId={generatedPdfs?.indemnity?.fileId}
+                type="unsigned"
+              />
+            )}
             {/* Offer letter is special: we show it in the unsigned section ONLY if not completed */}
             {!signedDocuments?.refereeSigned &&
               !generatedPdfs?.offerLetter?.generatedAt && (
@@ -300,6 +324,22 @@ export function DocumentPreviews({
               documentUrl={signedDocuments?.refereeSigned?.storagePath}
               uploadedAt={signedDocuments?.refereeSigned?.uploadedAt}
               fileId={signedDocuments?.refereeSigned?.fileId}
+              type="signed"
+            />
+            <DocumentCard
+              title="NDA Signed"
+              description="Signed by applicant"
+              documentUrl={signedDocuments?.ndaSigned?.storagePath}
+              uploadedAt={signedDocuments?.ndaSigned?.uploadedAt}
+              fileId={signedDocuments?.ndaSigned?.fileId}
+              type="signed"
+            />
+            <DocumentCard
+              title="Indemnity Signed"
+              description="Signed by applicant"
+              documentUrl={signedDocuments?.indemnitySigned?.storagePath}
+              uploadedAt={signedDocuments?.indemnitySigned?.uploadedAt}
+              fileId={signedDocuments?.indemnitySigned?.fileId}
               type="signed"
             />
             <DocumentCard

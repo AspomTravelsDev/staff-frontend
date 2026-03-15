@@ -65,6 +65,16 @@ export function Step7Documents({
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
 
+      if (result.ndaUrl) {
+        await downloadFile(result.ndaUrl, "NDA_Agreement.pdf");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      if (result.indemnityUrl) {
+        await downloadFile(result.indemnityUrl, "ASPOM_Indemnity.pdf");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
       if (result.offerLetterUrl) {
         await downloadFile(result.offerLetterUrl, "Offer_Letter.pdf");
       }
@@ -97,8 +107,8 @@ export function Step7Documents({
       <div>
         <h3 className="text-lg font-semibold">Download Documents</h3>
         <p className="text-sm text-muted-foreground">
-          Step 7 of 8 - Download and print the required forms for your
-          guarantors and referee
+          Step 7 of 8 - Download and print the required forms before final
+          upload
         </p>
       </div>
 
@@ -109,7 +119,7 @@ export function Step7Documents({
             <h4 className="text-sm font-semibold mb-2">Required Documents</h4>
             <p className="text-sm text-muted-foreground">
               Please download the following forms and have them completed and
-              signed by your guarantors and referee:
+              signed where required:
             </p>
             <ul className="text-sm text-muted-foreground mt-3 ml-4 space-y-1">
               <li>
@@ -123,6 +133,14 @@ export function Step7Documents({
               <li>
                 • <strong>Referee Form</strong> - To be completed by your
                 referee
+              </li>
+              <li>
+                • <strong>NDA Agreement</strong> - Sign and upload in the final
+                step
+              </li>
+              <li>
+                • <strong>Indemnity Form</strong> - Sign and upload in the final
+                step
               </li>
             </ul>
           </div>
@@ -141,7 +159,7 @@ export function Step7Documents({
             >
               {isDownloading
                 ? "Generating PDFs..."
-                : "Download All Forms (3 PDFs)"}
+                : "Download Required Forms (5 PDFs + Offer Letter)"}
             </Button>
             {downloadError && (
               <div className="mt-3 rounded text-sm text-destructive bg-destructive/10 p-2 border border-destructive/20">
@@ -163,10 +181,11 @@ export function Step7Documents({
             Important Instructions
           </h5>
           <ul className="text-sm text-yellow-800 dark:text-yellow-600 space-y-1">
-            <li>• Print all three forms</li>
-            <li>• Distribute to your guarantors and referee</li>
+            <li>• Print all required forms</li>
+            <li>• Distribute guarantor and referee forms appropriately</li>
             <li>• Ensure they complete all required fields</li>
-            <li>• Collect signed forms for upload in the next step</li>
+            <li>• Sign your NDA and indemnity documents</li>
+            <li>• Collect all signed forms for upload in the next step</li>
             <li>• Keep copies for your records</li>
           </ul>
         </div>

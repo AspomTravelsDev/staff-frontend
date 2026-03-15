@@ -16,12 +16,15 @@ interface SignedDocument {
   fileName: string;
   storagePath: string;
   uploadedAt: string;
+  fileId?: string;
 }
 
 interface SignedDocumentsData {
   guarantor1Signed?: SignedDocument;
   guarantor2Signed?: SignedDocument;
   refereeSigned?: SignedDocument;
+  ndaSigned?: SignedDocument;
+  indemnitySigned?: SignedDocument;
 }
 
 export function Step8UploadSigned({
@@ -38,6 +41,8 @@ export function Step8UploadSigned({
     null,
   );
   const [refereePreview, setRefereePreview] = useState<string | null>(null);
+  const [ndaPreview, setNdaPreview] = useState<string | null>(null);
+  const [indemnityPreview, setIndemnityPreview] = useState<string | null>(null);
 
   const [guarantor1Uploaded, setGuarantor1Uploaded] = useState<boolean>(
     !!initialData?.guarantor1Signed?.storagePath,
@@ -47,6 +52,12 @@ export function Step8UploadSigned({
   );
   const [refereeUploaded, setRefereeUploaded] = useState<boolean>(
     !!initialData?.refereeSigned?.storagePath,
+  );
+  const [ndaUploaded, setNdaUploaded] = useState<boolean>(
+    !!initialData?.ndaSigned?.storagePath,
+  );
+  const [indemnityUploaded, setIndemnityUploaded] = useState<boolean>(
+    !!initialData?.indemnitySigned?.storagePath,
   );
 
   const [isUploading, setIsUploading] = useState(false);
@@ -101,6 +112,8 @@ export function Step8UploadSigned({
       const guarantor1File = formData.get("guarantor1_signed") as File | null;
       const guarantor2File = formData.get("guarantor2_signed") as File | null;
       const refereeFile = formData.get("referee_signed") as File | null;
+      const ndaFile = formData.get("nda_signed") as File | null;
+      const indemnityFile = formData.get("indemnity_signed") as File | null;
 
       // Validate all files are present (either new upload or existing)
       const hasGuarantor1 =
@@ -109,10 +122,19 @@ export function Step8UploadSigned({
         (guarantor2File && guarantor2File.size > 0) || guarantor2Uploaded;
       const hasReferee =
         (refereeFile && refereeFile.size > 0) || refereeUploaded;
+      const hasNda = (ndaFile && ndaFile.size > 0) || ndaUploaded;
+      const hasIndemnity =
+        (indemnityFile && indemnityFile.size > 0) || indemnityUploaded;
 
-      if (!hasGuarantor1 || !hasGuarantor2 || !hasReferee) {
+      if (
+        !hasGuarantor1 ||
+        !hasGuarantor2 ||
+        !hasReferee ||
+        !hasNda ||
+        !hasIndemnity
+      ) {
         setIsUploading(false);
-        return { error: "Please upload all three signed documents" };
+        return { error: "Please upload all five signed documents" };
       }
 
       const signedDocuments: SignedDocumentsData = {};
@@ -177,6 +199,48 @@ export function Step8UploadSigned({
         }
       }
 
+      // Upload NDA signed document
+      if (ndaFile && ndaFile.size > 0) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            ndaFile,
+            `nda_signed_${applicationId}`,
+          );
+          signedDocuments.ndaSigned = {
+            fileName: ndaFile.name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+          setNdaUploaded(true);
+        } catch (error: any) {
+          setIsUploading(false);
+          return { error: `NDA upload failed: ${error.message}` };
+        }
+      }
+
+      // Upload indemnity signed document
+      if (indemnityFile && indemnityFile.size > 0) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            indemnityFile,
+            `indemnity_signed_${applicationId}`,
+          );
+          signedDocuments.indemnitySigned = {
+            fileName: indemnityFile.name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+          setIndemnityUploaded(true);
+        } catch (error: any) {
+          setIsUploading(false);
+          return { error: `Indemnity upload failed: ${error.message}` };
+        }
+      }
+
       const finalSignedDocuments: SignedDocumentsData = {
         guarantor1Signed:
           guarantor1File && guarantor1File.size > 0
@@ -190,6 +254,14 @@ export function Step8UploadSigned({
           refereeFile && refereeFile.size > 0
             ? signedDocuments.refereeSigned
             : initialData?.refereeSigned,
+        ndaSigned:
+          ndaFile && ndaFile.size > 0
+            ? signedDocuments.ndaSigned
+            : initialData?.ndaSigned,
+        indemnitySigned:
+          indemnityFile && indemnityFile.size > 0
+            ? signedDocuments.indemnitySigned
+            : initialData?.indemnitySigned,
       };
 
       // Submit the application with the collected signed documents data
@@ -204,16 +276,18 @@ export function Step8UploadSigned({
       // We must not catch it if we want the redirect to work.
       // However, since this is called in a client action, we can't easily distinguish it without imports.
       // But submitApplication already handles the redirect.
-      
+
       console.error("Submission error:", error);
       setIsUploading(false);
-      
+
       // If the error message is just about redirect, we can ignore it or re-throw
-      if (error.message?.includes('NEXT_REDIRECT')) {
+      if (error.message?.includes("NEXT_REDIRECT")) {
         throw error;
       }
 
-      return { error: "An error occurred during submission. Please try again." };
+      return {
+        error: "An error occurred during submission. Please try again.",
+      };
     }
   };
 
@@ -223,8 +297,18 @@ export function Step8UploadSigned({
   );
 
   const allUploaded =
-    guarantor1Uploaded && guarantor2Uploaded && refereeUploaded;
-  const hasNewFiles = guarantor1Preview || guarantor2Preview || refereePreview;
+    guarantor1Uploaded &&
+    guarantor2Uploaded &&
+    refereeUploaded &&
+    ndaUploaded &&
+    indemnityUploaded;
+  const isReadyToSubmit =
+    allUploaded ||
+    ((guarantor1Uploaded || !!guarantor1Preview) &&
+      (guarantor2Uploaded || !!guarantor2Preview) &&
+      (refereeUploaded || !!refereePreview) &&
+      (ndaUploaded || !!ndaPreview) &&
+      (indemnityUploaded || !!indemnityPreview));
 
   return (
     <form action={formAction} className="space-y-6">
@@ -245,7 +329,7 @@ export function Step8UploadSigned({
           <li>• Upload scanned copies or photos of the signed forms</li>
           <li>• Accepted formats: PDF, JPG, PNG (max 10MB each)</li>
           <li>• Ensure signatures are clearly visible</li>
-          <li>• All three documents must be uploaded to complete</li>
+          <li>• All five documents must be uploaded to complete</li>
         </ul>
       </div>
 
@@ -361,6 +445,76 @@ export function Step8UploadSigned({
             </div>
           )}
         </div>
+
+        {/* NDA Upload */}
+        <div className="rounded-lg border p-4">
+          <Label htmlFor="nda_signed" className="text-base font-medium">
+            Signed NDA Agreement *
+          </Label>
+          <p className="text-sm text-muted-foreground mb-3">
+            Upload your signed NDA agreement
+          </p>
+
+          <input
+            type="file"
+            id="nda_signed"
+            name="nda_signed"
+            accept=".pdf,.jpg,.jpeg,.png"
+            onChange={(e) => handleFilePreview(e, setNdaPreview, "nda")}
+            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+          />
+
+          {fileErrors.nda && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileErrors.nda}
+            </p>
+          )}
+
+          {(ndaPreview || initialData?.ndaSigned?.storagePath) && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
+              <span>✓</span>
+              <span>
+                {ndaPreview ? "New file selected" : "Previously uploaded"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Indemnity Upload */}
+        <div className="rounded-lg border p-4">
+          <Label htmlFor="indemnity_signed" className="text-base font-medium">
+            Signed Indemnity Form *
+          </Label>
+          <p className="text-sm text-muted-foreground mb-3">
+            Upload your signed indemnity form
+          </p>
+
+          <input
+            type="file"
+            id="indemnity_signed"
+            name="indemnity_signed"
+            accept=".pdf,.jpg,.jpeg,.png"
+            onChange={(e) =>
+              handleFilePreview(e, setIndemnityPreview, "indemnity")
+            }
+            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+          />
+
+          {fileErrors.indemnity && (
+            <p className="text-sm font-medium text-destructive mt-2">
+              {fileErrors.indemnity}
+            </p>
+          )}
+
+          {(indemnityPreview || initialData?.indemnitySigned?.storagePath) && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
+              <span>✓</span>
+              <span>
+                {indemnityPreview ? "New file selected" : "Previously uploaded"}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Completion Note */}
@@ -389,7 +543,7 @@ export function Step8UploadSigned({
         </Button>
         <Button
           type="submit"
-          disabled={isPending || isUploading || (!allUploaded && !hasNewFiles)}
+          disabled={isPending || isUploading || !isReadyToSubmit}
           className="bg-green-600 hover:bg-green-700"
         >
           {isPending || isUploading ? "Submitting..." : "Complete Application"}

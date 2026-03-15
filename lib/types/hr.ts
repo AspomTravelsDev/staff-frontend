@@ -19,6 +19,14 @@ export interface UploadedFile {
     fileName: string;
     uploadedAt: string;
     storagePath: string;
+    fileId?: string;
+}
+
+export interface GeneratedPdfFile {
+    storagePath: string;
+    generatedAt: string;
+    fileSize: number;
+    fileId?: string;
 }
 
 export interface PersonalInfo {
@@ -180,6 +188,16 @@ export interface OnboardingFormData {
         refereeSigned?: UploadedFile;
         guarantor1Signed?: UploadedFile;
         guarantor2Signed?: UploadedFile;
+        ndaSigned?: UploadedFile;
+        indemnitySigned?: UploadedFile;
+    };
+    generatedPdfs: {
+        guarantor1?: GeneratedPdfFile;
+        guarantor2?: GeneratedPdfFile;
+        referee?: GeneratedPdfFile;
+        offerLetter?: GeneratedPdfFile;
+        nda?: GeneratedPdfFile;
+        indemnity?: GeneratedPdfFile;
     };
     employment_terms: EmploymentTerms;
     guarantorReferee: GuarantorReferee;
