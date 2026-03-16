@@ -97,7 +97,7 @@ export function TaskList({ initialData }: TaskListProps) {
       } finally {
         setIsAutosaving(false);
       }
-    }, 2000),
+    }, 3500),
     [updateTasks]
   );
 
@@ -176,7 +176,7 @@ export function TaskList({ initialData }: TaskListProps) {
             <Plus className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Today's Tasks</h2>
+            <h2 className="text-xl font-bold tracking-tight">Today&apos;s Tasks</h2>
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wider">
               {format(new Date(), "PPPP")}
             </p>
