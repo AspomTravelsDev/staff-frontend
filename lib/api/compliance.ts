@@ -89,6 +89,8 @@ export interface SanctionGridItem {
 
 export interface SanctionGridResponse {
     windowStart: string;
+    windowEnd: string;
+    periodLabel: string;
     steps: SanctionStep[];
     items: SanctionGridItem[];
 }

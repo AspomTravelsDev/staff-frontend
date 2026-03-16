@@ -10,13 +10,6 @@ import {
 import { ComplianceStatsCards } from "../../compliance/components/compliance-stats";
 import { ComplianceClientManager } from "../../compliance/components/compliance-client-manager";
 import { SanctionLadderGrid } from "../../compliance/components/sanction-ladder-grid";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 interface PageProps {
   searchParams: Promise<{
@@ -54,7 +47,7 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
     getComplianceSanctionGrid({ user_id: user.id }),
   ]);
 
-  const { items: issues, pagination } = issuesData;
+  const { items: issues } = issuesData;
 
   return (
     <div className="space-y-6">
@@ -72,8 +65,10 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
         items={sanctionGrid.items}
         steps={sanctionGrid.steps}
         windowStart={sanctionGrid.windowStart}
+        windowEnd={sanctionGrid.windowEnd}
+        periodLabel={sanctionGrid.periodLabel}
         title="My Sanction Ladder"
-        description="Your disciplinary ladder for the rolling 6-month window. Resolved (No Action) records are excluded."
+        description="Your disciplinary ladder for the active calendar half-year (Jan-Jun or Jul-Dec). Resolved (No Action) records are excluded."
         showDepartment={false}
         allowImageExport={false}
       />

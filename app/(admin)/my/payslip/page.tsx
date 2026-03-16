@@ -29,8 +29,12 @@ export default async function PayslipPage() {
 
   // Fetch compliance issues for deductions (Current Month)
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .split("T")[0];
 
   const { getComplianceIssues } = await import("@/lib/api/compliance");
   const complianceResponse = await getComplianceIssues({
@@ -41,12 +45,13 @@ export default async function PayslipPage() {
   }).catch(() => ({ items: [] }));
 
   const suspensions = complianceResponse.items.filter(
-    (item) => item.outcome === "Suspension" && toNumber(item.deduction_days) > 0
+    (item) =>
+      item.outcome === "Suspension" && toNumber(item.deduction_days) > 0,
   );
 
   const totalDeductionDays = suspensions.reduce(
     (acc, curr) => acc + toNumber(curr.deduction_days),
-    0
+    0,
   );
 
   const dailyRate = grossPay / 30;
@@ -56,25 +61,68 @@ export default async function PayslipPage() {
   const adjustedMonthlyGross = Math.max(0, grossPay - totalSuspensionDeduction);
 
   const salaryBreakdown = [
-    { label: "Basic", amount: adjustedMonthlyGross * 0.1835, isDeduction: false },
-    { label: "Rent", amount: adjustedMonthlyGross * 0.0552, isDeduction: false },
-    { label: "Transport", amount: adjustedMonthlyGross * 0.0552, isDeduction: false },
-    { label: "Medical/Health", amount: adjustedMonthlyGross * 0.1826, isDeduction: false },
-    { label: "Furniture", amount: adjustedMonthlyGross * 0.0634, isDeduction: false },
-    { label: "Utility", amount: adjustedMonthlyGross * 0.0345, isDeduction: false },
-    { label: "Entertainment", amount: adjustedMonthlyGross * 0.0446, isDeduction: false },
-    { label: "Meal", amount: adjustedMonthlyGross * 0.1336, isDeduction: false },
-    { label: "Clothing", amount: adjustedMonthlyGross * 0.1328, isDeduction: false },
-    { label: "Passages", amount: adjustedMonthlyGross * 0.1146, isDeduction: false },
+    {
+      label: "Basic",
+      amount: adjustedMonthlyGross * 0.1835,
+      isDeduction: false,
+    },
+    {
+      label: "Rent",
+      amount: adjustedMonthlyGross * 0.0552,
+      isDeduction: false,
+    },
+    {
+      label: "Transport",
+      amount: adjustedMonthlyGross * 0.0552,
+      isDeduction: false,
+    },
+    {
+      label: "Medical/Health",
+      amount: adjustedMonthlyGross * 0.1826,
+      isDeduction: false,
+    },
+    {
+      label: "Furniture",
+      amount: adjustedMonthlyGross * 0.0634,
+      isDeduction: false,
+    },
+    {
+      label: "Utility",
+      amount: adjustedMonthlyGross * 0.0345,
+      isDeduction: false,
+    },
+    {
+      label: "Entertainment",
+      amount: adjustedMonthlyGross * 0.0446,
+      isDeduction: false,
+    },
+    {
+      label: "Meal",
+      amount: adjustedMonthlyGross * 0.1336,
+      isDeduction: false,
+    },
+    {
+      label: "Clothing",
+      amount: adjustedMonthlyGross * 0.1328,
+      isDeduction: false,
+    },
+    {
+      label: "Passages",
+      amount: adjustedMonthlyGross * 0.1146,
+      isDeduction: false,
+    },
   ];
 
   // Add individual suspension line items to breakdown
   suspensions.forEach((s) => {
     const amount = toNumber(s.deduction_days) * dailyRate;
-    const dateFormatted = new Date(s.occurrence_date).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-    });
+    const dateFormatted = new Date(s.occurrence_date).toLocaleDateString(
+      "en-GB",
+      {
+        day: "numeric",
+        month: "short",
+      },
+    );
     salaryBreakdown.push({
       label: `Suspension: ${s.type} (${dateFormatted})`,
       amount,
@@ -267,8 +315,12 @@ export default async function PayslipPage() {
                         <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
                           {item.label}
                         </td>
-                        <td className={`px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums ${item.isDeduction ? 'text-rose-600' : ''}`}>
-                          {item.isDeduction ? `(${formatPrice(item.amount).replace("NGN", "")})` : formatPrice(item.amount).replace("NGN", "")}
+                        <td
+                          className={`px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums ${item.isDeduction ? "text-rose-600" : ""}`}
+                        >
+                          {item.isDeduction
+                            ? `(${formatPrice(item.amount).replace("NGN", "")})`
+                            : formatPrice(item.amount).replace("NGN", "")}
                         </td>
                       </tr>
                     ))}

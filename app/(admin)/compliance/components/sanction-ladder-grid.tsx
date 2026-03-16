@@ -20,24 +20,28 @@ interface SanctionLadderGridProps {
   items: SanctionGridItem[];
   steps: SanctionStep[];
   windowStart: string;
+  windowEnd?: string;
+  periodLabel?: string;
   showDepartment?: boolean;
   exportElementId?: string;
   allowImageExport?: boolean;
 }
 
-function toWindowLabel(windowStart: string): string {
+function toWindowLabel(windowStart: string, windowEnd?: string): string {
   const start = new Date(windowStart);
-  const end = new Date();
+  const end = windowEnd ? new Date(windowEnd) : new Date();
 
   return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
 }
 
 export function SanctionLadderGrid({
-  title = "Sanction Ladder (6-Month Rolling Window)",
+  title = "Sanction Ladder (Current Half-Year)",
   description,
   items,
   steps,
   windowStart,
+  windowEnd,
+  periodLabel,
   showDepartment = true,
   exportElementId = "sanction-grid-export",
   allowImageExport = true,
@@ -64,7 +68,7 @@ export function SanctionLadderGrid({
             <CardTitle>{title}</CardTitle>
             <CardDescription>
               {description ||
-                `Occurrences counted in window: ${toWindowLabel(windowStart)}.`}
+                `Occurrences counted in ${periodLabel || "current period"} (${toWindowLabel(windowStart, windowEnd)}).`}
             </CardDescription>
           </div>
           {allowImageExport ? (
@@ -81,7 +85,7 @@ export function SanctionLadderGrid({
             <div className="grid grid-cols-[260px_minmax(560px,1fr)_120px] gap-2 text-xs font-medium text-muted-foreground">
               <div>Staff</div>
               <div className="rounded border bg-muted/30 px-2 py-1 text-center">
-                20-Point Occurrence Track (6 Months)
+                20-Point Occurrence Track ({periodLabel || "Current Half-Year"})
               </div>
               <div className="text-right">Occurrences</div>
             </div>
@@ -100,7 +104,8 @@ export function SanctionLadderGrid({
 
             {items.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                No disciplinary occurrences found in the current 6-month window.
+                No disciplinary occurrences found in the current calendar
+                period.
               </div>
             ) : (
               items.map((item) => (
@@ -186,7 +191,7 @@ export function SanctionLadderGrid({
                   <div className="text-right">
                     <p className="text-sm font-semibold">{item.issues_count}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      Step {item.current_step}
+                      Step {item.current_step + 1}
                     </p>
                   </div>
                 </div>
@@ -198,8 +203,9 @@ export function SanctionLadderGrid({
                 How to read this grid
               </p>
               <p className="text-muted-foreground">
-                Only disciplinary occurrences in the last 6 months are counted.
-                Items resolved as
+                Only disciplinary occurrences in the active calendar period (
+                {periodLabel || "Jan-Jun / Jul-Dec"}) are counted. Items
+                resolved as
                 <span className="font-medium text-foreground">
                   {" "}
                   Resolved (No Action)

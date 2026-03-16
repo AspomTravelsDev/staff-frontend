@@ -91,8 +91,10 @@ export default async function CompliancePage({ searchParams }: PageProps) {
         items={sanctionGrid.items}
         steps={sanctionGrid.steps}
         windowStart={sanctionGrid.windowStart}
+        windowEnd={sanctionGrid.windowEnd}
+        periodLabel={sanctionGrid.periodLabel}
         title="Sanction Grid"
-        description="Company-wide disciplinary ladder for the rolling 6-month window. Resolved (No Action) records are excluded."
+        description="Company-wide disciplinary ladder for the active calendar half-year (Jan-Jun or Jul-Dec). Resolved (No Action) records are excluded."
       />
 
       <ComplianceClientManager
