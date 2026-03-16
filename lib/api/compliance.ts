@@ -29,7 +29,7 @@ export interface ComplianceIssue {
     type: string;
     severity: Severity;
     status: ComplianceStatus;
-    outcome: string;
+    outcome: string | null;
     description: string;
     occurrence_date: string;
     date?: string; // Mapped for backward compatibility
@@ -65,6 +65,34 @@ export interface ComplianceStats {
     } | null;
 }
 
+export interface SanctionStep {
+    step: number;
+    threshold: number;
+    label: string;
+}
+
+export interface SanctionOccurrenceMarker {
+    id: string;
+    type: string;
+    occurrence_date: string;
+}
+
+export interface SanctionGridItem {
+    user_id: string;
+    name: string;
+    department?: string | null;
+    role: string;
+    issues_count: number;
+    current_step: number;
+    occurrence_markers: SanctionOccurrenceMarker[];
+}
+
+export interface SanctionGridResponse {
+    windowStart: string;
+    steps: SanctionStep[];
+    items: SanctionGridItem[];
+}
+
 export interface ComplianceFilters {
     page?: number;
     limit?: number;
@@ -98,7 +126,7 @@ export async function getComplianceIssues(
     if (filters.date_to) params.append("date_to", filters.date_to);
 
     const result = await api.get<PaginatedResponse<ComplianceIssue>>(`/api/compliance?${params.toString()}`);
-    
+
     if (!result.success) {
         throw new Error(result.error.error);
     }
@@ -117,8 +145,19 @@ export async function getComplianceIssues(
 export async function getComplianceStats(filters: { user_id?: string } = {}): Promise<ComplianceStats> {
     const params = new URLSearchParams();
     if (filters.user_id) params.append("user_id", filters.user_id);
-    
+
     const result = await api.get<ComplianceStats>(`/api/compliance/stats?${params.toString()}`);
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data;
+}
+
+export async function getComplianceSanctionGrid(filters: { user_id?: string } = {}): Promise<SanctionGridResponse> {
+    const params = new URLSearchParams();
+    if (filters.user_id) params.append("user_id", filters.user_id);
+
+    const result = await api.get<SanctionGridResponse>(`/api/compliance/sanction-grid?${params.toString()}`);
     if (!result.success) {
         throw new Error(result.error.error);
     }
@@ -150,7 +189,7 @@ export async function addComplianceComment(id: string, comment: string): Promise
 }
 
 export async function resolveComplianceOccurrence(id: string, outcome: string, deductionDays?: number): Promise<ComplianceIssue> {
-    const result = await api.post<ComplianceIssue>(`/api/compliance/${id}/resolve`, { 
+    const result = await api.post<ComplianceIssue>(`/api/compliance/${id}/resolve`, {
         outcome,
         deduction_days: deductionDays
     });

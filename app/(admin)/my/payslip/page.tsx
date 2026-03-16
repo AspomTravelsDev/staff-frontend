@@ -3,6 +3,21 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { Building2, FileText } from "lucide-react";
 import { ExportButton } from "./components/export-button";
 
+function toNumber(value: unknown): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (typeof value === "string") {
+    // Strip currency symbols/thousand separators and keep numeric characters.
+    const normalized = value.replace(/[^\d.-]/g, "");
+    const parsed = parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
 export default async function PayslipPage() {
   const user = await getCurrentUser();
 
@@ -10,7 +25,7 @@ export default async function PayslipPage() {
     redirect("/auth/login");
   }
 
-  const grossPay = parseFloat(user.gross_pay) || 0;
+  const grossPay = toNumber(user.gross_pay);
 
   // Fetch compliance issues for deductions (Current Month)
   const now = new Date();
@@ -26,11 +41,11 @@ export default async function PayslipPage() {
   }).catch(() => ({ items: [] }));
 
   const suspensions = complianceResponse.items.filter(
-    (item) => item.outcome === "Suspension" && (item.deduction_days || 0) > 0
+    (item) => item.outcome === "Suspension" && toNumber(item.deduction_days) > 0
   );
 
   const totalDeductionDays = suspensions.reduce(
-    (acc, curr) => acc + (curr.deduction_days || 0),
+    (acc, curr) => acc + toNumber(curr.deduction_days),
     0
   );
 
@@ -55,7 +70,7 @@ export default async function PayslipPage() {
 
   // Add individual suspension line items to breakdown
   suspensions.forEach((s) => {
-    const amount = (s.deduction_days || 0) * dailyRate;
+    const amount = toNumber(s.deduction_days) * dailyRate;
     const dateFormatted = new Date(s.occurrence_date).toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",

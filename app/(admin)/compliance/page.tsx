@@ -10,9 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getComplianceIssues, getComplianceStats, Severity, ComplianceStatus } from "@/lib/api/compliance";
+import {
+  getComplianceIssues,
+  getComplianceStats,
+  getComplianceSanctionGrid,
+  Severity,
+  ComplianceStatus,
+} from "@/lib/api/compliance";
 import { getEmployees } from "@/lib/api/employees";
 import { ComplianceClientManager } from "./components/compliance-client-manager";
+import { SanctionLadderGrid } from "./components/sanction-ladder-grid";
 
 interface PageProps {
   searchParams: Promise<{
@@ -41,9 +48,9 @@ export default async function CompliancePage({ searchParams }: PageProps) {
   const page = params.page ? parseInt(params.page) : 1;
 
   // Fetch data
-  const [issuesData, stats, employeesData] = await Promise.all([
-    getComplianceIssues({ 
-      limit: 500, 
+  const [issuesData, stats, employeesData, sanctionGrid] = await Promise.all([
+    getComplianceIssues({
+      limit: 500,
       page,
       status: params.status,
       severity: params.severity,
@@ -52,12 +59,13 @@ export default async function CompliancePage({ searchParams }: PageProps) {
     }),
     getComplianceStats(),
     getEmployees({ limit: 1000, status: "Active" }),
+    getComplianceSanctionGrid(),
   ]);
 
   const employees = employeesData.items;
   // Derive unique departments from employees
   const departments = Array.from(
-    new Set(employees.map((e) => e.department).filter(Boolean))
+    new Set(employees.map((e) => e.department).filter(Boolean)),
   ).sort();
 
   const { items: issues, pagination } = issuesData;
@@ -79,7 +87,15 @@ export default async function CompliancePage({ searchParams }: PageProps) {
       {/* Stats Cards */}
       <ComplianceStatsCards stats={stats} />
 
-      <ComplianceClientManager 
+      <SanctionLadderGrid
+        items={sanctionGrid.items}
+        steps={sanctionGrid.steps}
+        windowStart={sanctionGrid.windowStart}
+        title="Sanction Grid"
+        description="Company-wide disciplinary ladder for the rolling 6-month window. Resolved (No Action) records are excluded."
+      />
+
+      <ComplianceClientManager
         initialIssues={issues}
         isAdmin={true}
         serverFilters={{

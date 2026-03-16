@@ -1,8 +1,15 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getComplianceIssues, getComplianceStats, Severity, ComplianceStatus } from "@/lib/api/compliance";
+import {
+  getComplianceIssues,
+  getComplianceStats,
+  getComplianceSanctionGrid,
+  Severity,
+  ComplianceStatus,
+} from "@/lib/api/compliance";
 import { ComplianceStatsCards } from "../../compliance/components/compliance-stats";
 import { ComplianceClientManager } from "../../compliance/components/compliance-client-manager";
+import { SanctionLadderGrid } from "../../compliance/components/sanction-ladder-grid";
 import {
   Card,
   CardContent,
@@ -33,8 +40,8 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
   const page = params.page ? parseInt(params.page) : 1;
 
   // Fetch only user's issues and their specific stats
-  const [issuesData, stats] = await Promise.all([
-    getComplianceIssues({ 
+  const [issuesData, stats, sanctionGrid] = await Promise.all([
+    getComplianceIssues({
       user_id: user.id,
       limit: 500,
       page,
@@ -43,7 +50,8 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
       date_from: params.date_from,
       date_to: params.date_to,
     }),
-    getComplianceStats({ user_id: user.id })
+    getComplianceStats({ user_id: user.id }),
+    getComplianceSanctionGrid({ user_id: user.id }),
   ]);
 
   const { items: issues, pagination } = issuesData;
@@ -60,7 +68,17 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
       {/* Stats Cards */}
       <ComplianceStatsCards stats={stats} />
 
-      <ComplianceClientManager 
+      <SanctionLadderGrid
+        items={sanctionGrid.items}
+        steps={sanctionGrid.steps}
+        windowStart={sanctionGrid.windowStart}
+        title="My Sanction Ladder"
+        description="Your disciplinary ladder for the rolling 6-month window. Resolved (No Action) records are excluded."
+        showDepartment={false}
+        allowImageExport={false}
+      />
+
+      <ComplianceClientManager
         initialIssues={issues}
         isAdmin={false}
         serverFilters={{
