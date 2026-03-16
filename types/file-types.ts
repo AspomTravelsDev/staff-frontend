@@ -12,9 +12,9 @@ export interface DocumentFile {
     category_label?: string;
     department: string;
     tags: string[] | null;
-    file_path: string;
+    file_path?: string;
     file_size: number;
-    mime_type: string;
+    mime_type?: string;
     original_name?: string;
     created_at: string;
     updated_at: string;
@@ -36,7 +36,12 @@ export interface CreateDocumentRequest {
 
 export interface UploadDocumentResponse {
     message: string;
-    document: DocumentFile;
+    data: DocumentFile;
+}
+
+export interface DocumentCategoriesResponse {
+    categories: Array<{ value: DocumentCategory; label: string }>;
+    types: Array<{ value: DocumentType; label: string }>;
 }
 
 export interface DocumentFilters {

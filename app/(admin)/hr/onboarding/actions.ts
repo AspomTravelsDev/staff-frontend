@@ -16,7 +16,7 @@ export async function uploadOnboardingDocumentAction(formData: FormData) {
         return { error: result.error?.error || "Failed to upload document" };
     }
 
-    revalidatePath("/(admin)/hr/onboarding", "page");
+    revalidatePath("/hr/onboarding", "page");
     return { success: true, data: result.data };
 }
 
@@ -27,6 +27,6 @@ export async function deleteOnboardingDocumentAction(fileId: string) {
         return { error: result.error?.error || "Failed to delete document" };
     }
 
-    revalidatePath("/(admin)/hr/onboarding", "page");
+    revalidatePath("/hr/onboarding", "page");
     return { success: true };
 }

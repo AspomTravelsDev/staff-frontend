@@ -13,8 +13,8 @@ export async function uploadDocumentAction(formData: FormData) {
         return { error: result.error?.error || "Failed to upload document" };
     }
 
-    revalidatePath("/(admin)/hr/docs", "page");
-    revalidatePath("/(admin)/my/documents", "page");
+    revalidatePath("/hr/docs", "page");
+    revalidatePath("/my/documents", "page");
     return { success: true, data: result.data };
 }
 
@@ -25,7 +25,7 @@ export async function deleteDocumentAction(fileId: string) {
         return { error: result.error?.error || "Failed to delete document" };
     }
 
-    revalidatePath("/(admin)/hr/docs", "page");
-    revalidatePath("/(admin)/my/documents", "page");
+    revalidatePath("/hr/docs", "page");
+    revalidatePath("/my/documents", "page");
     return { success: true };
 }

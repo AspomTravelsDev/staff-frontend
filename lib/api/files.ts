@@ -1,7 +1,7 @@
 "use server";
 
 import { api, type ApiResponse } from "./client";
-import { DocumentFile, UploadDocumentResponse, DocumentFilters } from "@/types/file-types";
+import { DocumentFile, UploadDocumentResponse, DocumentFilters, DocumentCategoriesResponse } from "@/types/file-types";
 
 // ============================================================================
 // Types
@@ -16,7 +16,7 @@ interface DataWrapper<T> {
 // ============================================================================
 
 /**
- * Upload a document (HR/Super only)
+ * Upload a document
  * POST /api/documents
  */
 export async function uploadDocument(formData: FormData): Promise<ApiResponse<DocumentFile>> {
@@ -46,7 +46,7 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
             } catch (_) {
                 if (response.status === 413) errorMessage = "File too large (server limit)";
                 else if (response.status === 401) errorMessage = "Unauthorized";
-                else if (response.status === 403) errorMessage = "Forbidden (HR/Super only)";
+                else if (response.status === 403) errorMessage = "Forbidden";
                 else errorMessage = `Upload failed (${response.status}): ${errorText.substring(0, 100)}`;
             }
 
@@ -54,7 +54,7 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
         }
 
         const result: UploadDocumentResponse = await response.json();
-        return { success: true, data: result.document };
+        return { success: true, data: result.data };
 
     } catch (error: unknown) {
         console.error("Upload exception:", error);
@@ -116,7 +116,7 @@ export async function updateDocument(id: string, formData: FormData): Promise<Ap
         }
 
         const result: UploadDocumentResponse = await response.json();
-        return { success: true, data: result.document };
+        return { success: true, data: result.data };
 
     } catch (error: unknown) {
         console.error("Update exception:", error);
@@ -126,13 +126,27 @@ export async function updateDocument(id: string, formData: FormData): Promise<Ap
 }
 
 /**
- * Get category options (if needed, or just hardcode for now)
+ * Get document category and type options
  * GET /api/documents/categories
  */
-export async function getDocumentCategories(): Promise<string[]> {
-    const result = await api.get<DataWrapper<string[]>>("/api/documents/categories");
-    if (!result.success) return ["handbook", "policies", "contracts"]; // Fallback
-    return result.data.data;
+export async function getDocumentCategories(): Promise<DocumentCategoriesResponse> {
+    const fallback: DocumentCategoriesResponse = {
+        categories: [
+            { value: "handbook", label: "Handbook" },
+            { value: "policies", label: "Policies" },
+            { value: "contracts", label: "Contracts" },
+        ],
+        types: [
+            { value: "hr", label: "HR/Organization" },
+            { value: "onboarding", label: "Onboarding" },
+            { value: "visa", label: "Visa Documents" },
+            { value: "general", label: "General Documents" },
+        ],
+    };
+
+    const result = await api.get<DocumentCategoriesResponse>("/api/documents/categories");
+    if (!result.success) return fallback;
+    return result.data;
 }
 
 /**
