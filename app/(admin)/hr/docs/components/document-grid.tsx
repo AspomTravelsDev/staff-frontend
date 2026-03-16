@@ -8,6 +8,7 @@ import {
   FileText,
   MoreVertical,
   HardDrive,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +39,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { UploadDocumentDialog } from "./upload-document-dialog";
 
 interface DocumentGridProps {
   documents: DocumentFile[];
@@ -204,6 +206,19 @@ export function DocumentGrid({
                   >
                     <Download className="h-3.5 w-3.5" /> Download
                   </DropdownMenuItem>
+                  {showDelete && (
+                    <UploadDocumentDialog
+                      document={doc}
+                      trigger={
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          className="gap-2 cursor-pointer py-1"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Edit
+                        </DropdownMenuItem>
+                      }
+                    />
+                  )}
                   {showDelete && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

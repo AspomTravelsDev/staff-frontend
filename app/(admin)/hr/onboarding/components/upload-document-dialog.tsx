@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadOnboardingDocumentAction } from "../actions";
+import {
+  uploadOnboardingDocumentAction,
+  updateOnboardingDocumentAction,
+} from "../actions";
 import { Loader2, UploadCloud, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,8 +28,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { DocumentFile } from "@/types/file-types";
 
-export function UploadDocumentDialog() {
+const DEPARTMENTS = [
+  { value: "General", label: "General (All Departments)" },
+  { value: "Management", label: "Management" },
+  { value: "Administration", label: "Administration" },
+  { value: "Admin", label: "Admin" },
+  { value: "HR", label: "HR" },
+  { value: "IT", label: "IT" },
+  { value: "Accounts", label: "Accounts" },
+  { value: "Account", label: "Account" },
+  { value: "Visa", label: "Visa" },
+  { value: "Operation", label: "Operation" },
+  { value: "Operations", label: "Operations" },
+  { value: "Social Media", label: "Social Media" },
+  { value: "Compliance", label: "Compliance" },
+  { value: "Birth Services", label: "Birth Services" },
+  { value: "Holidays", label: "Holidays" },
+];
+
+interface UploadDocumentDialogProps {
+  document?: DocumentFile;
+  trigger?: React.ReactNode;
+}
+
+export function UploadDocumentDialog({
+  document: existingDoc,
+  trigger,
+}: UploadDocumentDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -36,6 +66,30 @@ export function UploadDocumentDialog() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEditing = !!existingDoc;
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (existingDoc) {
+      setTitle(existingDoc.title);
+      setCategory(existingDoc.category || "general");
+      setDepartment(existingDoc.department || "HR");
+      setDescription(existingDoc.description || "");
+      setError(null);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setTitle("");
+    setCategory("general");
+    setDepartment("HR");
+    setDescription("");
+    setError(null);
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [existingDoc, open]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -68,7 +122,7 @@ export function UploadDocumentDialog() {
   };
 
   const handleUpload = async () => {
-    if (!file) {
+    if (!isEditing && !file) {
       setError("Please select a file to upload.");
       return;
     }
@@ -78,7 +132,9 @@ export function UploadDocumentDialog() {
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    if (file && !isEditing) {
+      formData.append("file", file);
+    }
     formData.append("title", title);
     formData.append("category", category);
     formData.append("department", department);
@@ -86,19 +142,19 @@ export function UploadDocumentDialog() {
 
     try {
       setIsPending(true);
-      const result = await uploadOnboardingDocumentAction(formData);
+      const result = isEditing
+        ? await updateOnboardingDocumentAction(existingDoc.id, formData)
+        : await uploadOnboardingDocumentAction(formData);
       if (result.error) {
         setError(result.error);
         return;
       }
-      toast.success("Document uploaded successfully");
+      toast.success(
+        isEditing
+          ? "Document updated successfully"
+          : "Document uploaded successfully",
+      );
       setOpen(false);
-      setFile(null);
-      setTitle("");
-      setCategory("general");
-      setDepartment("HR");
-      setDescription("");
-      setError(null);
     } catch (err) {
       console.error(err);
       setError("An unexpected error occurred");
@@ -110,16 +166,24 @@ export function UploadDocumentDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UploadCloud className="mr-2 h-4 w-4" />
-          Upload Document
-        </Button>
+        {trigger || (
+          <Button>
+            <UploadCloud className="mr-2 h-4 w-4" />
+            Upload Document
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Upload Onboarding Document</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? "Edit Onboarding Document"
+              : "Upload Onboarding Document"}
+          </DialogTitle>
           <DialogDescription>
-            Upload a PDF, Word, or PowerPoint document. Max file size is 2MB.
+            {isEditing
+              ? "Update document metadata for this document."
+              : "Upload a PDF, Word, or PowerPoint document. Max file size is 2MB."}
           </DialogDescription>
         </DialogHeader>
 
@@ -156,11 +220,11 @@ export function UploadDocumentDialog() {
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Operation">Operation</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Accounts">Accounts</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
+                  {DEPARTMENTS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -176,17 +240,19 @@ export function UploadDocumentDialog() {
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="file">Select File *</Label>
-            <Input
-              id="file"
-              type="file"
-              accept=".pdf,.doc,.docx,.ppt,.pptx"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              disabled={isPending}
-            />
-          </div>
+          {!isEditing && (
+            <div className="grid gap-2">
+              <Label htmlFor="file">Select File *</Label>
+              <Input
+                id="file"
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                disabled={isPending}
+              />
+            </div>
+          )}
 
           {error && (
             <Alert variant="destructive">
@@ -214,10 +280,10 @@ export function UploadDocumentDialog() {
           </Button>
           <Button
             onClick={handleUpload}
-            disabled={!file || !title || !!error || isPending}
+            disabled={(!isEditing && !file) || !title || !!error || isPending}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Upload
+            {isEditing ? "Save Changes" : "Upload"}
           </Button>
         </DialogFooter>
       </DialogContent>

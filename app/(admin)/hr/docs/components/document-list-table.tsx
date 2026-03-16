@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DocumentFile } from "@/types/file-types";
 import { format } from "date-fns";
-import { Download, Trash2, FileText, Loader2 } from "lucide-react";
+import { Download, Trash2, FileText, Loader2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import { deleteDocumentAction } from "../actions";
 import { useState, useEffect } from "react";
 import { getFileDownloadToken } from "@/lib/api/files";
 import { toast } from "sonner";
+import { UploadDocumentDialog } from "./upload-document-dialog";
 
 interface DocumentListTableProps {
   documents: DocumentFile[];
@@ -224,6 +225,17 @@ export function DocumentListTable({
                     >
                       <Loader2 className="h-4 w-4 animate-spin" />
                     </Button>
+                  )}
+
+                  {showDelete && (
+                    <UploadDocumentDialog
+                      document={doc}
+                      trigger={
+                        <Button variant="ghost" size="icon" title="Edit">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                   )}
 
                   {showDelete && (

@@ -50,4 +50,5 @@ export interface DocumentFilters {
     department?: string;
     tags?: string;
     search?: string;
+    visibility_scope?: 'my';
 }

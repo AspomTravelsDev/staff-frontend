@@ -1,4 +1,4 @@
-import { DocumentListTable } from "../docs/components/document-list-table";
+import { DocumentListTable } from "./components/document-list-table";
 import { UploadDocumentDialog } from "./components/upload-document-dialog";
 import { getDocuments } from "./queries";
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { uploadDocument, deleteDocument } from "@/lib/api/files";
+import { uploadDocument, deleteDocument, updateDocument } from "@/lib/api/files";
 import { revalidatePath } from "next/cache";
 
 export async function uploadOnboardingDocumentAction(formData: FormData) {
@@ -29,4 +29,22 @@ export async function deleteOnboardingDocumentAction(fileId: string) {
 
     revalidatePath("/hr/onboarding", "page");
     return { success: true };
+}
+
+export async function updateOnboardingDocumentAction(documentId: string, formData: FormData) {
+    // Keep onboarding docs scoped to onboarding type in this flow
+    formData.set("type", "onboarding");
+    if (!formData.has("department")) {
+        formData.set("department", "HR");
+    }
+
+    const result = await updateDocument(documentId, formData);
+
+    if (!result.success) {
+        return { error: result.error?.error || "Failed to update document" };
+    }
+
+    revalidatePath("/hr/onboarding", "page");
+    revalidatePath("/my/documents", "page");
+    return { success: true, data: result.data };
 }

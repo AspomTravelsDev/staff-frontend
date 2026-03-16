@@ -3,8 +3,8 @@ import { DocumentFile } from "@/types/file-types";
 
 export async function getDocuments(): Promise<DocumentFile[]> {
     const [hrResult, onboardingResult] = await Promise.all([
-        getAllDocuments({ type: "hr" }),
-        getAllDocuments({ type: "onboarding" })
+        getAllDocuments({ type: "hr", visibility_scope: "my" }),
+        getAllDocuments({ type: "onboarding", visibility_scope: "my" })
     ]);
 
     if (!hrResult.success || !onboardingResult.success) {

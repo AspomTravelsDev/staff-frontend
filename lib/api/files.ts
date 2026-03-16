@@ -74,6 +74,7 @@ export async function getAllDocuments(filters: DocumentFilters = {}): Promise<Ap
     if (filters.department) params.append("department", filters.department);
     if (filters.search) params.append("search", filters.search);
     if (filters.tags) params.append("tags", filters.tags);
+    if (filters.visibility_scope) params.append("visibility_scope", filters.visibility_scope);
 
     const result = await api.get<DataWrapper<DocumentFile[]>>(`/api/documents?${params.toString()}`);
     if (!result.success) return result;
