@@ -20,9 +20,9 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
     }
 
     try {
-        let targetUrl = imageUrl;
+        let targetUrl = imageUrl.trim();
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
         // If it's a URL to our backend, ensure it uses the correct internal API URL
         if (targetUrl.startsWith('/api/') || targetUrl.includes('localhost:8000') || targetUrl.includes('127.0.0.1:8000')) {
@@ -38,26 +38,51 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
                     targetUrl = targetUrl.replace('http://localhost:8000', apiUrl).replace('http://127.0.0.1:8000', apiUrl);
                 }
             }
-        } else if (!targetUrl.startsWith('data:')) {
-            // External URL? Use our proxy to avoid CORS/Fetch issues within react-pdf rendering
-            targetUrl = `${appUrl}/api/proxy-file?url=${encodeURIComponent(imageUrl)}`;
+        } else if (targetUrl.startsWith('/')) {
+            targetUrl = `${apiUrl}${targetUrl}`;
         }
 
-        console.log(`fetchImageAsBase64: Fetching image from ${targetUrl}`);
+        const candidateUrls: string[] = [targetUrl];
 
-        const response = await fetch(targetUrl);
-        if (!response.ok) {
-            console.error(`fetchImageAsBase64: Failed to fetch image. Status: ${response.status} ${response.statusText} from ${targetUrl}`);
-            return undefined;
+        // Fallback through Next.js proxy only when explicitly configured.
+        // Server actions can fetch remote URLs directly, so proxy should be optional.
+        if (appUrl && !targetUrl.startsWith('data:') && /^https?:\/\//i.test(targetUrl)) {
+            candidateUrls.push(`${appUrl}/api/proxy-file?url=${encodeURIComponent(targetUrl)}`);
         }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64 = buffer.toString('base64');
-        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        for (const candidateUrl of candidateUrls) {
+            console.log(`fetchImageAsBase64: Fetching image from ${candidateUrl}`);
 
-        console.log(`fetchImageAsBase64: Successfully fetched image (${base64.length} chars, ${contentType})`);
-        return `data:${contentType};base64,${base64}`;
+            try {
+                const response = await fetch(candidateUrl);
+                if (!response.ok) {
+                    console.error(`fetchImageAsBase64: Failed to fetch image. Status: ${response.status} ${response.statusText} from ${candidateUrl}`);
+                    continue;
+                }
+
+                const contentType = response.headers.get('content-type') || 'image/jpeg';
+                if (contentType.includes('text/html')) {
+                    // Avoid embedding HTML error pages as image data.
+                    console.error(`fetchImageAsBase64: Unexpected content type ${contentType} from ${candidateUrl}`);
+                    continue;
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                if (!buffer.length) {
+                    console.error(`fetchImageAsBase64: Empty image payload from ${candidateUrl}`);
+                    continue;
+                }
+
+                const base64 = buffer.toString('base64');
+                console.log(`fetchImageAsBase64: Successfully fetched image (${base64.length} chars, ${contentType})`);
+                return `data:${contentType};base64,${base64}`;
+            } catch (candidateError) {
+                console.error(`fetchImageAsBase64: Candidate fetch failed for ${candidateUrl}:`, candidateError);
+            }
+        }
+
+        return undefined;
     } catch (error) {
         console.error(`fetchImageAsBase64: Error converting image to base64 from ${imageUrl}:`, error);
         return undefined;

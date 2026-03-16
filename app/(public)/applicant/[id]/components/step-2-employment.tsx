@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmploymentFinanceData } from "@/lib/types/form-data";
 
 type FormState = {
@@ -23,6 +30,31 @@ interface EmploymentTerms {
   net_salary?: number;
 }
 
+const QUALIFICATION_OPTIONS = [
+  "B.Sc.",
+  "M.Sc.",
+  "Ph.D",
+  "HND",
+  "OND",
+  "ND",
+  "NCE",
+  "SSCE",
+  "Other",
+] as const;
+
+const GRADE_OPTIONS = [
+  "First Class Honours",
+  "Second Class Upper",
+  "Second Class Lower",
+  "Third Class",
+  "Distinction",
+  "Upper Credit",
+  "Lower Credit",
+  "Merit",
+  "Pass",
+  "Other",
+] as const;
+
 export function Step2Employment({
   applicationId,
   initialData,
@@ -38,6 +70,10 @@ export function Step2Employment({
   const [educationCount, setEducationCount] = useState(
     initialData?.education?.length || 1,
   );
+  const [qualificationValues, setQualificationValues] = useState<
+    Record<number, string>
+  >({});
+  const [gradeValues, setGradeValues] = useState<Record<number, string>>({});
 
   const handleAddEmployment = () => {
     setEmploymentCount(employmentCount + 1);
@@ -72,7 +108,6 @@ export function Step2Employment({
       if (institution) {
         education.push({
           institution,
-          degree: formData.get(`education_${i}_degree`),
           qualification: formData.get(`education_${i}_qualification`),
           fieldOfStudy: formData.get(`education_${i}_fieldOfStudy`),
           startYear: formData.get(`education_${i}_startYear`),
@@ -87,11 +122,10 @@ export function Step2Employment({
       parseInt(formData.get("employmentCount") as string) || 0;
     const previousEmployment = [];
     for (let i = 0; i < employmentCount; i++) {
-      const companyName = formData.get(`employment_${i}_companyName`);
-      if (companyName) {
+      const employer = formData.get(`employment_${i}_employer`);
+      if (employer) {
         previousEmployment.push({
-          companyName,
-          employer: formData.get(`employment_${i}_employer`),
+          employer,
           position: formData.get(`employment_${i}_position`),
           startDate: formData.get(`employment_${i}_startDate`),
           endDate: formData.get(`employment_${i}_endDate`),
@@ -264,21 +298,37 @@ export function Step2Employment({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`education_${idx}_degree`}>Degree</Label>
-                  <Input
-                    id={`education_${idx}_degree`}
-                    name={`education_${idx}_degree`}
-                    defaultValue={edu?.degree || ""}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor={`education_${idx}_qualification`}>
                     Qualification
                   </Label>
-                  <Input
-                    id={`education_${idx}_qualification`}
+                  <Select
+                    value={qualificationValues[idx]}
+                    onValueChange={(value) =>
+                      setQualificationValues((prev) => ({
+                        ...prev,
+                        [idx]: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id={`education_${idx}_qualification`}>
+                      <SelectValue
+                        placeholder={
+                          edu?.qualification || "Select qualification"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUALIFICATION_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="hidden"
                     name={`education_${idx}_qualification`}
-                    defaultValue={edu?.qualification || ""}
+                    value={qualificationValues[idx] ?? edu?.qualification ?? ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -317,10 +367,30 @@ export function Step2Employment({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`education_${idx}_grade`}>Grade</Label>
-                  <Input
-                    id={`education_${idx}_grade`}
+                  <Select
+                    value={gradeValues[idx]}
+                    onValueChange={(value) =>
+                      setGradeValues((prev) => ({
+                        ...prev,
+                        [idx]: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id={`education_${idx}_grade`}>
+                      <SelectValue placeholder={edu?.grade || "Select grade"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GRADE_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="hidden"
                     name={`education_${idx}_grade`}
-                    defaultValue={edu?.grade || ""}
+                    value={gradeValues[idx] ?? edu?.grade ?? ""}
                   />
                 </div>
               </div>
@@ -362,21 +432,11 @@ export function Step2Employment({
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor={`employment_${idx}_companyName`}>
-                    Company Name
-                  </Label>
-                  <Input
-                    id={`employment_${idx}_companyName`}
-                    name={`employment_${idx}_companyName`}
-                    defaultValue={emp?.companyName || ""}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor={`employment_${idx}_employer`}>Employer</Label>
                   <Input
                     id={`employment_${idx}_employer`}
                     name={`employment_${idx}_employer`}
-                    defaultValue={emp?.employer || ""}
+                    defaultValue={emp?.employer || emp?.companyName || ""}
                   />
                 </div>
                 <div className="space-y-2">

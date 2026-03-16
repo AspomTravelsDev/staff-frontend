@@ -201,41 +201,49 @@ export function Step6Media({
             `applicant_pass_${applicationId}`,
           );
           photoPublicUrl = photoResult.storagePath;
+          setPhotoUrl(photoResult.storagePath);
+
+          const photoFileId = photoResult.fileId;
+
+          // Convert signature dataURL to blob and upload using action
+          const signatureResult = await uploadPassportPhoto(
+            applicationId,
+            `applicant_signature_${applicationId}`,
+            signaturePreview,
+            "signature.png",
+          );
+
+          if (signatureResult.error) {
+            return { error: signatureResult.error };
+          }
+
+          const signatureStoragePath = signatureResult.url || "";
+          const signatureFileId = signatureResult.fileId;
+
+          const data = {
+            media: {
+              passportPhoto: {
+                fileName: photoFile.name,
+                uploadedAt: new Date().toISOString(),
+                storagePath: photoPublicUrl || "",
+                fileId: photoFileId,
+              },
+              signature: {
+                fileName: "signature.png",
+                uploadedAt: new Date().toISOString(),
+                storagePath: signatureStoragePath,
+                fileId: signatureFileId,
+              },
+            },
+          };
+
+          return saveFormStep(applicationId, 6, data);
         } catch (error: any) {
           return { error: `Photo upload failed: ${error.message}` };
         }
       }
 
-      // Convert signature dataURL to blob and upload using action
-      const signatureResult = await uploadPassportPhoto(
-        applicationId,
-        `applicant_signature_${applicationId}`,
-        signaturePreview,
-        "signature.png",
-      );
-
-      if (signatureResult.error) {
-        return { error: signatureResult.error };
-      }
-
-      const data = {
-        media: {
-          passportPhoto: photoFile && photoFile.size > 0
-            ? {
-                fileName: photoFile.name,
-                uploadedAt: new Date().toISOString(),
-                storagePath: photoPublicUrl || "",
-              }
-            : initialData?.passportPhoto,
-          signature: {
-            fileName: "signature.png",
-            uploadedAt: new Date().toISOString(),
-            storagePath: signatureResult.url || "",
-          },
-        },
-      };
-
-      return saveFormStep(applicationId, 6, data);
+      return { error: "Passport photo is required" };
     } catch (error) {
       return { error: "An error occurred during upload. Please try again." };
     }

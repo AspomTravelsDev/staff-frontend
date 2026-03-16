@@ -104,6 +104,7 @@ export function Step4Guarantors({
       // Upload guarantor 1 photo
       const g1PhotoFile = formData.get("guarantor1_photo") as File | null;
       let g1PhotoUrl: string | null = null;
+      let g1PhotoFileId: string | undefined;
 
       if (g1PhotoFile && g1PhotoFile.size > 0 && g1PhotoFile.name) {
         try {
@@ -113,6 +114,7 @@ export function Step4Guarantors({
             `guarantor1_pass_${applicationId}`,
           );
           g1PhotoUrl = g1Result.storagePath;
+          g1PhotoFileId = g1Result.fileId;
         } catch (g1Error: any) {
           return {
             error: `Guarantor 1 photo upload failed: ${g1Error.message}`,
@@ -123,6 +125,7 @@ export function Step4Guarantors({
       // Upload guarantor 2 photo
       const g2PhotoFile = formData.get("guarantor2_photo") as File | null;
       let g2PhotoUrl: string | null = null;
+      let g2PhotoFileId: string | undefined;
 
       if (g2PhotoFile && g2PhotoFile.size > 0 && g2PhotoFile.name) {
         try {
@@ -132,6 +135,7 @@ export function Step4Guarantors({
             `guarantor2_pass_${applicationId}`,
           );
           g2PhotoUrl = g2Result.storagePath;
+          g2PhotoFileId = g2Result.fileId;
         } catch (g2Error: any) {
           return {
             error: `Guarantor 2 photo upload failed: ${g2Error.message}`,
@@ -177,6 +181,7 @@ export function Step4Guarantors({
               fileName: g1PhotoFile?.name || "passport_photo.jpg",
               uploadedAt: new Date().toISOString(),
               storagePath: g1PhotoUrl,
+              fileId: g1PhotoFileId,
             }
           : initialData?.guarantors?.[0]?.passportPhoto,
       };
@@ -219,6 +224,7 @@ export function Step4Guarantors({
               fileName: g2PhotoFile?.name || "passport_photo.jpg",
               uploadedAt: new Date().toISOString(),
               storagePath: g2PhotoUrl,
+              fileId: g2PhotoFileId,
             }
           : initialData?.guarantors?.[1]?.passportPhoto,
       };

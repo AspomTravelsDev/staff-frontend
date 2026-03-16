@@ -171,7 +171,7 @@ export function DocumentListTable({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="relative w-full sm:w-[200px]">
+        <div className="relative w-full sm:w-50">
           <Tag className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Filter by tag..."
@@ -323,7 +323,7 @@ export function DocumentListTable({
                               Delete Document?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete "{doc.title}"?
+                              Are you sure you want to delete &quot;{doc.title}&quot;?
                               This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>

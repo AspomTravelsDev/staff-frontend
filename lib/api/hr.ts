@@ -12,6 +12,11 @@ export async function getApplications(): Promise<OnboardingApplication[]> {
     return response.data.data;
 }
 
+export async function markOnboardingNotificationsViewed(): Promise<void> {
+    const response = await api.post<{ message: string }>("/api/onboarding/notifications/mark-viewed");
+    if (!response.success) throw new Error(response.error.error);
+}
+
 export async function getApplication(id: string): Promise<OnboardingApplication> {
     const response = await api.get<{ data: OnboardingApplication }>(`/api/onboarding-applications/${id}`);
     if (!response.success) throw new Error(response.error.error);

@@ -46,7 +46,6 @@ export interface EmploymentFinanceData {
     };
     education: Array<{
         institution: string;
-        degree?: string;
         qualification?: string;
         fieldOfStudy?: string;
         startYear: string;
@@ -118,6 +117,7 @@ export interface GuarantorRefereeData {
             fileName?: string;
             storagePath?: string;
             uploadedAt?: string;
+            fileId?: string;
         };
         witness?: {
             name?: string;
@@ -159,6 +159,7 @@ export interface GuarantorRefereeData {
             fileName?: string;
             storagePath?: string;
             uploadedAt?: string;
+            fileId?: string;
         };
     };
 }
@@ -170,6 +171,7 @@ export interface MediaData {
         uploadedAt?: string;
         fileSize?: number;
         base64?: string;
+        fileId?: string;
     };
     signature?: {
         fileName?: string;
@@ -177,6 +179,7 @@ export interface MediaData {
         uploadedAt?: string;
         fileSize?: number;
         base64?: string;
+        fileId?: string;
     };
     ndaWitnessSignature?: {
         fileName?: string;
@@ -184,6 +187,7 @@ export interface MediaData {
         uploadedAt?: string;
         fileSize?: number;
         base64?: string;
+        fileId?: string;
     };
 }
 

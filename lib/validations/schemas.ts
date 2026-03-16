@@ -66,7 +66,6 @@ export const employmentFinanceSchema = z.object({
     education: z.array(
         z.object({
             institution: z.string().min(2, 'Institution name is required'),
-            degree: z.string().optional(),
             qualification: z.string().optional(),
             fieldOfStudy: z.string().optional(),
             startYear: z.string().regex(/^\d{4}$/, 'Valid year required (YYYY)'),

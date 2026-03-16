@@ -91,6 +91,7 @@ export function Step5Referee({
       // Upload referee photo
       const refereePhotoFile = formData.get("referee_photo") as File | null;
       let uploadedPhotoUrl: string | null = null;
+      let uploadedPhotoFileId: string | undefined;
 
       if (
         refereePhotoFile &&
@@ -104,6 +105,7 @@ export function Step5Referee({
             `referee_pass_${applicationId}`,
           );
           uploadedPhotoUrl = photoResult.storagePath;
+          uploadedPhotoFileId = photoResult.fileId;
         } catch (uploadError: any) {
           return { error: `Photo upload failed: ${uploadError.message}` };
         }
@@ -176,12 +178,13 @@ export function Step5Referee({
               ) as string | null,
             },
             passportPhoto: uploadedPhotoUrl
-          ? {
-              fileName: refereePhotoFile?.name || "referee_photo.jpg",
-              uploadedAt: new Date().toISOString(),
-              storagePath: uploadedPhotoUrl,
-            }
-          : initialData?.referee?.passportPhoto,
+              ? {
+                  fileName: refereePhotoFile?.name || "referee_photo.jpg",
+                  uploadedAt: new Date().toISOString(),
+                  storagePath: uploadedPhotoUrl,
+                  fileId: uploadedPhotoFileId,
+                }
+              : initialData?.referee?.passportPhoto,
           },
         },
       };

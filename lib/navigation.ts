@@ -149,6 +149,8 @@ export const departmentNav: NavItem[] = [
         url: "/hr/applications",
         icon: FileText,
         allowedRoles: ["hr"],
+        badgeKey: "onboardingCompleted",
+        badgeLabel: "New onboarding completions",
     },
     {
         title: "Onboarding Documents",

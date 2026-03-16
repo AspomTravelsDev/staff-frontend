@@ -69,13 +69,13 @@ export interface PersonalInfo {
 }
 
 export interface Education {
-    grade: string;
-    degree: string;
+    grade?: string;
+    degree?: string;
     endYear: string;
     startYear: string;
     institution: string;
     fieldOfStudy: string;
-    qualification: string;
+    qualification?: string;
 }
 
 export interface BankDetails {

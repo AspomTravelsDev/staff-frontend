@@ -12,11 +12,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "./components/application-actions";
 import { ApplicationExportButton } from "./components/application-export-button";
-import { getApplications } from "@/lib/api/hr";
+import {
+  getApplications,
+  markOnboardingNotificationsViewed,
+} from "@/lib/api/hr";
 import { formatLagosDate } from "@/lib/utils/attendance";
 
 export default async function AdminDashboardPage() {
   const applications = await getApplications();
+
+  // Opening this page clears "new onboarding completions" notifications.
+  void markOnboardingNotificationsViewed().catch((error) => {
+    console.error("Failed to mark onboarding notifications as viewed:", error);
+  });
 
   const stats = {
     total: applications.length,

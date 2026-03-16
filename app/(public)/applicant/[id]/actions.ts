@@ -22,7 +22,7 @@ export async function uploadPassportPhoto(
     fieldName: string,
     fileBase64OrUrl: string,
     fileName: string
-): Promise<{ url?: string; error?: string }> {
+): Promise<{ url?: string; fileId?: string; error?: string }> {
     try {
         // If it's already a URL (starts with http or /), just return it
         if (fileBase64OrUrl.startsWith('http') || fileBase64OrUrl.startsWith('/')) {
@@ -51,7 +51,7 @@ export async function uploadPassportPhoto(
 
         const result = await uploadPublicFile(uuid, file, fieldName)
 
-        return { url: result.storagePath }
+        return { url: result.storagePath, fileId: result.fileId }
     } catch (error: any) {
         console.error('Unexpected error in uploadPassportPhoto:', error)
         return { error: error.message || 'An unexpected error occurred during upload' }

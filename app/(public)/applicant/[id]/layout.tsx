@@ -39,10 +39,6 @@ export default async function ApplicantLayout({
         <div className="mx-auto max-w-2xl">{children}</div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-white dark:bg-card py-4 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} Aspom Travels. All rights reserved.</p>
-      </footer>
     </div>
   );
 }
