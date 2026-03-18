@@ -148,7 +148,7 @@ export const departmentNav: NavItem[] = [
         title: "HR Applications",
         url: "/hr/applications",
         icon: FileText,
-        allowedRoles: ["hr"],
+        allowedRoles: ["hr", "compliance"],
         badgeKey: "onboardingCompleted",
         badgeLabel: "New onboarding completions",
     },
@@ -163,6 +163,12 @@ export const departmentNav: NavItem[] = [
         url: "/hr/tasks",
         icon: ClipboardList,
         allowedRoles: ["hr", "compliance"],
+    },
+    {
+        title: "Weekly Feedback",
+        url: "/hr/weekly-feedback",
+        icon: ClipboardList,
+        allowedRoles: ["hr", "super"],
     },
     // {
     //     title: "Applications",
@@ -286,6 +292,10 @@ export const personalNav: NavItem[] = [
                 url: "/my/tasks",
                 badgeKey: "myTasks,reportReminder",
                 badgeLabel: "Submit your to-do list"
+            },
+            {
+                title: "Weekly Questionnaire",
+                url: "/my/weekly-feedback",
             },
             {
                 title: "Attendance",

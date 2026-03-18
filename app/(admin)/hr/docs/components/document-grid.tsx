@@ -160,7 +160,7 @@ export function DocumentGrid({
         {[...Array(12)].map((_, i) => (
           <Card
             key={i}
-            className="animate-pulse bg-muted/30 border h-[140px]"
+            className="animate-pulse bg-muted/30 border h-35"
           />
         ))}
       </div>
@@ -185,7 +185,7 @@ export function DocumentGrid({
         {documents.map((doc) => (
           <Card
             key={doc.id}
-            className="group relative flex flex-col overflow-hidden border border-border/50 bg-card/30 hover:bg-card/80 hover:shadow-sm hover:border-primary/20 transition-all duration-200 cursor-default h-[155px]"
+            className="group relative flex flex-col overflow-hidden border border-border/50 bg-card/30 hover:bg-card/80 hover:shadow-sm hover:border-primary/20 transition-all duration-200 cursor-default h-38.75"
           >
             {/* Top Toolbar */}
             <div className="absolute top-0.5 right-0.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -267,7 +267,7 @@ export function DocumentGrid({
                 </TooltipTrigger>
                 <TooltipContent
                   side="bottom"
-                  className="max-w-[200px] text-[10px]"
+                  className="max-w-50 text-[10px]"
                 >
                   <p>{doc.title}</p>
                 </TooltipContent>
@@ -278,7 +278,7 @@ export function DocumentGrid({
                   {getFileExtension(doc.original_name) || "file"}
                 </span>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="truncate max-w-[70px]">
+                  <span className="truncate max-w-17.5">
                     {doc.uploaded_by?.name.split(" ")[0]}
                   </span>
                   <span>•</span>

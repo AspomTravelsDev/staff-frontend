@@ -27,6 +27,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { DailyTaskRecord } from "@/types/task-types";
+import Link from "next/link";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useWeeklyFeedbackLockStatus } from "@/lib/api/hooks/use-weekly-feedback";
 
 import { useCallback } from "react";
 import { debounce } from "lodash";
@@ -43,6 +46,7 @@ export function TaskList({ initialData }: TaskListProps) {
   });
   const updateTasks = useUpdateDailyTasks();
   const submitReport = useSubmitDailyReport();
+  const { data: weeklyFeedbackLockStatus } = useWeeklyFeedbackLockStatus();
 
   const [localTasks, setLocalTasks] = useState<TaskItemType[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -62,6 +66,10 @@ export function TaskList({ initialData }: TaskListProps) {
   const record = records?.[0];
   const isSubmitted = record?.report_submitted ?? false;
   const isLocked = isSubmitted;
+  const isQuestionnaireLocked = weeklyFeedbackLockStatus?.is_locked ?? false;
+  const questionnaireReason =
+    weeklyFeedbackLockStatus?.reason ||
+    "Complete the weekly anonymous questionnaire before submitting daily report.";
 
   // Manual save function
   const handleSave = async () => {
@@ -98,7 +106,7 @@ export function TaskList({ initialData }: TaskListProps) {
         setIsAutosaving(false);
       }
     }, 3500),
-    [updateTasks]
+    [updateTasks],
   );
 
   // Trigger autosave when tasks change
@@ -138,6 +146,11 @@ export function TaskList({ initialData }: TaskListProps) {
 
   const handleSubmitReport = async () => {
     try {
+      if (isQuestionnaireLocked) {
+        toast.error(questionnaireReason);
+        return;
+      }
+
       // If there are unsaved changes, save them first
       if (hasUnsavedChanges) {
         const validTasks = localTasks.filter((t) => t.text.trim() !== "");
@@ -176,7 +189,9 @@ export function TaskList({ initialData }: TaskListProps) {
             <Plus className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Today&apos;s Tasks</h2>
+            <h2 className="text-xl font-bold tracking-tight">
+              Today&apos;s Tasks
+            </h2>
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wider">
               {format(new Date(), "PPPP")}
             </p>
@@ -212,6 +227,22 @@ export function TaskList({ initialData }: TaskListProps) {
         completed={completedCount}
         ongoing={ongoingCount}
       />
+
+      {isQuestionnaireLocked ? (
+        <Alert className="border-amber-300 bg-amber-50 text-amber-900">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>
+            Questionnaire required before report submission
+          </AlertTitle>
+          <AlertDescription>
+            {questionnaireReason}{" "}
+            <Link href="/my/weekly-feedback" className="underline">
+              Complete it here
+            </Link>
+            .
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="space-y-3 group">
         {localTasks.map((task, index) => (
@@ -275,7 +306,10 @@ export function TaskList({ initialData }: TaskListProps) {
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700">
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                disabled={isQuestionnaireLocked}
+              >
                 <Send className="h-4 w-4 mr-2" /> Submit Daily Report
               </Button>
             </AlertDialogTrigger>
