@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveFormStep, redirectToPreviousStep } from "../actions";
 import { uploadPublicFile } from "@/lib/api/hr";
@@ -16,16 +16,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GuarantorRefereeData } from "@/lib/types/form-data";
+import { toast } from "sonner";
 
 type FormState = {
   error?: string;
   success?: boolean;
   nextStep?: number;
+  submittedData?: Record<string, string>;
 };
 
 interface GarantorPreview {
   [key: number]: string | null;
 }
+
+const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
+
+const resolvePreviewUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith("/api/")) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    return apiBase ? `${apiBase}${url}` : url;
+  }
+  return url;
+};
 
 export function Step4Guarantors({
   applicationId,
@@ -35,6 +48,7 @@ export function Step4Guarantors({
   initialData?: GuarantorRefereeData;
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [guarantor1Preview, setGuarantor1Preview] = useState<string | null>(
     null,
   );
@@ -42,10 +56,10 @@ export function Step4Guarantors({
     null,
   );
   const [guarantor1PhotoUrl, setGuarantor1PhotoUrl] = useState<string | null>(
-    initialData?.guarantors?.[0]?.passportPhoto?.storagePath || null,
+    resolvePreviewUrl(initialData?.guarantors?.[0]?.passportPhoto?.storagePath),
   );
   const [guarantor2PhotoUrl, setGuarantor2PhotoUrl] = useState<string | null>(
-    initialData?.guarantors?.[1]?.passportPhoto?.storagePath || null,
+    resolvePreviewUrl(initialData?.guarantors?.[1]?.passportPhoto?.storagePath),
   );
   const [isUploadingG1, setIsUploadingG1] = useState(false);
   const [isUploadingG2, setIsUploadingG2] = useState(false);
@@ -55,6 +69,13 @@ export function Step4Guarantors({
     0: null,
     1: null,
   });
+
+  const toSubmittedData = (formData: FormData) =>
+    Object.fromEntries(
+      Array.from(formData.entries()).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
 
   const handlePhotoChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -75,6 +96,16 @@ export function Step4Guarantors({
         if (guarantorIndex === 0) setGuarantor1Preview(null);
         else setGuarantor2Preview(null);
         e.target.value = ""; // Clear input
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        const message = "Image exceeds 1MB. Please compress and re-upload.";
+        setFileErrors((prev) => ({ ...prev, [guarantorIndex]: message }));
+        toast.error(message);
+        if (guarantorIndex === 0) setGuarantor1Preview(null);
+        else setGuarantor2Preview(null);
+        e.target.value = "";
         return;
       }
 
@@ -101,6 +132,27 @@ export function Step4Guarantors({
     formData: FormData,
   ): Promise<FormState> => {
     try {
+      const requiredFields = [
+        "guarantor1_firstName",
+        "guarantor1_lastName",
+        "guarantor1_phoneNumber",
+        "guarantor1_relationship",
+        "guarantor2_firstName",
+        "guarantor2_lastName",
+        "guarantor2_phoneNumber",
+        "guarantor2_relationship",
+      ];
+
+      for (const field of requiredFields) {
+        const value = String(formData.get(field) || "").trim();
+        if (!value) {
+          return {
+            error: "Please complete all required guarantor fields.",
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
       // Upload guarantor 1 photo
       const g1PhotoFile = formData.get("guarantor1_photo") as File | null;
       let g1PhotoUrl: string | null = null;
@@ -114,10 +166,12 @@ export function Step4Guarantors({
             `guarantor1_pass_${applicationId}`,
           );
           g1PhotoUrl = g1Result.storagePath;
+          setGuarantor1PhotoUrl(resolvePreviewUrl(g1Result.storagePath));
           g1PhotoFileId = g1Result.fileId;
         } catch (g1Error: any) {
           return {
             error: `Guarantor 1 photo upload failed: ${g1Error.message}`,
+            submittedData: toSubmittedData(formData),
           };
         }
       }
@@ -135,10 +189,12 @@ export function Step4Guarantors({
             `guarantor2_pass_${applicationId}`,
           );
           g2PhotoUrl = g2Result.storagePath;
+          setGuarantor2PhotoUrl(resolvePreviewUrl(g2Result.storagePath));
           g2PhotoFileId = g2Result.fileId;
         } catch (g2Error: any) {
           return {
             error: `Guarantor 2 photo upload failed: ${g2Error.message}`,
+            submittedData: toSubmittedData(formData),
           };
         }
       }
@@ -238,7 +294,10 @@ export function Step4Guarantors({
 
       return saveFormStep(applicationId, 4, data);
     } catch (error) {
-      return { error: "An error occurred during upload. Please try again." };
+      return {
+        error: "An error occurred during upload. Please try again.",
+        submittedData: toSubmittedData(formData),
+      };
     }
   };
 
@@ -247,18 +306,32 @@ export function Step4Guarantors({
     null,
   );
 
+  useEffect(() => {
+    if (!state?.error || !state.submittedData || !formRef.current) return;
+
+    for (const [name, value] of Object.entries(state.submittedData)) {
+      const elements = formRef.current.querySelectorAll(`[name="${name}"]`);
+      elements.forEach((element) => {
+        if (element instanceof HTMLInputElement) {
+          if (element.type === "checkbox") {
+            element.checked = value === "on";
+          } else if (element.type !== "file") {
+            element.value = value;
+          }
+        } else if (
+          element instanceof HTMLTextAreaElement ||
+          element instanceof HTMLSelectElement
+        ) {
+          element.value = value;
+        }
+      });
+    }
+  }, [state]);
+
   const renderGuarantorSection = (index: number, title: string, data?: any) => {
     const prefix = `guarantor${index + 1}_`;
-    const preview =
-      index === 0
-        ? guarantor1Preview ||
-          (initialData?.guarantors?.[index]?.passportPhoto?.storagePath
-            ? "stored"
-            : null)
-        : guarantor2Preview ||
-          (initialData?.guarantors?.[index]?.passportPhoto?.storagePath
-            ? "stored"
-            : null);
+    const existingStoredUrl =
+      index === 0 ? guarantor1PhotoUrl : guarantor2PhotoUrl;
 
     return (
       <div key={index} className="space-y-4">
@@ -267,6 +340,10 @@ export function Step4Guarantors({
           <h4 className="text-base font-semibold">{title}</h4>
           <p className="text-sm text-muted-foreground">
             Provide details and passport photograph
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+            Fill all required fields. You will download, sign, and re-upload
+            final forms in steps 7 and 8.
           </p>
         </div>
 
@@ -436,7 +513,7 @@ export function Step4Guarantors({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}relationship`} className="text-sm">
-              Relationship to Applicant
+              Relationship to Applicant *
             </Label>
             <Select
               defaultValue={data?.relationship || ""}
@@ -466,6 +543,7 @@ export function Step4Guarantors({
               type="hidden"
               name={`${prefix}relationship`}
               defaultValue={data?.relationship || ""}
+              required
             />
           </div>
           <div>
@@ -519,7 +597,7 @@ export function Step4Guarantors({
             Passport Photograph
           </Label>
           <p className="text-xs text-muted-foreground mb-3">
-            Upload a clear passport-size photograph (JPG, PNG, max 5MB) -
+            Upload a clear passport-size photograph (JPG, PNG, max 1MB) -
             Optional, can be provided later
           </p>
 
@@ -538,32 +616,34 @@ export function Step4Guarantors({
             </p>
           )}
 
-          {preview && (
+          {guarantor1Preview && index === 0 && (
             <div className="mt-4">
               <p className="text-xs font-medium mb-2">Preview:</p>
               <img
-                src={preview}
+                src={guarantor1Preview}
                 alt={`${title} passport preview`}
                 className="h-32 w-24 rounded border border-muted-foreground object-cover"
               />
             </div>
           )}
 
-          {!preview &&
-            ((index === 0 &&
-              initialData?.guarantors?.[0]?.passportPhoto?.storagePath) ||
-              (index === 1 &&
-                initialData?.guarantors?.[1]?.passportPhoto?.storagePath)) && (
+          {guarantor2Preview && index === 1 && (
+            <div className="mt-4">
+              <p className="text-xs font-medium mb-2">Preview:</p>
+              <img
+                src={guarantor2Preview}
+                alt={`${title} passport preview`}
+                className="h-32 w-24 rounded border border-muted-foreground object-cover"
+              />
+            </div>
+          )}
+
+          {!(index === 0 ? guarantor1Preview : guarantor2Preview) &&
+            existingStoredUrl && (
               <div className="mt-4 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3">
                 <div className="flex items-center gap-3">
                   <img
-                    src={
-                      (index === 0
-                        ? initialData?.guarantors?.[0]?.passportPhoto
-                            ?.storagePath
-                        : initialData?.guarantors?.[1]?.passportPhoto
-                            ?.storagePath) || ""
-                    }
+                    src={existingStoredUrl}
                     alt={`${title} current passport`}
                     className="h-16 w-12 rounded border object-cover"
                   />
@@ -584,7 +664,7 @@ export function Step4Guarantors({
   };
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold">Guarantors Details</h3>
         <p className="text-sm text-muted-foreground">

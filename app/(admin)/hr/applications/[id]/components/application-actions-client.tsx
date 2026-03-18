@@ -15,10 +15,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   deleteApplicationAction,
   generateDocumentsAction,
+  requestCorrectionAction,
 } from "../../actions";
 
 interface ApplicationActionsClientProps {
@@ -36,6 +53,40 @@ export function ApplicationActionsClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
+  const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
+  const [correctionReason, setCorrectionReason] = useState<
+    | "unsigned_documents"
+    | "missing_required_pages"
+    | "invalid_document_quality"
+    | "mismatched_information"
+    | "other"
+    | ""
+  >("");
+  const [correctionNote, setCorrectionNote] = useState("");
+
+  const correctionReasons = [
+    {
+      value: "unsigned_documents" as const,
+      label: "Unsigned documents uploaded",
+    },
+    {
+      value: "missing_required_pages" as const,
+      label: "Missing required pages/documents",
+    },
+    {
+      value: "invalid_document_quality" as const,
+      label: "Document quality is too poor to verify",
+    },
+    {
+      value: "mismatched_information" as const,
+      label: "Information mismatch across submitted documents",
+    },
+    {
+      value: "other" as const,
+      label: "Other",
+    },
+  ];
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -73,6 +124,37 @@ export function ApplicationActionsClient({
     setIsSendingReminder(false);
   };
 
+  const handleSubmitCorrection = async () => {
+    if (!correctionReason) {
+      toast.error("Please select a correction reason");
+      return;
+    }
+
+    if (!correctionNote.trim()) {
+      toast.error("Please add a correction note");
+      return;
+    }
+
+    setIsSubmittingCorrection(true);
+    try {
+      await requestCorrectionAction(
+        applicationId,
+        correctionReason,
+        correctionNote.trim(),
+      );
+      toast.success("Correction request sent to applicant");
+      setIsCorrectionDialogOpen(false);
+      setCorrectionReason("");
+      setCorrectionNote("");
+      router.refresh();
+    } catch (error) {
+      toast.error("Failed to request correction");
+      console.error(error);
+    } finally {
+      setIsSubmittingCorrection(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -94,6 +176,14 @@ export function ApplicationActionsClient({
             disabled={isSendingReminder || status === "completed"}
           >
             {isSendingReminder ? "Sending..." : "Send Reminder Email"}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={() => setIsCorrectionDialogOpen(true)}
+            disabled={status !== "completed"}
+          >
+            Request Correction
           </Button>
 
           <AlertDialog>
@@ -125,9 +215,78 @@ export function ApplicationActionsClient({
         </div>
         <p className="text-xs text-muted-foreground">
           {status === "completed"
-            ? "This application is completed. Some actions are restricted."
+            ? "This application is completed. You can request correction to reopen it for applicant updates."
             : "Actions to manage the application process."}
         </p>
+
+        <Dialog
+          open={isCorrectionDialogOpen}
+          onOpenChange={setIsCorrectionDialogOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request Applicant Correction</DialogTitle>
+              <DialogDescription>
+                This will set the application back to in progress and email the
+                applicant with your note.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Reason *</label>
+                <Select
+                  value={correctionReason}
+                  onValueChange={(value) =>
+                    setCorrectionReason(value as typeof correctionReason)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select correction reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {correctionReasons.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Note *</label>
+                <Textarea
+                  value={correctionNote}
+                  onChange={(e) => setCorrectionNote(e.target.value)}
+                  placeholder="Explain exactly what needs correction (e.g. NDA and indemnity were uploaded unsigned)."
+                  rows={5}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Minimum 10 characters.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsCorrectionDialogOpen(false)}
+                disabled={isSubmittingCorrection}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitCorrection}
+                disabled={isSubmittingCorrection}
+              >
+                {isSubmittingCorrection
+                  ? "Submitting..."
+                  : "Send Correction Request"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

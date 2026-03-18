@@ -41,6 +41,26 @@ export async function sendInvite(id: string): Promise<void> {
     if (!response.success) throw new Error(response.error.error || "Failed to send invitation email");
 }
 
+export type OnboardingCorrectionReason =
+    | "unsigned_documents"
+    | "missing_required_pages"
+    | "invalid_document_quality"
+    | "mismatched_information"
+    | "other";
+
+export async function requestOnboardingCorrection(
+    id: string,
+    payload: { reason: OnboardingCorrectionReason; note: string }
+): Promise<void> {
+    const response = await api.post<{ message: string }>(
+        `/api/onboarding-applications/${id}/request-correction`,
+        payload,
+    );
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to request correction");
+    }
+}
+
 // ─── Public endpoints (applicant portal — no auth) ───
 
 export async function getPublicApplication(id: string): Promise<OnboardingApplication> {

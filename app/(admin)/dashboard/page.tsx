@@ -208,7 +208,7 @@ export default async function Page() {
           <QuickLinkButton
             icon={Globe2}
             title="Passport Index"
-            url="https://visa-index.netlify.app/"
+            url="https://visatal.vercel.app/"
             color="green"
           />
 

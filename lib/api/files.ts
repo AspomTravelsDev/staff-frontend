@@ -99,21 +99,42 @@ export async function updateDocument(id: string, formData: FormData): Promise<Ap
     try {
         const token = await import("@/lib/auth/session").then(m => m.getAuthToken());
 
+        // PATCH + multipart/form-data is unreliable across some PHP/proxy setups.
+        // Convert metadata updates to JSON for consistent server parsing in production.
+        const payload: Record<string, string> = {};
+        formData.forEach((value, key) => {
+            if (typeof value === "string") {
+                payload[key] = value;
+            }
+        });
+
         const headers: HeadersInit = {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
+            "Content-Type": "application/json",
         };
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/documents/${id}`, {
             method: "PATCH",
             headers,
-            body: formData,
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Update failed [${response.status}]:`, errorText);
-            return { success: false, error: { error: "Update failed", code: String(response.status) } };
+
+            let errorMessage = "Update failed";
+            try {
+                const jsonError = JSON.parse(errorText);
+                errorMessage = jsonError.message || jsonError.error || errorMessage;
+            } catch (_) {
+                if (response.status === 401) errorMessage = "Unauthorized";
+                else if (response.status === 403) errorMessage = "Forbidden";
+                else errorMessage = `Update failed (${response.status}): ${errorText.substring(0, 100)}`;
+            }
+
+            return { success: false, error: { error: errorMessage, code: String(response.status) } };
         }
 
         const result: UploadDocumentResponse = await response.json();

@@ -246,6 +246,10 @@ export const NdaLetterPdf: React.FC<NdaProps> = ({
         {/* Employee */}
         <View style={s.partyBlock}>
           <View style={{ flexDirection: "row", marginBottom: 4 }}>
+            <Text style={s.text}>Employee Name</Text>
+            <Text style={[s.text, s.underlinedField]}>{employeeName}</Text>
+          </View>
+          <View style={{ flexDirection: "row", marginBottom: 4 }}>
             <Text style={s.text}>Of Address</Text>
             <Text style={[s.text, s.underlinedField]}>{employeeAddress}</Text>
           </View>
@@ -272,9 +276,9 @@ export const NdaLetterPdf: React.FC<NdaProps> = ({
           <Text style={[s.justified, { marginBottom: 6 }]}>
             The employee is currently or may be employed as an employee with the
             Employer as <Text style={s.bold}>{jobTitle}</Text>. In addition to
-            this responsibility or position (the &quot;Employment&quot;), this Agreement
-            also covers any position and responsibility now or later assigned to
-            the Employee by the Employer.
+            this responsibility or position (the &quot;Employment&quot;), this
+            Agreement also covers any position and responsibility now or later
+            assigned to the Employee by the Employer.
           </Text>
           <Text style={[s.justified, { marginBottom: 6 }]}>
             The Employee will receive from the Employer, or develop on the
@@ -283,8 +287,8 @@ export const NdaLetterPdf: React.FC<NdaProps> = ({
           </Text>
           <Text style={s.justified}>
             While employed by the Employer, Employee shall devote his or her
-            full working time to the Employer&apos;s affairs and shall faithfully and
-            diligently serve the Employer&apos;s interests.
+            full working time to the Employer&apos;s affairs and shall
+            faithfully and diligently serve the Employer&apos;s interests.
           </Text>
         </View>
 
@@ -345,24 +349,24 @@ export const NdaLetterPdf: React.FC<NdaProps> = ({
           documents, papers or other material in her possession or under her
           control which may contain or be derived from Confidential Information,
           together with all documents, notes or other work product which is
-          connected with or derived from Employee&apos;s services to Employer whether
-          or not such material is at the date hereof in Employee&apos;s possession.
-          Employee agrees that the Employee shall have no proprietary interest
-          in any work product developed or used by Employee and arising out of
-          his employment by Employer. Employee shall, from time to time as may
-          be requested by Employer, do all things which may be necessary to
-          establish or document Employer&apos;s ownership of any such work product,
-          including, but not limited to execution of appropriate copyright
-          applications or assignments.
+          connected with or derived from Employee&apos;s services to Employer
+          whether or not such material is at the date hereof in Employee&apos;s
+          possession. Employee agrees that the Employee shall have no
+          proprietary interest in any work product developed or used by Employee
+          and arising out of his employment by Employer. Employee shall, from
+          time to time as may be requested by Employer, do all things which may
+          be necessary to establish or document Employer&apos;s ownership of any
+          such work product, including, but not limited to execution of
+          appropriate copyright applications or assignments.
         </Text>
 
         {/* 4. Non-Competition */}
         <SectionHeading number="4" title="NON-COMPETITION" />
         <Text style={s.justified}>
-          Please note - In consideration of the company&apos;s new policy to have
-          paid trainings for staff development, Employee shall not, until one
-          year after termination of the employment relationship between Employer
-          and Employee, engage, directly or indirectly, or through any
+          Please note - In consideration of the company&apos;s new policy to
+          have paid trainings for staff development, Employee shall not, until
+          one year after termination of the employment relationship between
+          Employer and Employee, engage, directly or indirectly, or through any
           corporations or associates in any trade, business, enterprise or
           employment which is competitive with Employer&apos;s current offering
           (Aspom Travel / Aspom Birth Services). After the one (1) year period,
@@ -392,10 +396,11 @@ export const NdaLetterPdf: React.FC<NdaProps> = ({
           preceding paragraph, Employer and Employee agree that in the event a
           court should decline to enforce the provisions of the preceding
           paragraph, that paragraph shall be deemed to be modified to restrict
-          Employee&apos;s competition with Employer to the maximum extent, in both
-          time and geography, which the court shall find enforceable; however,
-          in no event shall the provisions of the preceding paragraph be deemed
-          to be more restrictive to Employee than those contained therein.
+          Employee&apos;s competition with Employer to the maximum extent, in
+          both time and geography, which the court shall find enforceable;
+          however, in no event shall the provisions of the preceding paragraph
+          be deemed to be more restrictive to Employee than those contained
+          therein.
         </Text>
 
         {/* 7. Enforceable */}
@@ -426,38 +431,38 @@ export const NdaLetterPdf: React.FC<NdaProps> = ({
           breach of the foregoing undertakings, in addition to any other legal
           remedies which may be available. The Employee further acknowledges and
           agrees that in the event of the termination of employment with the
-          Employer the Employee&apos;s experience and capabilities are such that the
-          Employee can obtain employment in business activities which are of a
-          different or non-competing nature with his or her activities as an
+          Employer the Employee&apos;s experience and capabilities are such that
+          the Employee can obtain employment in business activities which are of
+          a different or non-competing nature with his or her activities as an
           employee of Employer; and that the enforcement of a remedy hereunder
           by way of injunction shall not prevent the Employee from earning a
           reasonable livelihood. The Employee further acknowledges and agrees
           that the covenants contained herein are necessary for the protection
-          of the Employer&apos;s legitimate business interests and are reasonable in
-          scope and content.
+          of the Employer&apos;s legitimate business interests and are
+          reasonable in scope and content.
         </Text>
 
         {/* 10. Employer's Clients */}
         <SectionHeading number="10" title="EMPLOYER'S CLIENTS" />
         <Text style={s.justified}>
-          If Employee&apos;s employment with Employer terminates for any reason, the
-          Employee shall not, for a period of one year from the date of
+          If Employee&apos;s employment with Employer terminates for any reason,
+          the Employee shall not, for a period of one year from the date of
           termination, have any business dealings whatsoever, either directly or
           indirectly or through corporate entities or associates with any
           customer or client of Employer or its subsidiaries or any person or
           firm which has contacted or been contacted by Employer as a potential
           customer or client of Employer; and Employee shall keep in strictest
-          confidence, both during the Employee&apos;s employment and subsequent to
-          termination of employment, and shall not during the period of
+          confidence, both during the Employee&apos;s employment and subsequent
+          to termination of employment, and shall not during the period of
           employment or thereafter disclose or divulge to any person, firm or
-          corporation, or use directly or indirectly, for the Employee&apos;s own
-          benefit or the benefit of others, any information which in good faith
-          and good conscience ought to be treated as confidential information
-          including, without limitation, information relating to the software
-          developed by Employer, information as to sources of, and arrangements
-          for, hardware supplied to customers or clients of Employer, submission
-          and proposal procedures of Employer, customer or contact lists or any
-          other Confidential Information.
+          corporation, or use directly or indirectly, for the Employee&apos;s
+          own benefit or the benefit of others, any information which in good
+          faith and good conscience ought to be treated as confidential
+          information including, without limitation, information relating to the
+          software developed by Employer, information as to sources of, and
+          arrangements for, hardware supplied to customers or clients of
+          Employer, submission and proposal procedures of Employer, customer or
+          contact lists or any other Confidential Information.
         </Text>
 
         {/* 11. Governing Law */}

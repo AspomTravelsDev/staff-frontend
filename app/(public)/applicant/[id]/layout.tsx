@@ -36,9 +36,18 @@ export default async function ApplicantLayout({
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="mx-auto max-w-2xl">{children}</div>
+        <div className="mx-auto max-w-2xl space-y-4">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+            <p className="font-medium">Best experience notice</p>
+            <p>
+              Please complete this onboarding form on a laptop/desktop browser
+              for best results. Upload limits are 1MB for passport images and
+              2MB for documents.
+            </p>
+          </div>
+          {children}
+        </div>
       </main>
-
     </div>
   );
 }

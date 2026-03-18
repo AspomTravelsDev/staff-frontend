@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   saveFormStep,
   redirectToPreviousStep,
@@ -11,11 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { MediaData } from "@/lib/types/form-data";
+import { toast } from "sonner";
 
 type FormState = {
   error?: string;
   success?: boolean;
   nextStep?: number;
+  submittedData?: Record<string, string>;
+};
+
+const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
+
+const resolvePreviewUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith("/api/")) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    return apiBase ? `${apiBase}${url}` : url;
+  }
+  return url;
 };
 
 export function Step6Media({
@@ -25,13 +38,14 @@ export function Step6Media({
   applicationId: string;
   initialData?: MediaData;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(
-    initialData?.passportPhoto?.storagePath || null,
+    resolvePreviewUrl(initialData?.passportPhoto?.storagePath),
   );
   const [signaturePreview, setSignaturePreview] = useState<string | null>(
-    initialData?.signature?.storagePath || null,
+    resolvePreviewUrl(initialData?.signature?.storagePath),
   );
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -39,6 +53,13 @@ export function Step6Media({
 
   const [fileError, setFileError] = useState<string | null>(null);
   const [signatureError, setSignatureError] = useState<string | null>(null);
+
+  const toSubmittedData = (formData: FormData) =>
+    Object.fromEntries(
+      Array.from(formData.entries()).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,6 +74,15 @@ export function Step6Media({
         );
         setPhotoPreview(null);
         e.target.value = ""; // Clear input
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        const message = "Image exceeds 1MB. Please compress and re-upload.";
+        setFileError(message);
+        toast.error(message);
+        setPhotoPreview(null);
+        e.target.value = "";
         return;
       }
 
@@ -182,70 +212,86 @@ export function Step6Media({
     try {
       const photoFile = formData.get("photo") as File | null;
 
-      if (!photoFile || photoFile.size === 0) {
-        return { error: "Passport photo is required" };
+      const hasNewPhoto = !!(photoFile && photoFile.size > 0 && photoFile.name);
+      if (!hasNewPhoto && !photoUrl) {
+        return {
+          error: "Passport photo is required",
+          submittedData: toSubmittedData(formData),
+        };
       }
 
       if (!signaturePreview) {
-        return { error: "Signature is required" };
+        return {
+          error: "Signature is required",
+          submittedData: toSubmittedData(formData),
+        };
       }
 
       // Upload photo to Laravel API
       let photoPublicUrl = photoUrl;
+      let photoFileId = initialData?.passportPhoto?.fileId;
 
-      if (photoFile && photoFile.size > 0 && photoFile.name) {
+      if (hasNewPhoto) {
         try {
           const photoResult = await uploadPublicFile(
             applicationId,
-            photoFile,
+            photoFile as File,
             `applicant_pass_${applicationId}`,
           );
           photoPublicUrl = photoResult.storagePath;
-          setPhotoUrl(photoResult.storagePath);
-
-          const photoFileId = photoResult.fileId;
-
-          // Convert signature dataURL to blob and upload using action
-          const signatureResult = await uploadPassportPhoto(
-            applicationId,
-            `applicant_signature_${applicationId}`,
-            signaturePreview,
-            "signature.png",
-          );
-
-          if (signatureResult.error) {
-            return { error: signatureResult.error };
-          }
-
-          const signatureStoragePath = signatureResult.url || "";
-          const signatureFileId = signatureResult.fileId;
-
-          const data = {
-            media: {
-              passportPhoto: {
-                fileName: photoFile.name,
-                uploadedAt: new Date().toISOString(),
-                storagePath: photoPublicUrl || "",
-                fileId: photoFileId,
-              },
-              signature: {
-                fileName: "signature.png",
-                uploadedAt: new Date().toISOString(),
-                storagePath: signatureStoragePath,
-                fileId: signatureFileId,
-              },
-            },
-          };
-
-          return saveFormStep(applicationId, 6, data);
+          setPhotoUrl(resolvePreviewUrl(photoResult.storagePath));
+          photoFileId = photoResult.fileId;
         } catch (error: any) {
-          return { error: `Photo upload failed: ${error.message}` };
+          return {
+            error: `Photo upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
         }
       }
 
-      return { error: "Passport photo is required" };
+      // Convert signature dataURL to blob and upload using action
+      const signatureResult = await uploadPassportPhoto(
+        applicationId,
+        `applicant_signature_${applicationId}`,
+        signaturePreview,
+        "signature.png",
+      );
+
+      if (signatureResult.error) {
+        return {
+          error: signatureResult.error,
+          submittedData: toSubmittedData(formData),
+        };
+      }
+
+      const signatureStoragePath = signatureResult.url || "";
+      const signatureFileId = signatureResult.fileId;
+
+      const data = {
+        media: {
+          passportPhoto: {
+            fileName: hasNewPhoto
+              ? (photoFile as File).name
+              : initialData?.passportPhoto?.fileName || "passport_photo.jpg",
+            uploadedAt: new Date().toISOString(),
+            storagePath: photoPublicUrl || "",
+            fileId: photoFileId,
+          },
+          signature: {
+            fileName: "signature.png",
+            uploadedAt: new Date().toISOString(),
+            storagePath: signatureStoragePath,
+            fileId: signatureFileId,
+          },
+        },
+      };
+
+      return saveFormStep(applicationId, 6, data);
     } catch (error) {
-      return { error: "An error occurred during upload. Please try again." };
+      return {
+        error: "An error occurred during upload. Please try again.",
+        submittedData: toSubmittedData(formData),
+      };
     }
   };
 
@@ -254,12 +300,34 @@ export function Step6Media({
     null,
   );
 
+  useEffect(() => {
+    if (!state?.error || !state.submittedData || !formRef.current) return;
+
+    for (const [name, value] of Object.entries(state.submittedData)) {
+      const elements = formRef.current.querySelectorAll(`[name="${name}"]`);
+      elements.forEach((element) => {
+        if (element instanceof HTMLInputElement) {
+          if (element.type === "checkbox") {
+            element.checked = value === "on";
+          } else if (element.type !== "file") {
+            element.value = value;
+          }
+        } else if (
+          element instanceof HTMLTextAreaElement ||
+          element instanceof HTMLSelectElement
+        ) {
+          element.value = value;
+        }
+      });
+    }
+  }, [state]);
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold">Media & Signature</h3>
         <p className="text-sm text-muted-foreground">
-          Step 6 of 7 - Upload your passport photograph and provide your digital
+          Step 6 of 8 - Upload your passport photograph and provide your digital
           signature
         </p>
       </div>
@@ -271,7 +339,7 @@ export function Step6Media({
             Passport Photograph *
           </Label>
           <p className="text-sm text-muted-foreground">
-            Upload a clear passport-size photograph (JPG/PNG, max 5MB)
+            Upload a clear passport-size photograph (JPG/PNG, max 1MB)
           </p>
 
           <input
@@ -281,7 +349,6 @@ export function Step6Media({
             accept="image/jpeg,image/png"
             onChange={handlePhotoChange}
             className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-            required
           />
 
           {fileError && (

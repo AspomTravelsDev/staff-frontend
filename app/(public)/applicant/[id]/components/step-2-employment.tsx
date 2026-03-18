@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { saveFormStep, redirectToPreviousStep } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ type FormState = {
   error?: string;
   success?: boolean;
   nextStep?: number;
+  submittedData?: Record<string, string>;
 };
 
 interface EmploymentTerms {
@@ -64,6 +65,7 @@ export function Step2Employment({
   initialData?: EmploymentFinanceData;
   employmentTerms?: EmploymentTerms;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [employmentCount, setEmploymentCount] = useState(
     initialData?.previousEmployment?.length || 0,
   );
@@ -74,6 +76,13 @@ export function Step2Employment({
     Record<number, string>
   >({});
   const [gradeValues, setGradeValues] = useState<Record<number, string>>({});
+
+  const toSubmittedData = (formData: FormData) =>
+    Object.fromEntries(
+      Array.from(formData.entries()).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
 
   const handleAddEmployment = () => {
     setEmploymentCount(employmentCount + 1);
@@ -99,22 +108,60 @@ export function Step2Employment({
     _prevState: FormState | null,
     formData: FormData,
   ): Promise<FormState> => {
+    const bankName = String(formData.get("bankName") || "").trim();
+    const bankAccountNumber = String(
+      formData.get("bankAccountNumber") || "",
+    ).trim();
+
+    if (!bankName || !bankAccountNumber) {
+      return {
+        error: "Please complete required bank details.",
+        submittedData: toSubmittedData(formData),
+      };
+    }
+
     // Parse education array
     const educationCount =
       parseInt(formData.get("educationCount") as string) || 1;
     const education = [];
     for (let i = 0; i < educationCount; i++) {
-      const institution = formData.get(`education_${i}_institution`);
+      const institution = String(
+        formData.get(`education_${i}_institution`) || "",
+      ).trim();
       if (institution) {
+        const qualification = String(
+          formData.get(`education_${i}_qualification`) || "",
+        ).trim();
+        const startYear = String(
+          formData.get(`education_${i}_startYear`) || "",
+        ).trim();
+        const endYear = String(
+          formData.get(`education_${i}_endYear`) || "",
+        ).trim();
+
+        if (!qualification || !startYear || !endYear) {
+          return {
+            error: "Please complete all required education fields.",
+            submittedData: toSubmittedData(formData),
+          };
+        }
+
         education.push({
           institution,
-          qualification: formData.get(`education_${i}_qualification`),
+          qualification,
           fieldOfStudy: formData.get(`education_${i}_fieldOfStudy`),
-          startYear: formData.get(`education_${i}_startYear`),
-          endYear: formData.get(`education_${i}_endYear`),
+          startYear,
+          endYear,
           grade: formData.get(`education_${i}_grade`),
         });
       }
+    }
+
+    if (!education.length) {
+      return {
+        error: "At least one education record is required.",
+        submittedData: toSubmittedData(formData),
+      };
     }
 
     // Parse employment array
@@ -159,8 +206,49 @@ export function Step2Employment({
     null,
   );
 
+  useEffect(() => {
+    if (!state?.error || !state.submittedData || !formRef.current) return;
+
+    const restoredQualificationValues: Record<number, string> = {};
+    const restoredGradeValues: Record<number, string> = {};
+
+    for (const [name, value] of Object.entries(state.submittedData)) {
+      const qualificationMatch = name.match(/^education_(\d+)_qualification$/);
+      if (qualificationMatch) {
+        restoredQualificationValues[Number(qualificationMatch[1])] = value;
+      }
+
+      const gradeMatch = name.match(/^education_(\d+)_grade$/);
+      if (gradeMatch) {
+        restoredGradeValues[Number(gradeMatch[1])] = value;
+      }
+
+      const elements = formRef.current.querySelectorAll(`[name="${name}"]`);
+      elements.forEach((element) => {
+        if (element instanceof HTMLInputElement) {
+          if (element.type === "checkbox") {
+            element.checked = value === "on";
+          } else if (element.type !== "file") {
+            element.value = value;
+          }
+        } else if (
+          element instanceof HTMLTextAreaElement ||
+          element instanceof HTMLSelectElement
+        ) {
+          element.value = value;
+        }
+      });
+    }
+
+    setQualificationValues((prev) => ({
+      ...prev,
+      ...restoredQualificationValues,
+    }));
+    setGradeValues((prev) => ({ ...prev, ...restoredGradeValues }));
+  }, [state]);
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold">Employment & Finance</h3>
         <p className="text-sm text-muted-foreground">

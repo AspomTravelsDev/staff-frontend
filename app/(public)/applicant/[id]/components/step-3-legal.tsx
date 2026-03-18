@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { saveFormStep, redirectToPreviousStep } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ type FormState = {
   error?: string;
   success?: boolean;
   nextStep?: number;
+  submittedData?: Record<string, string>;
 };
 
 export function Step3Legal({
@@ -20,20 +21,46 @@ export function Step3Legal({
   applicationId: string;
   initialData?: LegalAgreements;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const toSubmittedData = (formData: FormData) =>
+    Object.fromEntries(
+      Array.from(formData.entries()).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+
   const handleSubmitAction = async (
     _prevState: FormState | null,
     formData: FormData,
   ): Promise<FormState> => {
+    const ndaAccepted = formData.get("ndaAccepted") === "on";
+    const nonCompeteAccepted = formData.get("nonCompeteAccepted") === "on";
+    const confidentialityAccepted =
+      formData.get("confidentialityAccepted") === "on";
+    const termsAccepted = formData.get("termsAccepted") === "on";
+
+    if (
+      !ndaAccepted ||
+      !nonCompeteAccepted ||
+      !confidentialityAccepted ||
+      !termsAccepted
+    ) {
+      return {
+        error: "You must accept all required legal agreements to continue.",
+        submittedData: toSubmittedData(formData),
+      };
+    }
+
     const data = {
       legal: {
-        ndaAccepted: formData.get("ndaAccepted") === "on",
+        ndaAccepted,
         ndaAcceptedAt: new Date().toISOString(),
-        nonCompeteAccepted: formData.get("nonCompeteAccepted") === "on",
+        nonCompeteAccepted,
         nonCompeteAcceptedAt: new Date().toISOString(),
-        confidentialityAccepted:
-          formData.get("confidentialityAccepted") === "on",
+        confidentialityAccepted,
         confidentialityAcceptedAt: new Date().toISOString(),
-        termsAccepted: formData.get("termsAccepted") === "on",
+        termsAccepted,
         termsAcceptedAt: new Date().toISOString(),
       },
     };
@@ -49,8 +76,25 @@ export function Step3Legal({
     null,
   );
 
+  useEffect(() => {
+    if (!state?.error || !state.submittedData || !formRef.current) return;
+
+    for (const [name, value] of Object.entries(state.submittedData)) {
+      const elements = formRef.current.querySelectorAll(`[name="${name}"]`);
+      elements.forEach((element) => {
+        if (element instanceof HTMLInputElement) {
+          if (element.type === "checkbox") {
+            element.checked = value === "on";
+          } else if (element.type !== "file") {
+            element.value = value;
+          }
+        }
+      });
+    }
+  }, [state]);
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold">
           Legal Documents & Acknowledgments
@@ -63,7 +107,6 @@ export function Step3Legal({
 
       {/* NDA */}
       <div className="space-y-4">
-        <Separator />
         <div className="space-y-3 rounded-lg border p-4">
           <h4 className="font-medium">Non-Disclosure Agreement (NDA)</h4>
           <p className="text-sm text-muted-foreground">

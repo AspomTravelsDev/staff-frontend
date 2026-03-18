@@ -6,6 +6,7 @@ import { uploadPublicFile } from "@/lib/api/hr";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 type FormState = {
   error?: string;
@@ -27,6 +28,8 @@ interface SignedDocumentsData {
   indemnitySigned?: SignedDocument;
 }
 
+const MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
+
 export function Step8UploadSigned({
   applicationId,
   initialData,
@@ -44,21 +47,8 @@ export function Step8UploadSigned({
   const [ndaPreview, setNdaPreview] = useState<string | null>(null);
   const [indemnityPreview, setIndemnityPreview] = useState<string | null>(null);
 
-  const [guarantor1Uploaded, setGuarantor1Uploaded] = useState<boolean>(
-    !!initialData?.guarantor1Signed?.storagePath,
-  );
-  const [guarantor2Uploaded, setGuarantor2Uploaded] = useState<boolean>(
-    !!initialData?.guarantor2Signed?.storagePath,
-  );
-  const [refereeUploaded, setRefereeUploaded] = useState<boolean>(
-    !!initialData?.refereeSigned?.storagePath,
-  );
-  const [ndaUploaded, setNdaUploaded] = useState<boolean>(
-    !!initialData?.ndaSigned?.storagePath,
-  );
-  const [indemnityUploaded, setIndemnityUploaded] = useState<boolean>(
-    !!initialData?.indemnitySigned?.storagePath,
-  );
+  const [persistedSignedDocuments, setPersistedSignedDocuments] =
+    useState<SignedDocumentsData>(initialData || {});
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -86,6 +76,18 @@ export function Step8UploadSigned({
         }));
         setPreview(null);
         e.target.value = ""; // Clear input
+        return;
+      }
+
+      if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+        const message = "Document exceeds 2MB. Please compress and re-upload.";
+        setFileErrors((prev) => ({
+          ...prev,
+          [fieldName]: message,
+        }));
+        toast.error(message);
+        setPreview(null);
+        e.target.value = "";
         return;
       }
 
@@ -117,14 +119,20 @@ export function Step8UploadSigned({
 
       // Validate all files are present (either new upload or existing)
       const hasGuarantor1 =
-        (guarantor1File && guarantor1File.size > 0) || guarantor1Uploaded;
+        (guarantor1File && guarantor1File.size > 0) ||
+        !!persistedSignedDocuments.guarantor1Signed?.storagePath;
       const hasGuarantor2 =
-        (guarantor2File && guarantor2File.size > 0) || guarantor2Uploaded;
+        (guarantor2File && guarantor2File.size > 0) ||
+        !!persistedSignedDocuments.guarantor2Signed?.storagePath;
       const hasReferee =
-        (refereeFile && refereeFile.size > 0) || refereeUploaded;
-      const hasNda = (ndaFile && ndaFile.size > 0) || ndaUploaded;
+        (refereeFile && refereeFile.size > 0) ||
+        !!persistedSignedDocuments.refereeSigned?.storagePath;
+      const hasNda =
+        (ndaFile && ndaFile.size > 0) ||
+        !!persistedSignedDocuments.ndaSigned?.storagePath;
       const hasIndemnity =
-        (indemnityFile && indemnityFile.size > 0) || indemnityUploaded;
+        (indemnityFile && indemnityFile.size > 0) ||
+        !!persistedSignedDocuments.indemnitySigned?.storagePath;
 
       if (
         !hasGuarantor1 ||
@@ -151,8 +159,8 @@ export function Step8UploadSigned({
             fileName: guarantor1File.name,
             storagePath: result.storagePath,
             uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
           };
-          setGuarantor1Uploaded(true);
         } catch (error: any) {
           setIsUploading(false);
           return { error: `Guarantor 1 upload failed: ${error.message}` };
@@ -171,8 +179,8 @@ export function Step8UploadSigned({
             fileName: guarantor2File.name,
             storagePath: result.storagePath,
             uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
           };
-          setGuarantor2Uploaded(true);
         } catch (error: any) {
           setIsUploading(false);
           return { error: `Guarantor 2 upload failed: ${error.message}` };
@@ -191,8 +199,8 @@ export function Step8UploadSigned({
             fileName: refereeFile.name,
             storagePath: result.storagePath,
             uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
           };
-          setRefereeUploaded(true);
         } catch (error: any) {
           setIsUploading(false);
           return { error: `Referee upload failed: ${error.message}` };
@@ -213,7 +221,6 @@ export function Step8UploadSigned({
             uploadedAt: new Date().toISOString(),
             fileId: result.fileId,
           };
-          setNdaUploaded(true);
         } catch (error: any) {
           setIsUploading(false);
           return { error: `NDA upload failed: ${error.message}` };
@@ -234,7 +241,6 @@ export function Step8UploadSigned({
             uploadedAt: new Date().toISOString(),
             fileId: result.fileId,
           };
-          setIndemnityUploaded(true);
         } catch (error: any) {
           setIsUploading(false);
           return { error: `Indemnity upload failed: ${error.message}` };
@@ -245,24 +251,26 @@ export function Step8UploadSigned({
         guarantor1Signed:
           guarantor1File && guarantor1File.size > 0
             ? signedDocuments.guarantor1Signed
-            : initialData?.guarantor1Signed,
+            : persistedSignedDocuments.guarantor1Signed,
         guarantor2Signed:
           guarantor2File && guarantor2File.size > 0
             ? signedDocuments.guarantor2Signed
-            : initialData?.guarantor2Signed,
+            : persistedSignedDocuments.guarantor2Signed,
         refereeSigned:
           refereeFile && refereeFile.size > 0
             ? signedDocuments.refereeSigned
-            : initialData?.refereeSigned,
+            : persistedSignedDocuments.refereeSigned,
         ndaSigned:
           ndaFile && ndaFile.size > 0
             ? signedDocuments.ndaSigned
-            : initialData?.ndaSigned,
+            : persistedSignedDocuments.ndaSigned,
         indemnitySigned:
           indemnityFile && indemnityFile.size > 0
             ? signedDocuments.indemnitySigned
-            : initialData?.indemnitySigned,
+            : persistedSignedDocuments.indemnitySigned,
       };
+
+      setPersistedSignedDocuments(finalSignedDocuments);
 
       // Submit the application with the collected signed documents data
       const result = await submitApplication(applicationId, {
@@ -297,18 +305,22 @@ export function Step8UploadSigned({
   );
 
   const allUploaded =
-    guarantor1Uploaded &&
-    guarantor2Uploaded &&
-    refereeUploaded &&
-    ndaUploaded &&
-    indemnityUploaded;
+    !!persistedSignedDocuments.guarantor1Signed?.storagePath &&
+    !!persistedSignedDocuments.guarantor2Signed?.storagePath &&
+    !!persistedSignedDocuments.refereeSigned?.storagePath &&
+    !!persistedSignedDocuments.ndaSigned?.storagePath &&
+    !!persistedSignedDocuments.indemnitySigned?.storagePath;
   const isReadyToSubmit =
     allUploaded ||
-    ((guarantor1Uploaded || !!guarantor1Preview) &&
-      (guarantor2Uploaded || !!guarantor2Preview) &&
-      (refereeUploaded || !!refereePreview) &&
-      (ndaUploaded || !!ndaPreview) &&
-      (indemnityUploaded || !!indemnityPreview));
+    ((!!persistedSignedDocuments.guarantor1Signed?.storagePath ||
+      !!guarantor1Preview) &&
+      (!!persistedSignedDocuments.guarantor2Signed?.storagePath ||
+        !!guarantor2Preview) &&
+      (!!persistedSignedDocuments.refereeSigned?.storagePath ||
+        !!refereePreview) &&
+      (!!persistedSignedDocuments.ndaSigned?.storagePath || !!ndaPreview) &&
+      (!!persistedSignedDocuments.indemnitySigned?.storagePath ||
+        !!indemnityPreview));
 
   return (
     <form action={formAction} className="space-y-6">
@@ -327,8 +339,9 @@ export function Step8UploadSigned({
         </h4>
         <ul className="text-sm text-amber-700 dark:text-amber-600 space-y-1">
           <li>• Upload scanned copies or photos of the signed forms</li>
-          <li>• Accepted formats: PDF, JPG, PNG (max 10MB each)</li>
+          <li>• Accepted formats: PDF, JPG, PNG (max 2MB each)</li>
           <li>• Ensure signatures are clearly visible</li>
+          <li>• Unsigned uploads may be returned for correction</li>
           <li>• All five documents must be uploaded to complete</li>
         </ul>
       </div>
@@ -361,7 +374,7 @@ export function Step8UploadSigned({
           )}
 
           {(guarantor1Preview ||
-            initialData?.guarantor1Signed?.storagePath) && (
+            persistedSignedDocuments.guarantor1Signed?.storagePath) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
               <span>✓</span>
               <span>
@@ -400,7 +413,7 @@ export function Step8UploadSigned({
           )}
 
           {(guarantor2Preview ||
-            initialData?.guarantor2Signed?.storagePath) && (
+            persistedSignedDocuments.guarantor2Signed?.storagePath) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
               <span>✓</span>
               <span>
@@ -436,7 +449,8 @@ export function Step8UploadSigned({
             </p>
           )}
 
-          {(refereePreview || initialData?.refereeSigned?.storagePath) && (
+          {(refereePreview ||
+            persistedSignedDocuments.refereeSigned?.storagePath) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
               <span>✓</span>
               <span>
@@ -470,7 +484,7 @@ export function Step8UploadSigned({
             </p>
           )}
 
-          {(ndaPreview || initialData?.ndaSigned?.storagePath) && (
+          {(ndaPreview || persistedSignedDocuments.ndaSigned?.storagePath) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
               <span>✓</span>
               <span>
@@ -506,7 +520,8 @@ export function Step8UploadSigned({
             </p>
           )}
 
-          {(indemnityPreview || initialData?.indemnitySigned?.storagePath) && (
+          {(indemnityPreview ||
+            persistedSignedDocuments.indemnitySigned?.storagePath) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
               <span>✓</span>
               <span>

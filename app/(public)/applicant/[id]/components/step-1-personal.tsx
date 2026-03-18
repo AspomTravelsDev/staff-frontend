@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { saveFormStep } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ type FormState = {
   error?: string;
   success?: boolean;
   nextStep?: number;
+  submittedData?: Record<string, string>;
 };
 
 export function Step1Personal({
@@ -28,10 +29,48 @@ export function Step1Personal({
   applicationId: string;
   initialData?: PersonalData;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const toSubmittedData = (formData: FormData) =>
+    Object.fromEntries(
+      Array.from(formData.entries()).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+
   const handleSubmitAction = async (
     _prevState: FormState | null,
     formData: FormData,
   ): Promise<FormState> => {
+    const requiredFields = [
+      "firstName",
+      "lastName",
+      "dateOfBirth",
+      "gender",
+      "maritalStatus",
+      "nationality",
+      "email",
+      "phoneNumber",
+      "street",
+      "city",
+      "state",
+      "country",
+      "nearestLandmark",
+      "emergencyContact_name",
+      "emergencyContact_relationship",
+      "emergencyContact_phone",
+    ];
+
+    for (const field of requiredFields) {
+      const value = String(formData.get(field) || "").trim();
+      if (!value) {
+        return {
+          error: "Please complete all required personal information fields.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+    }
+
     const data = {
       personal: {
         title: formData.get("title"),
@@ -83,8 +122,30 @@ export function Step1Personal({
     null,
   );
 
+  useEffect(() => {
+    if (!state?.error || !state.submittedData || !formRef.current) return;
+
+    for (const [name, value] of Object.entries(state.submittedData)) {
+      const elements = formRef.current.querySelectorAll(`[name="${name}"]`);
+      elements.forEach((element) => {
+        if (element instanceof HTMLInputElement) {
+          if (element.type === "checkbox") {
+            element.checked = value === "on";
+          } else if (element.type !== "file") {
+            element.value = value;
+          }
+        } else if (
+          element instanceof HTMLTextAreaElement ||
+          element instanceof HTMLSelectElement
+        ) {
+          element.value = value;
+        }
+      });
+    }
+  }, [state]);
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold">Personal Information</h3>
         <p className="text-sm text-muted-foreground">

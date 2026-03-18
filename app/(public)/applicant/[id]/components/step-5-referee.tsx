@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { saveFormStep, redirectToPreviousStep } from "../actions";
 import { uploadPublicFile } from "@/lib/api/hr";
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,24 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { GuarantorRefereeData } from "@/lib/types/form-data";
+import { toast } from "sonner";
 
 type FormState = {
   error?: string;
   success?: boolean;
   nextStep?: number;
+  submittedData?: Record<string, string>;
+};
+
+const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
+
+const resolvePreviewUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith("/api/")) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    return apiBase ? `${apiBase}${url}` : url;
+  }
+  return url;
 };
 
 export function Step5Referee({
@@ -35,11 +48,12 @@ export function Step5Referee({
   applicationId: string;
   initialData?: GuarantorRefereeData;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [refereePhotoPreview, setRefereePhotoPreview] = useState<string | null>(
     null,
   );
   const [refereePhotoUrl, setRefereePhotoUrl] = useState<string | null>(
-    initialData?.referee?.passportPhoto?.storagePath || null,
+    resolvePreviewUrl(initialData?.referee?.passportPhoto?.storagePath),
   );
   const [relationshipType, setRelationshipType] = useState<string>(
     initialData?.referee?.relationshipType || "",
@@ -55,6 +69,13 @@ export function Step5Referee({
 
   const [fileError, setFileError] = useState<string | null>(null);
 
+  const toSubmittedData = (formData: FormData) =>
+    Object.fromEntries(
+      Array.from(formData.entries()).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setFileError(null);
@@ -68,6 +89,15 @@ export function Step5Referee({
         );
         setRefereePhotoPreview(null);
         e.target.value = ""; // Clear input
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        const message = "Image exceeds 1MB. Please compress and re-upload.";
+        setFileError(message);
+        toast.error(message);
+        setRefereePhotoPreview(null);
+        e.target.value = "";
         return;
       }
 
@@ -88,6 +118,25 @@ export function Step5Referee({
     formData: FormData,
   ): Promise<FormState> => {
     try {
+      const requiredFields = [
+        "referee_fullName",
+        "referee_phoneNumber",
+        "referee_relationshipType",
+        "referee_howLongKnown",
+        "referee_occupation",
+        "referee_address",
+      ];
+
+      for (const field of requiredFields) {
+        const value = String(formData.get(field) || "").trim();
+        if (!value) {
+          return {
+            error: "Please complete all required referee fields.",
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
       // Upload referee photo
       const refereePhotoFile = formData.get("referee_photo") as File | null;
       let uploadedPhotoUrl: string | null = null;
@@ -105,9 +154,13 @@ export function Step5Referee({
             `referee_pass_${applicationId}`,
           );
           uploadedPhotoUrl = photoResult.storagePath;
+          setRefereePhotoUrl(resolvePreviewUrl(photoResult.storagePath));
           uploadedPhotoFileId = photoResult.fileId;
         } catch (uploadError: any) {
-          return { error: `Photo upload failed: ${uploadError.message}` };
+          return {
+            error: `Photo upload failed: ${uploadError.message}`,
+            submittedData: toSubmittedData(formData),
+          };
         }
       }
 
@@ -191,7 +244,10 @@ export function Step5Referee({
 
       return saveFormStep(applicationId, 5, data);
     } catch (error) {
-      return { error: "An error occurred during upload. Please try again." };
+      return {
+        error: "An error occurred during upload. Please try again.",
+        submittedData: toSubmittedData(formData),
+      };
     }
   };
 
@@ -200,15 +256,41 @@ export function Step5Referee({
     null,
   );
 
+  useEffect(() => {
+    if (!state?.error || !state.submittedData || !formRef.current) return;
+
+    for (const [name, value] of Object.entries(state.submittedData)) {
+      const elements = formRef.current.querySelectorAll(`[name="${name}"]`);
+      elements.forEach((element) => {
+        if (element instanceof HTMLInputElement) {
+          if (element.type === "checkbox") {
+            element.checked = value === "on";
+          } else if (element.type !== "file") {
+            element.value = value;
+          }
+        } else if (
+          element instanceof HTMLTextAreaElement ||
+          element instanceof HTMLSelectElement
+        ) {
+          element.value = value;
+        }
+      });
+    }
+  }, [state]);
+
   const assessment = initialData?.referee?.assessment;
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold">Referee Details</h3>
         <p className="text-sm text-muted-foreground">
           Step 5 of 6 - Provide details for one (1) professional or personal
           referee
+        </p>
+        <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+          Complete all required fields. In steps 7 and 8, download forms, ensure
+          signatures are present, then re-upload signed copies.
         </p>
       </div>
 
@@ -266,41 +348,44 @@ export function Step5Referee({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_organization" className="text-sm">
-              Organization / Company
+              Organization / Company *
             </Label>
             <Input
               id="referee_organization"
               name="referee_organization"
               defaultValue={initialData?.referee?.organization || ""}
+              required
             />
           </div>
           <div>
             <Label htmlFor="referee_occupation" className="text-sm">
-              Occupation / Job Title
+              Occupation / Job Title *
             </Label>
             <Input
               id="referee_occupation"
               name="referee_occupation"
               defaultValue={initialData?.referee?.occupation || ""}
+              required
             />
           </div>
         </div>
 
         <div>
           <Label htmlFor="referee_address" className="text-sm">
-            Address
+            Address *
           </Label>
           <Input
             id="referee_address"
             name="referee_address"
             defaultValue={initialData?.referee?.address || ""}
+            required
           />
         </div>
 
         <div className="grid gap-4 md:grid-cols-1">
           <div>
             <Label htmlFor="referee_relationshipType" className="text-sm">
-              Relationship Type
+              Relationship Type *
             </Label>
             <Select
               value={relationshipType}
@@ -323,19 +408,21 @@ export function Step5Referee({
               type="hidden"
               name="referee_relationshipType"
               value={relationshipType}
+              required
             />
           </div>
         </div>
 
         <div>
           <Label htmlFor="referee_howLongKnown" className="text-sm">
-            How Long Have You Known Applicant?
+            How Long Have You Known Applicant? *
           </Label>
           <Input
             id="referee_howLongKnown"
             name="referee_howLongKnown"
             placeholder="e.g., 5 years as a colleague"
             defaultValue={initialData?.referee?.howLongKnown || ""}
+            required
           />
         </div>
 
@@ -345,7 +432,7 @@ export function Step5Referee({
             Passport Photograph
           </Label>
           <p className="text-xs text-muted-foreground mb-3">
-            Upload a clear passport-size photograph (JPG, PNG, max 5MB) -
+            Upload a clear passport-size photograph (JPG, PNG, max 1MB) -
             Optional, can be provided later
           </p>
 

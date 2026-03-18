@@ -9,7 +9,20 @@ import { ApplicationFormData } from "@/lib/types/form-data";
 interface BioDataProps {
   formData: ApplicationFormData;
 }
-
+ const InfoRow = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: React.ReactNode;
+  }) => (
+    <div className="flex flex-col py-1">
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+      </span>
+      <span className="text-sm font-medium">{value || "—"}</span>
+    </div>
+  );
 export function BioData({ formData }: BioDataProps) {
   const { personal, employmentFinance, legal } = formData;
 
@@ -26,20 +39,7 @@ export function BioData({ formData }: BioDataProps) {
     }
   };
 
-  const InfoRow = ({
-    label,
-    value,
-  }: {
-    label: string;
-    value: React.ReactNode;
-  }) => (
-    <div className="flex flex-col py-1">
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        {label}
-      </span>
-      <span className="text-sm font-medium">{value || "—"}</span>
-    </div>
-  );
+ 
 
   return (
     <div className="space-y-4">

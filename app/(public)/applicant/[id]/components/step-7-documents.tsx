@@ -110,6 +110,10 @@ export function Step7Documents({
           Step 7 of 8 - Download and print the required forms before final
           upload
         </p>
+        <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+          Only upload signed versions in step 8. Unsigned forms may be returned
+          for correction.
+        </p>
       </div>
 
       <div className="space-y-6">
@@ -147,8 +151,8 @@ export function Step7Documents({
 
           <div className="pt-2">
             <p className="text-sm text-muted-foreground mb-4">
-              Once completed, you will need to submit these forms as part of
-              your onboarding process.
+              After downloading, print and complete each form with the required
+              signatures. In step 8, upload only the signed copies.
             </p>
             <Button
               type="button"
@@ -186,6 +190,7 @@ export function Step7Documents({
             <li>• Ensure they complete all required fields</li>
             <li>• Sign your NDA and indemnity documents</li>
             <li>• Collect all signed forms for upload in the next step</li>
+            <li>• Do not upload unsigned drafts in step 8</li>
             <li>• Keep copies for your records</li>
           </ul>
         </div>
