@@ -12,7 +12,7 @@ export async function deleteApplicationAction(id: string) {
 }
 
 export async function generateDocumentsAction(uuid: string) {
-    const result = await downloadPdfFormsAction(uuid);
+    const result = await downloadPdfFormsAction(uuid, { includeAdminOnly: true });
     if (result.error) {
         throw new Error(result.error);
     }

@@ -139,7 +139,7 @@ export function CreateApplicationForm() {
       });
 
       const toastId = toast.loading("Generating initial offer letter...");
-      await downloadPdfFormsAction(application.id);
+      await downloadPdfFormsAction(application.id, { includeAdminOnly: true });
 
       toast.loading("Emailing invitation to applicant...", { id: toastId });
       await sendInvite(application.id);

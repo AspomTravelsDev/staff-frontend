@@ -304,7 +304,7 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
         <View style={pdfStyles.signatureRow}>
           <View style={pdfStyles.signatureBlock}>
             <View style={pdfStyles.signatureLine} />
-            <Text style={pdfStyles.signatureText}>Guarantor's Signature</Text>
+            <Text style={pdfStyles.signatureText}>Guarantor&apos;s Signature</Text>
           </View>
           <View style={pdfStyles.signatureBlock}>
             <View style={pdfStyles.signatureLine}>
@@ -316,7 +316,7 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
 
         {/* Applicant Declaration and Signature */}
         <View style={{ marginTop: 20 }}>
-          <Text style={pdfStyles.sectionTitle}>APPLICANT'S DECLARATION</Text>
+          <Text style={pdfStyles.sectionTitle}>APPLICANT&apos;S DECLARATION</Text>
           <Text style={pdfStyles.paragraph}>
             I,{" "}
             <Text style={pdfStyles.bold}>
@@ -337,7 +337,7 @@ export const GuarantorFormPdf: React.FC<GuarantorFormPdfProps> = ({
                 )}
               </View>
               <Text style={pdfStyles.signatureText}>
-                Applicant's Signature & Date
+                Applicant&apos;s Signature & Date
               </Text>
             </View>
           </View>

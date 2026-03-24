@@ -198,6 +198,8 @@ export interface OnboardingFormData {
         offerLetter?: GeneratedPdfFile;
         nda?: GeneratedPdfFile;
         indemnity?: GeneratedPdfFile;
+        personalForm?: GeneratedPdfFile;
+        kyc?: GeneratedPdfFile;
     };
     employment_terms: EmploymentTerms;
     guarantorReferee: GuarantorReferee;

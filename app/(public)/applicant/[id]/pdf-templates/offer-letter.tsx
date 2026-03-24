@@ -277,7 +277,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
             <View style={pdfStyles.listContent}>
               <Text style={pdfStyles.bold}>WORKING HOURS</Text>
               <Text style={{ marginTop: 5 }}>
-                The Company's working hours are Monday to Friday, from 9:00am to
+                The Company&apos;s working hours are Monday to Friday, from 9:00am to
                 6:00pm. You are entitled to one-hour lunch break each day from
                 12noon.
               </Text>

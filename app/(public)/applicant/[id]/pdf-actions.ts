@@ -5,6 +5,8 @@ import { GuarantorFormPdf } from './pdf-templates/guarantor-form'
 import { RefereeFormPdf } from './pdf-templates/referee-form'
 import { OfferLetterPdf } from './pdf-templates/offer-letter'
 import { NdaLetterPdf } from './pdf-templates/nda'
+import { PersonalDataFormPdf } from './pdf-templates/personal-form'
+import { StaffDetailsPdf } from './pdf-templates/kyc'
 import { COMPANY_LOGO_URL } from './pdf-templates/styles'
 import { ApplicationFormData } from '@/lib/types/form-data'
 import { getPublicApplication, uploadPublicFile, savePublicFormStep } from '@/lib/api/hr'
@@ -112,6 +114,8 @@ type PdfDownloadResult = {
     offerLetterUrl?: string
     ndaUrl?: string
     indemnityUrl?: string
+    personalFormUrl?: string
+    kycUrl?: string
 }
 
 type PdfMetadata = {
@@ -128,6 +132,12 @@ type GeneratedPdfs = {
     offerLetter?: PdfMetadata
     nda?: PdfMetadata
     indemnity?: PdfMetadata
+    personalForm?: PdfMetadata
+    kyc?: PdfMetadata
+}
+
+type DownloadPdfFormsOptions = {
+    includeAdminOnly?: boolean
 }
 
 async function generateAndUploadPdf(
@@ -175,7 +185,10 @@ async function generateAndUploadPdf(
     }
 }
 
-export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadResult> {
+export async function downloadPdfFormsAction(
+    uuid: string,
+    options: DownloadPdfFormsOptions = {}
+): Promise<PdfDownloadResult> {
     try {
         // Fetch application data
         const application = await getPublicApplication(uuid)
@@ -205,6 +218,7 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
         const applicationId = application.application_id
         const indemnityFileName = 'ASPOM_INDEMNITY_-_DUBAI.pdf'
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        const includeAdminOnly = Boolean(options.includeAdminOnly)
         const personal = formData.personal || {
             firstName: application.applicant_name?.split(' ')[0] || '',
             lastName: application.applicant_name?.split(' ').slice(1).join(' ') || ''
@@ -369,6 +383,162 @@ export async function downloadPdfFormsAction(uuid: string): Promise<PdfDownloadR
             fileSize: 0,
         }
         newPdfsGenerated = true
+
+        // Generate internal HR-only PDFs when explicitly requested by admin flows.
+        if (includeAdminOnly) {
+            const personalFullName = `${personal.firstName || ''} ${personal.lastName || ''}`.trim()
+            const middleNameInitials = personal.middleName
+                ? personal.middleName
+                    .split(' ')
+                    .filter(Boolean)
+                    .map((chunk: string) => chunk.charAt(0).toUpperCase())
+                    .join('')
+                : ''
+            const personalAddress = personal?.residentialAddress
+                ? `${personal.residentialAddress.street || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
+                    .replace(/\s+,/g, ',')
+                    .replace(/^,\s*/, '')
+                    .replace(/,\s*,/g, ', ')
+                : ''
+            const emergency = personal?.emergencyContact || {}
+            const languagesSpoken = Array.isArray(personal?.languagesSpoken)
+                ? personal.languagesSpoken.join(', ')
+                : ''
+            const employmentFinance = (formData as any)?.employmentFinance || {}
+            const educationEntries = Array.isArray((formData as any)?.employmentFinance?.education)
+                ? (formData as any).employmentFinance.education.map((entry: any) => ({
+                    institution: entry?.institution || '',
+                    year: entry?.endYear || entry?.year || '',
+                }))
+                : []
+            const extractYear = (value: unknown): string => {
+                if (!value) return ''
+                const text = String(value)
+                const match = text.match(/\b(19|20)\d{2}\b/)
+                return match ? match[0] : text
+            }
+            const workExperienceEntries = Array.isArray(employmentFinance?.previousEmployment)
+                ? employmentFinance.previousEmployment.map((entry: any) => {
+                    const explicitYear = extractYear(entry?.year)
+                    const startYear = extractYear(entry?.startDate)
+                    const endYear = extractYear(entry?.endDate)
+                    const yearRange = startYear && endYear
+                        ? `${startYear}-${endYear}`
+                        : startYear || endYear || explicitYear
+
+                    return {
+                        employer: entry?.employer || entry?.companyName || '',
+                        year: yearRange,
+                    }
+                })
+                : []
+            const bankDetailsSummary = [
+                employmentFinance?.bankDetails?.bankName
+                    ? `Bank: ${employmentFinance.bankDetails.bankName}`
+                    : '',
+                employmentFinance?.bankDetails?.accountNumber
+                    ? `Account No: ${employmentFinance.bankDetails.accountNumber}`
+                    : '',
+                employmentFinance?.bankDetails?.accountName
+                    ? `Account Name: ${employmentFinance.bankDetails.accountName}`
+                    : '',
+            ]
+                .filter(Boolean)
+                .join(' | ')
+
+            const personalResult = await generateAndUploadPdf(
+                uuid,
+                'personal_form.pdf',
+                `personal_form_${uuid}`,
+                React.createElement(PersonalDataFormPdf, {
+                    title: personal.title || '',
+                    lastName: personal.lastName || '',
+                    firstName: personal.firstName || '',
+                    middleNameInitials,
+                    address: personalAddress,
+                    city: personal.residentialAddress?.city || '',
+                    state: personal.residentialAddress?.state || '',
+                    country: personal.residentialAddress?.country || '',
+                    personalTelephone: personal.phoneNumber || '',
+                    alternativeTelephone: personal.alternatePhoneNumber || '',
+                    emailAddress: personal.email || application.applicant_email || '',
+                    gender: personal.gender || '',
+                    maritalStatus: personal.maritalStatus || '',
+                    education: educationEntries,
+                    workExperience: workExperienceEntries,
+                    dateOfBirth: personal.dateOfBirth || '',
+                    birthplace: personal.birthplace || '',
+                    religion: personal.religion || '',
+                    languagesSpoken,
+                    emergencyContact: emergency.name || '',
+                    relationship: emergency.relationship || '',
+                    emergencyAddress: emergency.address || '',
+                    bankDetails: bankDetailsSummary,
+                    signatureDate,
+                    passportPhotoUrl: await fetchImageAsBase64(formData.media?.passportPhoto?.storagePath),
+                    signatureUrl: applicantSignatureUrl,
+                    companyLogoUrl: logoUrl,
+                })
+            )
+
+            if ('error' in personalResult) {
+                return { error: personalResult.error }
+            }
+
+            results.personalFormUrl = personalResult.url
+            updatedGeneratedPdfs.personalForm = personalResult.metadata
+            newPdfsGenerated = true
+
+            const kycResult = await generateAndUploadPdf(
+                uuid,
+                'kyc_form.pdf',
+                `kyc_form_${uuid}`,
+                React.createElement(StaffDetailsPdf, {
+                    title: personal.title || '',
+                    surname: personal.lastName || '',
+                    firstName: personal.firstName || '',
+                    middleNameInitials,
+                    address: personal.residentialAddress?.street || '',
+                    busStop: personal.residentialAddress?.busStop || '',
+                    city: personal.residentialAddress?.city || '',
+                    state: personal.residentialAddress?.state || '',
+                    country: personal.residentialAddress?.country || '',
+                    nearestLandmark: personal.nearestLandmark || '',
+                    colourOfHouseGate: personal.houseColor || '',
+                    colourOfGate: personal.gateColor || '',
+                    personalTelephone: personal.phoneNumber || '',
+                    alternativeTelephone: personal.alternatePhoneNumber || '',
+                    emailAddress: personal.email || application.applicant_email || '',
+                    gender: personal.gender || '',
+                    maritalStatus: personal.maritalStatus || '',
+                    staffDesignation: positionTitle || '',
+                    nationalIdOrVoterCardNo: personal.identification?.nationalIdOrVotersCardNo || '',
+                    passportNo: personal.identification?.passportNo || '',
+                    passportExpiryDate: personal.identification?.passportExpiryDate || '',
+                    dateOfBirth: personal.dateOfBirth || '',
+                    birthplace: personal.birthplace || '',
+                    religion: personal.religion || '',
+                    languagesSpoken,
+                    // Business rule: use emergency contact as next-of-kin in KYC.
+                    nextOfKin: emergency.name || '',
+                    relationship: emergency.relationship || '',
+                    nextOfKinAddress: emergency.address || '',
+                    signatureUrl: applicantSignatureUrl,
+                    signatureDate,
+                    officialSignatureUrl: '',
+                    passportPhotoUrl: await fetchImageAsBase64(formData.media?.passportPhoto?.storagePath),
+                    companyLogoUrl: logoUrl,
+                })
+            )
+
+            if ('error' in kycResult) {
+                return { error: kycResult.error }
+            }
+
+            results.kycUrl = kycResult.url
+            updatedGeneratedPdfs.kyc = kycResult.metadata
+            newPdfsGenerated = true
+        }
 
         // Output to Laravel (save PDF metadata)
         if (newPdfsGenerated) {

@@ -35,6 +35,8 @@ interface DocumentPreviewsProps {
     offerLetter?: GeneratedPdf;
     nda?: GeneratedPdf;
     indemnity?: GeneratedPdf;
+    personalForm?: GeneratedPdf;
+    kyc?: GeneratedPdf;
   };
   signedDocuments?: {
     guarantor1Signed?: SignedDocument;
@@ -221,7 +223,7 @@ export function DocumentPreviews({
       <CardHeader>
         <CardTitle>Documents</CardTitle>
         <CardDescription>
-          Generated forms and signed uploads from the applicant
+          Generated forms (including internal HR documents) and signed uploads
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -281,6 +283,22 @@ export function DocumentPreviews({
                 type="unsigned"
               />
             )}
+            <DocumentCard
+              title="Personal Data Form"
+              description="Internal HR personal profile document"
+              documentUrl={generatedPdfs?.personalForm?.storagePath}
+              uploadedAt={generatedPdfs?.personalForm?.generatedAt}
+              fileId={generatedPdfs?.personalForm?.fileId}
+              type="unsigned"
+            />
+            <DocumentCard
+              title="KYC / Staff Details"
+              description="Internal KYC and next-of-kin record"
+              documentUrl={generatedPdfs?.kyc?.storagePath}
+              uploadedAt={generatedPdfs?.kyc?.generatedAt}
+              fileId={generatedPdfs?.kyc?.fileId}
+              type="unsigned"
+            />
             {/* Offer letter is special: we show it in the unsigned section ONLY if not completed */}
             {!signedDocuments?.refereeSigned &&
               !generatedPdfs?.offerLetter?.generatedAt && (
