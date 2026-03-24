@@ -81,6 +81,7 @@ const EXPORT_COLUMNS: ExportColumn<Client>[] = [
     header: "Assigned To",
     key: (c) => c.assignedToName || c.assignedTo || "Unassigned",
   },
+  { header: "Date of Birth", key: "dateOfBirth" },
   { header: "Last Contact", key: "lastContact" },
   { header: "Date Added", key: "createdAt" },
   { header: "Notes", key: "notes" },

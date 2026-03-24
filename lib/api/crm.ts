@@ -67,6 +67,19 @@ export async function createClient(
     return { success: false, error: response.error.error };
 }
 
+export async function bulkCreateClients(
+    clients: CreateClientRequest[]
+): Promise<{ success: boolean; data?: { imported: number; merged: number; skipped: number; errors: string[] }; error?: string }> {
+
+    const response = await api.post<{ imported: number; merged: number; skipped: number; errors: string[] }>("/api/crm/clients/bulk", { clients });
+
+    if (response.success) {
+        return { success: true, data: response.data };
+    }
+
+    return { success: false, error: response.error.error };
+}
+
 export async function updateClient(
     id: string,
     data: UpdateClientRequest

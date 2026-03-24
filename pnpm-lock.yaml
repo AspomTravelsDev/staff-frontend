@@ -80,6 +80,9 @@ importers:
       nodemailer:
         specifier: ^8.0.0
         version: 8.0.0
+      papaparse:
+        specifier: ^5.5.3
+        version: 5.5.3
       radix-ui:
         specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -126,6 +129,9 @@ importers:
       '@types/nodemailer':
         specifier: ^7.0.9
         version: 7.0.9
+      '@types/papaparse':
+        specifier: ^5.5.2
+        version: 5.5.2
       '@types/react':
         specifier: ^19
         version: 19.2.8
@@ -1686,6 +1692,9 @@ packages:
 
   '@types/nodemailer@7.0.9':
     resolution: {integrity: sha512-vI8oF1M+8JvQhsId0Pc38BdUP2evenIIys7c7p+9OZXSPOH5c1dyINP1jT8xQ2xPuBUXmIC87s+91IZMDjH8Ow==}
+
+  '@types/papaparse@5.5.2':
+    resolution: {integrity: sha512-gFnFp/JMzLHCwRf7tQHrNnfhN4eYBVYYI897CGX4MY1tzY9l2aLkVyx2IlKZ/SAqDbB3I1AOZW5gTMGGsqWliA==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -3425,6 +3434,9 @@ packages:
 
   pako@1.0.11:
     resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
+
+  papaparse@5.5.3:
+    resolution: {integrity: sha512-5QvjGxYVjxO59MGU2lHVYpRWBBtKHnlIAcSe1uNFCkkptUh63NFRj0FJQm7nR67puEruUci/ZkjmEFrjCAyP4A==}
 
   parchment@3.0.0:
     resolution: {integrity: sha512-HUrJFQ/StvgmXRcQ1ftY6VEZUq3jA2t9ncFN4F84J/vN0/FPpQF+8FKXb3l6fLces6q0uOHj6NJn+2xvZnxO6A==}
@@ -5834,6 +5846,10 @@ snapshots:
     dependencies:
       '@types/node': 20.19.28
 
+  '@types/papaparse@5.5.2':
+    dependencies:
+      '@types/node': 20.19.28
+
   '@types/react-dom@19.2.3(@types/react@19.2.8)':
     dependencies:
       '@types/react': 19.2.8
@@ -7664,6 +7680,8 @@ snapshots:
   pako@0.2.9: {}
 
   pako@1.0.11: {}
+
+  papaparse@5.5.3: {}
 
   parchment@3.0.0: {}
 

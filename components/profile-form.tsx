@@ -70,6 +70,15 @@ export function ProfileForm({ user }: ProfileFormProps) {
     },
   });
 
+  // Helper to parse YYYY-MM-DD safely as local date
+  const parseLocalDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return undefined;
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length !== 3) return undefined;
+    const [year, month, day] = parts;
+    return new Date(year, month - 1, day);
+  };
+
   function onSubmit(values: ProfileFormValues) {
     startTransition(async () => {
       try {
@@ -164,7 +173,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                           )}
                         >
                           {field.value ? (
-                            format(new Date(field.value), "PPP")
+                            format(parseLocalDate(field.value)!, "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -179,7 +188,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                         startMonth={new Date(1900, 0)}
                         endMonth={new Date(new Date().getFullYear() + 1, 11)}
                         selected={
-                          field.value ? new Date(field.value) : undefined
+                          field.value ? parseLocalDate(field.value) : undefined
                         }
                         onSelect={(date) =>
                           field.onChange(
@@ -241,7 +250,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                           )}
                         >
                           {field.value ? (
-                            format(new Date(field.value), "PPP")
+                            format(parseLocalDate(field.value)!, "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -256,7 +265,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                         startMonth={new Date(2010, 0)}
                         endMonth={new Date(new Date().getFullYear() + 1, 11)}
                         selected={
-                          field.value ? new Date(field.value) : undefined
+                          field.value ? parseLocalDate(field.value) : undefined
                         }
                         onSelect={(date) =>
                           field.onChange(

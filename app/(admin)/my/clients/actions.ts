@@ -4,6 +4,7 @@ import {
     createClient,
     updateClient,
     deleteClient,
+    bulkCreateClients,
 } from "@/lib/api/crm";
 import type {
     CreateClientRequest,
@@ -39,6 +40,17 @@ export async function deleteClientAction(
     const result = await deleteClient(id);
     if (result.success) {
         revalidatePath("/my/clients");
+    }
+    return result;
+}
+
+export async function bulkCreateClientsAction(
+    clients: CreateClientRequest[]
+): Promise<{ success: boolean; data?: { imported: number; merged: number; skipped: number; errors: string[] }; error?: string }> {
+    const result = await bulkCreateClients(clients);
+    if (result.success) {
+        revalidatePath("/my/clients");
+        revalidatePath("/crm");
     }
     return result;
 }
