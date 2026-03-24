@@ -30,6 +30,16 @@ import {
 import { toast } from "sonner";
 import { DocumentFile } from "@/types/file-types";
 
+const ONBOARDING_DOCUMENT_CATEGORIES = [
+  { value: "general", label: "General" },
+  { value: "nysc", label: "NYSC" },
+  { value: "checklist", label: "Checklist" },
+  { value: "sop", label: "SOP" },
+  { value: "job_description", label: "Job Description" },
+  { value: "guide", label: "Guide" },
+  { value: "other", label: "Other" },
+];
+
 const DEPARTMENTS = [
   { value: "General", label: "General (All Departments)" },
   { value: "Management", label: "Management" },
@@ -206,9 +216,11 @@ export function UploadDocumentDialog({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="general">General</SelectItem>
-                  <SelectItem value="nysc">NYSC</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {ONBOARDING_DOCUMENT_CATEGORIES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

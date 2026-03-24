@@ -43,7 +43,7 @@ export async function uploadDocument(formData: FormData): Promise<ApiResponse<Do
             try {
                 const jsonError = JSON.parse(errorText);
                 errorMessage = jsonError.message || jsonError.error || errorMessage;
-            } catch (_) {
+            } catch {
                 if (response.status === 413) errorMessage = "File too large (server limit)";
                 else if (response.status === 401) errorMessage = "Unauthorized";
                 else if (response.status === 403) errorMessage = "Forbidden";
@@ -128,7 +128,7 @@ export async function updateDocument(id: string, formData: FormData): Promise<Ap
             try {
                 const jsonError = JSON.parse(errorText);
                 errorMessage = jsonError.message || jsonError.error || errorMessage;
-            } catch (_) {
+            } catch {
                 if (response.status === 401) errorMessage = "Unauthorized";
                 else if (response.status === 403) errorMessage = "Forbidden";
                 else errorMessage = `Update failed (${response.status}): ${errorText.substring(0, 100)}`;
@@ -157,6 +157,10 @@ export async function getDocumentCategories(): Promise<DocumentCategoriesRespons
             { value: "handbook", label: "Handbook" },
             { value: "policies", label: "Policies" },
             { value: "contracts", label: "Contracts" },
+            { value: "checklist", label: "Checklist" },
+            { value: "sop", label: "SOP" },
+            { value: "job_description", label: "Job Description" },
+            { value: "guide", label: "Guide" },
         ],
         types: [
             { value: "hr", label: "HR/Organization" },

@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Baby,
   Calendar,
@@ -8,14 +7,12 @@ import {
   Earth,
   FileText,
   Globe2,
-  LucideIcon,
   MailIcon,
   TreePalm,
   Trophy,
-  Lock,
 } from "lucide-react";
 
-import { getUpcomingBirthdays, getTodayBirthdays } from "@/lib/api/employees";
+import {  getTodayBirthdays } from "@/lib/api/employees";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";

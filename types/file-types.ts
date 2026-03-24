@@ -1,4 +1,15 @@
-export type DocumentCategory = 'handbook' | 'policies' | 'contracts' | 'visa' | 'general' | 'nysc' | 'other';
+export type DocumentCategory =
+    | 'handbook'
+    | 'policies'
+    | 'contracts'
+    | 'checklist'
+    | 'sop'
+    | 'job_description'
+    | 'guide'
+    | 'visa'
+    | 'general'
+    | 'nysc'
+    | 'other';
 export type DocumentType = 'hr' | 'visa' | 'onboarding' | 'general';
 
 export interface DocumentFile {
