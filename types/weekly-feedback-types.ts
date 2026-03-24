@@ -1,5 +1,13 @@
 export type WeeklyFeedbackQuestionType = "single_choice" | "multi_choice" | "rating";
 
+export const LIKERT_LABELS: Record<string, string> = {
+  "1": "Strongly Disagree",
+  "2": "Disagree",
+  "3": "Neutral",
+  "4": "Agree",
+  "5": "Strongly Agree",
+};
+
 export interface WeeklyFeedbackQuestion {
     id: string | null;
     question: string;

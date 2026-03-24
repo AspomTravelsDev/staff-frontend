@@ -98,6 +98,7 @@ export function ClientDetailSheet({
                 label="Contact Person"
                 value={client.contactPerson}
               />
+              <DetailRow icon={CalendarDays} label="Date of Birth" value={client.dateOfBirth} />
               <DetailRow icon={Mail} label="Email" value={client.email} />
               <DetailRow icon={Phone} label="Phone" value={client.phone} />
             </div>

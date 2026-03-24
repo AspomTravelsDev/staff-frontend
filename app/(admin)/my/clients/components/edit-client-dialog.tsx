@@ -53,6 +53,7 @@ export function EditClientDialog({
       setForm({
         name: client.name,
         contactPerson: client.contactPerson,
+        dateOfBirth: client.dateOfBirth ?? undefined,
         email: client.email ?? undefined,
         phone: client.phone ?? undefined,
         status: client.status,
@@ -102,14 +103,25 @@ export function EditClientDialog({
             />
           </div>
 
-          {/* Contact Person */}
-          <div className="grid gap-1.5">
-            <Label htmlFor="edit-contact">Contact Person</Label>
-            <Input
-              id="edit-contact"
-              value={form.contactPerson ?? ""}
-              onChange={(e) => set("contactPerson", e.target.value)}
-            />
+          {/* Contact Person & DOB */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-contact">Contact Person</Label>
+              <Input
+                id="edit-contact"
+                value={form.contactPerson ?? ""}
+                onChange={(e) => set("contactPerson", e.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-dob">Date of Birth</Label>
+              <Input
+                id="edit-dob"
+                type="date"
+                value={form.dateOfBirth ?? ""}
+                onChange={(e) => set("dateOfBirth", e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Email + Phone */}

@@ -36,6 +36,7 @@ import {
   deleteApplicationAction,
   generateDocumentsAction,
   requestCorrectionAction,
+  sendReminderAction,
 } from "../../actions";
 
 interface ApplicationActionsClientProps {
@@ -53,6 +54,8 @@ export function ApplicationActionsClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
+  const [reminderNote, setReminderNote] = useState("");
   const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
   const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
   const [correctionReason, setCorrectionReason] = useState<
@@ -117,11 +120,29 @@ export function ApplicationActionsClient({
   };
 
   const handleSendReminder = async () => {
+    if (!reminderNote.trim()) {
+      toast.error("Please add a reminder note");
+      return;
+    }
+
+    if (reminderNote.trim().length < 10) {
+      toast.error("Reminder note must be at least 10 characters");
+      return;
+    }
+
     setIsSendingReminder(true);
-    // Dummy implementation for now
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Reminder email sent (simulation)");
-    setIsSendingReminder(false);
+    try {
+      await sendReminderAction(applicationId, reminderNote.trim());
+      toast.success("Reminder email sent");
+      setIsReminderDialogOpen(false);
+      setReminderNote("");
+      router.refresh();
+    } catch (error) {
+      toast.error("Failed to send reminder email");
+      console.error(error);
+    } finally {
+      setIsSendingReminder(false);
+    }
   };
 
   const handleSubmitCorrection = async () => {
@@ -172,7 +193,7 @@ export function ApplicationActionsClient({
 
           <Button
             variant="outline"
-            onClick={handleSendReminder}
+            onClick={() => setIsReminderDialogOpen(true)}
             disabled={isSendingReminder || status === "completed"}
           >
             {isSendingReminder ? "Sending..." : "Send Reminder Email"}
@@ -218,6 +239,46 @@ export function ApplicationActionsClient({
             ? "This application is completed. You can request correction to reopen it for applicant updates."
             : "Actions to manage the application process."}
         </p>
+
+        <Dialog
+          open={isReminderDialogOpen}
+          onOpenChange={setIsReminderDialogOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Reminder Email</DialogTitle>
+              <DialogDescription>
+                Send a reminder to the applicant with a note from HR.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reminder Note *</label>
+              <Textarea
+                value={reminderNote}
+                onChange={(e) => setReminderNote(e.target.value)}
+                placeholder="Add a clear reminder note for the applicant."
+                rows={5}
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum 10 characters.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsReminderDialogOpen(false)}
+                disabled={isSendingReminder}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSendReminder} disabled={isSendingReminder}>
+                {isSendingReminder ? "Sending..." : "Send Reminder"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog
           open={isCorrectionDialogOpen}

@@ -2,6 +2,7 @@
 
 import { deleteApplication } from "@/lib/api/hr";
 import { requestOnboardingCorrection } from "@/lib/api/hr";
+import { sendOnboardingReminder } from "@/lib/api/hr";
 import { revalidatePath } from "next/cache";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 
@@ -30,6 +31,12 @@ export async function requestCorrectionAction(
     note: string,
 ) {
     await requestOnboardingCorrection(id, { reason, note });
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+}
+
+export async function sendReminderAction(id: string, note: string) {
+    await sendOnboardingReminder(id, { note });
     revalidatePath(`/hr/applications/${id}`);
     revalidatePath("/hr/applications");
 }

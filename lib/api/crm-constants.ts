@@ -48,6 +48,7 @@ export interface Client {
     service: string;
     source: string;
     notes: string | null;
+    dateOfBirth?: string | null;
     assignedTo: string | null;
     assignedToName?: string | null;
     lastContact: string;
@@ -65,6 +66,7 @@ export interface CreateClientRequest {
     service: string;
     source: string;
     notes?: string;
+    dateOfBirth?: string;
     assignedTo?: string;
 }
 
@@ -77,6 +79,7 @@ export interface UpdateClientRequest {
     service?: string;
     source?: string;
     notes?: string;
+    dateOfBirth?: string;
     assignedTo?: string;
     lastContact?: string;
 }

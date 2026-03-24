@@ -18,9 +18,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Clock3 } from "lucide-react";
-import type {
-  WeeklyFeedbackActivePayload,
-  WeeklyFeedbackQuestion,
+import {
+  LIKERT_LABELS,
+  type WeeklyFeedbackActivePayload,
+  type WeeklyFeedbackQuestion,
 } from "@/types/weekly-feedback-types";
 import {
   useSaveWeeklyFeedbackResponse,
@@ -299,8 +300,11 @@ export function WeeklyFeedbackFormView({
               {question.type === "rating"
                 ? (() => {
                     const ratingScale = getRatingScale(question);
-                    const gridClass =
-                      ratingScale.length <= 5
+                    const isLikert = ratingScale.length === 5 && ratingScale.every((r, i) => r === i + 1);
+
+                    const gridClass = isLikert
+                      ? "grid-cols-1 sm:grid-cols-5"
+                      : ratingScale.length <= 5
                         ? "grid-cols-5"
                         : ratingScale.length <= 10
                           ? "grid-cols-5 md:grid-cols-10"
@@ -312,21 +316,41 @@ export function WeeklyFeedbackFormView({
                         onValueChange={(value) =>
                           updateAnswer(key, Number(value))
                         }
-                        className={`grid ${gridClass} gap-2`}
+                        className={`grid ${gridClass} gap-3`}
                       >
-                        {ratingScale.map((rating) => (
-                          <Label
-                            key={rating}
-                            htmlFor={`${key}-rating-${rating}`}
-                            className="flex items-center gap-2 border rounded-md p-2 cursor-pointer"
-                          >
-                            <RadioGroupItem
-                              value={String(rating)}
-                              id={`${key}-rating-${rating}`}
-                            />
-                            <span className="font-medium">{rating}</span>
-                          </Label>
-                        ))}
+                        {ratingScale.map((rating) => {
+                          const label = LIKERT_LABELS[String(rating)];
+
+                          return (
+                            <Label
+                              key={rating}
+                              htmlFor={`${key}-rating-${rating}`}
+                              className={`flex ${
+                                isLikert
+                                  ? "flex-col items-center justify-center text-center p-4 gap-3 bg-muted/20"
+                                  : "items-center gap-2 p-3 bg-muted/20"
+                              } border rounded-lg cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-all [&:has([data-state=checked])]:bg-primary/5 [&:has([data-state=checked])]:border-primary`}
+                            >
+                              <RadioGroupItem
+                                value={String(rating)}
+                                id={`${key}-rating-${rating}`}
+                                className={isLikert ? "mb-1" : ""}
+                              />
+                              {isLikert ? (
+                                <div className="space-y-1">
+                                  <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                                    Rating {rating}
+                                  </div>
+                                  <div className="font-semibold text-sm leading-tight text-foreground">
+                                    {label}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="font-medium text-foreground">{rating}</span>
+                              )}
+                            </Label>
+                          );
+                        })}
                       </RadioGroup>
                     );
                   })()

@@ -207,8 +207,8 @@ export default async function Page() {
           />
           <QuickLinkButton
             icon={Globe2}
-            title="Passport Index"
-            url="https://visatal.vercel.app/"
+            title="Passport Intelligence"
+            url="https://passport.travelatal.com/"
             color="green"
           />
 

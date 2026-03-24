@@ -24,7 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, Search, CalendarDays, Plus, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Sparkles, Search, CalendarDays, Plus, X, Trash2 } from "lucide-react";
 import {
   useCloseWeeklyFeedbackForm,
   useCreateWeeklyFeedbackQuestion,
@@ -35,9 +45,10 @@ import {
   useWeeklyFeedbackAnalytics,
   useWeeklyFeedbackQuestions,
 } from "@/lib/api/hooks/use-weekly-feedback";
-import type {
-  WeeklyFeedbackQuestionBankItem,
-  WeeklyFeedbackQuestionType,
+import {
+  LIKERT_LABELS,
+  type WeeklyFeedbackQuestionBankItem,
+  type WeeklyFeedbackQuestionType,
 } from "@/types/weekly-feedback-types";
 
 const WEEKLY_TYPES: WeeklyFeedbackQuestionType[] = [
@@ -46,29 +57,8 @@ const WEEKLY_TYPES: WeeklyFeedbackQuestionType[] = [
   "rating",
 ];
 
-const RATING_PRESETS = [
-  { label: "1 to 5", value: "1-5", max: 5 },
-  { label: "1 to 10", value: "1-10", max: 10 },
-] as const;
-
-function inferRatingPreset(
-  options: string[] | null | undefined,
-): (typeof RATING_PRESETS)[number]["value"] {
-  const max = (options ?? [])
-    .map((item) => Number(item))
-    .filter((item) => Number.isFinite(item) && item > 0)
-    .sort((a, b) => a - b)
-    .at(-1);
-
-  if (max && max <= 5) {
-    return "1-5";
-  }
-
-  return "1-10";
-}
-
-function buildRatingOptions(max: number): string[] {
-  return Array.from({ length: max }, (_, index) => String(index + 1));
+function buildRatingOptions(): string[] {
+  return ["1", "2", "3", "4", "5"];
 }
 
 function getCurrentWeekStart() {
@@ -81,21 +71,18 @@ export function WeeklyFeedbackAdminClient() {
   const [newQuestion, setNewQuestion] = useState("");
   const [newType, setNewType] =
     useState<WeeklyFeedbackQuestionType>("single_choice");
-  const [newOptionInput, setNewOptionInput] = useState("");
-  const [newOptionItems, setNewOptionItems] = useState<string[]>([]);
-  const [ratingPreset, setRatingPreset] =
-    useState<(typeof RATING_PRESETS)[number]["value"]>("1-5");
+  const [newOptionItems, setNewOptionItems] = useState<string[]>(["Option 1", "Option 2"]);
+  
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(
     null,
   );
   const [editQuestionText, setEditQuestionText] = useState("");
   const [editType, setEditType] =
     useState<WeeklyFeedbackQuestionType>("single_choice");
-  const [editOptionInput, setEditOptionInput] = useState("");
   const [editOptionItems, setEditOptionItems] = useState<string[]>([]);
-  const [editRatingPreset, setEditRatingPreset] =
-    useState<(typeof RATING_PRESETS)[number]["value"]>("1-5");
+  
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
 
   const { data: questions = [], isLoading: isLoadingQuestions } =
     useWeeklyFeedbackQuestions();
@@ -124,27 +111,45 @@ export function WeeklyFeedbackAdminClient() {
   }, [questions, questionSearch]);
 
   const additionalQuestionPreview = useMemo(() => {
-    const selectedPreset = RATING_PRESETS.find(
-      (item) => item.value === ratingPreset,
-    );
     const options =
       newType === "rating"
-        ? buildRatingOptions(selectedPreset?.max ?? 5)
-        : newOptionItems;
+        ? buildRatingOptions()
+        : newOptionItems.map((item) => item.trim()).filter(Boolean);
 
     return {
       question: newQuestion.trim(),
       type: newType,
       options,
     };
-  }, [newQuestion, newType, newOptionItems, ratingPreset]);
+  }, [newQuestion, newType, newOptionItems]);
 
   const previewOptions = additionalQuestionPreview.options;
 
   const toggleQuestionSelection = (id: string, checked: boolean) => {
     setSelectedQuestionIds((prev) => {
-      if (checked) return Array.from(new Set([...prev, id]));
+      if (checked) {
+        if (prev.includes(id)) return prev;
+        return [...prev, id];
+      }
       return prev.filter((item) => item !== id);
+    });
+  };
+
+  const moveQuestionUp = (index: number) => {
+    if (index === 0) return;
+    setSelectedQuestionIds((prev) => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  };
+
+  const moveQuestionDown = (index: number) => {
+    if (index === selectedQuestionIds.length - 1) return;
+    setSelectedQuestionIds((prev) => {
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
     });
   };
 
@@ -177,30 +182,27 @@ export function WeeklyFeedbackAdminClient() {
 
     toast.success("Question created.");
     setNewQuestion("");
-    setNewOptionInput("");
-    setNewOptionItems([]);
-    setRatingPreset("1-5");
+    setNewOptionItems(["Option 1", "Option 2"]);
   };
 
-  const addOptionItem = () => {
-    const trimmed = newOptionInput.trim();
-    if (!trimmed) return;
+  const addNewOption = () => {
+    setNewOptionItems((prev) => [...prev, `Option ${prev.length + 1}`]);
+  };
 
-    if (
-      newOptionItems.some(
-        (item) => item.toLowerCase() === trimmed.toLowerCase(),
-      )
-    ) {
-      toast.error("Option already added.");
+  const updateNewOption = (index: number, value: string) => {
+    setNewOptionItems((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const removeNewOption = (index: number) => {
+    if (newOptionItems.length <= 2) {
+      toast.error("You need at least two options.");
       return;
     }
-
-    setNewOptionItems((prev) => [...prev, trimmed]);
-    setNewOptionInput("");
-  };
-
-  const removeOptionItem = (option: string) => {
-    setNewOptionItems((prev) => prev.filter((item) => item !== option));
+    setNewOptionItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onDeleteQuestion = async (id: string) => {
@@ -294,44 +296,42 @@ export function WeeklyFeedbackAdminClient() {
 
     if (question.type === "rating") {
       setEditOptionItems([]);
-      setEditOptionInput("");
-      setEditRatingPreset(inferRatingPreset(question.options));
       return;
     }
 
-    setEditOptionItems(question.options ?? []);
-    setEditOptionInput("");
-    setEditRatingPreset("1-5");
+    const initialOptions = question.options ?? [];
+    if (initialOptions.length === 0) {
+      setEditOptionItems(["Option 1", "Option 2"]);
+    } else {
+      setEditOptionItems(initialOptions);
+    }
   };
 
   const onCancelEdit = () => {
     setEditingQuestionId(null);
     setEditQuestionText("");
     setEditType("single_choice");
-    setEditOptionInput("");
     setEditOptionItems([]);
-    setEditRatingPreset("1-5");
   };
 
-  const onAddEditOption = () => {
-    const trimmed = editOptionInput.trim();
-    if (!trimmed) return;
+  const addEditOption = () => {
+    setEditOptionItems((prev) => [...prev, `Option ${prev.length + 1}`]);
+  };
 
-    if (
-      editOptionItems.some(
-        (item) => item.toLowerCase() === trimmed.toLowerCase(),
-      )
-    ) {
-      toast.error("Option already added.");
+  const updateEditOption = (index: number, value: string) => {
+    setEditOptionItems((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const removeEditOption = (index: number) => {
+    if (editOptionItems.length <= 2) {
+      toast.error("You need at least two options.");
       return;
     }
-
-    setEditOptionItems((prev) => [...prev, trimmed]);
-    setEditOptionInput("");
-  };
-
-  const onRemoveEditOption = (option: string) => {
-    setEditOptionItems((prev) => prev.filter((item) => item !== option));
+    setEditOptionItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onSaveEdit = async () => {
@@ -343,17 +343,13 @@ export function WeeklyFeedbackAdminClient() {
       return;
     }
 
-    const selectedPreset = RATING_PRESETS.find(
-      (item) => item.value === editRatingPreset,
-    );
-
     const nextOptions =
       editType === "rating"
-        ? buildRatingOptions(selectedPreset?.max ?? 5)
-        : editOptionItems;
+        ? buildRatingOptions()
+        : editOptionItems.map(item => item.trim()).filter(Boolean);
 
-    if (editType !== "rating" && nextOptions.length === 0) {
-      toast.error("Options are required for single or multi-choice questions.");
+    if (editType !== "rating" && nextOptions.length < 2) {
+      toast.error("At least two options are required for choice questions.");
       return;
     }
 
@@ -383,432 +379,412 @@ export function WeeklyFeedbackAdminClient() {
       </TabsList>
 
       <TabsContent value="manage" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Week Configuration</CardTitle>
-            <CardDescription>
-              Build this week&apos;s form, then publish when HR is ready.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2 max-w-sm">
-              <Label htmlFor="week-start">Week Start (Monday)</Label>
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="week-start"
-                  type="date"
-                  value={weekStart}
-                  onChange={(event) => setWeekStart(event.target.value)}
-                />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          {/* LEFT PANEL: QUESTION BANK */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Question Bank</CardTitle>
+                <CardDescription>
+                  Browse and manage reusable questions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={questionSearch}
+                    onChange={(event) => setQuestionSearch(event.target.value)}
+                    placeholder="Search by text or type..."
+                    className="pl-9"
+                  />
+                </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">
-                Selected questions: {selectedCount}
-              </Badge>
-              <Badge variant="outline">
-                Search results: {filteredQuestions.length}
-              </Badge>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={onSaveDraft} disabled={saveDraft.isPending}>
-                Save Draft
-              </Button>
-              <Button
-                onClick={onPublish}
-                disabled={publishForm.isPending || saveDraft.isPending}
-              >
-                Publish
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onClose}
-                disabled={closeForm.isPending}
-              >
-                Close Form
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Question Bank</CardTitle>
-            <CardDescription>
-              Choose the questions for this week and create new ones when
-              needed.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={questionSearch}
-                onChange={(event) => setQuestionSearch(event.target.value)}
-                placeholder="Search questions by text or type..."
-                className="pl-9"
-              />
-            </div>
-
-            {isLoadingQuestions ? (
-              <p className="text-sm text-muted-foreground">
-                Loading questions...
-              </p>
-            ) : filteredQuestions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No questions yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {filteredQuestions.map((question) => {
-                  const isSelected = selectedQuestionIds.includes(question.id);
-                  return (
-                    <div
-                      key={question.id}
-                      className="border rounded-md p-3 transition-colors hover:bg-muted/40"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={(checked) =>
-                                toggleQuestionSelection(
-                                  question.id,
-                                  checked === true,
-                                )
-                              }
-                            />
-                            <p className="font-medium text-sm">
-                              {question.question}
-                            </p>
-                          </div>
-                          <div className="pl-6 flex items-center gap-2">
-                            <Badge variant="outline">
-                              {question.type.replace("_", " ")}
-                            </Badge>
-                            {question.is_default ? (
-                              <Badge>Default</Badge>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              editingQuestionId === question.id
-                                ? onCancelEdit()
-                                : onStartEdit(question)
-                            }
-                            disabled={updateQuestion.isPending}
-                          >
-                            {editingQuestionId === question.id
-                              ? "Close"
-                              : "Edit"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onDeleteQuestion(question.id)}
-                            disabled={deleteQuestion.isPending}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-
-                      {editingQuestionId === question.id ? (
-                        <div className="mt-3 rounded-md border bg-muted/30 p-3 space-y-3">
-                          <div className="grid gap-2">
-                            <Label htmlFor={`edit-question-${question.id}`}>
-                              Question
-                            </Label>
-                            <Input
-                              id={`edit-question-${question.id}`}
-                              value={editQuestionText}
-                              onChange={(event) =>
-                                setEditQuestionText(event.target.value)
-                              }
-                            />
-                          </div>
-
-                          <div className="grid gap-2 max-w-xs">
-                            <Label htmlFor={`edit-type-${question.id}`}>
-                              Type
-                            </Label>
-                            <Select
-                              value={editType}
-                              onValueChange={(value) => {
-                                const nextType =
-                                  value as WeeklyFeedbackQuestionType;
-                                setEditType(nextType);
-                                if (nextType === "rating") {
-                                  setEditOptionInput("");
-                                  setEditOptionItems([]);
-                                }
-                              }}
-                            >
-                              <SelectTrigger
-                                id={`edit-type-${question.id}`}
-                                className="w-full"
-                              >
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {WEEKLY_TYPES.map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type.replace("_", " ")}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {editType !== "rating" ? (
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-option-${question.id}`}>
-                                Options
-                              </Label>
+                {isLoadingQuestions ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading questions...
+                  </p>
+                ) : filteredQuestions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No questions found.</p>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    {filteredQuestions.map((question) => {
+                      const isSelected = selectedQuestionIds.includes(question.id);
+                      return (
+                        <div
+                          key={question.id}
+                          className={`border rounded-md p-3 transition-colors ${
+                            isSelected ? "border-primary/50 bg-primary/5" : "hover:bg-muted/40"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1 truncate">
+                              <p className="font-medium text-sm line-clamp-2" title={question.question}>
+                                {question.question}
+                              </p>
                               <div className="flex items-center gap-2">
-                                <Input
-                                  id={`edit-option-${question.id}`}
-                                  value={editOptionInput}
-                                  onChange={(event) =>
-                                    setEditOptionInput(event.target.value)
-                                  }
-                                  placeholder="Type an option and add"
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                      event.preventDefault();
-                                      onAddEditOption();
-                                    }
-                                  }}
-                                />
+                                <Badge variant="outline" className="text-[10px] uppercase">
+                                  {question.type.replace("_", " ")}
+                                </Badge>
+                                {question.is_default ? (
+                                  <Badge variant="secondary" className="text-[10px] uppercase">Default</Badge>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                variant={isSelected ? "secondary" : "default"}
+                                onClick={() => toggleQuestionSelection(question.id, !isSelected)}
+                              >
+                                {isSelected ? "Added" : "Add"}
+                              </Button>
+                              <div className="flex items-center gap-1">
                                 <Button
-                                  type="button"
-                                  variant="secondary"
-                                  onClick={onAddEditOption}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() =>
+                                    editingQuestionId === question.id
+                                      ? onCancelEdit()
+                                      : onStartEdit(question)
+                                  }
+                                  disabled={updateQuestion.isPending}
                                 >
-                                  <Plus className="h-4 w-4 mr-1" /> Add
+                                  {editingQuestionId === question.id ? "Close" : "Edit"}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                  onClick={() => setQuestionToDelete(question.id)}
+                                  disabled={deleteQuestion.isPending}
+                                >
+                                  Delete
                                 </Button>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {editOptionItems.map((option) => (
-                                  <Badge
-                                    key={option}
-                                    variant="secondary"
-                                    className="flex items-center gap-1"
+                            </div>
+                          </div>
+
+                          {editingQuestionId === question.id ? (
+                            <div className="mt-3 rounded-md border bg-muted/30 p-3 space-y-3">
+                              <div className="grid gap-2">
+                                <Label htmlFor={`edit-question-${question.id}`}>
+                                  Question
+                                </Label>
+                                <Input
+                                  id={`edit-question-${question.id}`}
+                                  value={editQuestionText}
+                                  onChange={(event) =>
+                                    setEditQuestionText(event.target.value)
+                                  }
+                                />
+                              </div>
+
+                              <div className="grid gap-2 max-w-xs">
+                                <Label htmlFor={`edit-type-${question.id}`}>
+                                  Type
+                                </Label>
+                                <Select
+                                  value={editType}
+                                  onValueChange={(value) => {
+                                    const nextType =
+                                      value as WeeklyFeedbackQuestionType;
+                                    setEditType(nextType);
+                                  }}
+                                >
+                                  <SelectTrigger
+                                    id={`edit-type-${question.id}`}
+                                    className="w-full"
                                   >
-                                    {option}
-                                    <button
-                                      type="button"
-                                      onClick={() => onRemoveEditOption(option)}
-                                      className="rounded-sm hover:bg-black/10 p-0.5"
-                                      aria-label={`Remove ${option}`}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </Badge>
-                                ))}
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {WEEKLY_TYPES.map((type) => (
+                                      <SelectItem key={type} value={type}>
+                                        {type.replace("_", " ")}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {editType !== "rating" ? (
+                                <div className="space-y-3 pt-2">
+                                  <Label>Options</Label>
+                                  {editOptionItems.map((opt, i) => (
+                                    <div className="flex items-center gap-2" key={`edit-opt-${i}`}>
+                                      <Input 
+                                        value={opt} 
+                                        onChange={(e) => updateEditOption(i, e.target.value)} 
+                                        placeholder={`Option ${i + 1}`}
+                                      />
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="text-destructive hover:text-destructive shrink-0" 
+                                        onClick={() => removeEditOption(i)}
+                                        title="Remove option"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button variant="outline" size="sm" onClick={addEditOption} className="w-full mt-2">
+                                    <Plus className="mr-2 h-4 w-4" /> Add Option
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="mt-4 rounded-md border p-4 bg-muted/10 space-y-3">
+                                  <Label className="block">Rating Scale (Fixed 5-Point Likert)</Label>
+                                  <div className="flex flex-col gap-2">
+                                    {Object.entries(LIKERT_LABELS).map(([val, label]) => (
+                                      <div key={val} className="flex items-center gap-3">
+                                        <Badge variant="outline" className="w-8 justify-center shrink-0">{val}</Badge>
+                                        <span className="text-sm font-medium">{label}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  onClick={onSaveEdit}
+                                  disabled={updateQuestion.isPending}
+                                >
+                                  Save Changes
+                                </Button>
+                                <Button variant="outline" onClick={onCancelEdit}>
+                                  Cancel
+                                </Button>
                               </div>
                             </div>
-                          ) : (
-                            <div className="grid gap-2 max-w-xs">
-                              <Label htmlFor={`edit-rating-${question.id}`}>
-                                Rating Scale
-                              </Label>
-                              <Select
-                                value={editRatingPreset}
-                                onValueChange={(value) =>
-                                  setEditRatingPreset(
-                                    value as (typeof RATING_PRESETS)[number]["value"],
-                                  )
-                                }
-                              >
-                                <SelectTrigger
-                                  id={`edit-rating-${question.id}`}
-                                  className="w-full"
-                                >
-                                  <SelectValue placeholder="Choose rating scale" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {RATING_PRESETS.map((preset) => (
-                                    <SelectItem
-                                      key={preset.value}
-                                      value={preset.value}
-                                    >
-                                      {preset.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2">
-                            <Button
-                              onClick={onSaveEdit}
-                              disabled={updateQuestion.isPending}
-                            >
-                              Save Changes
-                            </Button>
-                            <Button variant="outline" onClick={onCancelEdit}>
-                              Cancel
-                            </Button>
-                          </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <Separator />
-
-            <div className="space-y-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Create Question
-              </h3>
-              <div className="grid gap-2">
-                <Label htmlFor="question">Question</Label>
-                <Input
-                  id="question"
-                  value={newQuestion}
-                  onChange={(event) => setNewQuestion(event.target.value)}
-                  placeholder="How would you rate team collaboration this week?"
-                />
-              </div>
-
-              <div className="grid gap-2 max-w-xs">
-                <Label htmlFor="question-type">Type</Label>
-                <Select
-                  value={newType}
-                  onValueChange={(value) => {
-                    setNewType(value as WeeklyFeedbackQuestionType);
-                    if (value === "rating") {
-                      setNewOptionInput("");
-                      setNewOptionItems([]);
-                    }
-                  }}
-                >
-                  <SelectTrigger id="question-type" className="w-full">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {WEEKLY_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.replace("_", " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {newType !== "rating" ? (
-                <div className="grid gap-2">
-                  <Label htmlFor="question-option-input">Options</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="question-option-input"
-                      value={newOptionInput}
-                      onChange={(event) =>
-                        setNewOptionInput(event.target.value)
-                      }
-                      placeholder="Type an option and add"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addOptionItem();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={addOptionItem}
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Add
-                    </Button>
+                      );
+                    })}
                   </div>
-                  {newOptionItems.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {newOptionItems.map((option) => (
-                        <Badge
-                          key={option}
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          {option}
-                          <button
-                            type="button"
-                            onClick={() => removeOptionItem(option)}
-                            className="rounded-sm hover:bg-black/10 p-0.5"
-                            aria-label={`Remove ${option}`}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : null}
+                )}
+              </CardContent>
+            </Card>
+
+            {/* CREATE QUESTION ACCORDION / CARD */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Create New Question
+                </CardTitle>
+                <CardDescription>Add a new reusable question to the bank.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="question">Question Text</Label>
+                  <Input
+                    id="question"
+                    value={newQuestion}
+                    onChange={(event) => setNewQuestion(event.target.value)}
+                    placeholder="How would you rate team collaboration this week?"
+                  />
                 </div>
-              ) : (
+
                 <div className="grid gap-2 max-w-xs">
-                  <Label htmlFor="rating-preset">Rating Scale</Label>
+                  <Label htmlFor="question-type">Type</Label>
                   <Select
-                    value={ratingPreset}
-                    onValueChange={(value) =>
-                      setRatingPreset(
-                        value as (typeof RATING_PRESETS)[number]["value"],
-                      )
-                    }
+                    value={newType}
+                    onValueChange={(value) => {
+                      setNewType(value as WeeklyFeedbackQuestionType);
+                    }}
                   >
-                    <SelectTrigger id="rating-preset" className="w-full">
-                      <SelectValue placeholder="Choose rating scale" />
+                    <SelectTrigger id="question-type" className="w-full">
+                      <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {RATING_PRESETS.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          {preset.label}
+                      {WEEKLY_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace("_", " ")}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Responses will use this fixed numeric range.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {previewOptions.slice(0, 8).map((option) => (
-                      <Badge key={option} variant="outline">
-                        {option}
-                      </Badge>
-                    ))}
-                    {previewOptions.length > 8 ? (
-                      <Badge variant="secondary">
-                        +{previewOptions.length - 8} more
-                      </Badge>
-                    ) : null}
-                  </div>
                 </div>
-              )}
 
-              <Button
-                onClick={onCreateQuestion}
-                disabled={createQuestion.isPending}
-              >
-                Add Question
-              </Button>
-            </div>
+                {newType !== "rating" ? (
+                  <div className="space-y-3 pt-2">
+                    <Label>Options</Label>
+                    {newOptionItems.map((opt, i) => (
+                      <div className="flex items-center gap-2" key={`new-opt-${i}`}>
+                        <Input 
+                          value={opt} 
+                          onChange={(e) => updateNewOption(i, e.target.value)} 
+                          placeholder={`Option ${i + 1}`}
+                        />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive shrink-0" 
+                          onClick={() => removeNewOption(i)}
+                          title="Remove option"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={addNewOption} className="w-full mt-2">
+                      <Plus className="mr-2 h-4 w-4" /> Add Option
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-md border p-4 bg-muted/10 space-y-3">
+                    <Label className="block">Rating Scale (Fixed 5-Point Likert)</Label>
+                    <div className="flex flex-col gap-2">
+                      {Object.entries(LIKERT_LABELS).map(([val, label]) => (
+                        <div key={val} className="flex items-center gap-3">
+                          <Badge variant="outline" className="w-8 justify-center shrink-0">{val}</Badge>
+                          <span className="text-sm font-medium">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            <div className="text-xs text-muted-foreground">
-              Selected bank questions: {selectedCount}
-            </div>
-          </CardContent>
-        </Card>
+                <Button
+                  onClick={onCreateQuestion}
+                  disabled={createQuestion.isPending}
+                  className="w-full md:w-auto"
+                >
+                  Create Question
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT PANEL: THIS WEEK'S FORM */}
+          <div className="space-y-4 md:sticky md:top-4">
+            <Card className="border-primary/20 shadow-sm">
+              <CardHeader className="bg-primary/5 pb-4 border-b">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl">This Week&apos;s Form</CardTitle>
+                    <CardDescription className="mt-1">
+                      Compose the questions and publish.
+                    </CardDescription>
+                  </div>
+                  <Badge variant="default" className="text-sm">
+                    {selectedCount} Questions
+                  </Badge>
+                </div>
+                
+                <div className="mt-4 grid gap-2">
+                  <Label htmlFor="week-start" className="font-semibold flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    Target Week (Monday)
+                  </Label>
+                  <Input
+                    id="week-start"
+                    type="date"
+                    value={weekStart}
+                    onChange={(event) => setWeekStart(event.target.value)}
+                    className="max-w-[200px]"
+                  />
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-4 space-y-4">
+                {selectedQuestionIds.length === 0 ? (
+                  <div className="py-8 text-center border-2 border-dashed rounded-lg bg-muted/20">
+                    <p className="text-muted-foreground">
+                      No questions selected.
+                      <br />
+                      Click &quot;Add&quot; on a question from the bank to include it.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedQuestionIds.map((id, index) => {
+                      const question = questions.find(q => q.id === id);
+                      if (!question) return null;
+                      
+                      return (
+                        <div key={id} className="flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm">
+                          <div className="flex flex-col gap-1 items-center shrink-0">
+                            <button
+                              type="button"
+                              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              disabled={index === 0}
+                              onClick={() => moveQuestionUp(index)}
+                              title="Move up"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                            </button>
+                            <span className="text-xs font-semibold text-muted-foreground w-4 text-center">{index + 1}</span>
+                            <button
+                              type="button"
+                              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              disabled={index === selectedQuestionIds.length - 1}
+                              onClick={() => moveQuestionDown(index)}
+                              title="Move down"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm line-clamp-2">{question.question}</p>
+                            <span className="text-xs text-muted-foreground uppercase mt-1 inline-block">
+                              {question.type.replace("_", " ")}
+                            </span>
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => toggleQuestionSelection(id, false)}
+                            title="Remove from form"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                <Separator />
+                
+                <div className="grid gap-3">
+                  <div className="flex gap-3">
+                    <Button 
+                      className="flex-1" 
+                      variant="outline" 
+                      onClick={onSaveDraft} 
+                      disabled={saveDraft.isPending}
+                    >
+                      Save Draft
+                    </Button>
+                    <Button 
+                      className="flex-1 shadow-md bg-green-600 hover:bg-green-700" 
+                      onClick={onPublish} 
+                      disabled={publishForm.isPending || saveDraft.isPending || selectedCount === 0}
+                    >
+                      Publish to Staff
+                    </Button>
+                  </div>
+                  <Button
+                    variant="link"
+                    className="text-destructive w-full"
+                    onClick={onClose}
+                    disabled={closeForm.isPending}
+                  >
+                    Close Form Manually
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </TabsContent>
 
       <TabsContent value="analytics" className="space-y-4">
@@ -871,7 +847,10 @@ export function WeeklyFeedbackAdminClient() {
                           <p className="text-xs text-muted-foreground">
                             Distribution:{" "}
                             {Object.entries(item.distribution)
-                              .map(([key, value]) => `${key}: ${value}`)
+                              .map(([key, value]) => {
+                                const label = item.type === "rating" ? (LIKERT_LABELS[key] ?? key) : key;
+                                return `${label}: ${value}`;
+                              })
                               .join(" | ")}
                           </p>
                         ) : null}
@@ -884,6 +863,32 @@ export function WeeklyFeedbackAdminClient() {
           </CardContent>
         </Card>
       </TabsContent>
+
+      <AlertDialog open={!!questionToDelete} onOpenChange={(open) => !open && setQuestionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the question from the question bank. It will also be removed from any draft forms.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteQuestion.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (questionToDelete) {
+                  onDeleteQuestion(questionToDelete);
+                  setQuestionToDelete(null);
+                }
+              }}
+              disabled={deleteQuestion.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteQuestion.isPending ? "Deleting..." : "Delete Question"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Tabs>
   );
 }

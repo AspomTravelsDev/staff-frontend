@@ -41,6 +41,19 @@ export async function sendInvite(id: string): Promise<void> {
     if (!response.success) throw new Error(response.error.error || "Failed to send invitation email");
 }
 
+export async function sendOnboardingReminder(
+    id: string,
+    payload: { note: string }
+): Promise<void> {
+    const response = await api.post<{ message: string }>(
+        `/api/onboarding-applications/${id}/send-reminder`,
+        payload,
+    );
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to send reminder email");
+    }
+}
+
 export type OnboardingCorrectionReason =
     | "unsigned_documents"
     | "missing_required_pages"

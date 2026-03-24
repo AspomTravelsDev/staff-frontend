@@ -104,15 +104,26 @@ export function AddClientDialog({
             />
           </div>
 
-          {/* Contact Person */}
-          <div className="grid gap-1.5">
-            <Label htmlFor="contactPerson">Contact Person</Label>
-            <Input
-              id="contactPerson"
-              placeholder="Primary contact name"
-              value={form.contactPerson}
-              onChange={(e) => set("contactPerson", e.target.value)}
-            />
+          {/* Contact Person & DOB */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="contactPerson">Contact Person</Label>
+              <Input
+                id="contactPerson"
+                placeholder="Primary contact name"
+                value={form.contactPerson}
+                onChange={(e) => set("contactPerson", e.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="dateOfBirth">Date of Birth (Optional)</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={form.dateOfBirth ?? ""}
+                onChange={(e) => set("dateOfBirth", e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Email + Phone */}
