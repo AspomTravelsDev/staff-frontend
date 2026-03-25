@@ -7,6 +7,8 @@ import {
   AlertTriangle,
   Info,
   CheckCircle2,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,9 +26,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ComplianceIssue, Severity } from "@/lib/api/compliance";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ComplianceIssue, Severity, deleteComplianceIssue } from "@/lib/api/compliance";
 import { ComplianceDetailsDialog } from "./compliance-details-dialog";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface ComplianceTableProps {
   issues: ComplianceIssue[];
@@ -58,6 +72,9 @@ const severityConfig: Record<
 export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProps) {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
 
   if (issues.length === 0) {
     return (
@@ -151,6 +168,18 @@ export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProp
                             setDetailsOpen(true);
                         }}>Add Response/Outcome</DropdownMenuItem>
                     )}
+                    {isAdmin && issue.status === "open" && !issue.latest_comment && (
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => {
+                          setSelectedIssueId(issue.id);
+                          setDeleteOpen(true);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Occurrence
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -166,6 +195,46 @@ export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProp
         onOpenChange={setDetailsOpen}
         isAdmin={isAdmin}
     />
+
+    <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete this compliance occurrence. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={isDeleting}
+            onClick={async (e) => {
+              e.preventDefault();
+              if (!selectedIssueId) return;
+              setIsDeleting(true);
+              try {
+                await deleteComplianceIssue(selectedIssueId);
+                toast.success("Occurrence deleted successfully");
+                setDeleteOpen(false);
+                router.refresh();
+              } catch (error) {
+                toast.error("Failed to delete occurrence");
+              } finally {
+                setIsDeleting(false);
+              }
+            }}
+          >
+            {isDeleting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 h-4 w-4" />
+            )}
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

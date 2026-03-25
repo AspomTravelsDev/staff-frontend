@@ -46,6 +46,7 @@ export interface ComplianceIssue {
         name: string;
     };
     comments?: ComplianceComment[];
+    latest_comment?: ComplianceComment | null;
     deduction_days?: number;
     has_new_replies?: boolean;
 }
@@ -199,4 +200,11 @@ export async function resolveComplianceOccurrence(id: string, outcome: string, d
         throw new Error(result.error.error);
     }
     return result.data;
+}
+
+export async function deleteComplianceIssue(id: string): Promise<void> {
+    const result = await api.delete(`/api/compliance/${id}`);
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
 }
