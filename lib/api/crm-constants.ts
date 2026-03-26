@@ -61,26 +61,26 @@ export interface CreateClientRequest {
     name: string;
     contactPerson: string;
     email?: string | null;
-    phone?: string;
+    phone?: string | null;
     status: CRMStatus;
     service: string;
     source: string;
-    notes?: string;
-    dateOfBirth?: string;
-    assignedTo?: string;
+    notes?: string | null;
+    dateOfBirth?: string | null;
+    assignedTo?: string | null;
 }
 
 export interface UpdateClientRequest {
     name?: string;
     contactPerson?: string;
-    email?: string;
-    phone?: string;
+    email?: string | null;
+    phone?: string | null;
     status?: CRMStatus;
     service?: string;
     source?: string;
-    notes?: string;
-    dateOfBirth?: string;
-    assignedTo?: string;
+    notes?: string | null;
+    dateOfBirth?: string | null;
+    assignedTo?: string | null;
     lastContact?: string;
 }
 

@@ -46,6 +46,9 @@ import {
   Search,
   X,
   Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Client, CRMStatus, CRM_STATUS_OPTIONS } from "@/lib/api/crm-constants";
 import { deleteClientAction } from "../actions";
@@ -106,6 +109,23 @@ export function CRMTable({ clients }: CRMTableProps) {
   const [toDelete, setToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Client;
+    direction: "asc" | "desc";
+  } | null>(null);
+
+  const handleSort = (key: keyof Client) => {
+    let direction: "asc" | "desc" = "asc";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "asc"
+    ) {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
   const filtered = clients.filter((c) => {
     const matchesSearch =
       !search ||
@@ -124,6 +144,35 @@ export function CRMTable({ clients }: CRMTableProps) {
           c.createdById === assignedToFilter);
 
     return matchesSearch && matchesStatus && matchesAssignedTo;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+
+    let aValue: any = a[key] || "";
+    let bValue: any = b[key] || "";
+
+    // Handle special cases or nested fields if necessary
+    if (key === "assignedToName") {
+        aValue = a.assignedToName || a.assignedTo || "";
+        bValue = b.assignedToName || b.assignedTo || "";
+    }
+    
+    // Better date sorting
+    if (key === "dateOfBirth" || key === "lastContact" || key === "createdAt") {
+        // Try to parse if it's a string date
+        const aDate = aValue ? new Date(aValue).getTime() : 0;
+        const bDate = bValue ? new Date(bValue).getTime() : 0;
+        if (!isNaN(aDate) && !isNaN(bDate)) {
+            aValue = aDate;
+            bValue = bDate;
+        }
+    }
+
+    if (aValue < bValue) return direction === "asc" ? -1 : 1;
+    if (aValue > bValue) return direction === "asc" ? 1 : -1;
+    return 0;
   });
 
   const handleEdit = (client: Client) => {
@@ -163,6 +212,7 @@ export function CRMTable({ clients }: CRMTableProps) {
     setStatusFilter("all");
     setAssignedToFilter("all");
     setSelectedRows(new Set());
+    setSortConfig(null);
   };
 
   const hasFilters =
@@ -170,7 +220,7 @@ export function CRMTable({ clients }: CRMTableProps) {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filtered.map((c) => c.id)));
+      setSelectedRows(new Set(sorted.map((c) => c.id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -187,9 +237,19 @@ export function CRMTable({ clients }: CRMTableProps) {
   };
 
   const isAllSelected =
-    filtered.length > 0 && selectedRows.size === filtered.length;
+    sorted.length > 0 && selectedRows.size === sorted.length;
   const isSomeSelected =
-    selectedRows.size > 0 && selectedRows.size < filtered.length;
+    selectedRows.size > 0 && selectedRows.size < sorted.length;
+
+  const SortIcon = ({ columnKey }: { columnKey: keyof Client }) => {
+    if (sortConfig?.key !== columnKey)
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4" />
+    );
+  };
 
   return (
     <>
@@ -258,7 +318,7 @@ export function CRMTable({ clients }: CRMTableProps) {
             {selectedRows.size > 0 && ` (${selectedRows.size} selected)`}
           </p>
           <TableExportButton
-            data={filtered}
+            data={sorted}
             columns={EXPORT_COLUMNS}
             filename="crm_export"
             selectedIndices={selectedRows}
@@ -281,25 +341,77 @@ export function CRMTable({ clients }: CRMTableProps) {
                   aria-label="Select all"
                 />
               </TableHead>
-              <TableHead>Client / Company</TableHead>
-              <TableHead className="hidden sm:table-cell">Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Service</TableHead>
-              <TableHead className="hidden lg:table-cell">Source</TableHead>
-              <TableHead className="hidden lg:table-cell">
-                Assigned To
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Last Contact
-              </TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("name")}
+                >
+                  <div className="flex items-center">
+                    Client / Company
+                    <SortIcon columnKey="name" />
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="hidden sm:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("phone")}
+                >
+                  <div className="flex items-center">
+                    Phone
+                    <SortIcon columnKey="phone" />
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("status")}
+                >
+                  <div className="flex items-center">
+                    Status
+                    <SortIcon columnKey="status" />
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("service")}
+                >
+                  <div className="flex items-center">
+                    Service
+                    <SortIcon columnKey="service" />
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("source")}
+                >
+                  <div className="flex items-center">
+                    Source
+                    <SortIcon columnKey="source" />
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("assignedToName")}
+                >
+                  <div className="flex items-center">
+                    Assigned To
+                    <SortIcon columnKey="assignedToName" />
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("lastContact")}
+                >
+                  <div className="flex items-center">
+                    Last Contact
+                    <SortIcon columnKey="lastContact" />
+                  </div>
+                </TableHead>
+                <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {hasFilters
@@ -308,7 +420,7 @@ export function CRMTable({ clients }: CRMTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((client) => {
+              sorted.map((client) => {
                 const isSelected = selectedRows.has(client.id);
                 return (
                   <TableRow
