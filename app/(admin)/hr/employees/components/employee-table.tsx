@@ -35,12 +35,16 @@ import {
   Phone,
   Loader2,
   Trash2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from "@/lib/api/employees";
 import { updateUserStatusAction, deleteUserAction } from "../actions";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useSort } from "@/lib/hooks/use-sort";
 import { EditUserDialog } from "./edit-user-dialog";
 import { formatLagosDate } from "@/lib/utils/attendance";
 
@@ -55,6 +59,22 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const sortOptions = useMemo(() => ({
+    dateFields: ["joinDate"] as (keyof Employee)[],
+  }), []);
+
+  const { sortedData: sorted, sortConfig, handleSort } = useSort(employees, sortOptions);
+
+  const SortIcon = ({ columnKey }: { columnKey: keyof Employee }) => {
+    if (sortConfig?.key !== columnKey)
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-1 h-3 w-3" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3" />
+    );
+  };
 
   const handleStatusToggle = async (employee: Employee) => {
     const newStatus = !employee.status || employee.status === "Inactive";
@@ -95,25 +115,50 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Staff ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Date Joined</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
+            <TableRow>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("staff_id")}
+              >
+                <div className="flex items-center">Staff ID <SortIcon columnKey="staff_id" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("firstName")}
+              >
+                <div className="flex items-center">Name <SortIcon columnKey="firstName" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("department")}
+              >
+                <div className="flex items-center">Department <SortIcon columnKey="department" /></div>
+              </TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("joinDate")}
+              >
+                <div className="flex items-center">Date Joined <SortIcon columnKey="joinDate" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("status")}
+              >
+                <div className="flex items-center">Status <SortIcon columnKey="status" /></div>
+              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.length === 0 ? (
+          {sorted.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center">
                 No employees found.
               </TableCell>
             </TableRow>
           ) : (
-            employees.map((employee) => (
+            sorted.map((employee) => (
               <TableRow key={employee.id}>
                 <TableCell className="font-mono text-xs font-medium">
                   {employee.staff_id}

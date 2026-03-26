@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useSort } from "@/lib/hooks/use-sort";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -48,6 +49,9 @@ import {
   Phone,
   History,
   ClipboardCheck,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/lib/api/inventory";
@@ -68,6 +72,18 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const { sortedData: sorted, sortConfig, handleSort } = useSort(items);
+
+  const SortIcon = ({ columnKey }: { columnKey: keyof InventoryItem }) => {
+    if (sortConfig?.key !== columnKey)
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-1 h-3 w-3" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3" />
+    );
+  };
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -135,25 +151,50 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
     <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Device Model</TableHead>
-            <TableHead>Serial Number</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Condition</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Tracking Details</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
+            <TableRow>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex items-center">Device Model <SortIcon columnKey="name" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("serialNumber")}
+              >
+                <div className="flex items-center">Serial Number <SortIcon columnKey="serialNumber" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("category")}
+              >
+                <div className="flex items-center">Category <SortIcon columnKey="category" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("conditionRating")}
+              >
+                <div className="flex items-center">Condition <SortIcon columnKey="conditionRating" /></div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("status")}
+              >
+                <div className="flex items-center">Status <SortIcon columnKey="status" /></div>
+              </TableHead>
+              <TableHead>Tracking Details</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
         </TableHeader>
         <TableBody>
-          {items.length === 0 ? (
+          {sorted.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center">
                 No tracking devices found.
               </TableCell>
             </TableRow>
           ) : (
-            items.map((item) => (
+            sorted.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">

@@ -144,7 +144,7 @@ export function AddClientDialog({
                 id="phone"
                 type="tel"
                 placeholder="+234 800 000 0000"
-                value={form.phone}
+                value={form.phone ?? ""}
                 onChange={(e) => set("phone", e.target.value)}
               />
             </div>
@@ -246,7 +246,7 @@ export function AddClientDialog({
               id="notes"
               placeholder="Any relevant details about this customer..."
               rows={3}
-              value={form.notes}
+              value={form.notes ?? ""}
               onChange={(e) => set("notes", e.target.value)}
             />
           </div>

@@ -125,7 +125,7 @@ export function ClientDetailSheet({
               <DetailRow
                 icon={UserCheck}
                 label="Assigned To"
-                value={client.assignedTo}
+                value={client.assignedToName || client.assignedTo}
               />
             </div>
           </div>

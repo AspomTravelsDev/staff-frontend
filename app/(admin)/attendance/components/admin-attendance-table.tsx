@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -15,6 +16,8 @@ import {
   formatLagosTime,
   formatLagosDate,
 } from "@/lib/utils/attendance";
+import { useSort } from "@/lib/hooks/use-sort";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface AdminAttendanceTableProps {
   history: ClockInRecord[];
@@ -25,6 +28,30 @@ export function AdminAttendanceTable({
   history,
   isLoading,
 }: AdminAttendanceTableProps) {
+  const sortOptions = useMemo(() => ({
+    dateFields: ["clock_in_at", "clock_out_at"] as (keyof ClockInRecord)[],
+    customSorts: {
+      user: (a: ClockInRecord, b: ClockInRecord, direction: "asc" | "desc") => {
+        const aName = a.user ? (a.user.first_name || a.user.name || "") : "";
+        const bName = b.user ? (b.user.first_name || b.user.name || "") : "";
+        if (aName < bName) return direction === "asc" ? -1 : 1;
+        if (aName > bName) return direction === "asc" ? 1 : -1;
+        return 0;
+      }
+    }
+  }), []);
+
+  const { sortedData: sorted, sortConfig, handleSort } = useSort(history, sortOptions);
+
+  const SortIcon = ({ columnKey }: { columnKey: keyof ClockInRecord }) => {
+    if (sortConfig?.key !== columnKey)
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-1 h-3 w-3" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3" />
+    );
+  };
   // Helpers removed in favor of centralized attendance utils
 
   if (isLoading) {
@@ -40,26 +67,61 @@ export function AdminAttendanceTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Staff Member</TableHead>
-            <TableHead>Date</TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("user")}
+            >
+              <div className="flex items-center">Staff Member <SortIcon columnKey="user" /></div>
+            </TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("clock_in_at")}
+            >
+              <div className="flex items-center">Date <SortIcon columnKey="clock_in_at" /></div>
+            </TableHead>
             <TableHead>Clock In</TableHead>
-            <TableHead>Clock Out</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead>Office</TableHead>
-            <TableHead>Distance</TableHead>
-            <TableHead>Duration</TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("clock_out_at")}
+            >
+              <div className="flex items-center">Clock Out <SortIcon columnKey="clock_out_at" /></div>
+            </TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("location_method")}
+            >
+              <div className="flex items-center">Method <SortIcon columnKey="location_method" /></div>
+            </TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("office_name")}
+            >
+              <div className="flex items-center">Office <SortIcon columnKey="office_name" /></div>
+            </TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("distance")}
+            >
+              <div className="flex items-center">Distance <SortIcon columnKey="distance" /></div>
+            </TableHead>
+            <TableHead 
+                className="cursor-pointer hover:text-foreground transition-colors"
+                onClick={() => handleSort("duration_minutes")}
+            >
+              <div className="flex items-center">Duration <SortIcon columnKey="duration_minutes" /></div>
+            </TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {history.length === 0 ? (
+          {sorted.length === 0 ? (
             <TableRow>
               <TableCell colSpan={9} className="h-24 text-center">
                 No attendance records found for the selected criteria.
               </TableCell>
             </TableRow>
           ) : (
-            history.map((record: ClockInRecord) => {
+            sorted.map((record: ClockInRecord) => {
               const late = isLate(record.clock_in_at);
               const user = record.user;
               const method = record.location_method || "ip";

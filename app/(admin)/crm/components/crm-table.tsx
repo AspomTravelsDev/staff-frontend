@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useSort } from "@/lib/hooks/use-sort";
 import {
   Table,
   TableBody,
@@ -109,71 +110,42 @@ export function CRMTable({ clients }: CRMTableProps) {
   const [toDelete, setToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof Client;
-    direction: "asc" | "desc";
-  } | null>(null);
-
-  const handleSort = (key: keyof Client) => {
-    let direction: "asc" | "desc" = "asc";
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc";
+  const sortOptions = useMemo(() => ({
+    dateFields: ["dateOfBirth", "lastContact", "createdAt"] as (keyof Client)[],
+    customSorts: {
+      assignedToName: (a: Client, b: Client, direction: "asc" | "desc") => {
+        const aVal = a.assignedToName || a.assignedTo || "";
+        const bVal = b.assignedToName || b.assignedTo || "";
+        if (aVal < bVal) return direction === "asc" ? -1 : 1;
+        if (aVal > bVal) return direction === "asc" ? 1 : -1;
+        return 0;
+      }
     }
-    setSortConfig({ key, direction });
-  };
+  }), []);
 
-  const filtered = clients.filter((c) => {
-    const matchesSearch =
-      !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.contactPerson.toLowerCase().includes(search.toLowerCase()) ||
-      c.email?.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone?.toLowerCase().includes(search.toLowerCase()) ||
-      c.service?.toLowerCase().includes(search.toLowerCase());
+  const filtered = useMemo(() => {
+    return clients.filter((c) => {
+      const matchesSearch =
+        !search ||
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.contactPerson.toLowerCase().includes(search.toLowerCase()) ||
+        c.email?.toLowerCase().includes(search.toLowerCase()) ||
+        c.phone?.toLowerCase().includes(search.toLowerCase()) ||
+        c.service?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    const matchesAssignedTo =
-      assignedToFilter === "all" ||
-      (assignedToFilter === "unassigned"
-        ? !c.assignedTo
-        : c.assignedTo === assignedToFilter ||
-          c.createdById === assignedToFilter);
+      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      const matchesAssignedTo =
+        assignedToFilter === "all" ||
+        (assignedToFilter === "unassigned"
+          ? !c.assignedTo
+          : c.assignedTo === assignedToFilter ||
+            c.createdById === assignedToFilter);
 
-    return matchesSearch && matchesStatus && matchesAssignedTo;
-  });
+      return matchesSearch && matchesStatus && matchesAssignedTo;
+    });
+  }, [clients, search, statusFilter, assignedToFilter]);
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (!sortConfig) return 0;
-    const { key, direction } = sortConfig;
-
-    let aValue: any = a[key] || "";
-    let bValue: any = b[key] || "";
-
-    // Handle special cases or nested fields if necessary
-    if (key === "assignedToName") {
-        aValue = a.assignedToName || a.assignedTo || "";
-        bValue = b.assignedToName || b.assignedTo || "";
-    }
-    
-    // Better date sorting
-    if (key === "dateOfBirth" || key === "lastContact" || key === "createdAt") {
-        // Try to parse if it's a string date
-        const aDate = aValue ? new Date(aValue).getTime() : 0;
-        const bDate = bValue ? new Date(bValue).getTime() : 0;
-        if (!isNaN(aDate) && !isNaN(bDate)) {
-            aValue = aDate;
-            bValue = bDate;
-        }
-    }
-
-    if (aValue < bValue) return direction === "asc" ? -1 : 1;
-    if (aValue > bValue) return direction === "asc" ? 1 : -1;
-    return 0;
-  });
+  const { sortedData: sorted, sortConfig, handleSort } = useSort(filtered, sortOptions);
 
   const handleEdit = (client: Client) => {
     setEditClient(client);
@@ -212,7 +184,6 @@ export function CRMTable({ clients }: CRMTableProps) {
     setStatusFilter("all");
     setAssignedToFilter("all");
     setSelectedRows(new Set());
-    setSortConfig(null);
   };
 
   const hasFilters =

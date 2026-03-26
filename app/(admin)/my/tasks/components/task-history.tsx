@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { format, subDays } from "date-fns";
 import { useMyDailyTasks } from "@/lib/api/hooks/use-tasks";
 import { TaskItem } from "./task-item";
+import { Button } from "@/components/ui/button";
+import { TableExportButton } from "@/components/ui/table-export-button";
+import { DailyTaskRecord } from "@/types/task-types";
+import { toast } from "sonner";
 import {
   Accordion,
   AccordionContent,
@@ -43,6 +47,57 @@ export function TaskHistory() {
         new Date(a.date || a.created_at).getTime(),
     );
 
+  const exportColumns = [
+    {
+      header: "Date",
+      key: (r: DailyTaskRecord) =>
+        r.date || format(new Date(r.created_at), "yyyy-MM-dd"),
+    },
+    { header: "Total Tasks", key: (r: DailyTaskRecord) => r.tasks.length },
+    {
+      header: "Completed",
+      key: (r: DailyTaskRecord) => r.tasks.filter((t) => t.completed).length,
+    },
+    {
+      header: "Ongoing",
+      key: (r: DailyTaskRecord) => r.tasks.filter((t) => !t.completed).length,
+    },
+    {
+      header: "Progress %",
+      key: (r: DailyTaskRecord) => {
+        const total = r.tasks.length;
+        const completed = r.tasks.filter((t) => t.completed).length;
+        return total > 0
+          ? Math.round((completed / total) * 100) + "%"
+          : "0%";
+      },
+    },
+    {
+      header: "Report Status",
+      key: (r: DailyTaskRecord) =>
+        r.report_submitted ? "Submitted" : "Pending",
+    },
+    {
+      header: "First Saved",
+      key: (r: DailyTaskRecord) =>
+        r.first_saved_at ? format(new Date(r.first_saved_at), "HH:mm") : "-",
+    },
+    {
+      header: "Submitted At",
+      key: (r: DailyTaskRecord) =>
+        r.report_submitted_at
+          ? format(new Date(r.report_submitted_at), "HH:mm")
+          : "-",
+    },
+    {
+      header: "Task List",
+      key: (r: DailyTaskRecord) =>
+        r.tasks
+          .map((t) => (t.completed ? "[x] " : "[ ] ") + t.text)
+          .join(" | "),
+    },
+  ];
+
   return (
     <div className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pb-6 flex flex-row items-center justify-between space-y-0">
@@ -58,6 +113,13 @@ export function TaskHistory() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {filteredHistory && filteredHistory.length > 0 && (
+            <TableExportButton
+              data={filteredHistory}
+              columns={exportColumns}
+              filename={`My_Tasks_${dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "Export"}`}
+            />
+          )}
           <DatePickerWithRange
             date={dateRange}
             setDate={setDateRange}
