@@ -240,7 +240,7 @@ export function CRMTable({ clients }: CRMTableProps) {
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as CRMStatus | "all")}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -257,7 +257,7 @@ export function CRMTable({ clients }: CRMTableProps) {
           value={assignedToFilter}
           onValueChange={(v) => setAssignedToFilter(v)}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All Staff" />
           </SelectTrigger>
           <SelectContent>
@@ -303,7 +303,7 @@ export function CRMTable({ clients }: CRMTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40px]">
+              <TableHead className="w-10">
                 <Checkbox
                   checked={
                     isAllSelected || (isSomeSelected ? "indeterminate" : false)

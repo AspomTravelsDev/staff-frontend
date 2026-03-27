@@ -58,13 +58,13 @@ export function StaffRequestsTable({ requests }: { requests: any[] }) {
               </TableCell>
               <TableCell>{request.quantity}</TableCell>
               <TableCell
-                className="max-w-[200px] truncate"
+                className="max-w-50 truncate"
                 title={request.reason}
               >
                 {request.reason}
               </TableCell>
               <TableCell
-                className="max-w-[200px] truncate"
+                className="max-w-50 truncate"
                 title={request.comment || "N/A"}
               >
                 {request.comment || "-"}

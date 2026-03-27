@@ -212,6 +212,42 @@ export const departmentNav: NavItem[] = [
         badgeLabel: "Staff requests pending review"
     },
     {
+        title: "Loan Requests Queue",
+        url: "/hr/loan-requests",
+        icon: CreditCard,
+        allowedRoles: ["hr", "super"],
+        badgeKey: "loanRequestsHr",
+        badgeLabel: "Loan requests pending HR review",
+        disabled: true,
+    },
+    {
+        title: "Salary Advance Queue",
+        url: "/hr/salary-advance-requests",
+        icon: CreditCard,
+        allowedRoles: ["hr", "super"],
+        badgeKey: "salaryAdvanceRequestsHr",
+        badgeLabel: "Salary advances pending HR review",
+        disabled: true,
+    },
+    {
+        title: "Loan Disbursement Queue",
+        url: "/accounts/loan-requests",
+        icon: CreditCard,
+        allowedRoles: ["account", "super"],
+        badgeKey: "loanRequestsAccounts",
+        badgeLabel: "Loan requests pending Accounts action",
+        disabled: true,
+    },
+    {
+        title: "Salary Advance Disbursement",
+        url: "/accounts/salary-advance-requests",
+        icon: CreditCard,
+        allowedRoles: ["account", "super"],
+        badgeKey: "salaryAdvanceRequestsAccounts",
+        badgeLabel: "Salary advances pending Accounts action",
+        disabled: true,
+    },
+    {
         title: "All General Requests",
         url: "/admin/requests",
         icon: ClipboardList,
@@ -296,6 +332,8 @@ export const personalNav: NavItem[] = [
             {
                 title: "Weekly Questionnaire",
                 url: "/my/weekly-feedback",
+                badgeKey: "weeklyQuestionnairePending",
+                badgeLabel: "Complete your weekly questionnaire",
             },
             {
                 title: "Attendance",
@@ -330,7 +368,19 @@ export const personalNav: NavItem[] = [
                 title: "Expenses", url: "/my/expenses", disabled: true,
             },
             {
-                title: "Payslip", url: "/my/payslip"
+                title: "Payslip", url: "/my/payslip", disabled: true,
+            },
+            {
+                title: "Loan Requests", url: "/my/loan-requests",
+                badgeKey: "myLoanRequestUpdates",
+                badgeLabel: "Loan request status updates",
+                disabled: true,
+            },
+            {
+                title: "Salary Advance Requests", url: "/my/salary-advance-requests",
+                badgeKey: "mySalaryAdvanceRequestUpdates",
+                badgeLabel: "Salary advance status updates",
+                disabled: true,
             }
         ]
     },

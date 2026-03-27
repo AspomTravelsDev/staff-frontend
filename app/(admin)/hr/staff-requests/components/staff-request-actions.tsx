@@ -43,7 +43,7 @@ export function StaffRequestActions({
   }
 
   return (
-    <div className="flex items-center gap-2 justify-end min-w-[140px]">
+    <div className="flex items-center gap-2 justify-end min-w-35">
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
       ) : null}
@@ -52,7 +52,7 @@ export function StaffRequestActions({
         onValueChange={handleStatusChange}
         disabled={loading}
       >
-        <SelectTrigger className="w-[140px] h-8 text-xs capitalize">
+        <SelectTrigger className="w-35 h-8 text-xs capitalize">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>

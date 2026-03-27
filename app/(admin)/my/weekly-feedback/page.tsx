@@ -1,4 +1,5 @@
 import { getWeeklyFeedbackActive } from "@/lib/api/weekly-feedback";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { WeeklyFeedbackFormView } from "./components/weekly-feedback-form-view";
 
 export const metadata = {
@@ -21,6 +22,15 @@ export default async function WeeklyFeedbackPage() {
           Save a draft and come back any time before Friday 9:00 PM.
         </p>
       </div>
+
+      <Alert>
+        <AlertTitle>Confidentiality Notice</AlertTitle>
+        <AlertDescription>
+          This questionnaire is anonymous. Individual responses are reviewed in
+          aggregate for team improvement and are not traced back to specific
+          staff members.
+        </AlertDescription>
+      </Alert>
 
       <WeeklyFeedbackFormView initialData={initialData} />
     </div>

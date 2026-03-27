@@ -138,7 +138,7 @@ export function ActivityTable({ activities }: ActivityTableProps) {
                     </div>
                   )}
                   {activity.note && (
-                    <p className="text-sm text-muted-foreground italic truncate max-w-[300px]">
+                    <p className="text-sm text-muted-foreground italic truncate max-w-75">
                       &quot;{activity.note}&quot;
                     </p>
                   )}

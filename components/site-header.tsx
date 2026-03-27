@@ -10,7 +10,6 @@ import { ClockInWidget } from "./clock-in-widget";
 import { useUser } from "@/providers/user-provider";
 import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
 import { getNavigationForUser } from "@/lib/navigation";
-import type { UserRole } from "@/types/user-types";
 import Link from "next/link";
 import { getTodayBirthdays, Employee } from "@/lib/api/employees";
 
@@ -63,6 +62,8 @@ export const SiteHeader = () => {
           label = "Submit your daily report";
         } else if (key === "myTasks") {
           label = "Submit your to-do list";
+        } else if (key === "weeklyQuestionnairePending") {
+          label = "Complete your weekly questionnaire";
         } else if (key === "compliance") {
           label = "New compliance query issued";
         } else if (key === "complianceReplies") {
@@ -144,7 +145,7 @@ export const SiteHeader = () => {
                     <div className="flex border-b px-4 py-3 bg-muted/50">
                       <span className="text-sm font-bold">Notifications</span>
                     </div>
-                    <div className="flex flex-col max-h-[400px] overflow-y-auto">
+                    <div className="flex flex-col max-h-100 overflow-y-auto">
                       {/* Birthday Notifications */}
                       {todayBirthdays.map((bday) => (
                         <div
@@ -156,10 +157,10 @@ export const SiteHeader = () => {
                           </div>
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <p className="text-sm font-semibold truncate">
-                              It's {bday.firstName}'s birthday! 🎂
+                              It&apos;s {bday.firstName}&apos;s birthday! 🎂
                             </p>
                             <p className="text-[11px] text-muted-foreground leading-tight">
-                              Don't forget to wish them well today.
+                              Don&apos;t forget to wish them well today.
                             </p>
                           </div>
                         </div>
