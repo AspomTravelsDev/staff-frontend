@@ -47,6 +47,7 @@ import { useState, useMemo } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
 import { EditUserDialog } from "./edit-user-dialog";
 import { formatLagosDate } from "@/lib/utils/attendance";
+import { getRoleLabel } from "@/types/user-types";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -60,11 +61,18 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
   );
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const sortOptions = useMemo(() => ({
-    dateFields: ["joinDate"] as (keyof Employee)[],
-  }), []);
+  const sortOptions = useMemo(
+    () => ({
+      dateFields: ["joinDate"] as (keyof Employee)[],
+    }),
+    [],
+  );
 
-  const { sortedData: sorted, sortConfig, handleSort } = useSort(employees, sortOptions);
+  const {
+    sortedData: sorted,
+    sortConfig,
+    handleSort,
+  } = useSort(employees, sortOptions);
 
   const SortIcon = ({ columnKey }: { columnKey: keyof Employee }) => {
     if (sortConfig?.key !== columnKey)
@@ -115,40 +123,50 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-            <TableRow>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("staff_id")}
-              >
-                <div className="flex items-center">Staff ID <SortIcon columnKey="staff_id" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("firstName")}
-              >
-                <div className="flex items-center">Name <SortIcon columnKey="firstName" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("department")}
-              >
-                <div className="flex items-center">Department <SortIcon columnKey="department" /></div>
-              </TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("joinDate")}
-              >
-                <div className="flex items-center">Date Joined <SortIcon columnKey="joinDate" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("status")}
-              >
-                <div className="flex items-center">Status <SortIcon columnKey="status" /></div>
-              </TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
+          <TableRow>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("staff_id")}
+            >
+              <div className="flex items-center">
+                Staff ID <SortIcon columnKey="staff_id" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("firstName")}
+            >
+              <div className="flex items-center">
+                Name <SortIcon columnKey="firstName" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("department")}
+            >
+              <div className="flex items-center">
+                Department <SortIcon columnKey="department" />
+              </div>
+            </TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("joinDate")}
+            >
+              <div className="flex items-center">
+                Date Joined <SortIcon columnKey="joinDate" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("status")}
+            >
+              <div className="flex items-center">
+                Status <SortIcon columnKey="status" />
+              </div>
+            </TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {sorted.length === 0 ? (
@@ -186,7 +204,9 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                       {employee.department || "—"}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {employee.role}
+                      {getRoleLabel(employee.role, {
+                        isSupervisor: employee.is_supervisor,
+                      })}
                     </span>
                   </div>
                 </TableCell>

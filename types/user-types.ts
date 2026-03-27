@@ -33,8 +33,16 @@ export function getRolesForSelect() {
     }));
 }
 
-export function getRoleLabel(role?: string): string {
+export function getRoleLabel(
+    role?: string,
+    options?: { isSupervisor?: boolean }
+): string {
     if (!role) return "";
+
+    if (role === USER_ROLES.HR_OFFICER) {
+        return options?.isSupervisor ? "HR Manager" : "HR Officer";
+    }
+
     // Cast strict check, fallback to raw string if unknown
     const detail = USER_ROLE_DETAILS[role as UserRole];
     return detail ? detail.label : role;

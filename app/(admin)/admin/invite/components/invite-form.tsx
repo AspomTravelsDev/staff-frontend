@@ -27,6 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
 
 const ROLES = getRolesForSelect();
 
@@ -53,12 +54,8 @@ export function InviteForm() {
   // Auto-fill department based on role
   const handleRoleChange = (role: string) => {
     setSelectedRole(role);
-    const roleDetails = ROLES.find((r) => r.value === role);
-    if (roleDetails) {
-      // Simple mapping: remove "Officer" from label
-      const autoDept = roleDetails.label
-        .replace(" Officer", "")
-        .replace("Super ", "");
+    const autoDept = ROLE_TO_DEPARTMENT[role];
+    if (autoDept) {
       setDepartment(autoDept);
     }
   };

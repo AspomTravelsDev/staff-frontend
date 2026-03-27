@@ -52,7 +52,11 @@ export default async function ProfilePage() {
             <div className="flex flex-col gap-1">
               <CardTitle className="text-2xl">{user.name}</CardTitle>
               <CardDescription className="flex items-center gap-2">
-                <Badge variant="secondary">{getRoleLabel(user.role)}</Badge>
+                <Badge variant="secondary">
+                  {getRoleLabel(user.role, {
+                    isSupervisor: user.is_supervisor,
+                  })}
+                </Badge>
                 <span className="text-muted-foreground">•</span>
                 <span>{user.staff_id}</span>
               </CardDescription>

@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { ItIssue } from "@/lib/api/it-issues";
+import { getRoleLabel } from "@/types/user-types";
 
 function getPriorityVariant(priority: string) {
   switch (priority) {
@@ -105,7 +106,7 @@ export function ItIssueDetailsSheet({
               </h4>
               <p className="font-medium">{issue.submitted_by.name}</p>
               <p className="text-sm text-muted-foreground capitalize">
-                {issue.submitted_by.role}
+                {getRoleLabel(issue.submitted_by.role)}
               </p>
             </div>
           )}

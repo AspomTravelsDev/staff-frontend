@@ -40,6 +40,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getRoleLabel } from "@/types/user-types";
 
 interface PendingInvitesProps {
   invites: InviteRecord[];
@@ -117,7 +118,10 @@ export function PendingInvites({ invites }: PendingInvitesProps) {
                         </span>
                         <div className="flex items-center gap-1.5 text-muted-foreground text-xs uppercase tracking-tight">
                           <IconUserCheck className="h-3 w-3" />
-                          {invite.role} • {invite.department || "No Department"}
+                          {getRoleLabel(invite.role, {
+                            isSupervisor: invite.is_supervisor,
+                          })}{" "}
+                          • {invite.department || "No Department"}
                         </div>
                       </div>
                     </TableCell>

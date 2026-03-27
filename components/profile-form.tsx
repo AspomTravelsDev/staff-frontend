@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { CalendarIcon, Loader2 } from "lucide-react";
-import { User } from "@/types/user-types";
+import { getRoleLabel, User } from "@/types/user-types";
 import {
   Popover,
   PopoverContent,
@@ -331,7 +331,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
             <FormItem>
               <FormLabel>Role</FormLabel>
               <FormControl>
-                <Input value={user.role} disabled />
+                <Input
+                  value={getRoleLabel(user.role, {
+                    isSupervisor: user.is_supervisor,
+                  })}
+                  disabled
+                />
               </FormControl>
             </FormItem>
 
