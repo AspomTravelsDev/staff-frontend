@@ -60,7 +60,10 @@ export function AddClientDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: employeesData } = useEmployees({ status: "Active" });
+  const { data: employeesData } = useEmployees({
+    limit: 1000,
+    status: "Active",
+  });
   const employees = employeesData?.items || [];
 
   const set = (field: keyof CreateClientRequest, value: string) =>

@@ -66,7 +66,7 @@ const formSchema = z
 export function CreateAwardDialog() {
   const [open, setOpen] = useState(false);
   const { data: employeesData, isLoading: isLoadingEmployees } = useEmployees({
-    limit: 100,
+    limit: 1000,
     status: "Active",
   });
 
@@ -106,9 +106,7 @@ export function CreateAwardDialog() {
       reset();
     } catch (error: unknown) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to assign award";
+        error instanceof Error ? error.message : "Failed to assign award";
       toast.error(message);
     }
   }

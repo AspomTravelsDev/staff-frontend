@@ -115,7 +115,7 @@ export function ItIssueDetailsSheet({
             <h4 className="text-sm font-medium text-muted-foreground mb-1">
               Description
             </h4>
-            <div className="bg-muted/50 rounded-md p-3 text-sm min-h-[100px] whitespace-pre-wrap">
+            <div className="bg-muted/50 rounded-md p-3 text-sm min-h-25 whitespace-pre-wrap">
               {issue.description}
             </div>
           </div>

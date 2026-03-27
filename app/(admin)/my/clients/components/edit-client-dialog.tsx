@@ -45,7 +45,10 @@ export function EditClientDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: employeesData } = useEmployees({ status: "Active" });
+  const { data: employeesData } = useEmployees({
+    limit: 1000,
+    status: "Active",
+  });
   const employees = employeesData?.items || [];
 
   useEffect(() => {

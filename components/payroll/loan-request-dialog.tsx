@@ -72,7 +72,7 @@ export function LoanRequestDialog() {
           Request Loan
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[540px]">
+      <DialogContent className="sm:max-w-135">
         <DialogHeader>
           <DialogTitle>Loan Request</DialogTitle>
           <DialogDescription>

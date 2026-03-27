@@ -98,7 +98,10 @@ export function CRMTable({ clients }: CRMTableProps) {
     "all",
   );
 
-  const { data: employeesData } = useEmployees({ status: "Active" });
+  const { data: employeesData } = useEmployees({
+    limit: 1000,
+    status: "Active",
+  });
   const employees = employeesData?.items || [];
 
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -110,18 +113,25 @@ export function CRMTable({ clients }: CRMTableProps) {
   const [toDelete, setToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const sortOptions = useMemo(() => ({
-    dateFields: ["dateOfBirth", "lastContact", "createdAt"] as (keyof Client)[],
-    customSorts: {
-      assignedToName: (a: Client, b: Client, direction: "asc" | "desc") => {
-        const aVal = a.assignedToName || a.assignedTo || "";
-        const bVal = b.assignedToName || b.assignedTo || "";
-        if (aVal < bVal) return direction === "asc" ? -1 : 1;
-        if (aVal > bVal) return direction === "asc" ? 1 : -1;
-        return 0;
-      }
-    }
-  }), []);
+  const sortOptions = useMemo(
+    () => ({
+      dateFields: [
+        "dateOfBirth",
+        "lastContact",
+        "createdAt",
+      ] as (keyof Client)[],
+      customSorts: {
+        assignedToName: (a: Client, b: Client, direction: "asc" | "desc") => {
+          const aVal = a.assignedToName || a.assignedTo || "";
+          const bVal = b.assignedToName || b.assignedTo || "";
+          if (aVal < bVal) return direction === "asc" ? -1 : 1;
+          if (aVal > bVal) return direction === "asc" ? 1 : -1;
+          return 0;
+        },
+      },
+    }),
+    [],
+  );
 
   const filtered = useMemo(() => {
     return clients.filter((c) => {
@@ -145,7 +155,11 @@ export function CRMTable({ clients }: CRMTableProps) {
     });
   }, [clients, search, statusFilter, assignedToFilter]);
 
-  const { sortedData: sorted, sortConfig, handleSort } = useSort(filtered, sortOptions);
+  const {
+    sortedData: sorted,
+    sortConfig,
+    handleSort,
+  } = useSort(filtered, sortOptions);
 
   const handleEdit = (client: Client) => {
     setEditClient(client);
@@ -312,70 +326,70 @@ export function CRMTable({ clients }: CRMTableProps) {
                   aria-label="Select all"
                 />
               </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("name")}
-                >
-                  <div className="flex items-center">
-                    Client / Company
-                    <SortIcon columnKey="name" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="hidden sm:table-cell cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("phone")}
-                >
-                  <div className="flex items-center">
-                    Phone
-                    <SortIcon columnKey="phone" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("status")}
-                >
-                  <div className="flex items-center">
-                    Status
-                    <SortIcon columnKey="status" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("service")}
-                >
-                  <div className="flex items-center">
-                    Service
-                    <SortIcon columnKey="service" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("source")}
-                >
-                  <div className="flex items-center">
-                    Source
-                    <SortIcon columnKey="source" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("assignedToName")}
-                >
-                  <div className="flex items-center">
-                    Assigned To
-                    <SortIcon columnKey="assignedToName" />
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
-                  onClick={() => handleSort("lastContact")}
-                >
-                  <div className="flex items-center">
-                    Last Contact
-                    <SortIcon columnKey="lastContact" />
-                  </div>
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableHead
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex items-center">
+                  Client / Company
+                  <SortIcon columnKey="name" />
+                </div>
+              </TableHead>
+              <TableHead
+                className="hidden sm:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("phone")}
+              >
+                <div className="flex items-center">
+                  Phone
+                  <SortIcon columnKey="phone" />
+                </div>
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("status")}
+              >
+                <div className="flex items-center">
+                  Status
+                  <SortIcon columnKey="status" />
+                </div>
+              </TableHead>
+              <TableHead
+                className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("service")}
+              >
+                <div className="flex items-center">
+                  Service
+                  <SortIcon columnKey="service" />
+                </div>
+              </TableHead>
+              <TableHead
+                className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("source")}
+              >
+                <div className="flex items-center">
+                  Source
+                  <SortIcon columnKey="source" />
+                </div>
+              </TableHead>
+              <TableHead
+                className="hidden lg:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("assignedToName")}
+              >
+                <div className="flex items-center">
+                  Assigned To
+                  <SortIcon columnKey="assignedToName" />
+                </div>
+              </TableHead>
+              <TableHead
+                className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
+                onClick={() => handleSort("lastContact")}
+              >
+                <div className="flex items-center">
+                  Last Contact
+                  <SortIcon columnKey="lastContact" />
+                </div>
+              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

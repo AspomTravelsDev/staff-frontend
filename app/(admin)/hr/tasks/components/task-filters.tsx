@@ -98,6 +98,7 @@ export function TaskFilters({ filters, records }: TaskFiltersProps) {
   };
 
   const { data: employeesData, isLoading: isLoadingEmployees } = useEmployees({
+    limit: 1000,
     status: "Active",
   });
   const employees = employeesData?.items || [];
@@ -150,7 +151,7 @@ export function TaskFilters({ filters, records }: TaskFiltersProps) {
         <DatePickerWithRange
           date={dateRange}
           setDate={handleDateRangeChange}
-          className="w-full sm:w-[260px]"
+          className="w-full sm:w-65"
         />
       </div>
 
@@ -161,7 +162,7 @@ export function TaskFilters({ filters, records }: TaskFiltersProps) {
           onValueChange={handleUserChange}
           disabled={isLoadingEmployees}
         >
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-45">
             <SelectValue placeholder="All Staff" />
           </SelectTrigger>
           <SelectContent>
@@ -187,7 +188,7 @@ export function TaskFilters({ filters, records }: TaskFiltersProps) {
           }
           onValueChange={handleStatusChange}
         >
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-45">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
