@@ -173,6 +173,11 @@ export const queryKeys = {
         list: (filters?: QueryFilters) => [...queryKeys.awards.lists(), filters] as const,
         stats: () => ["awards", "stats"] as const,
     },
+    departmentalContacts: {
+        all: ["departmentalContacts"] as const,
+        lists: () => [...queryKeys.departmentalContacts.all, "list"] as const,
+        list: (filters?: QueryFilters) => [...queryKeys.departmentalContacts.lists(), filters] as const,
+    },
 } as const;
 
 /**

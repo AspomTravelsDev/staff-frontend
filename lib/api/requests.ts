@@ -13,6 +13,17 @@ import { revalidatePath } from "next/cache";
 export type RequestStatus = "pending" | "approved" | "rejected" | "in_progress" | "completed" | "cancelled";
 export type RequestPriority = "low" | "medium" | "high" | "critical";
 
+export interface RequestLog {
+    id: string;
+    staff_request_id: string;
+    user_id: string;
+    user_name: string;
+    action: string;
+    old_value?: string;
+    new_value?: string;
+    created_at: string;
+}
+
 export interface RequestItem {
     id: string;
     type: string;
@@ -25,6 +36,7 @@ export interface RequestItem {
     reason: string;
     details: string;
     priority: RequestPriority;
+    logs?: RequestLog[];
 }
 
 export interface RequestFilters {
@@ -167,6 +179,15 @@ export async function deleteRequest(id: string): Promise<void> {
     if (!result.success) throw new Error(result.error.error);
     revalidatePath("/my/requests");
     revalidatePath("/admin/requests");
+}
+
+/**
+ * Mark general request updates as viewed
+ */
+export async function markGeneralRequestNotificationsViewed(): Promise<void> {
+    const result = await api.post<{ message: string }>("/api/requests/notifications/mark-viewed", {});
+    if (!result.success) throw new Error(result.error?.error || "Failed to mark notifications viewed");
+    revalidatePath("/my/requests");
 }
 
 

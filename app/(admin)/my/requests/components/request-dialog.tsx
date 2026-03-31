@@ -233,7 +233,23 @@ export function RequestDialog({
               )}
             />
 
-            <DialogFooter>
+            {isEditing && request?.logs && request.logs.length > 0 && (
+              <div className="space-y-3 pt-4 border-t mt-4">
+                <h4 className="text-sm font-medium text-foreground">Activity Log</h4>
+                <div className="space-y-3 max-h-40 overflow-y-auto pr-2 rounded-md bg-muted/20 p-3">
+                  {request.logs.map((log) => (
+                    <div key={log.id} className="text-xs text-muted-foreground flex gap-2">
+                       <span className="shrink-0 text-primary/70">{new Date(log.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                       <span>
+                         <strong>{log.user_name}</strong> changed status from <span className="capitalize">{log.old_value?.replace("_", " ")}</span> to <span className="capitalize font-medium text-foreground">{log.new_value?.replace("_", " ")}</span>
+                       </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="pt-2">
               <Button
                 type="button"
                 variant="outline"

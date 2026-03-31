@@ -114,6 +114,22 @@ export function RequestDetailsSheet({
               {request.details || "No additional details provided."}
             </div>
           </div>
+
+          {request.logs && request.logs.length > 0 && (
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Activity Log</h4>
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-2 rounded-md bg-muted/20 p-3">
+                {request.logs.map((log) => (
+                  <div key={log.id} className="text-xs text-muted-foreground flex gap-2">
+                     <span className="shrink-0 text-primary/70">{format(new Date(log.created_at), "MMM d, h:mm a")}</span>
+                     <span>
+                       <strong>{log.user_name}</strong> changed status from <span className="capitalize">{log.old_value?.replace("_", " ")}</span> to <span className="capitalize font-medium text-foreground">{log.new_value?.replace("_", " ")}</span>
+                     </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

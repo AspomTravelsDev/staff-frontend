@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 import { StatsCards } from "@/app/(admin)/admin/requests/components/stats-cards";
 import { MyRequestsTable } from "./my-requests-table";
 import { RequestDialog } from "./request-dialog";
+import { markGeneralRequestNotificationsViewed } from "@/lib/api/requests";
 import type { RequestItem } from "@/lib/api/requests";
 
 interface MyRequestsContentProps {
@@ -24,6 +25,10 @@ export function MyRequestsContent({ requests = [] }: MyRequestsContentProps) {
   const [editingRequest, setEditingRequest] = useState<RequestItem | null>(
     null,
   );
+
+  useEffect(() => {
+    markGeneralRequestNotificationsViewed().catch(console.error);
+  }, []);
 
   const computedStats = useMemo(
     () => ({

@@ -280,6 +280,12 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["it", "super"],
     },
     {
+        title: "Manage Dept Contacts",
+        url: "/it/departmental-contacts",
+        icon: Users,
+        allowedRoles: ["it", "super"],
+    },
+    {
         title: "Award Staff",
         url: "/hr/award-staff",
         icon: Trophy,
@@ -390,7 +396,10 @@ export const personalNav: NavItem[] = [
         icon: LucideUser,
         items: [
             {
-                title: "General Requests", url: "/my/requests"
+                title: "General Requests",
+                url: "/my/requests",
+                badgeKey: "myGeneralRequestUpdates",
+                badgeLabel: "General request updates",
             },
         ]
     },
@@ -423,6 +432,11 @@ export const personalNav: NavItem[] = [
         icon: ShieldCheck,
         badgeKey: "compliance",
         badgeLabel: "New compliance query"
+    },
+    {
+        title: "Staff Directory",
+        url: "/directory",
+        icon: Users,
     },
     {
         title: "Make Announcement",
