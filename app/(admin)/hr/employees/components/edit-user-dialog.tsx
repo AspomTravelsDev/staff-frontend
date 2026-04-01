@@ -61,7 +61,6 @@ const DEPARTMENTS = [
   "Compliance",
   "Birth Services",
   "Holidays",
-  "Operations",
   "Customer Service",
   "Other",
 ];

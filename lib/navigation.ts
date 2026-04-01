@@ -142,7 +142,7 @@ export const departmentNav: NavItem[] = [
         title: "Customer Database (CRM)",
         url: "/crm",
         icon: Users,
-        allowedRoles: ["super", "it", "visa"],
+        allowedRoles: ["super", "it", "visa", "account"],
     },
     {
         title: "HR Applications",

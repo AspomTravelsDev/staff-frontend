@@ -11,7 +11,7 @@ export default async function DirectoryPage() {
     // We fetch employees without pagination for the directory, so we can filter client-side.
     // getEmployees with no page works, but defaults to limit 20. Let's pass a huge limit or just use the client to fetch more inside if needed. 
     // Actually, getEmployees uses client-side pagination from a full payload in backend. So limit 1000 will get all.
-    const initialEmployeesResult = await getEmployees({ limit: 1000 });
+    const initialEmployeesResult = await getEmployees({ limit: 1000, status: "Active" });
     const initialDeps = await getDepartmentalContacts();
 
     return (

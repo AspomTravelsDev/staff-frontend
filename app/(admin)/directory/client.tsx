@@ -6,9 +6,11 @@ import { DepartmentalContact } from "@/lib/api/departmental-contacts";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Mail, Phone, Building, Users } from "lucide-react";
+import { Search, Mail, Phone, Building, Users, Copy } from "lucide-react";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface Props {
     initialEmployees: Employee[];
@@ -17,6 +19,11 @@ interface Props {
 
 export function DirectoryClient({ initialEmployees, initialDepartmentalContacts }: Props) {
     const [searchQuery, setSearchQuery] = useState("");
+
+    const copyToClipboard = (text: string, type: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success(`${type} copied to clipboard`);
+    };
 
     const filteredEmployees = initialEmployees.filter((emp) => {
         if (!searchQuery) return true;
@@ -67,45 +74,67 @@ export function DirectoryClient({ initialEmployees, initialDepartmentalContacts 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredEmployees.map((emp) => (
                         <Card key={emp.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-4 items-center gap-4 space-y-0 p-6 flex-col text-center">
-                                <Avatar className="h-20 w-20 border-2">
+                            <CardHeader className="pb-3 flex items-center gap-4 space-y-0 p-5 text-left">
+                                <Avatar className="h-14 w-14 border-2 shrink-0">
                                     <AvatarImage src={toProxiedImageUrl(emp.image_url)} alt={`${emp.firstName} ${emp.lastName}`} className="object-cover object-top" />
-                                    <AvatarFallback className="text-xl">
+                                    <AvatarFallback className="text-lg">
                                         {emp.firstName.charAt(0)}{emp.lastName.charAt(0)}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div className="space-y-1 w-full text-center">
-                                    <CardTitle className="text-lg">
+                                <div className="space-y-0.5 flex-1 min-w-0 flex flex-col items-start text-left shrink">
+                                    <CardTitle className="text-base truncate w-full">
                                         {emp.firstName} {emp.lastName}
                                     </CardTitle>
-                                    <CardDescription className="line-clamp-1">{emp.role}</CardDescription>
+                                    <CardDescription className="line-clamp-1 text-xs">{emp.role}</CardDescription>
                                     {emp.department && (
-                                        <div className="text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 pt-1">
-                                            <Building className="h-3 w-3" />
-                                            <span>{emp.department}</span>
+                                        <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-start gap-1 pt-1 w-full shrink-0">
+                                            <Building className="h-3 w-3 shrink-0" />
+                                            <span className="truncate">{emp.department}</span>
                                         </div>
                                     )}
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-4 pt-0 text-sm space-y-3 bg-muted/20 border-t flex flex-col justify-center min-h-[5rem]">
+                            <CardContent className="p-3 pt-0 text-sm space-y-2 bg-muted/20 border-t flex flex-col justify-center min-h-16">
                                 {emp.email && (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Mail className="h-4 w-4 shrink-0" />
-                                        <a href={`mailto:${emp.email}`} className="truncate hover:text-primary transition-colors">
-                                            {emp.email}
-                                        </a>
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-muted-foreground truncate mr-2">
+                                            <Mail className="h-3.5 w-3.5 shrink-0" />
+                                            <a href={`mailto:${emp.email}`} className="truncate hover:text-primary transition-colors text-xs">
+                                                {emp.email}
+                                            </a>
+                                        </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" 
+                                            onClick={() => copyToClipboard(emp.email, 'Email')}
+                                            title="Copy email"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                        </Button>
                                     </div>
                                 )}
                                 {emp.phone && (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Phone className="h-4 w-4 shrink-0" />
-                                        <a href={`tel:${emp.phone}`} className="hover:text-primary transition-colors">
-                                            {emp.phone}
-                                        </a>
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-2 text-muted-foreground truncate mr-2">
+                                            <Phone className="h-3.5 w-3.5 shrink-0" />
+                                            <a href={`tel:${emp.phone}`} className="hover:text-primary transition-colors text-xs">
+                                                {emp.phone}
+                                            </a>
+                                        </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" 
+                                            onClick={() => copyToClipboard(emp.phone, 'Phone')}
+                                            title="Copy phone"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                        </Button>
                                     </div>
                                 )}
                                 {!emp.email && !emp.phone && (
-                                    <span className="text-muted-foreground/50 text-center w-full italic">No contacts provided</span>
+                                    <span className="text-muted-foreground/50 text-center w-full italic text-xs">No contacts provided</span>
                                 )}
                             </CardContent>
                         </Card>
@@ -131,34 +160,56 @@ export function DirectoryClient({ initialEmployees, initialDepartmentalContacts 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredDeps.map((dep) => (
                         <Card key={dep.id} className="hover:shadow-md transition-shadow">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Building className="h-5 w-5 text-primary" />
+                            <CardHeader className="p-5 pb-3">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Building className="h-4 w-4 text-primary" />
                                     {dep.department}
                                 </CardTitle>
-                                <CardDescription>{dep.contact_name}</CardDescription>
+                                <CardDescription className="text-xs">{dep.contact_name}</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-3 p-5 pt-0">
                                 {dep.description && (
-                                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                                    <p className="text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-md">
                                         {dep.description}
                                     </p>
                                 )}
-                                <div className="space-y-2 text-sm">
+                                <div className="space-y-1.5 text-sm">
                                     {dep.email && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Mail className="h-4 w-4" />
-                                            <a href={`mailto:${dep.email}`} className="hover:text-primary transition-colors">
-                                                {dep.email}
-                                            </a>
+                                        <div className="flex items-center justify-between group">
+                                            <div className="flex items-center gap-2 text-muted-foreground truncate mr-2">
+                                                <Mail className="h-3.5 w-3.5 shrink-0" />
+                                                <a href={`mailto:${dep.email}`} className="truncate hover:text-primary transition-colors text-xs">
+                                                    {dep.email}
+                                                </a>
+                                            </div>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" 
+                                                onClick={() => copyToClipboard(dep.email!, 'Email')}
+                                                title="Copy email"
+                                            >
+                                                <Copy className="h-3 w-3" />
+                                            </Button>
                                         </div>
                                     )}
                                     {dep.phone && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Phone className="h-4 w-4" />
-                                            <a href={`tel:${dep.phone}`} className="hover:text-primary transition-colors">
-                                                {dep.phone}
-                                            </a>
+                                        <div className="flex items-center justify-between group">
+                                            <div className="flex items-center gap-2 text-muted-foreground truncate mr-2">
+                                                <Phone className="h-3.5 w-3.5 shrink-0" />
+                                                <a href={`tel:${dep.phone}`} className="hover:text-primary transition-colors text-xs">
+                                                    {dep.phone}
+                                                </a>
+                                            </div>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" 
+                                                onClick={() => copyToClipboard(dep.phone!, 'Phone')}
+                                                title="Copy phone"
+                                            >
+                                                <Copy className="h-3 w-3" />
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
