@@ -31,6 +31,18 @@ type FormState = {
 };
 
 const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
+const ALLOWED_REFEREE_RELATIONSHIPS = ["professional", "academic"] as const;
+const REFEREE_VALIDATION_ERROR =
+  "Referee must be a professional/academic contact and cannot be one of your guarantors.";
+
+const normalizeText = (value: unknown): string =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+const normalizePhone = (value: unknown): string =>
+  String(value || "").replace(/\D+/g, "");
 
 const resolvePreviewUrl = (url?: string | null): string | null => {
   if (!url) return null;
@@ -55,9 +67,14 @@ export function Step5Referee({
   const [refereePhotoUrl, setRefereePhotoUrl] = useState<string | null>(
     resolvePreviewUrl(initialData?.referee?.passportPhoto?.storagePath),
   );
-  const [relationshipType, setRelationshipType] = useState<string>(
-    initialData?.referee?.relationshipType || "",
-  );
+  const [relationshipType, setRelationshipType] = useState<string>(() => {
+    const currentValue = normalizeText(initialData?.referee?.relationshipType);
+    return ALLOWED_REFEREE_RELATIONSHIPS.includes(
+      currentValue as (typeof ALLOWED_REFEREE_RELATIONSHIPS)[number],
+    )
+      ? currentValue
+      : "";
+  });
   const [trustworthyValue, setTrustworthyValue] = useState<string>(
     initialData?.referee?.assessment?.trustworthyWithConfidentialInfo === true
       ? "yes"
@@ -137,6 +154,53 @@ export function Step5Referee({
         }
       }
 
+      const refereeRelationshipType = normalizeText(
+        formData.get("referee_relationshipType"),
+      );
+      if (
+        !ALLOWED_REFEREE_RELATIONSHIPS.includes(
+          refereeRelationshipType as (typeof ALLOWED_REFEREE_RELATIONSHIPS)[number],
+        )
+      ) {
+        return {
+          error: REFEREE_VALIDATION_ERROR,
+          submittedData: toSubmittedData(formData),
+        };
+      }
+
+      const refereeFullName = normalizeText(formData.get("referee_fullName"));
+      const refereeEmail = normalizeText(formData.get("referee_emailAddress"));
+      const refereePhone = normalizePhone(formData.get("referee_phoneNumber"));
+
+      const isSameAsGuarantor = (initialData?.guarantors || []).some(
+        (guarantor) => {
+          const guarantorName = normalizeText(
+            guarantor?.fullName ||
+              `${guarantor?.firstName || ""} ${guarantor?.middleName || ""} ${guarantor?.lastName || ""}`,
+          );
+          const guarantorEmail = normalizeText(guarantor?.email);
+          const guarantorPhone = normalizePhone(guarantor?.phoneNumber);
+
+          const sameName =
+            refereeFullName &&
+            guarantorName &&
+            refereeFullName === guarantorName;
+          const sameEmail =
+            refereeEmail && guarantorEmail && refereeEmail === guarantorEmail;
+          const samePhone =
+            refereePhone && guarantorPhone && refereePhone === guarantorPhone;
+
+          return Boolean(sameName || sameEmail || samePhone);
+        },
+      );
+
+      if (isSameAsGuarantor) {
+        return {
+          error: REFEREE_VALIDATION_ERROR,
+          submittedData: toSubmittedData(formData),
+        };
+      }
+
       // Upload referee photo
       const refereePhotoFile = formData.get("referee_photo") as File | null;
       let uploadedPhotoUrl: string | null = null;
@@ -156,6 +220,7 @@ export function Step5Referee({
           uploadedPhotoUrl = photoResult.storagePath;
           setRefereePhotoUrl(resolvePreviewUrl(photoResult.storagePath));
           uploadedPhotoFileId = photoResult.fileId;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (uploadError: any) {
           return {
             error: `Photo upload failed: ${uploadError.message}`,
@@ -285,12 +350,20 @@ export function Step5Referee({
       <div>
         <h3 className="text-lg font-semibold">Referee Details</h3>
         <p className="text-sm text-muted-foreground">
-          Step 5 of 6 - Provide details for one (1) professional or personal
+          Step 5 of 6 - Provide details for one (1) professional or academic
           referee
         </p>
         <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
           Complete all required fields. In steps 7 and 8, download forms, ensure
           signatures are present, then re-upload signed copies.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <p className="font-semibold">Important referee rule</p>
+        <p className="mt-1">
+          Your referee must be a professional or academic contact and must not
+          be one of your guarantors.
         </p>
       </div>
 
@@ -399,9 +472,6 @@ export function Step5Referee({
                   Professional / Colleague
                 </SelectItem>
                 <SelectItem value="academic">Academic / Teacher</SelectItem>
-                <SelectItem value="personal">Personal / Relative</SelectItem>
-                <SelectItem value="Friend">Friend</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
             <input
@@ -531,7 +601,7 @@ export function Step5Referee({
             {/* Q3: Ability to Get Along */}
             <div>
               <Label htmlFor="assessment_abilityToGetAlong" className="text-sm">
-                3. How would you describe the applicant's ability to get along
+                3. How would you describe the applicant&apos;s ability to get along
                 well with others?
               </Label>
               <textarea
@@ -592,7 +662,7 @@ export function Step5Referee({
             {/* Q6: Character Opinion */}
             <div>
               <Label htmlFor="assessment_characterOpinion" className="text-sm">
-                6. What is your opinion of the applicant's personal character,
+                6. What is your opinion of the applicant&apos;s personal character,
                 honesty and reliability?
               </Label>
               <textarea
@@ -607,7 +677,7 @@ export function Step5Referee({
             {/* Q7: Trustworthy with Confidential Info */}
             <div>
               <Label className="text-sm">
-                7. Is there any reason why you wouldn't trust the applicant with
+                7. Is there any reason why you wouldn&apos;t trust the applicant with
                 confidential information?
               </Label>
               <Select

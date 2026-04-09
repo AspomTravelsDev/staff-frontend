@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -57,6 +58,16 @@ import type { ExportColumn } from "@/lib/utils/export";
 
 interface CRMTableProps {
   clients: Client[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+  filters: {
+    search: string;
+    status: CRMStatus | "all";
+  };
 }
 
 const STATUS_STYLES: Record<CRMStatus, string> = {
@@ -85,10 +96,16 @@ const EXPORT_COLUMNS: ExportColumn<Client>[] = [
   { header: "Notes", key: "notes" },
 ];
 
-export function CRMTable({ clients }: CRMTableProps) {
+export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   // Local UI state
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">("all");
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">(
+    filters.status,
+  );
 
   // Table generic state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -101,20 +118,59 @@ export function CRMTable({ clients }: CRMTableProps) {
   const [toDelete, setToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Filtering logic
-  const filtered = clients.filter((c) => {
-    const matchesSearch =
-      !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.contactPerson.toLowerCase().includes(search.toLowerCase()) ||
-      c.email?.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone?.toLowerCase().includes(search.toLowerCase()) ||
-      c.service?.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    setSearchInput(filters.search);
+    setStatusFilter(filters.status);
+    setSelectedRows(new Set());
+  }, [clients, filters.search, filters.status]);
 
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+  const updateQueryParams = (mutator: (params: URLSearchParams) => void) => {
+    const params = new URLSearchParams(searchParams.toString());
+    mutator(params);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
 
-    return matchesSearch && matchesStatus;
-  });
+  const applySearchFilter = () => {
+    updateQueryParams((params) => {
+      const value = searchInput.trim();
+      if (value) {
+        params.set("search", value);
+      } else {
+        params.delete("search");
+      }
+      params.set("page", "1");
+    });
+  };
+
+  const handleStatusChange = (value: CRMStatus | "all") => {
+    setStatusFilter(value);
+    updateQueryParams((params) => {
+      if (value === "all") {
+        params.delete("status");
+      } else {
+        params.set("status", value);
+      }
+      params.set("page", "1");
+    });
+  };
+
+  const handleLimitChange = (value: string) => {
+    updateQueryParams((params) => {
+      params.set("limit", value);
+      params.set("page", "1");
+    });
+  };
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > pagination.total_pages || page === pagination.page) {
+      return;
+    }
+
+    updateQueryParams((params) => {
+      params.set("page", String(page));
+    });
+  };
 
   const handleEdit = (client: Client) => {
     setEditClient(client);
@@ -124,10 +180,6 @@ export function CRMTable({ clients }: CRMTableProps) {
   const handleView = (client: Client) => {
     setDetailClient(client);
     setDetailOpen(true);
-  };
-
-  const handleClientUpdated = () => {
-    // revalidatePath in the server action handles refreshing the data
   };
 
   const handleDelete = async () => {
@@ -149,17 +201,22 @@ export function CRMTable({ clients }: CRMTableProps) {
   };
 
   const clearFilters = () => {
-    setSearch("");
+    setSearchInput("");
     setStatusFilter("all");
     setSelectedRows(new Set());
+    updateQueryParams((params) => {
+      params.delete("search");
+      params.delete("status");
+      params.set("page", "1");
+    });
   };
 
-  const hasFilters = search || statusFilter !== "all";
+  const hasFilters = filters.search !== "" || filters.status !== "all";
 
   // Selection logic
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filtered.map((c) => c.id)));
+      setSelectedRows(new Set(clients.map((c) => c.id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -175,10 +232,9 @@ export function CRMTable({ clients }: CRMTableProps) {
     setSelectedRows(next);
   };
 
-  const isAllSelected =
-    filtered.length > 0 && selectedRows.size === filtered.length;
+  const isAllSelected = clients.length > 0 && selectedRows.size === clients.length;
   const isSomeSelected =
-    selectedRows.size > 0 && selectedRows.size < filtered.length;
+    selectedRows.size > 0 && selectedRows.size < clients.length;
 
   return (
     <>
@@ -188,17 +244,27 @@ export function CRMTable({ clients }: CRMTableProps) {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search name, email, phone, service..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applySearchFilter();
+              }
+            }}
             className="pl-8"
           />
         </div>
 
+        <Button variant="secondary" size="sm" onClick={applySearchFilter}>
+          Apply
+        </Button>
+
         <Select
           value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v as CRMStatus | "all")}
+          onValueChange={(v) => handleStatusChange(v as CRMStatus | "all")}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -225,11 +291,11 @@ export function CRMTable({ clients }: CRMTableProps) {
 
         <div className="ml-auto flex items-center gap-3">
           <p className="text-sm text-muted-foreground mr-2">
-            {filtered.length} of {clients.length} customers
+            {clients.length} of {pagination.total} customers
             {selectedRows.size > 0 && ` (${selectedRows.size} selected)`}
           </p>
           <TableExportButton
-            data={filtered}
+            data={clients}
             columns={EXPORT_COLUMNS}
             filename="my_clients_export"
             selectedIndices={selectedRows}
@@ -243,7 +309,7 @@ export function CRMTable({ clients }: CRMTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40px]">
+              <TableHead className="w-10">
                 <Checkbox
                   checked={
                     isAllSelected || (isSomeSelected ? "indeterminate" : false)
@@ -267,10 +333,10 @@ export function CRMTable({ clients }: CRMTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {clients.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {hasFilters
@@ -279,7 +345,7 @@ export function CRMTable({ clients }: CRMTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((client) => {
+              clients.map((client) => {
                 const isSelected = selectedRows.has(client.id);
                 return (
                   <TableRow
@@ -366,6 +432,50 @@ export function CRMTable({ clients }: CRMTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {pagination.total > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {Math.max(1, pagination.total_pages)}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows:</span>
+            <Select
+              value={String(pagination.limit)}
+              onValueChange={handleLimitChange}
+            >
+              <SelectTrigger className="h-8 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(pagination.page + 1)}
+              disabled={pagination.page >= pagination.total_pages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       <EditClientDialog

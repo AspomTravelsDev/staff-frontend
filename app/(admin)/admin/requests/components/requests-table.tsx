@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { getRoleLabel, User } from "@/types/user-types";
+import { useSort } from "@/lib/hooks/use-sort";
 import {
   MoreHorizontal,
   Box,
@@ -11,6 +12,9 @@ import {
   Key,
   HelpCircle,
   FileQuestion,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +81,31 @@ export function RequestsTable({ requests }: RequestsTableProps) {
     null,
   );
 
+  const sortOptions = useMemo(
+    () => ({
+      dateFields: ["request_date"] as (keyof RequestItem)[],
+    }),
+    [],
+  );
+
+  const {
+    sortedData: sorted,
+    sortConfig,
+    handleSort,
+  } = useSort(requests, sortOptions);
+
+  const SortIcon = ({ columnKey }: { columnKey: keyof RequestItem }) => {
+    if (sortConfig?.key !== columnKey) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    }
+
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-1 h-3 w-3" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3" />
+    );
+  };
+
   if (requests.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -91,16 +120,56 @@ export function RequestsTable({ requests }: RequestsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Requester</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Details</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right w-[150px]">Actions</TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("requester_name")}
+            >
+              <div className="flex items-center">
+                Requester
+                <SortIcon columnKey="requester_name" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("category")}
+            >
+              <div className="flex items-center">
+                Type
+                <SortIcon columnKey="category" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("reason")}
+            >
+              <div className="flex items-center">
+                Details
+                <SortIcon columnKey="reason" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("status")}
+            >
+              <div className="flex items-center">
+                Status
+                <SortIcon columnKey="status" />
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("request_date")}
+            >
+              <div className="flex items-center">
+                Date
+                <SortIcon columnKey="request_date" />
+              </div>
+            </TableHead>
+            <TableHead className="text-right w-40">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {requests.map((request) => {
+          {sorted.map((request) => {
             const CategoryIcon = categoryIcons[request.category] || HelpCircle;
 
             return (
@@ -139,7 +208,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex flex-col max-w-[300px]">
+                  <div className="flex flex-col max-w-75">
                     <span className="font-medium text-sm truncate">
                       {request.reason}
                     </span>

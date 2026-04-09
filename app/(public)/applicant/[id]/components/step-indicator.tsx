@@ -18,7 +18,7 @@ export function StepIndicator({ currentStep }: { currentStep: number }) {
         {steps.map((step, index) => (
           <div
             key={step.number}
-            className="flex flex-col items-center shrink-0 min-w-[60px] snap-center"
+            className="flex flex-col items-center shrink-0 min-w-15 snap-center"
           >
             {/* Step Circle */}
             <div

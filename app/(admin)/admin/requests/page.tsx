@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { RequestsTable } from "./components/requests-table";
@@ -9,9 +10,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { getRequests, getRequestStats } from "@/lib/api/requests";
 
-export default async function RequestsPage() {
+type RequestSearchParams = {
+  page?: string | string[];
+  limit?: string | string[];
+};
+
+const DEFAULT_LIMIT = 50;
+
+const parsePositiveInt = (
+  value: string | string[] | undefined,
+  fallback: number,
+) => {
+  if (typeof value !== "string") return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+export default async function RequestsPage({
+  searchParams,
+}: {
+  searchParams: Promise<RequestSearchParams>;
+}) {
+  const params = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
@@ -22,18 +45,31 @@ export default async function RequestsPage() {
     redirect("/dashboard");
   }
 
+  const page = parsePositiveInt(params.page, 1);
+  const limit = Math.min(parsePositiveInt(params.limit, DEFAULT_LIMIT), 100);
+
+  const buildHref = (nextPage: number, nextLimit: number = limit) => {
+    const query = new URLSearchParams();
+    query.set("page", String(nextPage));
+    query.set("limit", String(nextLimit));
+    return `/admin/requests?${query.toString()}`;
+  };
+
   const [requestsData, stats] = await Promise.all([
-    getRequests({ limit: 50 }),
+    getRequests({ page, limit }),
     getRequestStats(),
   ]);
 
   const requests = requestsData?.items ?? [];
   const pagination = requestsData?.pagination ?? {
     page: 1,
-    limit: 50,
+    limit,
     total: 0,
     total_pages: 0,
   };
+
+  const currentPage = pagination.page || 1;
+  const totalPages = Math.max(1, pagination.total_pages || 1);
 
   return (
     <div className="space-y-6">
@@ -57,6 +93,54 @@ export default async function RequestsPage() {
         </CardHeader>
         <CardContent>
           <RequestsTable requests={requests} />
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows:</span>
+              {[20, 50, 100].map((rowLimit) => (
+                <Button
+                  key={rowLimit}
+                  variant={limit === rowLimit ? "default" : "outline"}
+                  size="sm"
+                  asChild
+                >
+                  <Link href={buildHref(1, rowLimit)}>{rowLimit}</Link>
+                </Button>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                asChild={currentPage > 1}
+              >
+                {currentPage > 1 ? (
+                  <Link href={buildHref(currentPage - 1)}>Previous</Link>
+                ) : (
+                  <span>Previous</span>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                asChild={currentPage < totalPages}
+              >
+                {currentPage < totalPages ? (
+                  <Link href={buildHref(currentPage + 1)}>Next</Link>
+                ) : (
+                  <span>Next</span>
+                )}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

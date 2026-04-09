@@ -1,9 +1,25 @@
 import { getClients, getCRMStats } from "@/lib/api/crm";
 import type { Client, CRMStats } from "@/lib/api/crm-constants";
+import type { CRMStatus } from "@/lib/api/crm-constants";
+import type { PaginatedResponse } from "@/lib/api/types";
 
-export async function getAllClients(): Promise<Client[]> {
-    const result = await getClients({ limit: 100, myClients: true });
-    return result.items;
+interface GetAllClientsParams {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: CRMStatus;
+}
+
+export async function getAllClients(
+    params: GetAllClientsParams
+): Promise<PaginatedResponse<Client>> {
+    return getClients({
+        page: params.page,
+        limit: params.limit,
+        search: params.search,
+        status: params.status,
+        myClients: true,
+    });
 }
 
 export async function getClientStats(): Promise<CRMStats> {

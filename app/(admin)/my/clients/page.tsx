@@ -2,18 +2,73 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getAllClients, getClientStats } from "./queries";
 import { CRMContent } from "./components/crm-content";
+import type { CRMStatus } from "@/lib/api/crm-constants";
 
-export default async function CRMPage() {
+type CRMSearchParams = {
+  page?: string | string[];
+  limit?: string | string[];
+  search?: string | string[];
+  status?: string | string[];
+};
+
+const DEFAULT_LIMIT = 50;
+const ALLOWED_STATUSES: CRMStatus[] = [
+  "potential",
+  "follow_up",
+  "negotiation",
+  "paid",
+  "inactive",
+];
+
+const parsePositiveInt = (
+  value: string | string[] | undefined,
+  fallback: number,
+) => {
+  if (typeof value !== "string") return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+export default async function CRMPage({
+  searchParams,
+}: {
+  searchParams: Promise<CRMSearchParams>;
+}) {
   const user = await getCurrentUser();
+  const params = await searchParams;
 
   if (!user) {
     redirect("/login");
   }
 
-  const [clients, stats] = await Promise.all([
-    getAllClients(),
+  const page = parsePositiveInt(params.page, 1);
+  const limit = Math.min(parsePositiveInt(params.limit, DEFAULT_LIMIT), 100);
+  const search =
+    typeof params.search === "string" ? params.search.trim() : "";
+
+  const rawStatus =
+    typeof params.status === "string" ? params.status : undefined;
+  const status = rawStatus && ALLOWED_STATUSES.includes(rawStatus as CRMStatus)
+    ? (rawStatus as CRMStatus)
+    : undefined;
+
+  const [clientsData, stats] = await Promise.all([
+    getAllClients({
+      page,
+      limit,
+      search: search || undefined,
+      status,
+    }),
     getClientStats(),
   ]);
 
-  return <CRMContent clients={clients} stats={stats} currentUserId={user.id} />;
+  return (
+    <CRMContent
+      clients={clientsData.items}
+      pagination={clientsData.pagination}
+      filters={{ search, status: status || "all" }}
+      stats={stats}
+      currentUserId={user.id}
+    />
+  );
 }

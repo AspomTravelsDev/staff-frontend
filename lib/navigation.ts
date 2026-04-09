@@ -60,7 +60,7 @@ export const dashboardNav: NavItem[] = [
 export const departmentNav: NavItem[] = [
     {
         title: "Payment Confirmation",
-        url: "https://staff.aspomportal.com/sales_1",
+        url: "/accounts/confirmation",
         icon: CreditCard,
         allowedRoles: ["account"],
     },
@@ -76,7 +76,6 @@ export const departmentNav: NavItem[] = [
         url: "/accounts/outstanding",
         icon: CreditCard,
         allowedRoles: ["account"],
-        disabled: true,
     },
     // {
     //     title: "Assigned Projects",
@@ -142,7 +141,7 @@ export const departmentNav: NavItem[] = [
         title: "Customer Database (CRM)",
         url: "/crm",
         icon: Users,
-        allowedRoles: ["super", "it", "visa", "account"],
+        allowedRoles: ["super", "it", "visa", "account", "social-media", "compliance"],
     },
     {
         title: "HR Applications",
@@ -368,7 +367,7 @@ export const personalNav: NavItem[] = [
         icon: CreditCard,
         items: [
             {
-                title: "Payment Confirmation", url: "https://staff.aspomportal.com/sales_1"
+                title: "Payment Confirmation", url: "/my/payment"
             },
             {
                 title: "Expenses", url: "/my/expenses", disabled: true,

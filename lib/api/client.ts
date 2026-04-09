@@ -34,11 +34,14 @@ export interface RequestConfig extends Omit<RequestInit, "body"> {
 /**
  * Build headers for API requests
  */
-function buildHeaders(token?: string | null): HeadersInit {
-    const headers: HeadersInit = {
-        "Content-Type": "application/json",
+function buildHeaders(token?: string | null, isFormData?: boolean): HeadersInit {
+    const headers: Record<string, string> = {
         Accept: "application/json",
     };
+
+    if (!isFormData) {
+        headers["Content-Type"] = "application/json";
+    }
 
     if (token) {
         headers.Authorization = `Bearer ${token}`;
@@ -52,6 +55,7 @@ export async function apiClient<T>(
     config: RequestConfig = {}
 ): Promise<ApiResponse<T>> {
     const { body, skipAuth, token: customToken, ...fetchOptions } = config;
+    const isFormData = body instanceof FormData;
 
     // Get auth token if not skipped
     let token: string | null = null;
@@ -62,7 +66,7 @@ export async function apiClient<T>(
     }
 
     const headers = {
-        ...buildHeaders(token),
+        ...buildHeaders(token, isFormData),
         ...fetchOptions.headers,
     };
 
@@ -70,7 +74,7 @@ export async function apiClient<T>(
         const response = await fetch(`${API_URL}${endpoint}`, {
             ...fetchOptions,
             headers,
-            body: body ? JSON.stringify(body) : undefined,
+            body: isFormData ? (body as any) : (body ? JSON.stringify(body) : undefined),
             cache: fetchOptions.cache ?? "no-store",
         });
 
@@ -167,20 +171,21 @@ export async function apiClientBrowser<T>(
     config: RequestConfig = {}
 ): Promise<T> {
     const { body, token, ...fetchOptions } = config;
+    const isFormData = body instanceof FormData;
 
     if (!token) {
         throw new Error("Token is required for browser API calls");
     }
 
     const headers = {
-        ...buildHeaders(token),
+        ...buildHeaders(token, isFormData),
         ...fetchOptions.headers,
     };
 
     const response = await fetch(`${API_URL}${endpoint}`, {
         ...fetchOptions,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: isFormData ? (body as any) : (body ? JSON.stringify(body) : undefined),
     });
 
     if (!response.ok) {

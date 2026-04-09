@@ -26,6 +26,10 @@ export default async function ApplicantPage({
           <li>• Signed documents must be PDF and up to 2MB each.</li>
           <li>• Fill all required fields on each step before continuing.</li>
           <li>
+            • Your referee must not be one of your guarantors and should be from
+            a professional or educational environment.
+          </li>
+          <li>
             • In steps 7 and 8, ensure documents are signed before upload.
           </li>
         </ul>
