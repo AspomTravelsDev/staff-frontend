@@ -8,7 +8,14 @@ interface GetAllClientsParams {
     limit: number;
     search?: string;
     status?: CRMStatus;
+    service?: string;
+    source?: string;
 }
+
+type CRMStatsFilterParams = Pick<
+    GetAllClientsParams,
+    "search" | "status" | "service" | "source"
+>;
 
 export async function getAllClients(
     params: GetAllClientsParams
@@ -18,10 +25,20 @@ export async function getAllClients(
         limit: params.limit,
         search: params.search,
         status: params.status,
+        service: params.service,
+        source: params.source,
         myClients: true,
     });
 }
 
-export async function getClientStats(): Promise<CRMStats> {
-    return getCRMStats(true); // Pass true to fetch only my clients' stats
+export async function getClientStats(
+    filters: CRMStatsFilterParams = {}
+): Promise<CRMStats> {
+    return getCRMStats({
+        myClients: true,
+        search: filters.search,
+        status: filters.status,
+        service: filters.service,
+        source: filters.source,
+    });
 }

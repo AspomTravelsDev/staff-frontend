@@ -9,6 +9,7 @@ import {
   MoreVertical,
   HardDrive,
   Pencil,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -118,6 +119,55 @@ export function DocumentGrid({
     }
   };
 
+  const handleOpenInNewTab = async (doc: DocumentFile) => {
+    try {
+      if (!token) {
+        console.error("No auth token available");
+        return;
+      }
+
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const downloadId = doc.file_id || doc.id;
+      const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+
+      const response = await fetch(downloadUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error(
+          "Open in new tab failed:",
+          response.status,
+          response.statusText,
+        );
+        return;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const openedWindow = window.open(
+        blobUrl,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+      if (!openedWindow) {
+        toast.error(
+          "Pop-up blocked. Please allow pop-ups to preview documents.",
+        );
+      }
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 60_000);
+    } catch (e) {
+      console.error("Open in new tab error", e);
+    }
+  };
+
   const getFileExtension = (filename: string | undefined) => {
     if (!filename) return "";
     return filename.split(".").pop()?.toLowerCase() || "";
@@ -158,10 +208,7 @@ export function DocumentGrid({
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {[...Array(12)].map((_, i) => (
-          <Card
-            key={i}
-            className="animate-pulse bg-muted/30 border h-35"
-          />
+          <Card key={i} className="animate-pulse bg-muted/30 border h-35" />
         ))}
       </div>
     );
@@ -200,6 +247,12 @@ export function DocumentGrid({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="text-xs">
+                  <DropdownMenuItem
+                    onClick={() => handleOpenInNewTab(doc)}
+                    className="gap-2 cursor-pointer py-1"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Open in new tab
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleDownload(doc)}
                     className="gap-2 cursor-pointer py-1"
@@ -265,10 +318,7 @@ export function DocumentGrid({
                     {doc.title}
                   </h3>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-50 text-[10px]"
-                >
+                <TooltipContent side="bottom" className="max-w-50 text-[10px]">
                   <p>{doc.title}</p>
                 </TooltipContent>
               </Tooltip>

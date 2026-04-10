@@ -48,7 +48,13 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { Client, CRMStatus, CRM_STATUS_OPTIONS } from "@/lib/api/crm-constants";
+import {
+  Client,
+  CRM_SERVICE_OPTIONS,
+  CRM_SOURCE_OPTIONS,
+  CRMStatus,
+  CRM_STATUS_OPTIONS,
+} from "@/lib/api/crm-constants";
 import { deleteClientAction } from "../actions";
 import { EditClientDialog } from "./edit-client-dialog";
 import { ClientDetailSheet } from "./client-detail-sheet";
@@ -67,6 +73,8 @@ interface CRMTableProps {
   filters: {
     search: string;
     status: CRMStatus | "all";
+    service: string | "all";
+    source: string | "all";
   };
 }
 
@@ -106,6 +114,12 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
   const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">(
     filters.status,
   );
+  const [serviceFilter, setServiceFilter] = useState<string | "all">(
+    filters.service,
+  );
+  const [sourceFilter, setSourceFilter] = useState<string | "all">(
+    filters.source,
+  );
 
   // Table generic state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -121,8 +135,16 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
   useEffect(() => {
     setSearchInput(filters.search);
     setStatusFilter(filters.status);
+    setServiceFilter(filters.service);
+    setSourceFilter(filters.source);
     setSelectedRows(new Set());
-  }, [clients, filters.search, filters.status]);
+  }, [
+    clients,
+    filters.search,
+    filters.status,
+    filters.service,
+    filters.source,
+  ]);
 
   const updateQueryParams = (mutator: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -150,6 +172,30 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
         params.delete("status");
       } else {
         params.set("status", value);
+      }
+      params.set("page", "1");
+    });
+  };
+
+  const handleServiceChange = (value: string | "all") => {
+    setServiceFilter(value);
+    updateQueryParams((params) => {
+      if (value === "all") {
+        params.delete("service");
+      } else {
+        params.set("service", value);
+      }
+      params.set("page", "1");
+    });
+  };
+
+  const handleSourceChange = (value: string | "all") => {
+    setSourceFilter(value);
+    updateQueryParams((params) => {
+      if (value === "all") {
+        params.delete("source");
+      } else {
+        params.set("source", value);
       }
       params.set("page", "1");
     });
@@ -203,15 +249,23 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
   const clearFilters = () => {
     setSearchInput("");
     setStatusFilter("all");
+    setServiceFilter("all");
+    setSourceFilter("all");
     setSelectedRows(new Set());
     updateQueryParams((params) => {
       params.delete("search");
       params.delete("status");
+      params.delete("service");
+      params.delete("source");
       params.set("page", "1");
     });
   };
 
-  const hasFilters = filters.search !== "" || filters.status !== "all";
+  const hasFilters =
+    filters.search !== "" ||
+    filters.status !== "all" ||
+    filters.service !== "all" ||
+    filters.source !== "all";
 
   // Selection logic
   const handleSelectAll = (checked: boolean) => {
@@ -232,7 +286,8 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
     setSelectedRows(next);
   };
 
-  const isAllSelected = clients.length > 0 && selectedRows.size === clients.length;
+  const isAllSelected =
+    clients.length > 0 && selectedRows.size === clients.length;
   const isSomeSelected =
     selectedRows.size > 0 && selectedRows.size < clients.length;
 
@@ -272,6 +327,40 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
             {CRM_STATUS_OPTIONS.map((s) => (
               <SelectItem key={s.value} value={s.value}>
                 {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={serviceFilter}
+          onValueChange={(v) => handleServiceChange(v as string | "all")}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All services" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Services</SelectItem>
+            {CRM_SERVICE_OPTIONS.map((service) => (
+              <SelectItem key={service} value={service}>
+                {service}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={sourceFilter}
+          onValueChange={(v) => handleSourceChange(v as string | "all")}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            {CRM_SOURCE_OPTIONS.map((source) => (
+              <SelectItem key={source} value={source}>
+                {source}
               </SelectItem>
             ))}
           </SelectContent>

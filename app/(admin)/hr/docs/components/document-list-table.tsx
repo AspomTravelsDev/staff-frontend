@@ -11,7 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { DocumentFile } from "@/types/file-types";
 import { format } from "date-fns";
-import { Download, Trash2, FileText, Loader2, Pencil } from "lucide-react";
+import {
+  Download,
+  Trash2,
+  FileText,
+  Loader2,
+  Pencil,
+  ExternalLink,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -107,6 +114,56 @@ export function DocumentListTable({
       document.body.removeChild(a);
     } catch (e) {
       console.error("Download error", e);
+    }
+  };
+
+  const handleOpenInNewTab = async (doc: DocumentFile) => {
+    try {
+      if (!token) {
+        console.error("No auth token available");
+        return;
+      }
+
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      const downloadId = doc.file_id || doc.id;
+      const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+
+      const response = await fetch(downloadUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error(
+          "Open in new tab failed:",
+          response.status,
+          response.statusText,
+        );
+        return;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const openedWindow = window.open(
+        blobUrl,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+      if (!openedWindow) {
+        toast.error(
+          "Pop-up blocked. Please allow pop-ups to preview documents.",
+        );
+      }
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 60_000);
+    } catch (e) {
+      console.error("Open in new tab error", e);
     }
   };
 
@@ -207,6 +264,26 @@ export function DocumentListTable({
               <TableCell>{doc.uploaded_by?.name || "System"}</TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
+                  {token ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenInNewTab(doc)}
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled
+                      title="Loading..."
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </Button>
+                  )}
+
                   {token ? (
                     <Button
                       variant="ghost"

@@ -96,6 +96,8 @@ export interface CRMFilters {
     limit?: number;
     search?: string;
     status?: CRMStatus;
+    service?: string;
+    source?: string;
     myClients?: boolean;
     assignedTo?: string;
 }

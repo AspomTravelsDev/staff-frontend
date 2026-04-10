@@ -23,6 +23,8 @@ export async function getClients(
     if (filters.limit) queryParams.set("limit", filters.limit.toString());
     if (filters.search) queryParams.set("search", filters.search);
     if (filters.status) queryParams.set("status", filters.status);
+    if (filters.service) queryParams.set("service", filters.service);
+    if (filters.source) queryParams.set("source", filters.source);
     if (filters.myClients) queryParams.set("my_clients", "true");
     if (filters.assignedTo) queryParams.set("assignedTo", filters.assignedTo);
 
@@ -38,11 +40,20 @@ export async function getClients(
     return { items: [], pagination: { page: 1, limit: 50, total: 0, total_pages: 0 } };
 }
 
-export async function getCRMStats(myClients: boolean = false, assignedTo?: string): Promise<CRMStats> {
+export async function getCRMStats(
+    filters: Pick<
+        CRMFilters,
+        "myClients" | "assignedTo" | "search" | "status" | "service" | "source"
+    > = {}
+): Promise<CRMStats> {
 
     const queryParams = new URLSearchParams();
-    if (myClients) queryParams.set("my_clients", "true");
-    if (assignedTo) queryParams.set("assignedTo", assignedTo);
+    if (filters.myClients) queryParams.set("my_clients", "true");
+    if (filters.assignedTo) queryParams.set("assignedTo", filters.assignedTo);
+    if (filters.search) queryParams.set("search", filters.search);
+    if (filters.status) queryParams.set("status", filters.status);
+    if (filters.service) queryParams.set("service", filters.service);
+    if (filters.source) queryParams.set("source", filters.source);
 
     const response = await api.get<CRMStats>(`/api/crm/stats?${queryParams.toString()}`);
 

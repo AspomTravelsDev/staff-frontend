@@ -17,6 +17,8 @@ interface CRMContentProps {
   filters: {
     search: string;
     status: CRMStatus | "all";
+    service: string | "all";
+    source: string | "all";
   };
   stats: CRMStats;
   currentUserId?: string;
@@ -63,10 +65,7 @@ export function CRMContent({
         currentUserId={currentUserId}
       />
 
-      <ImportClientsDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-      />
+      <ImportClientsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }

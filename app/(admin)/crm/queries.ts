@@ -7,5 +7,5 @@ export async function getAllClients(): Promise<Client[]> {
 }
 
 export async function getClientStats(): Promise<CRMStats> {
-    return getCRMStats();
+    return getCRMStats({});
 }
