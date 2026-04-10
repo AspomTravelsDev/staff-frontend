@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { RequiredSignedAssetDocument } from "@/lib/types/hr";
 
 type FormState = {
   error?: string;
@@ -26,26 +27,67 @@ interface SignedDocumentsData {
   refereeSigned?: SignedDocument;
   ndaSigned?: SignedDocument;
   indemnitySigned?: SignedDocument;
+  [key: string]: SignedDocument | undefined;
 }
+
+interface RequiredUploadDocument {
+  key: string;
+  inputName: string;
+  uploadFieldPrefix: string;
+  label: string;
+  description: string;
+}
+
+const BASE_REQUIRED_DOCUMENTS: RequiredUploadDocument[] = [
+  {
+    key: "guarantor1Signed",
+    inputName: "guarantor1_signed",
+    uploadFieldPrefix: "guarantor_1_signed",
+    label: "Signed Guarantor 1 Form *",
+    description: "Upload the signed form from your first guarantor",
+  },
+  {
+    key: "guarantor2Signed",
+    inputName: "guarantor2_signed",
+    uploadFieldPrefix: "guarantor_2_signed",
+    label: "Signed Guarantor 2 Form *",
+    description: "Upload the signed form from your second guarantor",
+  },
+  {
+    key: "refereeSigned",
+    inputName: "referee_signed",
+    uploadFieldPrefix: "referee_signed",
+    label: "Signed Referee Form *",
+    description: "Upload the signed form from your referee",
+  },
+  {
+    key: "ndaSigned",
+    inputName: "nda_signed",
+    uploadFieldPrefix: "nda_signed",
+    label: "Signed NDA Agreement *",
+    description: "Upload your signed NDA agreement",
+  },
+  {
+    key: "indemnitySigned",
+    inputName: "indemnity_signed",
+    uploadFieldPrefix: "indemnity_signed",
+    label: "Signed Indemnity Form *",
+    description: "Upload your signed indemnity form",
+  },
+];
 
 const MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
 
 export function Step8UploadSigned({
   applicationId,
   initialData,
+  requiredAssetDocuments = [],
 }: {
   applicationId: string;
   initialData?: SignedDocumentsData;
+  requiredAssetDocuments?: RequiredSignedAssetDocument[];
 }) {
-  const [guarantor1Preview, setGuarantor1Preview] = useState<string | null>(
-    null,
-  );
-  const [guarantor2Preview, setGuarantor2Preview] = useState<string | null>(
-    null,
-  );
-  const [refereePreview, setRefereePreview] = useState<string | null>(null);
-  const [ndaPreview, setNdaPreview] = useState<string | null>(null);
-  const [indemnityPreview, setIndemnityPreview] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Record<string, string | null>>({});
 
   const [persistedSignedDocuments, setPersistedSignedDocuments] =
     useState<SignedDocumentsData>(initialData || {});
@@ -57,9 +99,22 @@ export function Step8UploadSigned({
     [key: string]: string | null;
   }>({});
 
+  const extraRequiredDocuments: RequiredUploadDocument[] =
+    requiredAssetDocuments.map((document) => ({
+      key: document.key,
+      inputName: document.key,
+      uploadFieldPrefix: document.key,
+      label: `Signed ${document.label} *`,
+      description: `Upload your signed ${document.label.toLowerCase()}`,
+    }));
+
+  const requiredDocuments = [
+    ...BASE_REQUIRED_DOCUMENTS,
+    ...extraRequiredDocuments,
+  ];
+
   const handleFilePreview = (
     e: React.ChangeEvent<HTMLInputElement>,
-    setPreview: (value: string | null) => void,
     fieldName: string,
   ) => {
     const file = e.target.files?.[0];
@@ -74,7 +129,7 @@ export function Step8UploadSigned({
           [fieldName]:
             "Please upload a PDF, PNG, or JPEG. WebP is not supported.",
         }));
-        setPreview(null);
+        setPreviews((prev) => ({ ...prev, [fieldName]: null }));
         e.target.value = ""; // Clear input
         return;
       }
@@ -86,14 +141,17 @@ export function Step8UploadSigned({
           [fieldName]: message,
         }));
         toast.error(message);
-        setPreview(null);
+        setPreviews((prev) => ({ ...prev, [fieldName]: null }));
         e.target.value = "";
         return;
       }
 
       const reader = new FileReader();
       reader.onload = (event) => {
-        setPreview(event.target?.result as string);
+        setPreviews((prev) => ({
+          ...prev,
+          [fieldName]: event.target?.result as string,
+        }));
       };
       reader.readAsDataURL(file);
     }
@@ -111,163 +169,49 @@ export function Step8UploadSigned({
     setUploadError(null);
 
     try {
-      const guarantor1File = formData.get("guarantor1_signed") as File | null;
-      const guarantor2File = formData.get("guarantor2_signed") as File | null;
-      const refereeFile = formData.get("referee_signed") as File | null;
-      const ndaFile = formData.get("nda_signed") as File | null;
-      const indemnityFile = formData.get("indemnity_signed") as File | null;
+      const missingDocuments = requiredDocuments.filter((document) => {
+        const file = formData.get(document.inputName) as File | null;
+        return !(
+          (file && file.size > 0) ||
+          !!persistedSignedDocuments[document.key]?.storagePath
+        );
+      });
 
-      // Validate all files are present (either new upload or existing)
-      const hasGuarantor1 =
-        (guarantor1File && guarantor1File.size > 0) ||
-        !!persistedSignedDocuments.guarantor1Signed?.storagePath;
-      const hasGuarantor2 =
-        (guarantor2File && guarantor2File.size > 0) ||
-        !!persistedSignedDocuments.guarantor2Signed?.storagePath;
-      const hasReferee =
-        (refereeFile && refereeFile.size > 0) ||
-        !!persistedSignedDocuments.refereeSigned?.storagePath;
-      const hasNda =
-        (ndaFile && ndaFile.size > 0) ||
-        !!persistedSignedDocuments.ndaSigned?.storagePath;
-      const hasIndemnity =
-        (indemnityFile && indemnityFile.size > 0) ||
-        !!persistedSignedDocuments.indemnitySigned?.storagePath;
-
-      if (
-        !hasGuarantor1 ||
-        !hasGuarantor2 ||
-        !hasReferee ||
-        !hasNda ||
-        !hasIndemnity
-      ) {
+      if (missingDocuments.length > 0) {
         setIsUploading(false);
-        return { error: "Please upload all five signed documents" };
+        return { error: "Please upload all required signed documents" };
       }
 
-      const signedDocuments: SignedDocumentsData = {};
+      const uploadedSignedDocuments: SignedDocumentsData = {};
 
-      // Upload Guarantor 1 signed document
-      if (guarantor1File && guarantor1File.size > 0) {
+      for (const document of requiredDocuments) {
+        const file = formData.get(document.inputName) as File | null;
+        if (!file || file.size === 0) continue;
+
         try {
           const result = await uploadPublicFile(
             applicationId,
-            guarantor1File,
-            `guarantor_1_signed_${applicationId}`,
+            file,
+            `${document.uploadFieldPrefix}_${applicationId}`,
           );
-          signedDocuments.guarantor1Signed = {
-            fileName: guarantor1File.name,
+
+          uploadedSignedDocuments[document.key] = {
+            fileName: file.name,
             storagePath: result.storagePath,
             uploadedAt: new Date().toISOString(),
             fileId: result.fileId,
           };
         } catch (error: any) {
           setIsUploading(false);
-          return { error: `Guarantor 1 upload failed: ${error.message}` };
-        }
-      }
-
-      // Upload Guarantor 2 signed document
-      if (guarantor2File && guarantor2File.size > 0) {
-        try {
-          const result = await uploadPublicFile(
-            applicationId,
-            guarantor2File,
-            `guarantor_2_signed_${applicationId}`,
-          );
-          signedDocuments.guarantor2Signed = {
-            fileName: guarantor2File.name,
-            storagePath: result.storagePath,
-            uploadedAt: new Date().toISOString(),
-            fileId: result.fileId,
+          return {
+            error: `${document.label.replace(" *", "")} upload failed: ${error.message}`,
           };
-        } catch (error: any) {
-          setIsUploading(false);
-          return { error: `Guarantor 2 upload failed: ${error.message}` };
-        }
-      }
-
-      // Upload Referee signed document
-      if (refereeFile && refereeFile.size > 0) {
-        try {
-          const result = await uploadPublicFile(
-            applicationId,
-            refereeFile,
-            `referee_signed_${applicationId}`,
-          );
-          signedDocuments.refereeSigned = {
-            fileName: refereeFile.name,
-            storagePath: result.storagePath,
-            uploadedAt: new Date().toISOString(),
-            fileId: result.fileId,
-          };
-        } catch (error: any) {
-          setIsUploading(false);
-          return { error: `Referee upload failed: ${error.message}` };
-        }
-      }
-
-      // Upload NDA signed document
-      if (ndaFile && ndaFile.size > 0) {
-        try {
-          const result = await uploadPublicFile(
-            applicationId,
-            ndaFile,
-            `nda_signed_${applicationId}`,
-          );
-          signedDocuments.ndaSigned = {
-            fileName: ndaFile.name,
-            storagePath: result.storagePath,
-            uploadedAt: new Date().toISOString(),
-            fileId: result.fileId,
-          };
-        } catch (error: any) {
-          setIsUploading(false);
-          return { error: `NDA upload failed: ${error.message}` };
-        }
-      }
-
-      // Upload indemnity signed document
-      if (indemnityFile && indemnityFile.size > 0) {
-        try {
-          const result = await uploadPublicFile(
-            applicationId,
-            indemnityFile,
-            `indemnity_signed_${applicationId}`,
-          );
-          signedDocuments.indemnitySigned = {
-            fileName: indemnityFile.name,
-            storagePath: result.storagePath,
-            uploadedAt: new Date().toISOString(),
-            fileId: result.fileId,
-          };
-        } catch (error: any) {
-          setIsUploading(false);
-          return { error: `Indemnity upload failed: ${error.message}` };
         }
       }
 
       const finalSignedDocuments: SignedDocumentsData = {
-        guarantor1Signed:
-          guarantor1File && guarantor1File.size > 0
-            ? signedDocuments.guarantor1Signed
-            : persistedSignedDocuments.guarantor1Signed,
-        guarantor2Signed:
-          guarantor2File && guarantor2File.size > 0
-            ? signedDocuments.guarantor2Signed
-            : persistedSignedDocuments.guarantor2Signed,
-        refereeSigned:
-          refereeFile && refereeFile.size > 0
-            ? signedDocuments.refereeSigned
-            : persistedSignedDocuments.refereeSigned,
-        ndaSigned:
-          ndaFile && ndaFile.size > 0
-            ? signedDocuments.ndaSigned
-            : persistedSignedDocuments.ndaSigned,
-        indemnitySigned:
-          indemnityFile && indemnityFile.size > 0
-            ? signedDocuments.indemnitySigned
-            : persistedSignedDocuments.indemnitySigned,
+        ...persistedSignedDocuments,
+        ...uploadedSignedDocuments,
       };
 
       setPersistedSignedDocuments(finalSignedDocuments);
@@ -304,23 +248,11 @@ export function Step8UploadSigned({
     null,
   );
 
-  const allUploaded =
-    !!persistedSignedDocuments.guarantor1Signed?.storagePath &&
-    !!persistedSignedDocuments.guarantor2Signed?.storagePath &&
-    !!persistedSignedDocuments.refereeSigned?.storagePath &&
-    !!persistedSignedDocuments.ndaSigned?.storagePath &&
-    !!persistedSignedDocuments.indemnitySigned?.storagePath;
-  const isReadyToSubmit =
-    allUploaded ||
-    ((!!persistedSignedDocuments.guarantor1Signed?.storagePath ||
-      !!guarantor1Preview) &&
-      (!!persistedSignedDocuments.guarantor2Signed?.storagePath ||
-        !!guarantor2Preview) &&
-      (!!persistedSignedDocuments.refereeSigned?.storagePath ||
-        !!refereePreview) &&
-      (!!persistedSignedDocuments.ndaSigned?.storagePath || !!ndaPreview) &&
-      (!!persistedSignedDocuments.indemnitySigned?.storagePath ||
-        !!indemnityPreview));
+  const isReadyToSubmit = requiredDocuments.every(
+    (document) =>
+      !!persistedSignedDocuments[document.key]?.storagePath ||
+      !!previews[document.key],
+  );
 
   return (
     <form action={formAction} className="space-y-6">
@@ -332,7 +264,6 @@ export function Step8UploadSigned({
         </p>
       </div>
 
-      {/* Instructions */}
       <div className="rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 p-4">
         <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-500 mb-2">
           Important Instructions
@@ -342,194 +273,54 @@ export function Step8UploadSigned({
           <li>• Accepted formats: PDF, JPG, PNG (max 2MB each)</li>
           <li>• Ensure signatures are clearly visible</li>
           <li>• Unsigned uploads may be returned for correction</li>
-          <li>• All five documents must be uploaded to complete</li>
+          <li>• All required signed documents must be uploaded to complete</li>
         </ul>
       </div>
 
       <div className="space-y-6">
-        {/* Guarantor 1 Upload */}
-        <div className="rounded-lg border p-4">
-          <Label htmlFor="guarantor1_signed" className="text-base font-medium">
-            Signed Guarantor 1 Form *
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Upload the signed form from your first guarantor
-          </p>
+        {requiredDocuments.map((document) => {
+          const hasPreview = !!previews[document.key];
+          const hasPersisted =
+            !!persistedSignedDocuments[document.key]?.storagePath;
 
-          <input
-            type="file"
-            id="guarantor1_signed"
-            name="guarantor1_signed"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) =>
-              handleFilePreview(e, setGuarantor1Preview, "guarantor1")
-            }
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-          />
+          return (
+            <div className="rounded-lg border p-4" key={document.key}>
+              <Label
+                htmlFor={document.inputName}
+                className="text-base font-medium"
+              >
+                {document.label}
+              </Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                {document.description}
+              </p>
 
-          {fileErrors.guarantor1 && (
-            <p className="text-sm font-medium text-destructive mt-2">
-              {fileErrors.guarantor1}
-            </p>
-          )}
+              <input
+                type="file"
+                id={document.inputName}
+                name={document.inputName}
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => handleFilePreview(e, document.key)}
+                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              />
 
-          {(guarantor1Preview ||
-            persistedSignedDocuments.guarantor1Signed?.storagePath) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
-              <span>✓</span>
-              <span>
-                {guarantor1Preview
-                  ? "New file selected"
-                  : "Previously uploaded"}
-              </span>
+              {fileErrors[document.key] && (
+                <p className="text-sm font-medium text-destructive mt-2">
+                  {fileErrors[document.key]}
+                </p>
+              )}
+
+              {(hasPreview || hasPersisted) && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
+                  <span>✓</span>
+                  <span>
+                    {hasPreview ? "New file selected" : "Previously uploaded"}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Guarantor 2 Upload */}
-        <div className="rounded-lg border p-4">
-          <Label htmlFor="guarantor2_signed" className="text-base font-medium">
-            Signed Guarantor 2 Form *
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Upload the signed form from your second guarantor
-          </p>
-
-          <input
-            type="file"
-            id="guarantor2_signed"
-            name="guarantor2_signed"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) =>
-              handleFilePreview(e, setGuarantor2Preview, "guarantor2")
-            }
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-          />
-
-          {fileErrors.guarantor2 && (
-            <p className="text-sm font-medium text-destructive mt-2">
-              {fileErrors.guarantor2}
-            </p>
-          )}
-
-          {(guarantor2Preview ||
-            persistedSignedDocuments.guarantor2Signed?.storagePath) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
-              <span>✓</span>
-              <span>
-                {guarantor2Preview
-                  ? "New file selected"
-                  : "Previously uploaded"}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Referee Upload */}
-        <div className="rounded-lg border p-4">
-          <Label htmlFor="referee_signed" className="text-base font-medium">
-            Signed Referee Form *
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Upload the signed form from your referee
-          </p>
-
-          <input
-            type="file"
-            id="referee_signed"
-            name="referee_signed"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => handleFilePreview(e, setRefereePreview, "referee")}
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-          />
-
-          {fileErrors.referee && (
-            <p className="text-sm font-medium text-destructive mt-2">
-              {fileErrors.referee}
-            </p>
-          )}
-
-          {(refereePreview ||
-            persistedSignedDocuments.refereeSigned?.storagePath) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
-              <span>✓</span>
-              <span>
-                {refereePreview ? "New file selected" : "Previously uploaded"}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* NDA Upload */}
-        <div className="rounded-lg border p-4">
-          <Label htmlFor="nda_signed" className="text-base font-medium">
-            Signed NDA Agreement *
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Upload your signed NDA agreement
-          </p>
-
-          <input
-            type="file"
-            id="nda_signed"
-            name="nda_signed"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => handleFilePreview(e, setNdaPreview, "nda")}
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-          />
-
-          {fileErrors.nda && (
-            <p className="text-sm font-medium text-destructive mt-2">
-              {fileErrors.nda}
-            </p>
-          )}
-
-          {(ndaPreview || persistedSignedDocuments.ndaSigned?.storagePath) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
-              <span>✓</span>
-              <span>
-                {ndaPreview ? "New file selected" : "Previously uploaded"}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Indemnity Upload */}
-        <div className="rounded-lg border p-4">
-          <Label htmlFor="indemnity_signed" className="text-base font-medium">
-            Signed Indemnity Form *
-          </Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Upload your signed indemnity form
-          </p>
-
-          <input
-            type="file"
-            id="indemnity_signed"
-            name="indemnity_signed"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) =>
-              handleFilePreview(e, setIndemnityPreview, "indemnity")
-            }
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-          />
-
-          {fileErrors.indemnity && (
-            <p className="text-sm font-medium text-destructive mt-2">
-              {fileErrors.indemnity}
-            </p>
-          )}
-
-          {(indemnityPreview ||
-            persistedSignedDocuments.indemnitySigned?.storagePath) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-green-600">
-              <span>✓</span>
-              <span>
-                {indemnityPreview ? "New file selected" : "Previously uploaded"}
-              </span>
-            </div>
-          )}
-        </div>
+          );
+        })}
       </div>
 
       {/* Completion Note */}

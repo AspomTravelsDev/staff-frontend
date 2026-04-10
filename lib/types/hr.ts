@@ -22,6 +22,14 @@ export interface UploadedFile {
     fileId?: string;
 }
 
+export interface RequiredSignedAssetDocument {
+    key: string;
+    label: string;
+    description?: string;
+    filename: string;
+    assetUrl: string;
+}
+
 export interface GeneratedPdfFile {
     storagePath: string;
     generatedAt: string;
@@ -190,6 +198,7 @@ export interface OnboardingFormData {
         guarantor2Signed?: UploadedFile;
         ndaSigned?: UploadedFile;
         indemnitySigned?: UploadedFile;
+        [key: string]: UploadedFile | undefined;
     };
     generatedPdfs: {
         guarantor1?: GeneratedPdfFile;
@@ -237,6 +246,7 @@ export interface OnboardingApplication {
     created_by?: string | null;
     created_at?: string;
     updated_at?: string;
+    required_signed_assets?: RequiredSignedAssetDocument[];
 }
 
 export interface CreateApplicationRequest {

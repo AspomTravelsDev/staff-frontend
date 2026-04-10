@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { MediaData } from "@/lib/types/form-data";
 import { downloadPdfFormsAction } from "../pdf-actions";
+import { RequiredSignedAssetDocument } from "@/lib/types/hr";
 
 export function Step7Documents({
   applicationId,
   initialData,
+  requiredAssetDocuments = [],
 }: {
   applicationId: string;
   initialData?: MediaData;
+  requiredAssetDocuments?: RequiredSignedAssetDocument[];
 }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -74,6 +77,17 @@ export function Step7Documents({
 
       if (result.indemnityUrl) {
         await downloadFile(result.indemnityUrl, "ASPOM_Indemnity.pdf");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      for (const requiredAsset of requiredAssetDocuments) {
+        if (!requiredAsset.assetUrl) continue;
+        const extension = requiredAsset.filename.split(".").pop() || "pdf";
+        const normalized = requiredAsset.label.replace(/\s+/g, "_");
+        await downloadFile(
+          requiredAsset.assetUrl,
+          `${normalized}.${extension}`,
+        );
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
 
@@ -158,6 +172,12 @@ export function Step7Documents({
                 • <strong>Indemnity Form</strong> - Sign and upload in the final
                 step
               </li>
+              {requiredAssetDocuments.map((document) => (
+                <li key={document.key}>
+                  • <strong>{document.label}</strong> - Sign and upload in the
+                  final step
+                </li>
+              ))}
               <li>
                 • <strong>Personal Data Form (Copy)</strong> - Keep for your
                 records
@@ -182,7 +202,7 @@ export function Step7Documents({
             >
               {isDownloading
                 ? "Generating PDFs..."
-                : "Download Required Forms (7 PDFs + Offer Letter)"}
+                : `Download Required Forms (${7 + requiredAssetDocuments.length} PDFs + Offer Letter)`}
             </Button>
             {downloadError && (
               <div className="mt-3 rounded text-sm text-destructive bg-destructive/10 p-2 border border-destructive/20">

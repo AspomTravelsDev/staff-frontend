@@ -44,6 +44,7 @@ interface DocumentPreviewsProps {
     refereeSigned?: SignedDocument;
     ndaSigned?: SignedDocument;
     indemnitySigned?: SignedDocument;
+    [key: string]: SignedDocument | undefined;
   };
 }
 
@@ -218,6 +219,33 @@ export function DocumentPreviews({
   generatedPdfs,
   signedDocuments,
 }: DocumentPreviewsProps) {
+  const knownSignedDocumentKeys = new Set([
+    "guarantor1Signed",
+    "guarantor2Signed",
+    "refereeSigned",
+    "ndaSigned",
+    "indemnitySigned",
+  ]);
+
+  const extraSignedDocuments = Object.entries(signedDocuments ?? {}).filter(
+    ([key, value]) => !knownSignedDocumentKeys.has(key) && !!value?.storagePath,
+  );
+
+  const formatExtraSignedDocumentTitle = (
+    key: string,
+    value: SignedDocument,
+  ) => {
+    if (value.fileName) {
+      return value.fileName.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ");
+    }
+
+    return key
+      .replace(/^asset_/, "")
+      .replace(/_signed$/, "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -368,6 +396,21 @@ export function DocumentPreviews({
               fileId={generatedPdfs?.offerLetter?.fileId}
               type="signed"
             />
+            {extraSignedDocuments.map(([key, value]) => {
+              if (!value) return null;
+
+              return (
+                <DocumentCard
+                  key={key}
+                  title={formatExtraSignedDocumentTitle(key, value)}
+                  description="Additional signed document"
+                  documentUrl={value.storagePath}
+                  uploadedAt={value.uploadedAt}
+                  fileId={value.fileId}
+                  type="signed"
+                />
+              );
+            })}
           </div>
         </div>
       </CardContent>

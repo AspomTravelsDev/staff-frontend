@@ -9,6 +9,7 @@ import { Step5Referee } from "../components/step-5-referee";
 import { Step6Media } from "../components/step-6-media";
 import { Step7Documents } from "../components/step-7-documents";
 import { Step8UploadSigned } from "../components/step-8-upload-signed";
+import { RequiredSignedAssetDocument } from "@/lib/types/hr";
 
 export default async function ApplicantStepPage({
   params,
@@ -36,6 +37,10 @@ export default async function ApplicantStepPage({
   }
 
   const formData = (application.form_data || {}) as any;
+  const requiredAssetDocuments =
+    (application.required_signed_assets as
+      | RequiredSignedAssetDocument[]
+      | undefined) || [];
 
   return (
     <div className="space-y-6">
@@ -85,12 +90,17 @@ export default async function ApplicantStepPage({
           <Step6Media applicationId={id} initialData={formData.media} />
         )}
         {stepNumber === 7 && (
-          <Step7Documents applicationId={id} initialData={formData.media} />
+          <Step7Documents
+            applicationId={id}
+            initialData={formData.media}
+            requiredAssetDocuments={requiredAssetDocuments}
+          />
         )}
         {stepNumber === 8 && (
           <Step8UploadSigned
             applicationId={id}
             initialData={formData.signedDocuments}
+            requiredAssetDocuments={requiredAssetDocuments}
           />
         )}
       </div>
