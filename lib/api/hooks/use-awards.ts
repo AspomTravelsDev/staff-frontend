@@ -7,8 +7,11 @@ import {
     getMyAwards,
     getUserAwards,
     assignAward,
+    updateAward,
+    deleteAward,
     getAllAwards,
-    type AssignAwardRequest
+    type AssignAwardRequest,
+    type UpdateAwardRequest,
 } from "../awards";
 
 // ============================================================================
@@ -59,6 +62,33 @@ export function useCreateAward() {
             queryClient.invalidateQueries({ queryKey: ["all-awards"] });
             queryClient.invalidateQueries({ queryKey: ["user-awards", variables.user_id] });
             queryClient.invalidateQueries({ queryKey: ["my-awards"] }); // In case awarding self?
+        },
+    });
+}
+
+export function useUpdateAward() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ awardId, data }: { awardId: string; data: UpdateAwardRequest }) =>
+            updateAward(awardId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["all-awards"] });
+            queryClient.invalidateQueries({ queryKey: ["my-awards"] });
+            queryClient.invalidateQueries({ queryKey: ["user-awards"] });
+        },
+    });
+}
+
+export function useDeleteAward() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (awardId: string) => deleteAward(awardId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["all-awards"] });
+            queryClient.invalidateQueries({ queryKey: ["my-awards"] });
+            queryClient.invalidateQueries({ queryKey: ["user-awards"] });
         },
     });
 }

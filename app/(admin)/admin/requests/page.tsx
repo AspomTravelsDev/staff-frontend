@@ -41,7 +41,7 @@ export default async function RequestsPage({
     redirect("/login");
   }
 
-  if (!["super", "it", "admin"].includes(user.role)) {
+  if (!["super", "it", "admin", "compliance"].includes(user.role)) {
     redirect("/dashboard");
   }
 

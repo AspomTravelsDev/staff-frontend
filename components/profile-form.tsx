@@ -57,6 +57,27 @@ interface ProfileFormProps {
 export function ProfileForm({ user }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition();
 
+  const normalizeDateValue = (value: string | null | undefined) => {
+    if (!value) return null;
+
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    // Keep date-only strings untouched.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    // Convert datetime values to a local date string for calendar prefill.
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return format(parsed, "yyyy-MM-dd");
+    }
+
+    const prefixMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}/);
+    return prefixMatch ? prefixMatch[0] : null;
+  };
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -64,8 +85,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
       email: user.email,
       staff_id: user.staff_id || null,
       phone: user.phone || null,
-      dob: user.dob ? user.dob.substring(0, 10) : null,
-      date_joined: user.date_joined ? user.date_joined.substring(0, 10) : null,
+      dob: normalizeDateValue(user.dob),
+      date_joined: normalizeDateValue(user.date_joined),
       contract_type: user.contract_type || null,
     },
   });

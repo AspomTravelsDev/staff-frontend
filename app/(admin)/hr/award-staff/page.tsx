@@ -19,7 +19,7 @@ export default async function AwardStaffPage() {
     redirect("/login");
   }
 
-  if (user.role !== "hr" && user.role !== "super") {
+  if (!["hr", "super", "compliance"].includes(user.role)) {
     redirect("/dashboard");
   }
 

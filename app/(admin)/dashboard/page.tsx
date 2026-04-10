@@ -12,7 +12,7 @@ import {
   Trophy,
 } from "lucide-react";
 
-import {  getTodayBirthdays } from "@/lib/api/employees";
+import { getTodayBirthdays } from "@/lib/api/employees";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
@@ -36,8 +36,11 @@ import { getAnnouncements } from "@/lib/api/announcements";
 
 export default async function Page() {
   const now = new Date();
+  const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
+  const formatMonthKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
   const [
     clockInResponse,
@@ -111,7 +114,7 @@ export default async function Page() {
   const employeeOfTheMonthAward = allAwards.find(
     (a) =>
       a.award_type === "staff_of_the_month" &&
-      a.month === formatDate(now).substring(0, 7),
+      a.month === formatMonthKey(previousMonthDate),
   );
 
   const employeeOfTheMonth = employeeOfTheMonthAward
