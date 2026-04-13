@@ -201,6 +201,7 @@ export function Step8UploadSigned({
             uploadedAt: new Date().toISOString(),
             fileId: result.fileId,
           };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           setIsUploading(false);
           return {
@@ -223,6 +224,7 @@ export function Step8UploadSigned({
 
       setIsUploading(false);
       return result;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // In Next.js server actions, redirect() throws a special error.
       // We must not catch it if we want the redirect to work.

@@ -8,14 +8,21 @@ import { AddClientDialog } from "./add-client-dialog";
 import { ImportClientsDialog } from "./import-clients-dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, FileUp } from "lucide-react";
+import type { PaginationMeta } from "@/lib/api/types";
 
 interface CRMContentProps {
   clients: Client[];
+  pagination: PaginationMeta;
   stats: CRMStats;
   currentUserId?: string;
 }
 
-export function CRMContent({ clients, stats, currentUserId }: CRMContentProps) {
+export function CRMContent({
+  clients,
+  pagination,
+  stats,
+  currentUserId,
+}: CRMContentProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -42,7 +49,7 @@ export function CRMContent({ clients, stats, currentUserId }: CRMContentProps) {
 
       <CRMStatsCards stats={stats} />
 
-      <CRMTable clients={clients} />
+      <CRMTable clients={clients} pagination={pagination} />
 
       <AddClientDialog
         open={addOpen}
@@ -50,10 +57,7 @@ export function CRMContent({ clients, stats, currentUserId }: CRMContentProps) {
         currentUserId={currentUserId}
       />
 
-      <ImportClientsDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-      />
+      <ImportClientsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }

@@ -16,7 +16,6 @@ import { format } from "date-fns";
 import {
   CheckCircle2,
   Circle,
-  Clock,
   ChevronDown,
   ChevronRight,
   ArrowUpDown,
@@ -24,7 +23,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useSort } from "@/lib/hooks/use-sort";
+import { useSort, type SortConfig } from "@/lib/hooks/use-sort";
 import { cn } from "@/lib/utils";
 import {
   Collapsible,
@@ -39,38 +38,65 @@ interface AllTasksTableProps {
   isLoading: boolean;
 }
 
+function renderSortIcon(
+  sortConfig: SortConfig<DailyTaskRecord> | null,
+  columnKey: keyof DailyTaskRecord,
+) {
+  if (sortConfig?.key !== columnKey) {
+    return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+  }
+
+  return sortConfig.direction === "asc" ? (
+    <ArrowUp className="ml-1 h-3 w-3" />
+  ) : (
+    <ArrowDown className="ml-1 h-3 w-3" />
+  );
+}
+
 export function AllTasksTable({ records, isLoading }: AllTasksTableProps) {
-  const sortOptions = useMemo(() => ({
-    dateFields: ["date", "first_saved_at", "report_submitted_at"] as (keyof DailyTaskRecord)[],
-    customSorts: {
-      user: (a: DailyTaskRecord, b: DailyTaskRecord, direction: "asc" | "desc") => {
-        const aName = a.user?.name || "";
-        const bName = b.user?.name || "";
-        if (aName < bName) return direction === "asc" ? -1 : 1;
-        if (aName > bName) return direction === "asc" ? 1 : -1;
-        return 0;
+  const sortOptions = useMemo(
+    () => ({
+      dateFields: [
+        "date",
+        "first_saved_at",
+        "report_submitted_at",
+      ] as (keyof DailyTaskRecord)[],
+      customSorts: {
+        user: (
+          a: DailyTaskRecord,
+          b: DailyTaskRecord,
+          direction: "asc" | "desc",
+        ) => {
+          const aName = a.user?.name || "";
+          const bName = b.user?.name || "";
+          if (aName < bName) return direction === "asc" ? -1 : 1;
+          if (aName > bName) return direction === "asc" ? 1 : -1;
+          return 0;
+        },
+        completed_count: (
+          a: DailyTaskRecord,
+          b: DailyTaskRecord,
+          direction: "asc" | "desc",
+        ) => {
+          const aRate =
+            a.total_tasks > 0 ? a.completed_count / a.total_tasks : 0;
+          const bRate =
+            b.total_tasks > 0 ? b.completed_count / b.total_tasks : 0;
+          if (aRate < bRate) return direction === "asc" ? -1 : 1;
+          if (aRate > bRate) return direction === "asc" ? 1 : -1;
+          return 0;
+        },
       },
-      completed_count: (a: DailyTaskRecord, b: DailyTaskRecord, direction: "asc" | "desc") => {
-        const aRate = a.total_tasks > 0 ? a.completed_count / a.total_tasks : 0;
-        const bRate = b.total_tasks > 0 ? b.completed_count / b.total_tasks : 0;
-        if (aRate < bRate) return direction === "asc" ? -1 : 1;
-        if (aRate > bRate) return direction === "asc" ? 1 : -1;
-        return 0;
-      }
-    }
-  }), []);
+    }),
+    [],
+  );
 
-  const { sortedData: sorted, sortConfig, handleSort } = useSort(records, sortOptions);
+  const {
+    sortedData: sorted,
+    sortConfig,
+    handleSort,
+  } = useSort(records, sortOptions);
 
-  const SortIcon = ({ columnKey }: { columnKey: keyof DailyTaskRecord }) => {
-    if (sortConfig?.key !== columnKey)
-      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
-    return sortConfig.direction === "asc" ? (
-      <ArrowUp className="ml-1 h-3 w-3" />
-    ) : (
-      <ArrowDown className="ml-1 h-3 w-3" />
-    );
-  };
   if (isLoading) {
     return (
       <div className="p-4 text-center text-muted-foreground">
@@ -92,42 +118,54 @@ export function AllTasksTable({ records, isLoading }: AllTasksTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]"></TableHead>
-            <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("user")}
+            <TableHead className="w-12.5"></TableHead>
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("user")}
             >
-              <div className="flex items-center">Staff Member <SortIcon columnKey="user" /></div>
+              <div className="flex items-center">
+                Staff Member {renderSortIcon(sortConfig, "user")}
+              </div>
             </TableHead>
-            <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("date")}
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("date")}
             >
-              <div className="flex items-center">Date <SortIcon columnKey="date" /></div>
+              <div className="flex items-center">
+                Date {renderSortIcon(sortConfig, "date")}
+              </div>
             </TableHead>
-            <TableHead 
-                className="text-center cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("completed_count")}
+            <TableHead
+              className="text-center cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("completed_count")}
             >
-              <div className="flex items-center justify-center">Progress <SortIcon columnKey="completed_count" /></div>
+              <div className="flex items-center justify-center">
+                Progress {renderSortIcon(sortConfig, "completed_count")}
+              </div>
             </TableHead>
-            <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("report_submitted")}
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("report_submitted")}
             >
-              <div className="flex items-center">Status <SortIcon columnKey="report_submitted" /></div>
+              <div className="flex items-center">
+                Status {renderSortIcon(sortConfig, "report_submitted")}
+              </div>
             </TableHead>
-            <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("first_saved_at")}
+            <TableHead
+              className="cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("first_saved_at")}
             >
-              <div className="flex items-center">First Saved At <SortIcon columnKey="first_saved_at" /></div>
+              <div className="flex items-center">
+                First Saved At {renderSortIcon(sortConfig, "first_saved_at")}
+              </div>
             </TableHead>
-            <TableHead 
-                className="text-right cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("report_submitted_at")}
+            <TableHead
+              className="text-right cursor-pointer hover:text-foreground transition-colors group"
+              onClick={() => handleSort("report_submitted_at")}
             >
-              <div className="flex items-center justify-end">Submitted At <SortIcon columnKey="report_submitted_at" /></div>
+              <div className="flex items-center justify-end">
+                Submitted At {renderSortIcon(sortConfig, "report_submitted_at")}
+              </div>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -170,7 +208,10 @@ function TaskRow({ record }: { record: DailyTaskRecord }) {
           <TableCell>
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={toProxiedImageUrl(record.user?.image_url)} />
+                <AvatarImage
+                  src={toProxiedImageUrl(record.user?.image_url)}
+                  className="object-cover object-center"
+                />
                 <AvatarFallback>
                   {getInitials(record.user?.name || "Unknown")}
                 </AvatarFallback>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSort } from "@/lib/hooks/use-sort";
 import {
   Table,
@@ -62,6 +63,12 @@ import type { ExportColumn } from "@/lib/utils/export";
 
 interface CRMTableProps {
   clients: Client[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
 }
 
 const STATUS_STYLES: Record<CRMStatus, string> = {
@@ -91,7 +98,11 @@ const EXPORT_COLUMNS: ExportColumn<Client>[] = [
   { header: "Notes", key: "notes" },
 ];
 
-export function CRMTable({ clients }: CRMTableProps) {
+export function CRMTable({ clients, pagination }: CRMTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CRMStatus | "all">("all");
   const [assignedToFilter, setAssignedToFilter] = useState<string | "all">(
@@ -200,6 +211,30 @@ export function CRMTable({ clients }: CRMTableProps) {
     setSelectedRows(new Set());
   };
 
+  const updateQueryParams = (mutator: (params: URLSearchParams) => void) => {
+    const params = new URLSearchParams(searchParams.toString());
+    mutator(params);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const handleLimitChange = (value: string) => {
+    updateQueryParams((params) => {
+      params.set("limit", value);
+      params.set("page", "1");
+    });
+  };
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > pagination.total_pages || page === pagination.page) {
+      return;
+    }
+
+    updateQueryParams((params) => {
+      params.set("page", String(page));
+    });
+  };
+
   const hasFilters =
     search || statusFilter !== "all" || assignedToFilter !== "all";
 
@@ -299,7 +334,7 @@ export function CRMTable({ clients }: CRMTableProps) {
 
         <div className="ml-auto flex items-center gap-3">
           <p className="text-sm text-muted-foreground mr-2">
-            {filtered.length} of {clients.length} customers
+            {filtered.length} of {pagination.total} customers
             {selectedRows.size > 0 && ` (${selectedRows.size} selected)`}
           </p>
           <TableExportButton
@@ -492,6 +527,50 @@ export function CRMTable({ clients }: CRMTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {pagination.total > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {Math.max(1, pagination.total_pages)}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows:</span>
+            <Select
+              value={String(pagination.limit)}
+              onValueChange={handleLimitChange}
+            >
+              <SelectTrigger className="h-8 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(pagination.page + 1)}
+              disabled={pagination.page >= pagination.total_pages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       <EditClientDialog
