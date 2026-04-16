@@ -101,7 +101,7 @@ export function RequestStaffModal({
           <Plus className="mr-2 h-4 w-4" /> Request Staff
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>Request New Staff</DialogTitle>
           <DialogDescription>

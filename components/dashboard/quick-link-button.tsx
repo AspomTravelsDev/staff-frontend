@@ -29,6 +29,8 @@ export function QuickLinkButton({
     indigo:
       "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-100",
     rose: "text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-100",
+    sky: "text-sky-600 hover:text-sky-700 hover:bg-sky-50 border-sky-100",
+    red: "text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100",
   };
 
   const buttonContent = (

@@ -30,7 +30,7 @@ export function HRTaskStats({ records }: HRTaskStatsProps) {
       <Card>
         <CardContent className="p-4 pt-4 flex flex-col justify-between h-full">
           <div className="text-sm font-medium text-muted-foreground">
-            Total Reports
+            Total Reports <span className="text-xs">(To-Do Lists)</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <FileText className="h-5 w-5 text-blue-500" />
@@ -42,7 +42,7 @@ export function HRTaskStats({ records }: HRTaskStatsProps) {
       <Card>
         <CardContent className="p-4 pt-4 flex flex-col justify-between h-full">
           <div className="text-sm font-medium text-muted-foreground">
-            Submitted
+            Submitted <span className="text-xs">(End of Day Reports)</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />

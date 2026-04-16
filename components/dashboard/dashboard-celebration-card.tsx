@@ -70,13 +70,6 @@ export function DashboardCelebrationCard({
               : "an awesome colleague"}{" "}
             today!
           </p>
-
-          <Link
-            href="/hr/birthdays"
-            className="text-xs font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors mt-auto"
-          >
-            See all birthdays
-          </Link>
         </CardContent>
       </Card>
     );

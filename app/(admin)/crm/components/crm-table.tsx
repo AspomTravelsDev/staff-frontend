@@ -347,6 +347,50 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
         </div>
       </div>
 
+      {pagination.total > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {Math.max(1, pagination.total_pages)}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows:</span>
+            <Select
+              value={String(pagination.limit)}
+              onValueChange={handleLimitChange}
+            >
+              <SelectTrigger className="h-8 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(pagination.page + 1)}
+              disabled={pagination.page >= pagination.total_pages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -527,50 +571,6 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
           </TableBody>
         </Table>
       </div>
-
-      {pagination.total > 0 && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {pagination.page} of {Math.max(1, pagination.total_pages)}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Rows:</span>
-            <Select
-              value={String(pagination.limit)}
-              onValueChange={handleLimitChange}
-            >
-              <SelectTrigger className="h-8 w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(pagination.page + 1)}
-              disabled={pagination.page >= pagination.total_pages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Dialogs */}
       <EditClientDialog

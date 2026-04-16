@@ -13,6 +13,7 @@ export const ROLE_TO_DEPARTMENT: Record<string, string> = {
   compliance: "Compliance",
   "birth-services": "Birth Services",
   holidays: "Holidays",
+  ticket: "Ticketing",
 };
 
 /**

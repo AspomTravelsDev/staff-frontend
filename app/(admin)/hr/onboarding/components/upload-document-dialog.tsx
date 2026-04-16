@@ -52,6 +52,7 @@ const DEPARTMENTS = [
   { value: "Compliance", label: "Compliance" },
   { value: "Birth Services", label: "Birth Services" },
   { value: "Holidays", label: "Holidays" },
+  { value: "Ticketing", label: "Ticketing" },
 ];
 
 interface UploadDocumentDialogProps {

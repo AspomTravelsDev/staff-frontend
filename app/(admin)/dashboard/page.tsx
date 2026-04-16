@@ -68,6 +68,7 @@ export default async function Page() {
 
   const ratesPayload = ratesResponse.success ? ratesResponse.data : null;
   const rates = ratesPayload
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? ((ratesPayload as any)?.data ?? ratesPayload)
     : null;
 
@@ -178,7 +179,7 @@ export default async function Page() {
           <QuickLinkButton
             icon={TreePalm}
             title="Aspom Website"
-            url="https://office.aspomtravels.com"
+            url="https://aspomtravels.com"
             color="green"
           />
           <QuickLinkButton
@@ -189,9 +190,9 @@ export default async function Page() {
           />
           <QuickLinkButton
             icon={MailIcon}
-            title="My Webmail"
-            url="https://webmail.aspomtravels.com"
-            color="rose"
+            title="Outlook"
+            url="https://outlook.live.com/mail/0/"
+            color="sky"
           />
           <QuickLinkButton
             icon={Earth}
@@ -201,14 +202,20 @@ export default async function Page() {
           />
           <QuickLinkButton
             icon={Baby}
+            title="Birth Services FAQ"
+            url="https://aspombirthservices.com/faq/"
+            color="green"
+          />
+          <QuickLinkButton
+            icon={Baby}
             title="Aspom Birth Services"
-            url="http://aspombirthservices.com/"
+            url="https://aspombirthservices.com/faq/"
             color="green"
           />
           <QuickLinkButton
             icon={Globe2}
-            title="Passport Intelligence"
-            url="https://passport.travelatal.com/"
+            title="Passport Access"
+            url="https://passport.aspomtravels.com/"
             color="green"
           />
 
@@ -226,6 +233,20 @@ export default async function Page() {
             url="/my/tasks"
             target="_self"
             color="indigo"
+          />
+          <QuickLinkButton
+            icon={FileText}
+            title="Admin Requests"
+            url="/my/requests"
+            target="_self"
+            color="red"
+          />
+          <QuickLinkButton
+            icon={CreditCard}
+            title="IT Info Desk"
+            url="/my/it"
+            target="_self"
+            color="sky"
           />
           <QuickLinkButton
             icon={CreditCard}

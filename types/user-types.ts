@@ -9,6 +9,7 @@ export const USER_ROLES = {
     COMPLIANCE_OFFICER: "compliance",
     BIRTH_SERVICES_OFFICER: "birth-services",
     HOLIDAYS_OFFICER: "holidays",
+    TICKETING_OFFICER: "ticket",
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
@@ -24,6 +25,7 @@ export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRol
     [USER_ROLES.COMPLIANCE_OFFICER]: { label: "Compliance Officer", value: "compliance" },
     [USER_ROLES.BIRTH_SERVICES_OFFICER]: { label: "Birth Services Officer", value: "birth-services" },
     [USER_ROLES.HOLIDAYS_OFFICER]: { label: "Holidays Officer", value: "holidays" },
+    [USER_ROLES.TICKETING_OFFICER]: { label: "Ticketing Officer", value: "ticket" },
 };
 
 export function getRolesForSelect() {
