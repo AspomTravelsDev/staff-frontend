@@ -47,7 +47,8 @@ const roleColors: Record<User["role"], string> = {
   "social-media": "bg-cyan-500",
   compliance: "bg-yellow-500",
   "birth-services": "bg-teal-500",
-  "holidays": "bg-purple-500",
+  holidays: "bg-purple-500",
+  ticket: "bg-slate-500",
 };
 
 function formatAction(action: string): string {
