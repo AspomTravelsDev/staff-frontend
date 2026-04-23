@@ -2,7 +2,8 @@
 
 import { sendInvite } from "@/lib/auth/api";
 import { getAuthToken } from "@/lib/auth/session";
-import { inviteSchema } from "@/lib/validations/auth";
+import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
+import { createInviteSchema } from "@/lib/validations/auth";
 
 export type InviteState = {
     error?: string;
@@ -15,6 +16,11 @@ export async function inviteAction(
     prevState: InviteState,
     formData: FormData
 ): Promise<InviteState> {
+    const roleMetadata = await getRolesMetadataContract();
+    const inviteSchema = createInviteSchema(
+        roleMetadata.roles.map((item) => item.value)
+    );
+
     const rawData = {
         email: formData.get("email") as string,
         role: formData.get("role") as string,

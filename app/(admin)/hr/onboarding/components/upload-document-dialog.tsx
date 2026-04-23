@@ -40,29 +40,16 @@ const ONBOARDING_DOCUMENT_CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
-const DEPARTMENTS = [
-  { value: "General", label: "General (All Departments)" },
-  { value: "Management", label: "Management" },
-  { value: "Administration", label: "Administration" },
-  { value: "HR", label: "HR" },
-  { value: "IT", label: "IT" },
-  { value: "Accounts", label: "Accounts" },
-  { value: "Visa", label: "Visa" },
-  { value: "Social Media", label: "Social Media" },
-  { value: "Compliance", label: "Compliance" },
-  { value: "Birth Services", label: "Birth Services" },
-  { value: "Holidays", label: "Holidays" },
-  { value: "Ticketing", label: "Ticketing" },
-];
-
 interface UploadDocumentDialogProps {
   document?: DocumentFile;
   trigger?: React.ReactNode;
+  departments: string[];
 }
 
 export function UploadDocumentDialog({
   document: existingDoc,
   trigger,
+  departments,
 }: UploadDocumentDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -229,9 +216,11 @@ export function UploadDocumentDialog({
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEPARTMENTS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
+                  {departments.map((departmentOption) => (
+                    <SelectItem key={departmentOption} value={departmentOption}>
+                      {departmentOption === "General"
+                        ? "General (All Departments)"
+                        : departmentOption}
                     </SelectItem>
                   ))}
                 </SelectContent>

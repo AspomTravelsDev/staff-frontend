@@ -34,37 +34,41 @@ export function CreateApplicationForm() {
   const [isPending, setIsPending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [grossSalary, setGrossSalary] = useState<number>(0);
+  const [isIntern, setIsIntern] = useState(false);
 
   // Derive breakdown from grossSalary using useMemo
   const breakdown = React.useMemo(() => {
     if (grossSalary > 0) {
-      // Calculate PAYE Tax exactly as Payslip does
-      let remainingTaxable = grossSalary * 12;
-      let annualTax = 0;
+      let calculatedTax = 0;
+      if (!isIntern) {
+        // Calculate PAYE Tax exactly as Payslip does for non-intern staff.
+        let remainingTaxable = grossSalary * 12;
+        let annualTax = 0;
 
-      const band1 = Math.min(remainingTaxable, 800000);
-      remainingTaxable -= band1;
+        const band1 = Math.min(remainingTaxable, 800000);
+        remainingTaxable -= band1;
 
-      if (remainingTaxable > 0) {
-        const band2 = Math.min(remainingTaxable, 2200000);
-        annualTax += band2 * 0.15;
-        remainingTaxable -= band2;
-      }
-      if (remainingTaxable > 0) {
-        const band3 = Math.min(remainingTaxable, 9000000);
-        annualTax += band3 * 0.18;
-        remainingTaxable -= band3;
-      }
-      if (remainingTaxable > 0) {
-        const band4 = Math.min(remainingTaxable, 13000000);
-        annualTax += band4 * 0.21;
-        remainingTaxable -= band4;
-      }
-      if (remainingTaxable > 0) {
-        annualTax += remainingTaxable * 0.25;
-      }
+        if (remainingTaxable > 0) {
+          const band2 = Math.min(remainingTaxable, 2200000);
+          annualTax += band2 * 0.15;
+          remainingTaxable -= band2;
+        }
+        if (remainingTaxable > 0) {
+          const band3 = Math.min(remainingTaxable, 9000000);
+          annualTax += band3 * 0.18;
+          remainingTaxable -= band3;
+        }
+        if (remainingTaxable > 0) {
+          const band4 = Math.min(remainingTaxable, 13000000);
+          annualTax += band4 * 0.21;
+          remainingTaxable -= band4;
+        }
+        if (remainingTaxable > 0) {
+          annualTax += remainingTaxable * 0.25;
+        }
 
-      const calculated_tax = Math.round((annualTax / 12) * 100) / 100;
+        calculatedTax = Math.round((annualTax / 12) * 100) / 100;
+      }
 
       const calculated = {
         basic: Math.round(grossSalary * SALARY_PERCENTAGES.basic * 100) / 100,
@@ -87,7 +91,7 @@ export function CreateApplicationForm() {
           Math.round(grossSalary * SALARY_PERCENTAGES.clothing * 100) / 100,
         passages:
           Math.round(grossSalary * SALARY_PERCENTAGES.passages * 100) / 100,
-        statutory_tax_deduction: calculated_tax,
+        statutory_tax_deduction: calculatedTax,
         net_salary: 0,
       };
       calculated.net_salary =
@@ -110,7 +114,7 @@ export function CreateApplicationForm() {
         net_salary: 0,
       };
     }
-  }, [grossSalary]);
+  }, [grossSalary, isIntern]);
 
   // ... inside component
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -132,6 +136,7 @@ export function CreateApplicationForm() {
         applicant_name,
         applicant_email,
         position_title,
+        is_intern: isIntern,
         reporting_to,
         effective_date,
         salary_gross: grossSalary,
@@ -150,8 +155,10 @@ export function CreateApplicationForm() {
       setTimeout(() => {
         router.push("/hr/applications");
       }, 1500);
-    } catch (error: any) {
-      toast.error(error.message || "An unexpected error occurred");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      toast.error(message);
       console.error(error);
     } finally {
       setIsPending(false);
@@ -212,6 +219,26 @@ export function CreateApplicationForm() {
             />
           </div>
 
+          <div className="space-y-2 rounded-md border p-3">
+            <Label
+              htmlFor="is_intern"
+              className="flex cursor-pointer items-start gap-3"
+            >
+              <input
+                id="is_intern"
+                name="is_intern"
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={isIntern}
+                onChange={(event) => setIsIntern(event.target.checked)}
+              />
+              <span className="text-sm">
+                Mark this applicant as an intern (tax exempt in onboarding
+                salary calculation and offer letter).
+              </span>
+            </Label>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="reporting_to">Reporting To</Label>
             <Input
@@ -266,7 +293,8 @@ export function CreateApplicationForm() {
               </div>
               <div className="text-xs text-muted-foreground">
                 (Gross: ₦{grossSalary.toLocaleString()} - Tax: ₦
-                {breakdown.statutory_tax_deduction.toLocaleString()})
+                {breakdown.statutory_tax_deduction.toLocaleString()}
+                {isIntern ? " [Intern exemption]" : ""})
               </div>
             </div>
           )}
@@ -426,7 +454,8 @@ export function CreateApplicationForm() {
 
           <div className="space-y-2">
             <Label htmlFor="statutory_tax_deduction">
-              Statutory Tax Deduction (PAYE calculated)
+              Statutory Tax Deduction{" "}
+              {isIntern ? "(Intern exempt: 0.00)" : "(PAYE calculated)"}
             </Label>
             <Input
               id="statutory_tax_deduction"

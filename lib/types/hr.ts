@@ -100,6 +100,7 @@ export interface EmploymentFinance {
 export interface EmploymentTerms {
     net_salary: number;
     gross_salary: number;
+    is_intern: boolean;
     reporting_to: string;
     effective_date: string;
     salary_breakdown: SalaryBreakdown;
@@ -233,6 +234,7 @@ export interface OnboardingApplication {
             reporting_to: string;
             effective_date: string;
             gross_salary: number;
+            is_intern: boolean;
             salary_breakdown: SalaryBreakdown;
             statutory_tax_deduction: number;
             net_salary: number;
@@ -253,6 +255,7 @@ export interface CreateApplicationRequest {
     applicant_name?: string;
     applicant_email: string;
     position_title: string;
+    is_intern: boolean;
     reporting_to: string;
     effective_date: string;
     salary_gross: number;

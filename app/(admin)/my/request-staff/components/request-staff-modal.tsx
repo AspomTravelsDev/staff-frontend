@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { createHrRequest } from "@/lib/api/hr-requests";
 import { Plus } from "lucide-react";
-import { getRolesForSelect } from "@/types/user-types";
+import { type RoleOption } from "@/types/user-types";
 import { getDepartmentFromRoleOrField } from "@/lib/utils/role-department";
 
 const formSchema = z.object({
@@ -47,8 +47,12 @@ const formSchema = z.object({
 
 export function RequestStaffModal({
   userDepartment,
+  roleOptions,
+  roleToDepartment,
 }: {
   userDepartment?: string;
+  roleOptions: RoleOption[];
+  roleToDepartment: Record<string, string>;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -71,8 +75,11 @@ export function RequestStaffModal({
 
       // Determine the canonical department name based on the selected role value
       const mappedDepartment =
-        getDepartmentFromRoleOrField(null, values.department) ||
-        values.department;
+        getDepartmentFromRoleOrField(
+          null,
+          values.department,
+          roleToDepartment,
+        ) || values.department;
 
       await createHrRequest({
         ...values,
@@ -168,10 +175,13 @@ export function RequestStaffModal({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {getRolesForSelect().map((role) => {
+                      {roleOptions.map((role) => {
                         const deptName =
-                          getDepartmentFromRoleOrField(null, role.value) ||
-                          role.label;
+                          getDepartmentFromRoleOrField(
+                            null,
+                            role.value,
+                            roleToDepartment,
+                          ) || role.label;
                         return (
                           <SelectItem key={role.value} value={role.value}>
                             {deptName}

@@ -47,13 +47,21 @@ import { useState, useMemo } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
 import { EditUserDialog } from "./edit-user-dialog";
 import { formatLagosDate } from "@/lib/utils/attendance";
-import { getRoleLabel } from "@/types/user-types";
+import { getRoleLabel, type RoleOption } from "@/types/user-types";
 
 interface EmployeeTableProps {
   employees: Employee[];
+  roleOptions: RoleOption[];
+  departments: string[];
+  roleToDepartment: Record<string, string>;
 }
 
-export function EmployeeTable({ employees }: EmployeeTableProps) {
+export function EmployeeTable({
+  employees,
+  roleOptions,
+  departments,
+  roleToDepartment,
+}: EmployeeTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
@@ -287,6 +295,9 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
         employee={editingEmployee}
         open={!!editingEmployee}
         onOpenChange={(open) => !open && setEditingEmployee(null)}
+        roleOptions={roleOptions}
+        departments={departments}
+        roleToDepartment={roleToDepartment}
       />
 
       <AlertDialog

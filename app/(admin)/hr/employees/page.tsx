@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { EmployeeListContent } from "./components/employee-list-content";
 import { getAllEmployees, getStats } from "./queries";
+import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 
 export default async function EmployeeListPage() {
   const user = await getCurrentUser();
@@ -10,7 +11,16 @@ export default async function EmployeeListPage() {
     redirect("/login");
   }
 
-  const [employees, stats] = await Promise.all([getAllEmployees(), getStats()]);
+  const [employees, stats, roleMetadata] = await Promise.all([
+    getAllEmployees(),
+    getStats(),
+    getRolesMetadataContract(),
+  ]);
+
+  const roleOptions = roleMetadata.roles.map((role) => ({
+    label: role.label,
+    value: role.value,
+  }));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
@@ -23,7 +33,13 @@ export default async function EmployeeListPage() {
         </div>
       </div>
 
-      <EmployeeListContent employees={employees} stats={stats} />
+      <EmployeeListContent
+        employees={employees}
+        stats={stats}
+        roleOptions={roleOptions}
+        departmentsForEditor={roleMetadata.departments}
+        roleToDepartment={roleMetadata.role_to_department}
+      />
     </div>
   );
 }

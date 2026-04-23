@@ -14,6 +14,38 @@ export const USER_ROLES = {
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
+export type RoleOption = {
+    label: string;
+    value: string;
+};
+
+export type RoleMetadataItem = {
+    value: string;
+    label: string;
+    department: string | null;
+};
+
+export type RolesMetadataContract = {
+    version: number;
+    roles: RoleMetadataItem[];
+    role_to_department: Record<string, string>;
+    departments: string[];
+};
+
+export const ROLE_TO_DEPARTMENT_FALLBACK: Record<string, string> = {
+    super: "Management",
+    admin: "Administration",
+    it: "IT",
+    account: "Accounts",
+    visa: "Visa",
+    hr: "HR",
+    "social-media": "Social Media",
+    compliance: "Compliance",
+    "birth-services": "Birth Services",
+    holidays: "Holidays",
+    ticket: "Ticketing",
+};
+
 export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRole }> = {
     [USER_ROLES.SUPER_ADMIN]: { label: "Super Admin", value: "super" },
     [USER_ROLES.ADMIN_OFFICER]: { label: "Admin Officer", value: "admin" },
@@ -33,6 +65,32 @@ export function getRolesForSelect() {
         label,
         value,
     }));
+}
+
+export function getFallbackRolesMetadataContract(): RolesMetadataContract {
+    const roles: RoleMetadataItem[] = Object.values(USER_ROLE_DETAILS).map(
+        ({ value, label }) => ({
+            value,
+            label,
+            department: ROLE_TO_DEPARTMENT_FALLBACK[value] ?? null,
+        })
+    );
+
+    const departments = Array.from(
+        new Set([
+            "General",
+            ...Object.values(ROLE_TO_DEPARTMENT_FALLBACK),
+            "Customer Service",
+            "Other",
+        ])
+    );
+
+    return {
+        version: 1,
+        roles,
+        role_to_department: { ...ROLE_TO_DEPARTMENT_FALLBACK },
+        departments,
+    };
 }
 
 export function getRoleLabel(

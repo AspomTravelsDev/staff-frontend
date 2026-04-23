@@ -1,9 +1,17 @@
 import { UploadDocumentDialog } from "./components/upload-document-dialog";
 import { DocumentViewWrapper } from "./components/document-view-wrapper";
 import { getDocuments } from "./queries";
+import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 
 export default async function HRDocumentsPage() {
-  const documents = await getDocuments();
+  const [documents, roleMetadata] = await Promise.all([
+    getDocuments(),
+    getRolesMetadataContract(),
+  ]);
+
+  const departments = roleMetadata.departments.filter(
+    (department) => department !== "Customer Service" && department !== "Other",
+  );
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -16,10 +24,14 @@ export default async function HRDocumentsPage() {
             Manage organization documents and handbooks.
           </p>
         </div>
-        <UploadDocumentDialog />
+        <UploadDocumentDialog departments={departments} />
       </div>
 
-      <DocumentViewWrapper documents={documents} showDelete={true} />
+      <DocumentViewWrapper
+        documents={documents}
+        showDelete={true}
+        departments={departments}
+      />
     </div>
   );
 }

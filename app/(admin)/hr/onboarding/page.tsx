@@ -1,9 +1,17 @@
 import { DocumentListTable } from "./components/document-list-table";
 import { UploadDocumentDialog } from "./components/upload-document-dialog";
 import { getDocuments } from "./queries";
+import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 
 export default async function HROnboardingDocumentsPage() {
-  const documents = await getDocuments();
+  const [documents, roleMetadata] = await Promise.all([
+    getDocuments(),
+    getRolesMetadataContract(),
+  ]);
+
+  const departments = roleMetadata.departments.filter(
+    (department) => department !== "Customer Service" && department !== "Other",
+  );
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -17,13 +25,14 @@ export default async function HROnboardingDocumentsPage() {
             Job Description, Guide, and Other.
           </p>
         </div>
-        <UploadDocumentDialog />
+        <UploadDocumentDialog departments={departments} />
       </div>
 
       <DocumentListTable
         documents={documents}
         isLoading={false}
         showDelete={true}
+        departments={departments}
       />
     </div>
   );

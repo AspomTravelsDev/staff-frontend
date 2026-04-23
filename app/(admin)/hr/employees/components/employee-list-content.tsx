@@ -7,15 +7,22 @@ import { useState, useMemo } from "react";
 import type { Employee, EmployeeStats } from "@/lib/api/employees";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { formatLagosDate } from "@/lib/utils/attendance";
+import { type RoleOption } from "@/types/user-types";
 
 interface EmployeeListContentProps {
   employees: Employee[];
   stats: EmployeeStats;
+  roleOptions: RoleOption[];
+  departmentsForEditor: string[];
+  roleToDepartment: Record<string, string>;
 }
 
 export function EmployeeListContent({
   employees,
   stats,
+  roleOptions,
+  departmentsForEditor,
+  roleToDepartment,
 }: EmployeeListContentProps) {
   const [filters, setFilters] = useState<FilterValues>({
     status: "all",
@@ -115,7 +122,12 @@ export function EmployeeListContent({
       </EmployeeFilters>
 
       {/* Employee Table - Instant updates, no loading */}
-      <EmployeeTable employees={filteredAndSortedEmployees} />
+      <EmployeeTable
+        employees={filteredAndSortedEmployees}
+        roleOptions={roleOptions}
+        departments={departmentsForEditor}
+        roleToDepartment={roleToDepartment}
+      />
     </>
   );
 }

@@ -5,7 +5,7 @@
  */
 
 import { api, type ApiResponse } from "@/lib/api/client";
-import { type User, type LoginUser } from "@/types/user-types";
+import { type User, type LoginUser, type RolesMetadataContract } from "@/types/user-types";
 
 export interface AuthResponse {
     token: string;
@@ -26,6 +26,12 @@ export interface ResetPasswordResponse {
 export interface InviteResponse {
     message: string;
     invite_url?: string;
+}
+
+export interface RolesMetadataResponse {
+    message: string;
+    code: string;
+    data: RolesMetadataContract;
 }
 
 export interface LocationData {
@@ -173,4 +179,14 @@ export async function deleteInvite(id: string, token?: string): Promise<ApiRespo
  */
 export async function validateToken(token: string): Promise<ApiResponse<User>> {
     return api.get<User>("/api/user", { token });
+}
+
+/**
+ * GET /api/roles/metadata
+ * Returns role labels, role-to-department map, and canonical department options.
+ */
+export async function getRolesMetadata(
+    token?: string
+): Promise<ApiResponse<RolesMetadataResponse>> {
+    return api.get<RolesMetadataResponse>("/api/roles/metadata", { token });
 }

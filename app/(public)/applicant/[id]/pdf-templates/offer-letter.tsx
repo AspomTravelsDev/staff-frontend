@@ -10,6 +10,7 @@ interface EmploymentTerms {
   staff_designation?: string;
   reporting_to?: string;
   effective_date?: string;
+  is_intern?: boolean;
   gross_salary?: number;
   net_salary?: number;
   statutory_tax_deduction?: number;
@@ -88,6 +89,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
   const reportingTo = employmentTerms?.reporting_to || "Management";
   const grossMonthly = employmentTerms?.gross_salary || 0;
   const grossAnnual = grossMonthly * 12;
+  const isIntern = Boolean(employmentTerms?.is_intern);
   const tax = employmentTerms?.statutory_tax_deduction || 0;
   const netSalary = employmentTerms?.net_salary || 0;
 
@@ -244,15 +246,17 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>4.3</Text>
             <Text style={pdfStyles.listContent}>
-              Necessary statutory deductions will be made from your Gross salary
-              (Tax - {formatAmount(tax)})
+              {isIntern
+                ? "No statutory tax deduction applies to this internship placement."
+                : `Necessary statutory deductions will be made from your Gross salary (Tax - ${formatAmount(tax)})`}
             </Text>
           </View>
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>4.4</Text>
             <Text style={pdfStyles.listContent}>
-              Your net salary after Statutory deduction is{" "}
-              {formatAmount(netSalary)}
+              {isIntern
+                ? `Your net salary is ${formatAmount(netSalary)} (no statutory deduction applies).`
+                : `Your net salary after Statutory deduction is ${formatAmount(netSalary)}`}
             </Text>
           </View>
         </View>

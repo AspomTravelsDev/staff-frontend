@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useEffect, useState } from "react";
 import { inviteAction, type InviteState } from "../actions";
-import { getRolesForSelect } from "@/types/user-types";
+import { type RoleOption } from "@/types/user-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +27,13 @@ import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
 
-const ROLES = getRolesForSelect();
+interface InviteFormProps {
+  roleOptions: RoleOption[];
+  roleToDepartment: Record<string, string>;
+}
 
-export function InviteForm() {
+export function InviteForm({ roleOptions, roleToDepartment }: InviteFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState<InviteState, FormData>(
     inviteAction,
@@ -54,7 +56,7 @@ export function InviteForm() {
   // Auto-fill department based on role
   const handleRoleChange = (role: string) => {
     setSelectedRole(role);
-    const autoDept = ROLE_TO_DEPARTMENT[role];
+    const autoDept = roleToDepartment[role];
     if (autoDept) {
       setDepartment(autoDept);
     }
@@ -161,7 +163,7 @@ export function InviteForm() {
                     <SelectValue placeholder="Select a designation" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLES.map((role) => (
+                    {roleOptions.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
                         {role.label}
                       </SelectItem>

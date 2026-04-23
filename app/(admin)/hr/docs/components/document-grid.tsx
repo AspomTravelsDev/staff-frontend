@@ -46,12 +46,14 @@ interface DocumentGridProps {
   documents: DocumentFile[];
   isLoading: boolean;
   showDelete?: boolean;
+  departments: string[];
 }
 
 export function DocumentGrid({
   documents,
   isLoading,
   showDelete = false,
+  departments,
 }: DocumentGridProps) {
   const [token, setToken] = useState<string | null>(null);
 
@@ -261,6 +263,7 @@ export function DocumentGrid({
                   </DropdownMenuItem>
                   {showDelete && (
                     <UploadDocumentDialog
+                      departments={departments}
                       document={doc}
                       trigger={
                         <DropdownMenuItem

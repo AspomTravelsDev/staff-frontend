@@ -34,12 +34,14 @@ interface DocumentListTableProps {
   documents: DocumentFile[];
   isLoading: boolean;
   showDelete?: boolean;
+  departments: string[];
 }
 
 export function DocumentListTable({
   documents,
   isLoading,
   showDelete = false,
+  departments,
 }: DocumentListTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -228,6 +230,7 @@ export function DocumentListTable({
 
                   {showDelete && (
                     <UploadDocumentDialog
+                      departments={departments}
                       document={doc}
                       trigger={
                         <Button variant="ghost" size="icon" title="Edit">

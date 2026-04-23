@@ -10,11 +10,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface DocumentViewWrapperProps {
   documents: DocumentFile[];
   showDelete?: boolean;
+  departments: string[];
 }
 
 export function DocumentViewWrapper({
   documents,
   showDelete = false,
+  departments,
 }: DocumentViewWrapperProps) {
   const [view, setView] = useState<"grid" | "list">("grid");
 
@@ -44,12 +46,14 @@ export function DocumentViewWrapper({
           documents={documents}
           isLoading={false}
           showDelete={showDelete}
+          departments={departments}
         />
       ) : (
         <DocumentListTable
           documents={documents}
           isLoading={false}
           showDelete={showDelete}
+          departments={departments}
         />
       )}
     </div>

@@ -25,14 +25,16 @@ import { Employee } from "@/lib/api/employees";
 import { updateUserAction } from "../actions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { getRolesForSelect } from "@/types/user-types";
-import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
+import { type RoleOption } from "@/types/user-types";
 import { formatLagosDateForInput } from "@/lib/utils/attendance";
 
 interface EditUserDialogProps {
   employee: Employee | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  roleOptions: RoleOption[];
+  departments: string[];
+  roleToDepartment: Record<string, string>;
 }
 
 interface EditUserFormData {
@@ -50,29 +52,15 @@ interface EditUserFormData {
   is_active: boolean;
 }
 
-const DEPARTMENTS = [
-  "Management",
-  "Administration",
-  "IT",
-  "Accounts",
-  "Visa",
-  "HR",
-  "Social Media",
-  "Compliance",
-  "Birth Services",
-  "Holidays",
-  "Ticketing",
-  "Customer Service",
-  "Other",
-];
-
 export function EditUserDialog({
   employee,
   open,
   onOpenChange,
+  roleOptions,
+  departments,
+  roleToDepartment,
 }: EditUserDialogProps) {
   const [isPending, setIsPending] = useState(false);
-  const roles = getRolesForSelect();
 
   const {
     register,
@@ -122,11 +110,11 @@ export function EditUserDialog({
   const watchedRole = watch("role");
   const watchedDepartment = watch("department");
   useEffect(() => {
-    const suggested = ROLE_TO_DEPARTMENT[watchedRole];
+    const suggested = roleToDepartment[watchedRole];
     if (suggested && !watchedDepartment) {
       setValue("department", suggested);
     }
-  }, [watchedRole]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [roleToDepartment, watchedDepartment, watchedRole, setValue]);
 
   const onSubmit = async (data: EditUserFormData) => {
     if (!employee) return;
@@ -238,10 +226,10 @@ export function EditUserDialog({
                   onValueChange={(value) => {
                     setValue("role", value);
                     // Auto-fill department if empty or previously auto-filled
-                    const suggested = ROLE_TO_DEPARTMENT[value];
+                    const suggested = roleToDepartment[value];
                     if (suggested) {
                       const wasSuggested =
-                        Object.values(ROLE_TO_DEPARTMENT).includes(
+                        Object.values(roleToDepartment).includes(
                           watchedDepartment,
                         );
                       if (!watchedDepartment || wasSuggested) {
@@ -254,7 +242,7 @@ export function EditUserDialog({
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {roles.map((role) => (
+                    {roleOptions.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
                         {role.label}
                       </SelectItem>
@@ -274,7 +262,7 @@ export function EditUserDialog({
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENTS.map((dept) => (
+                    {departments.map((dept) => (
                       <SelectItem key={dept} value={dept}>
                         {dept}
                       </SelectItem>

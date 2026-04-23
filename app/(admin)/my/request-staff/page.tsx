@@ -2,11 +2,19 @@ import { getMyHrRequests } from "@/lib/api/hr-requests";
 import { RequestStaffModal } from "./components/request-staff-modal";
 import { RequestStaffTable } from "./components/request-staff-table";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 
 export default async function RequestStaffPage() {
-  const user = await getCurrentUser();
+  const [user, roleMetadata] = await Promise.all([
+    getCurrentUser(),
+    getRolesMetadataContract(),
+  ]);
   const department =
     (user as any)?.department?.name || (user as any)?.role || "";
+  const roleOptions = roleMetadata.roles.map((role) => ({
+    label: role.label,
+    value: role.value,
+  }));
 
   let requests = [];
   try {
@@ -25,7 +33,11 @@ export default async function RequestStaffPage() {
             Submit a request for new interns, corps members, or full staff.
           </p>
         </div>
-        <RequestStaffModal userDepartment={department} />
+        <RequestStaffModal
+          userDepartment={department}
+          roleOptions={roleOptions}
+          roleToDepartment={roleMetadata.role_to_department}
+        />
       </div>
 
       <div className="mt-8">

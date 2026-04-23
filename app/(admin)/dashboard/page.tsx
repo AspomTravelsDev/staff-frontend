@@ -21,7 +21,7 @@ import {
   AttendanceStatusBlocks,
   AttendanceStatus,
 } from "@/components/dashboard/attendance-status-blocks";
-import { getClockInHistory, getTodayStatus } from "@/lib/api/clock-in";
+import { getClockInHistory } from "@/lib/api/clock-in";
 import { QuickLinkButton } from "@/components/dashboard/quick-link-button";
 
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
@@ -30,7 +30,7 @@ import { getAllAwards, getMyAwards } from "@/lib/api/awards";
 import { isLate } from "@/lib/utils/attendance";
 import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
-import { ROLE_TO_DEPARTMENT } from "@/lib/utils/role-department";
+import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 import { getRates } from "@/lib/api/rates";
 import { getAnnouncements } from "@/lib/api/announcements";
 
@@ -44,15 +44,14 @@ export default async function Page() {
 
   const [
     clockInResponse,
-    todayStatusResponse,
     allAwards,
     myAwards,
     ratesResponse,
     announcementsData,
     todayBirthdays,
+    rolesMetadata,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
-    getTodayStatus(),
     getAllAwards().catch(() => []),
     getMyAwards().catch(() => []),
     getRates().catch(() => ({
@@ -64,16 +63,18 @@ export default async function Page() {
       pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
     })),
     getTodayBirthdays().catch(() => []),
+    getRolesMetadataContract(),
   ]);
+
+  const roleToDepartment = rolesMetadata.role_to_department;
 
   const ratesPayload = ratesResponse.success ? ratesResponse.data : null;
   const rates = ratesPayload
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? ((ratesPayload as any)?.data ?? ratesPayload)
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((ratesPayload as any)?.data ?? ratesPayload)
     : null;
 
   let totalAttendance = 0;
-  let lateDays = 0;
   let attendanceStatuses: AttendanceStatus[] = [];
 
   if (clockInResponse.success) {
@@ -104,7 +105,6 @@ export default async function Page() {
       }
 
       if (isLate(record.clock_in_at)) {
-        lateDays++;
         return "late" as AttendanceStatus;
       }
 
@@ -125,7 +125,7 @@ export default async function Page() {
           : "Unknown",
         role:
           employeeOfTheMonthAward.user?.department ||
-          ROLE_TO_DEPARTMENT[employeeOfTheMonthAward.user?.role ?? ""] ||
+          roleToDepartment[employeeOfTheMonthAward.user?.role ?? ""] ||
           "Staff",
         image:
           toProxiedImageUrl(
