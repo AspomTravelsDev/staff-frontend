@@ -158,7 +158,7 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
-        title: "Payroll Runs",
+        title: "Payroll",
         url: "/hr/payroll",
         icon: CreditCard,
         allowedRoles: ["hr", "super"],
@@ -379,7 +379,7 @@ export const personalNav: NavItem[] = [
                 title: "Expenses", url: "/my/expenses", disabled: true,
             },
             {
-                title: "Payslip", url: "/my/payslip", disabled: true,
+                title: "Payslip", url: "/my/payslip",
             },
             {
                 title: "Loan Requests", url: "/my/loan-requests",

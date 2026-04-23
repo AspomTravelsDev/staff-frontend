@@ -397,7 +397,7 @@ export function PayrollEntrySheet({
               {isSaving ? "Saving..." : <Save className="h-4 w-4" />}
             </Button>
             <Button
-              className="flex-[2] gap-2"
+              className="flex-2 gap-2"
               disabled={isSaving || isPublishing}
               onClick={() => handleSave(true)}
             >

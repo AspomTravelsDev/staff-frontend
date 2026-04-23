@@ -26,6 +26,7 @@ import {
   MinusCircle, 
   CheckCircle2, 
   RefreshCcw, 
+  RotateCcw,
   CheckCheck,
   ChevronRight
 } from "lucide-react";
@@ -174,6 +175,33 @@ export function PayrollManager() {
     }
   };
 
+  const handleResetRun = async () => {
+    if (!window.confirm("Are you sure you want to RESET this payroll run? This will delete all current entries and manual overrides, and recalculate everything from scratch.")) {
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const result = await createPayrollRun(selectedMonth, true);
+      if (!result.success) {
+        throw new Error(result.error.error || "Failed to reset payroll run.");
+      }
+
+      toast.success("Payroll run has been reset and recalculated.");
+      const runId = result.data.data.id;
+      const runDetails = await getPayrollRun(runId);
+      if (runDetails.success) {
+        setCurrentRun(runDetails.data.data);
+      }
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to reset payroll run.",
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handleBulkApprove = async () => {
     if (selectedEntries.length === 0) return;
     
@@ -287,7 +315,7 @@ export function PayrollManager() {
               />
             </div>
           </div>
-          <div className="pt-5">
+          <div className="pt-5 flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -299,6 +327,19 @@ export function PayrollManager() {
             >
               <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} />
             </Button>
+            {currentRun && currentRun.status !== 'closed' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
+                disabled={isBusy}
+                onClick={handleResetRun}
+                title="Reset / Start Over"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 

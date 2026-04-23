@@ -72,9 +72,10 @@ export async function listPayrollRuns(month?: string): Promise<ApiResponse<{ dat
   return api.get<{ data: PayrollRun[] }>(`/api/hr/payroll/runs${query}`);
 }
 
-export async function createPayrollRun(payrollMonth: string): Promise<ApiResponse<{ data: PayrollRun }>> {
+export async function createPayrollRun(payrollMonth: string, reset: boolean = false): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>("/api/hr/payroll/runs", {
     payroll_month: payrollMonth,
+    reset: reset,
   });
 }
 
