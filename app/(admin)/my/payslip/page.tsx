@@ -1,189 +1,37 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getMyPayroll } from "@/lib/api/payroll";
 import { Building2, FileText } from "lucide-react";
 import { ExportButton } from "./components/export-button";
 
-function toNumber(value: unknown): number {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
+const currencyFormatter = new Intl.NumberFormat("en-NG", {
+  style: "currency",
+  currency: "NGN",
+});
 
-  if (typeof value === "string") {
-    // Strip currency symbols/thousand separators and keep numeric characters.
-    const normalized = value.replace(/[^\d.-]/g, "");
-    const parsed = parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  return 0;
-}
+const formatPrice = (amount: number) => currencyFormatter.format(amount);
 
 export default async function PayslipPage() {
   const user = await getCurrentUser();
-
   if (!user) {
     redirect("/auth/login");
   }
 
-  const grossPay = toNumber(user.gross_pay);
-
-  // Fetch compliance issues for deductions (Current Month)
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+  const month = `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, "0")}`;
 
-  const { getComplianceIssues } = await import("@/lib/api/compliance");
-  const complianceResponse = await getComplianceIssues({
-    user_id: user.id,
-    status: "closed",
-    date_from: firstDay,
-    date_to: lastDay,
-  }).catch(() => ({ items: [] }));
+  const payrollResult = await getMyPayroll(month);
+  const payroll = payrollResult.success ? payrollResult.data.data : null;
+  const entry = payroll?.entry;
 
-  const suspensions = complianceResponse.items.filter(
-    (item) =>
-      item.outcome === "Suspension" && toNumber(item.deduction_days) > 0,
-  );
+  const isPending = !!entry && entry.status !== "approved";
+  const isMissing = !entry;
 
-  const totalDeductionDays = suspensions.reduce(
-    (acc, curr) => acc + toNumber(curr.deduction_days),
-    0,
-  );
-
-  const dailyRate = grossPay / 30;
-  const totalSuspensionDeduction = totalDeductionDays * dailyRate;
-
-  // DEDUCTION APPLIED BEFORE TAX
-  const adjustedMonthlyGross = Math.max(0, grossPay - totalSuspensionDeduction);
-
-  const salaryBreakdown = [
-    {
-      label: "Basic",
-      amount: adjustedMonthlyGross * 0.1835,
-      isDeduction: false,
-    },
-    {
-      label: "Rent",
-      amount: adjustedMonthlyGross * 0.0552,
-      isDeduction: false,
-    },
-    {
-      label: "Transport",
-      amount: adjustedMonthlyGross * 0.0552,
-      isDeduction: false,
-    },
-    {
-      label: "Medical/Health",
-      amount: adjustedMonthlyGross * 0.1826,
-      isDeduction: false,
-    },
-    {
-      label: "Furniture",
-      amount: adjustedMonthlyGross * 0.0634,
-      isDeduction: false,
-    },
-    {
-      label: "Utility",
-      amount: adjustedMonthlyGross * 0.0345,
-      isDeduction: false,
-    },
-    {
-      label: "Entertainment",
-      amount: adjustedMonthlyGross * 0.0446,
-      isDeduction: false,
-    },
-    {
-      label: "Meal",
-      amount: adjustedMonthlyGross * 0.1336,
-      isDeduction: false,
-    },
-    {
-      label: "Clothing",
-      amount: adjustedMonthlyGross * 0.1328,
-      isDeduction: false,
-    },
-    {
-      label: "Passages",
-      amount: adjustedMonthlyGross * 0.1146,
-      isDeduction: false,
-    },
-  ];
-
-  // Add individual suspension line items to breakdown
-  suspensions.forEach((s) => {
-    const amount = toNumber(s.deduction_days) * dailyRate;
-    const dateFormatted = new Date(s.occurrence_date).toLocaleDateString(
-      "en-GB",
-      {
-        day: "numeric",
-        month: "short",
-      },
-    );
-    salaryBreakdown.push({
-      label: `Suspension: ${s.type} (${dateFormatted})`,
-      amount,
-      isDeduction: true,
-    });
-  });
-
-  const annualGross = adjustedMonthlyGross * 12;
-
-  const annualPension = 0;
-  const annualNHF = 0;
-
-  const taxableIncome = Math.max(0, annualGross - annualPension - annualNHF);
-
-  let remainingTaxable = taxableIncome;
-  let annualTax = 0;
-
-  // Band 1: First ₦800,000 at 0%
-  const band1 = Math.min(remainingTaxable, 800000);
-  // No tax on first band
-  remainingTaxable -= band1;
-
-  // Band 2: ₦800,001 - ₦3,000,000 at 15%
-  if (remainingTaxable > 0) {
-    const band2 = Math.min(remainingTaxable, 2200000); // 3,000,000 - 800,000
-    annualTax += band2 * 0.15;
-    remainingTaxable -= band2;
-  }
-
-  // Band 3: ₦3,000,001 - ₦12,000,000 at 18%
-  if (remainingTaxable > 0) {
-    const band3 = Math.min(remainingTaxable, 9000000); // 12,000,000 - 3,000,000
-    annualTax += band3 * 0.18;
-    remainingTaxable -= band3;
-  }
-
-  // Band 4: ₦12,000,001 - ₦25,000,000 at 21%
-  if (remainingTaxable > 0) {
-    const band4 = Math.min(remainingTaxable, 13000000); // 25,000,000 - 12,000,000
-    annualTax += band4 * 0.21;
-    remainingTaxable -= band4;
-  }
-
-  // Band 5: Above ₦25,000,000 at 25%
-  if (remainingTaxable > 0) {
-    annualTax += remainingTaxable * 0.25;
-  }
-
-  const monthlyTax = annualTax / 12;
-  const monthlyPension = annualPension / 12;
-  const monthlyNHF = annualNHF / 12;
-  const totalMonthlyDeductions =
-    monthlyTax + monthlyPension + monthlyNHF + totalSuspensionDeduction;
-  const netPay = grossPay - totalMonthlyDeductions;
-
-  const currencyFormatter = new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-  });
-
-  const formatPrice = (amount: number) => currencyFormatter.format(amount);
+  const totalDeductions = entry
+    ? Math.max(0, entry.deduction_amount + entry.tax_amount)
+    : 0;
+  const netPay = entry?.net_amount ?? 0;
+  const grossPay = entry?.gross_salary ?? 0;
 
   return (
     <div className="min-h-screen bg-muted/30 p-1 md:p-8 lg:p-12">
@@ -271,7 +119,12 @@ export default async function PayslipPage() {
                     })}
                   </p>
                   <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase">
-                    Status: Finalized
+                    Status:{" "}
+                    {isMissing
+                      ? "Not Generated"
+                      : isPending
+                        ? "Pending HR Approval"
+                        : "Approved"}
                   </p>
                 </div>
                 <div className="inline-block bg-slate-50 border border-slate-200 px-4 py-2 rounded">
@@ -307,67 +160,57 @@ export default async function PayslipPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {salaryBreakdown.map((item, idx) => (
-                      <tr
-                        key={idx}
-                        className={idx % 2 === 1 ? "bg-slate-50/30" : ""}
-                      >
+                    <tr className="bg-slate-50/30">
+                      <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                        Gross Salary
+                      </td>
+                      <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums">
+                        {formatPrice(grossPay).replace("NGN", "")}
+                      </td>
+                    </tr>
+                    {!isMissing && (
+                      <tr className="bg-slate-50/30">
                         <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
-                          {item.label}
+                          Deduction (Attendance + Compliance)
                         </td>
-                        <td
-                          className={`px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums ${item.isDeduction ? "text-rose-600" : ""}`}
-                        >
-                          {item.isDeduction
-                            ? `(${formatPrice(item.amount).replace("NGN", "")})`
-                            : formatPrice(item.amount).replace("NGN", "")}
+                        <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                          ({formatPrice(entry.deduction_amount).replace("NGN", "")})
                         </td>
                       </tr>
-                    ))}
+                    )}
+                    {!isMissing && (
+                      <tr className="bg-slate-50 border-t border-slate-200">
+                        <td className="px-4 md:px-6 py-3 md:py-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-600">
+                              Income Tax (PAYE)
+                            </span>
+                            {entry.is_intern && (
+                              <span className="text-[10px] text-muted-foreground">
+                                Intern tax exemption applied
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold text-rose-600 tabular-nums">
+                          ({formatPrice(entry.tax_amount).replace("NGN", "")})
+                        </td>
+                      </tr>
+                    )}
                     <tr className="bg-slate-50 border-t border-slate-200">
                       <td className="px-4 md:px-6 py-3 md:py-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-600">
-                            Income Tax (PAYE)
-                          </span>
+                        <div className="flex flex-col font-medium text-slate-600">
+                          Payroll Visibility
                         </div>
                       </td>
-                      <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold text-rose-600 tabular-nums">
-                        ({formatPrice(monthlyTax).replace("NGN", "")})
+                      <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums">
+                        {isMissing
+                          ? "No payroll run yet"
+                          : isPending
+                            ? "Limited pending view"
+                            : "Approved payslip"}
                       </td>
                     </tr>
-                    {/* Pension and NHF fund contribution commented out for now
-                    <tr className="bg-slate-50">
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-600">
-                            Pension Contribution
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Standard 8% Fund
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold text-rose-600 tabular-nums">
-                        ({formatPrice(monthlyPension).replace("NGN", "")})
-                      </td>
-                    </tr>
-                    <tr className="bg-slate-50">
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-600">
-                            National Housing Fund (NHF)
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Standard 2.5% Contribution
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold text-rose-600 tabular-nums">
-                        ({formatPrice(monthlyNHF).replace("NGN", "")})
-                      </td>
-                    </tr>
-                    */}
                   </tbody>
                   <tfoot className="bg-primary/5 text-slate-900 border-t-2 border-primary/20">
                     <tr className="border-b border-primary/10">
@@ -375,7 +218,7 @@ export default async function PayslipPage() {
                         Total Deductions
                       </td>
                       <td className="px-4 md:px-6 py-3 md:py-4 text-right font-black text-rose-600 tabular-nums">
-                        {formatPrice(totalMonthlyDeductions).replace("NGN", "")}
+                        {formatPrice(totalDeductions).replace("NGN", "")}
                       </td>
                     </tr>
                     <tr>
@@ -384,7 +227,7 @@ export default async function PayslipPage() {
                       </td>
                       <td className="px-4 md:px-6 py-4 md:py-6 text-right">
                         <span className="text-xl sm:text-2xl md:text-3xl font-black text-primary tracking-tighter underline decoration-primary/20 underline-offset-8">
-                          {formatPrice(netPay)}
+                          {isMissing ? "Pending payroll generation" : formatPrice(netPay)}
                         </span>
                       </td>
                     </tr>

@@ -158,6 +158,12 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["hr"],
     },
     {
+        title: "Payroll Runs",
+        url: "/hr/payroll",
+        icon: CreditCard,
+        allowedRoles: ["hr", "super"],
+    },
+    {
         title: "General Tasks & Reports",
         url: "/hr/tasks",
         icon: ClipboardList,
