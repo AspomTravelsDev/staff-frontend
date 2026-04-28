@@ -190,4 +190,34 @@ export async function markGeneralRequestNotificationsViewed(): Promise<void> {
     revalidatePath("/my/requests");
 }
 
+// ---------------------------------------------------------------------------
+// Request comments & single-request helpers
+// ---------------------------------------------------------------------------
+
+export interface RequestComment {
+    id: string;
+    staff_request_id: string;
+    user_id: string;
+    comment: string;
+    created_at: string;
+    user?: {
+        id: string;
+        name: string;
+        image_url?: string;
+    };
+}
+
+export async function getRequest(id: string) {
+    return api.get<RequestItem>(`/api/requests/${id}`);
+}
+
+export async function addRequestComment(id: string, payload: { comment: string; close?: boolean; resolution_note?: string | null }) {
+    const result = await api.post<RequestComment>(`/api/requests/${id}/comments`, payload);
+    if (result.success) {
+        revalidatePath("/my/requests");
+        revalidatePath("/admin/requests");
+    }
+    return result;
+}
+
 

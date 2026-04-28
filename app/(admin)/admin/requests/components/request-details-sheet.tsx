@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { RequestItem } from "@/lib/api/requests";
 import { getRoleLabel, User } from "@/types/user-types";
+import { RequestComments } from "./request-comments";
 
 function getStatusVariant(status: string) {
   switch (status) {
@@ -117,19 +118,42 @@ export function RequestDetailsSheet({
 
           {request.logs && request.logs.length > 0 && (
             <div className="pt-4 border-t">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">Activity Log</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                Activity Log
+              </h4>
               <div className="space-y-3 max-h-48 overflow-y-auto pr-2 rounded-md bg-muted/20 p-3">
                 {request.logs.map((log) => (
-                  <div key={log.id} className="text-xs text-muted-foreground flex gap-2">
-                     <span className="shrink-0 text-primary/70">{format(new Date(log.created_at), "MMM d, h:mm a")}</span>
-                     <span>
-                       <strong>{log.user_name}</strong> changed status from <span className="capitalize">{log.old_value?.replace("_", " ")}</span> to <span className="capitalize font-medium text-foreground">{log.new_value?.replace("_", " ")}</span>
-                     </span>
+                  <div
+                    key={log.id}
+                    className="text-xs text-muted-foreground flex gap-2"
+                  >
+                    <span className="shrink-0 text-primary/70">
+                      {format(new Date(log.created_at), "MMM d, h:mm a")}
+                    </span>
+                    <span>
+                      <strong>{log.user_name}</strong> changed status from{" "}
+                      <span className="capitalize">
+                        {log.old_value?.replace("_", " ")}
+                      </span>{" "}
+                      to{" "}
+                      <span className="capitalize font-medium text-foreground">
+                        {log.new_value?.replace("_", " ")}
+                      </span>
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
           )}
+          <div className="pt-4 border-t">
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">
+              Comments
+            </h4>
+            <RequestComments
+              requestId={request.id}
+              initialStatus={request.status}
+            />
+          </div>
         </div>
       </SheetContent>
     </Sheet>

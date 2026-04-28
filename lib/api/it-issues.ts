@@ -21,8 +21,22 @@ export interface ItIssue {
         name: string;
         role: string;
     };
+    comments?: ItIssueComment[];
     created_at: string;
     updated_at: string;
+}
+
+export interface ItIssueComment {
+    id: string;
+    issue_id: string;
+    user_id: string;
+    comment: string;
+    created_at: string;
+    user?: {
+        id: string;
+        name: string;
+        image_url?: string;
+    };
 }
 
 export interface ItIssueStats {
@@ -70,6 +84,10 @@ export async function getItIssueStats(): Promise<ApiResponse<ItIssueStats>> {
     return api.get("/api/it-issues/stats/summary");
 }
 
+export async function getItIssue(id: string): Promise<ApiResponse<ItIssue>> {
+    return api.get(`/api/it-issues/${id}`);
+}
+
 export async function createItIssue(payload: CreateItIssuePayload): Promise<ApiResponse<ItIssue>> {
     const result = await api.post<ItIssue>("/api/it-issues", payload);
     if (result.success) {
@@ -94,6 +112,15 @@ export async function updateItIssue(id: string, payload: UpdateItIssuePayload): 
 
 export async function deleteItIssue(id: string): Promise<ApiResponse<null>> {
     const result = await api.delete<null>(`/api/it-issues/${id}`);
+    if (result.success) {
+        revalidatePath("/my/it-issue");
+        revalidatePath("/it/report-issues");
+    }
+    return result;
+}
+
+export async function addItIssueComment(id: string, payload: { comment: string; close?: boolean; resolution_note?: string | null }): Promise<ApiResponse<ItIssueComment>> {
+    const result = await api.post<ItIssueComment>(`/api/it-issues/${id}/comments`, payload);
     if (result.success) {
         revalidatePath("/my/it-issue");
         revalidatePath("/it/report-issues");

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { RequestComments } from "@/app/(admin)/admin/requests/components/request-comments";
 
 export function RequestDetailsSheet({
   request,
@@ -116,6 +117,10 @@ export function RequestDetailsSheet({
               {request.comment || "No additional comments provided."}
             </div>
           </div>
+          <RequestComments
+            requestId={request.id}
+            initialStatus={request.status}
+          />
         </div>
       </SheetContent>
     </Sheet>

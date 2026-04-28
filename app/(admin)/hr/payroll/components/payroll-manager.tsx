@@ -19,6 +19,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { StatsCard } from "@/components/stats-card";
 import { 
@@ -56,6 +66,7 @@ export function PayrollManager() {
   const [busyEntries, setBusyEntries] = useState<Record<string, boolean>>({});
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [isBulkApproving, setIsBulkApproving] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   const isPersistedRun = (run?: PayrollRun | null) => {
     return !!run && !!run.id;
@@ -176,10 +187,7 @@ export function PayrollManager() {
   };
 
   const handleResetRun = async () => {
-    if (!window.confirm("Are you sure you want to RESET this payroll run? This will delete all current entries and manual overrides, and recalculate everything from scratch.")) {
-      return;
-    }
-
+    setIsResetDialogOpen(false);
     setIsBusy(true);
     try {
       const result = await createPayrollRun(selectedMonth, true);
@@ -319,25 +327,23 @@ export function PayrollManager() {
             <Button
               type="button"
               variant="outline"
-              size="icon"
-              className="h-10 w-10 shrink-0"
+              className="h-10 shrink-0"
               disabled={isBusy}
               onClick={loadMonthRun}
               title="Refresh / Re-sync"
             >
-              <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} />
+              <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} /> Refresh
             </Button>
             {currentRun && currentRun.status !== 'closed' && (
               <Button
                 type="button"
                 variant="outline"
-                size="icon"
-                className="h-10 w-10 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
+                className="h-10 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
                 disabled={isBusy}
-                onClick={handleResetRun}
+                onClick={() => setIsResetDialogOpen(true)}
                 title="Reset / Start Over"
               >
-                <RotateCcw className="h-4 w-4" />
+               <RotateCcw className="h-4 w-4" /> Reset Payroll
               </Button>
             )}
           </div>
@@ -604,6 +610,31 @@ export function PayrollManager() {
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-rose-500" />
+              Reset Payroll Run?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete all current 
+              entries and manual overrides for <span className="font-bold text-foreground">{selectedMonth}</span>, 
+              and recalculate everything from scratch based on the latest attendance records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleResetRun}
+              className="bg-rose-600 hover:bg-rose-700 font-bold"
+            >
+              Yes, Reset Everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
