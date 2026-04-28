@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -31,14 +32,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { StatsCard } from "@/components/stats-card";
-import { 
-  Banknote, 
-  MinusCircle, 
-  CheckCircle2, 
-  RefreshCcw, 
+import {
+  Banknote,
+  MinusCircle,
+  CheckCircle2,
+  RefreshCcw,
   RotateCcw,
   CheckCheck,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 
 const getCurrentMonth = () => {
@@ -52,6 +53,31 @@ function money(amount: number) {
     style: "currency",
     currency: "NGN",
   }).format(amount);
+}
+
+function formatMonthLabel(isoMonth?: string) {
+  if (!isoMonth) return "";
+  // expect YYYY-MM or YYYY-MM-DD
+  const parts = isoMonth.split("-");
+  if (parts.length < 2) return isoMonth;
+  const year = parts[0];
+  const month = Number(parts[1]);
+  const names = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const short = names[month - 1] ?? parts[1];
+  return `${short}, ${year}`;
 }
 
 export function PayrollManager() {
@@ -212,10 +238,12 @@ export function PayrollManager() {
 
   const handleBulkApprove = async () => {
     if (selectedEntries.length === 0) return;
-    
+
     setIsBulkApproving(true);
-    const toastId = toast.loading(`Approving ${selectedEntries.length} entries...`);
-    
+    const toastId = toast.loading(
+      `Approving ${selectedEntries.length} entries...`,
+    );
+
     let successCount = 0;
     let failCount = 0;
 
@@ -229,7 +257,10 @@ export function PayrollManager() {
       }
     }
 
-    toast.success(`Successfully approved ${successCount} entries.${failCount > 0 ? ` ${failCount} failed.` : ''}`, { id: toastId });
+    toast.success(
+      `Successfully approved ${successCount} entries.${failCount > 0 ? ` ${failCount} failed.` : ""}`,
+      { id: toastId },
+    );
     setSelectedEntries([]);
     if (currentRun?.id) {
       const refreshed = await getPayrollRun(currentRun.id);
@@ -242,13 +273,13 @@ export function PayrollManager() {
     if (selectedEntries.length === entries.length) {
       setSelectedEntries([]);
     } else {
-      setSelectedEntries(entries.map(e => e.id));
+      setSelectedEntries(entries.map((e) => e.id));
     }
   };
 
   const toggleSelectEntry = (id: string) => {
-    setSelectedEntries(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setSelectedEntries((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -272,10 +303,131 @@ export function PayrollManager() {
     }
   };
 
+  // Export current payroll run as CSV (Excel-compatible)
+  const exportPayrollCsv = () => {
+    if (!currentRun) return;
+    const rawMonth = currentRun.payroll_month || selectedMonth;
+    const displayMonthLabel = formatMonthLabel(rawMonth);
+    // safe filename label like Apr-2026
+    const parts = (rawMonth || "").split("-");
+    const year = parts[0] ?? "";
+    const monthIndex = Number(parts[1] ?? 0) - 1;
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const fileMonthLabel = `${monthNames[monthIndex] ?? parts[1] ?? ""}-${year}`;
+
+    const headers = [
+      "Employee Name",
+      "Tax ID/ Tax IN",
+      "Regular Monthly pay",
+      `${displayMonthLabel} GROSS PAY`,
+      "PAYE Taxes",
+      "Other Deductions",
+      "Total Deductions",
+      "Additions",
+      "Total Additions",
+      "Net Pay - Monthly",
+    ];
+
+    const rows = (currentRun.entries ?? []).map((entry) => {
+      const userAny = (entry.user || {}) as any;
+      const name = userAny?.name ?? "";
+      const taxId =
+        userAny?.tax_id || userAny?.tax_in || userAny?.taxNumber || "";
+
+      const regularMonthlyPay = Number(
+        userAny?.monthly_pay ?? userAny?.regular_pay ?? entry.gross_salary ?? 0,
+      );
+      const grossPay = Number(entry.gross_salary ?? 0);
+      const payeTaxes = Number(entry.tax_amount ?? 0);
+      const otherDeductions = Number(entry.other_deductions_amount ?? 0);
+      const totalDeductions = Number(entry.deduction_amount ?? 0) + payeTaxes;
+
+      // Attempt to derive additions from calculation snapshot if present
+      let additionsValue = 0;
+      let additionsDesc = "";
+      try {
+        const snap = (entry as any).calculation_snapshot ?? {};
+        if (snap) {
+          if (Array.isArray(snap.additions)) {
+            additionsValue = snap.additions.reduce(
+              (s: number, a: any) => s + Number(a?.amount ?? 0),
+              0,
+            );
+            additionsDesc = snap.additions
+              .map((a: any) => `${a?.name ?? ""}:${a?.amount ?? 0}`)
+              .join("; ");
+          } else if (typeof snap.additions === "object") {
+            additionsValue = Object.values(snap.additions).reduce(
+              (s: number, v: any) => s + Number(v ?? 0),
+              0,
+            );
+            additionsDesc = JSON.stringify(snap.additions);
+          } else if (snap.total_additions) {
+            additionsValue = Number(snap.total_additions || 0);
+          }
+        }
+      } catch (e) {
+        additionsValue = 0;
+      }
+
+      const totalAdditions = additionsValue;
+      const netMonthly = Number(entry.net_amount ?? 0);
+
+      return [
+        name,
+        taxId || "",
+        regularMonthlyPay.toFixed(2),
+        grossPay.toFixed(2),
+        payeTaxes.toFixed(2),
+        otherDeductions.toFixed(2),
+        totalDeductions.toFixed(2),
+        additionsDesc || additionsValue.toFixed(2),
+        totalAdditions.toFixed(2),
+        netMonthly.toFixed(2),
+      ];
+    });
+
+    const escapeCell = (v: any) => {
+      if (v === null || v === undefined) return '""';
+      return '"' + String(v).replace(/"/g, '""') + '"';
+    };
+
+    const csv = [headers, ...rows]
+      .map((r) => r.map((c) => escapeCell(c)).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payroll_${fileMonthLabel}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const stats = {
     totalPaid: entries.reduce((acc, e) => acc + Number(e.gross_salary || 0), 0),
-    totalDeductions: entries.reduce((acc, e) => acc + Number(e.deduction_amount || 0) + Number(e.tax_amount || 0), 0),
-    progress: totalEntries > 0 ? (approvedCount / totalEntries) * 100 : 0
+    totalDeductions: entries.reduce(
+      (acc, e) =>
+        acc + Number(e.deduction_amount || 0) + Number(e.tax_amount || 0),
+      0,
+    ),
+    progress: totalEntries > 0 ? (approvedCount / totalEntries) * 100 : 0,
   };
 
   return (
@@ -312,7 +464,12 @@ export function PayrollManager() {
       <div className="bg-card border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="space-y-1.5 min-w-[180px]">
-            <Label htmlFor="payroll-month" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest ml-1">Payroll Period</Label>
+            <Label
+              htmlFor="payroll-month"
+              className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest ml-1"
+            >
+              Payroll Period
+            </Label>
             <div className="relative">
               <Input
                 id="payroll-month"
@@ -332,9 +489,10 @@ export function PayrollManager() {
               onClick={loadMonthRun}
               title="Refresh / Re-sync"
             >
-              <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} /> Refresh
+              <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} />{" "}
+              Refresh
             </Button>
-            {currentRun && currentRun.status !== 'closed' && (
+            {currentRun && currentRun.status !== "closed" && (
               <Button
                 type="button"
                 variant="outline"
@@ -343,7 +501,7 @@ export function PayrollManager() {
                 onClick={() => setIsResetDialogOpen(true)}
                 title="Reset / Start Over"
               >
-               <RotateCcw className="h-4 w-4" /> Reset Payroll
+                <RotateCcw className="h-4 w-4" /> Reset Payroll
               </Button>
             )}
           </div>
@@ -351,17 +509,32 @@ export function PayrollManager() {
 
         <div className="flex items-center gap-3 pt-5">
           {currentRun && (
-            <Button
-              type="button"
-              variant="default"
-              className="font-bold px-6"
-              disabled={
-                isBusy || pendingCount > 0 || currentRun.status === "closed"
-              }
-              onClick={handleCloseRun}
-            >
-              {currentRun.status === "closed" ? "Payroll Run Closed" : "Finalize & Close Run"}
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10"
+                disabled={isBusy || (entries ?? []).length === 0}
+                onClick={exportPayrollCsv}
+                title="Export payroll as CSV (Excel)"
+              >
+                Export CSV
+              </Button>
+
+              <Button
+                type="button"
+                variant="default"
+                className="font-bold px-6"
+                disabled={
+                  isBusy || pendingCount > 0 || currentRun.status === "closed"
+                }
+                onClick={handleCloseRun}
+              >
+                {currentRun.status === "closed"
+                  ? "Payroll Run Closed"
+                  : "Finalize & Close Run"}
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -371,20 +544,22 @@ export function PayrollManager() {
         <div className="bg-primary text-primary-foreground p-3 rounded-xl flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-center gap-3 pl-2">
             <CheckCheck className="h-5 w-5" />
-            <span className="font-bold text-sm">{selectedEntries.length} staff selected for approval</span>
+            <span className="font-bold text-sm">
+              {selectedEntries.length} staff selected for approval
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-primary-foreground hover:bg-white/10"
               onClick={() => setSelectedEntries([])}
             >
               Cancel
             </Button>
-            <Button 
-              variant="secondary" 
-              size="sm" 
+            <Button
+              variant="secondary"
+              size="sm"
               className="font-bold bg-white text-primary hover:bg-white/90"
               onClick={handleBulkApprove}
               disabled={isBulkApproving}
@@ -401,18 +576,35 @@ export function PayrollManager() {
             <thead>
               <tr className="bg-slate-50/50 border-b">
                 <th className="p-4 text-center w-12">
-                  <Checkbox 
-                    checked={selectedEntries.length === entries.length && entries.length > 0}
+                  <Checkbox
+                    checked={
+                      selectedEntries.length === entries.length &&
+                      entries.length > 0
+                    }
                     onCheckedChange={toggleSelectAll}
                   />
                 </th>
-                <th className="p-4 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">Staff Details</th>
-                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">Gross Pay</th>
-                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">Tax (PAYE)</th>
-                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">Total Ded.</th>
-                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">Net Salary</th>
-                <th className="p-4 text-center font-bold text-slate-500 text-[10px] uppercase tracking-wider">Status</th>
-                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider pr-6">Actions</th>
+                <th className="p-4 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Staff Details
+                </th>
+                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Gross Pay
+                </th>
+                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Tax (PAYE)
+                </th>
+                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Total Ded.
+                </th>
+                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Net Salary
+                </th>
+                <th className="p-4 text-center font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="p-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider pr-6">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -421,12 +613,16 @@ export function PayrollManager() {
                   key={entry.id}
                   className={cn(
                     "group hover:bg-slate-50/80 transition-colors cursor-pointer",
-                    selectedEntries.includes(entry.id) && "bg-primary/5 hover:bg-primary/5"
+                    selectedEntries.includes(entry.id) &&
+                      "bg-primary/5 hover:bg-primary/5",
                   )}
                   onClick={() => setActiveEntry(entry)}
                 >
-                  <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox 
+                  <td
+                    className="p-4 text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
                       checked={selectedEntries.includes(entry.id)}
                       onCheckedChange={() => toggleSelectEntry(entry.id)}
                     />
@@ -436,11 +632,17 @@ export function PayrollManager() {
                       <span className="font-bold text-slate-800 flex items-center gap-2">
                         {entry.user?.name ?? "Unknown"}
                         {entry.is_intern && (
-                          <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter h-4">Intern</Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] bg-blue-50 text-blue-600 border-blue-100 uppercase tracking-tighter h-4"
+                          >
+                            Intern
+                          </Badge>
                         )}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-                        {entry.user?.staff_id ?? "N/A"} • {entry.user?.department ?? "General"}
+                        {entry.user?.staff_id ?? "N/A"} •{" "}
+                        {entry.user?.department ?? "General"}
                       </span>
                     </div>
                   </td>
@@ -451,31 +653,46 @@ export function PayrollManager() {
                     ({money(Number(entry.tax_amount || 0)).replace("NGN", "")})
                   </td>
                   <td className="p-4 text-right font-semibold text-rose-600/80 tabular-nums">
-                    ({money(Number(entry.deduction_amount || 0)).replace("NGN", "")})
+                    (
+                    {money(Number(entry.deduction_amount || 0)).replace(
+                      "NGN",
+                      "",
+                    )}
+                    )
                   </td>
                   <td className="p-4 text-right font-black text-primary tabular-nums text-base">
                     {money(Number(entry.net_amount || 0)).replace("NGN", "")}
                   </td>
                   <td className="p-4 text-center">
                     <Badge
-                      variant={entry.status === "approved" ? "default" : "secondary"}
+                      variant={
+                        entry.status === "approved" ? "default" : "secondary"
+                      }
                       className={cn(
                         "uppercase text-[10px] font-bold tracking-wider px-2.5",
-                        entry.status === "approved" ? "bg-green-100 text-green-700 hover:bg-green-100 border-none" : ""
+                        entry.status === "approved"
+                          ? "bg-green-100 text-green-700 hover:bg-green-100 border-none"
+                          : "",
                       )}
                     >
                       {entry.status}
                     </Badge>
                   </td>
-                  <td className="p-4 text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                  <td
+                    className="p-4 text-right pr-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         type="button"
                         size="sm"
-                        variant={entry.status === 'approved' ? 'ghost' : 'default'}
+                        variant={
+                          entry.status === "approved" ? "ghost" : "default"
+                        }
                         className={cn(
                           "h-8 px-4 font-bold text-xs",
-                          entry.status === 'approved' && "text-green-600 hover:text-green-700 hover:bg-green-50"
+                          entry.status === "approved" &&
+                            "text-green-600 hover:text-green-700 hover:bg-green-50",
                         )}
                         disabled={
                           entry.status === "approved" ||
@@ -485,12 +702,14 @@ export function PayrollManager() {
                         }
                         onClick={() => handleApprove(entry.id)}
                       >
-                        {entry.status === 'approved' ? (
+                        {entry.status === "approved" ? (
                           <div className="flex items-center gap-1.5">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Approved
                           </div>
-                        ) : 'Approve'}
+                        ) : (
+                          "Approve"
+                        )}
                       </Button>
                       <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors ml-1" />
                     </div>
@@ -535,9 +754,10 @@ export function PayrollManager() {
                             Number(finalDays || 0) *
                             100,
                         ) / 100;
+                  // Tax-first: tax computed on gross, then deductions applied
                   const taxableGross = Math.max(
                     0,
-                    Number(activeEntry.gross_salary || 0) - deductionAmount,
+                    Number(activeEntry.gross_salary || 0),
                   );
                   const taxAmount = activeEntry.is_intern
                     ? 0
@@ -545,8 +765,8 @@ export function PayrollManager() {
                   const netAmount = Math.max(
                     0,
                     Number(activeEntry.gross_salary || 0) -
-                      deductionAmount -
-                      taxAmount,
+                      taxAmount -
+                      deductionAmount,
                   );
 
                   // optimistic update
@@ -558,9 +778,13 @@ export function PayrollManager() {
                         e.id === entryId
                           ? {
                               ...e,
-                              attendance_days: payload.attendance_days ?? e.attendance_days,
-                              suspension_days: payload.suspension_days ?? e.suspension_days,
-                              other_deductions_amount: payload.other_deductions_amount ?? e.other_deductions_amount,
+                              attendance_days:
+                                payload.attendance_days ?? e.attendance_days,
+                              suspension_days:
+                                payload.suspension_days ?? e.suspension_days,
+                              other_deductions_amount:
+                                payload.other_deductions_amount ??
+                                e.other_deductions_amount,
                               final_deduction_days: finalDays,
                               deduction_amount: deductionAmount,
                               taxable_gross: taxableGross,
@@ -619,14 +843,16 @@ export function PayrollManager() {
               Reset Payroll Run?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all current 
-              entries and manual overrides for <span className="font-bold text-foreground">{selectedMonth}</span>, 
-              and recalculate everything from scratch based on the latest attendance records.
+              This action cannot be undone. This will permanently delete all
+              current entries and manual overrides for{" "}
+              <span className="font-bold text-foreground">{selectedMonth}</span>
+              , and recalculate everything from scratch based on the latest
+              attendance records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleResetRun}
               className="bg-rose-600 hover:bg-rose-700 font-bold"
             >

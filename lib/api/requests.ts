@@ -37,6 +37,7 @@ export interface RequestItem {
     details: string;
     priority: RequestPriority;
     logs?: RequestLog[];
+    comments?: RequestComment[];
 }
 
 export interface RequestFilters {

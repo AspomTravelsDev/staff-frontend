@@ -11,20 +11,9 @@ import React from "react";
 import { createApplication, sendInvite } from "@/lib/api/hr";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 import { toast } from "sonner";
+import { SALARY_PERCENTAGES } from "@/lib/config/payroll";
 
 // Salary breakdown percentages
-const SALARY_PERCENTAGES = {
-  basic: 0.1835,
-  rent_housing: 0.0552,
-  transport: 0.0552,
-  medical: 0.1826,
-  furniture: 0.0634,
-  utility: 0.0345,
-  entertainment: 0.0446,
-  meal_subsidy: 0.1336,
-  clothing: 0.1328,
-  passages: 0.1146,
-};
 
 // Static simple tax percentage unused now in favor of PAYE logic
 // const TAX_PERCENTAGE = 0.153;

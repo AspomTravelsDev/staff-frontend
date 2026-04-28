@@ -7,9 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Separator
-} from "@/components/ui/separator";
+import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
@@ -86,9 +84,15 @@ export function PayrollEntrySheet({
   onSave,
   onApprove,
 }: Props) {
-  const [attendanceDays, setAttendanceDays] = useState<string>(`${entry.attendance_days ?? 0}`);
-  const [suspensionDays, setSuspensionDays] = useState<string>(`${entry.suspension_days ?? 0}`);
-  const [otherAmount, setOtherAmount] = useState<string>(`${entry.other_deductions_amount ?? 0}`);
+  const [attendanceDays, setAttendanceDays] = useState<string>(
+    `${entry.attendance_days ?? 0}`,
+  );
+  const [suspensionDays, setSuspensionDays] = useState<string>(
+    `${entry.suspension_days ?? 0}`,
+  );
+  const [otherAmount, setOtherAmount] = useState<string>(
+    `${entry.other_deductions_amount ?? 0}`,
+  );
   const [note, setNote] = useState<string>(entry.override_note ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -111,19 +115,16 @@ export function PayrollEntrySheet({
     const att = parse(attendanceDays);
     const susp = parse(suspensionDays);
     const othAmount = parse(otherAmount);
-    
+
     const finalDays = att + susp;
-    const deductionAmount = Math.round((finalDays * dailyRate + othAmount) * 100) / 100;
-    
-    const taxableGross = Math.max(
-      0,
-      Number(entry.gross_salary || 0) - deductionAmount,
-    );
+    const deductionAmount =
+      Math.round((finalDays * dailyRate + othAmount) * 100) / 100;
+
+    // Tax-first: compute tax on gross salary, then apply deductions
+    const grossSalary = Number(entry.gross_salary || 0);
+    const taxableGross = Math.max(0, grossSalary);
     const taxAmount = entry.is_intern ? 0 : calculateMonthlyTax(taxableGross);
-    const netAmount = Math.max(
-      0,
-      Number(entry.gross_salary || 0) - deductionAmount - taxAmount,
-    );
+    const netAmount = Math.max(0, grossSalary - taxAmount - deductionAmount);
 
     return {
       attAmount: Math.round(att * dailyRate * 100) / 100,
@@ -135,12 +136,19 @@ export function PayrollEntrySheet({
       taxAmount,
       netAmount,
     };
-  }, [attendanceDays, suspensionDays, otherAmount, dailyRate, entry.gross_salary, entry.is_intern]);
+  }, [
+    attendanceDays,
+    suspensionDays,
+    otherAmount,
+    dailyRate,
+    entry.gross_salary,
+    entry.is_intern,
+  ]);
 
   async function handleSave(approveAfter = false) {
     if (approveAfter) setIsPublishing(true);
     else setIsSaving(true);
-    
+
     try {
       const parse = (val: string) => {
         const n = parseFloat(val);
@@ -153,7 +161,7 @@ export function PayrollEntrySheet({
         other_deductions_amount: parse(otherAmount),
         override_note: note || undefined,
       });
-      
+
       if (approveAfter) {
         await onApprove(entry.id);
         toast.success("Payroll entry published.");
@@ -203,13 +211,17 @@ export function PayrollEntrySheet({
           <Card className="bg-muted/30 border-none shadow-none">
             <CardHeader className="pb-2">
               <CardDescription>Monthly Gross</CardDescription>
-              <CardTitle className="text-xl">{money(entry.gross_salary)}</CardTitle>
+              <CardTitle className="text-xl">
+                {money(entry.gross_salary)}
+              </CardTitle>
             </CardHeader>
           </Card>
           <Card className="bg-muted/30 border-none shadow-none">
             <CardHeader className="pb-2">
               <CardDescription>Daily Rate</CardDescription>
-              <CardTitle className="text-xl">{money(entry.daily_rate)}</CardTitle>
+              <CardTitle className="text-xl">
+                {money(entry.daily_rate)}
+              </CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -236,7 +248,9 @@ export function PayrollEntrySheet({
             {/* Attendance */}
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
               <div className="space-y-2">
-                <Label htmlFor="att-days" className="text-xs">Attendance Days</Label>
+                <Label htmlFor="att-days" className="text-xs">
+                  Attendance Days
+                </Label>
                 <div className="relative">
                   <Input
                     id="att-days"
@@ -260,7 +274,9 @@ export function PayrollEntrySheet({
                 <Separator orientation="vertical" className="h-4" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Monetary Value</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Monetary Value
+                </Label>
                 <div className="h-10 flex items-center font-medium text-red-600">
                   {money(computed.attAmount)}
                 </div>
@@ -270,7 +286,9 @@ export function PayrollEntrySheet({
             {/* Suspensions */}
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
               <div className="space-y-2">
-                <Label htmlFor="susp-days" className="text-xs">Suspension Days</Label>
+                <Label htmlFor="susp-days" className="text-xs">
+                  Suspension Days
+                </Label>
                 <div className="relative">
                   <Input
                     id="susp-days"
@@ -294,7 +312,9 @@ export function PayrollEntrySheet({
                 <Separator orientation="vertical" className="h-4" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Monetary Value</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Monetary Value
+                </Label>
                 <div className="h-10 flex items-center font-medium text-red-600">
                   {money(computed.suspAmount)}
                 </div>
@@ -304,7 +324,9 @@ export function PayrollEntrySheet({
             {/* Other Deductions */}
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
               <div className="space-y-2">
-                <Label htmlFor="oth-amount" className="text-xs">Other Deductions (Amount)</Label>
+                <Label htmlFor="oth-amount" className="text-xs">
+                  Other Deductions (Amount)
+                </Label>
                 <div className="relative">
                   <Input
                     id="oth-amount"
@@ -323,7 +345,9 @@ export function PayrollEntrySheet({
                 <Separator orientation="vertical" className="h-4" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Final Added</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Final Added
+                </Label>
                 <div className="h-10 flex items-center font-medium text-red-600">
                   {money(computed.othAmount)}
                 </div>
@@ -359,14 +383,19 @@ export function PayrollEntrySheet({
             <Separator className="my-1" />
             <div className="flex justify-between items-center pt-1">
               <span className="font-bold">Final Net Pay</span>
-              <span className="text-xl font-bold text-primary">{money(computed.netAmount)}</span>
+              <span className="text-xl font-bold text-primary">
+                {money(computed.netAmount)}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="override-note" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+          <Label
+            htmlFor="override-note"
+            className="text-xs uppercase tracking-wider text-muted-foreground font-semibold"
+          >
             Internal Note
           </Label>
           <Input
@@ -380,11 +409,7 @@ export function PayrollEntrySheet({
 
       {/* Footer Actions */}
       <div className="p-6 border-t mt-auto flex gap-3">
-        <Button 
-          variant="outline" 
-          onClick={onClose} 
-          className="flex-1"
-        >
+        <Button variant="outline" onClick={onClose} className="flex-1">
           Cancel
         </Button>
         {isPersisted && (
@@ -401,7 +426,9 @@ export function PayrollEntrySheet({
               disabled={isSaving || isPublishing}
               onClick={() => handleSave(true)}
             >
-              {isPublishing ? "Publishing..." : (
+              {isPublishing ? (
+                "Publishing..."
+              ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
                   {isApproved ? "Update & Re-Publish" : "Save & Publish"}
