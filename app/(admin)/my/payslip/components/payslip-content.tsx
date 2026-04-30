@@ -57,6 +57,12 @@ export function PayslipContent({ entry, user, id = "payslip-document", fallbackM
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Staff Member ID</span>
                 <span className="text-base font-black text-primary tracking-tighter">{user.staff_id}</span>
               </div>
+              {user.tax_id && (
+                <div className="flex flex-col gap-0.5 border-l-2 border-slate-100 pl-4">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Tax ID (TIN)</span>
+                  <span className="text-sm font-semibold">{user.tax_id}</span>
+                </div>
+              )}
               <div className="flex flex-col gap-0.5 border-l-2 border-slate-100 pl-4">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Department</span>
                 <span className="text-sm font-semibold uppercase">{user.department || "Corporate"}</span>

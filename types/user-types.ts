@@ -111,6 +111,7 @@ export function getRoleLabel(
 export interface User {
     id: string;
     staff_id: string;
+    tax_id: string | null;
     name: string;
     email: string;
     phone: string | null;

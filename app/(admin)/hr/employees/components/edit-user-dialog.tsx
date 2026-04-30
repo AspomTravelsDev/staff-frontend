@@ -39,6 +39,7 @@ interface EditUserDialogProps {
 
 interface EditUserFormData {
   staff_id: string;
+  tax_id: string;
   name: string;
   email: string;
   phone: string;
@@ -72,6 +73,7 @@ export function EditUserDialog({
   } = useForm<EditUserFormData>({
     defaultValues: {
       staff_id: "",
+      tax_id: "",
       name: "",
       email: "",
       phone: "",
@@ -91,6 +93,7 @@ export function EditUserDialog({
     if (employee) {
       reset({
         staff_id: employee.staff_id || "",
+        tax_id: employee.tax_id || "",
         name: `${employee.firstName} ${employee.lastName}`,
         email: employee.email,
         phone: employee.phone || "",
@@ -122,6 +125,7 @@ export function EditUserDialog({
     setIsPending(true);
     const result = await updateUserAction(employee.id, {
       staff_id: data.staff_id || null,
+      tax_id: data.tax_id || null,
       name: data.name,
       email: data.email,
       phone: data.phone || null,
@@ -174,14 +178,24 @@ export function EditUserDialog({
               )}
             </div>
 
-            {/* Staff ID */}
-            <div className="grid gap-2">
-              <Label htmlFor="staff_id">Staff ID</Label>
-              <Input
-                id="staff_id"
-                {...register("staff_id")}
-                placeholder="e.g. ASP-001"
-              />
+            {/* Staff ID + Tax ID side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="staff_id">Staff ID</Label>
+                <Input
+                  id="staff_id"
+                  {...register("staff_id")}
+                  placeholder="e.g. ASP-001"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tax_id">Tax ID</Label>
+                <Input
+                  id="tax_id"
+                  {...register("tax_id")}
+                  placeholder="e.g. TIN-12345"
+                />
+              </div>
             </div>
 
             {/* Email */}

@@ -12,6 +12,7 @@ import type { User } from "@/types/user-types";
 export interface Employee {
     id: string;
     staff_id: string;
+    tax_id: string | null;
     firstName: string;
     lastName: string;
     email: string;
@@ -69,6 +70,7 @@ function mapUserToEmployee(user: User): Employee {
     return {
         id: user.id,
         staff_id: user.staff_id,
+        tax_id: user.tax_id,
         firstName,
         lastName,
         email: user.email,
@@ -222,6 +224,7 @@ export async function updateUserStatus(
  */
 export interface UpdateUserRequest {
     staff_id?: string | null;
+    tax_id?: string | null;
     name?: string;
     email?: string;
     phone?: string | null;

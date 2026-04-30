@@ -85,6 +85,7 @@ export function EmployeeListContent({
 
   const exportColumns = [
     { header: "Staff ID", key: (emp: Employee) => emp.staff_id || "" },
+    { header: "Tax ID", key: (emp: Employee) => emp.tax_id || "" },
     { header: "First Name", key: (emp: Employee) => emp.firstName || "" },
     { header: "Last Name", key: (emp: Employee) => emp.lastName || "" },
     { header: "Email", key: (emp: Employee) => emp.email || "" },
