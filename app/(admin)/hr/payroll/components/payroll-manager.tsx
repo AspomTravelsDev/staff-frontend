@@ -13,6 +13,7 @@ import {
   type PayrollEntry,
   type PayrollRun,
 } from "@/lib/api/payroll";
+import { BulkExportButton } from "./bulk-export-button";
 import PayrollEntrySheet from "./payroll-entry-sheet";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -510,6 +511,12 @@ export function PayrollManager() {
         <div className="flex items-center gap-3 pt-5">
           {currentRun && (
             <>
+              <BulkExportButton 
+                entries={entries} 
+                monthLabel={formatMonthLabel(currentRun.payroll_month)} 
+                payrollMonth={currentRun.payroll_month}
+              />
+              
               <Button
                 type="button"
                 variant="outline"
@@ -754,20 +761,15 @@ export function PayrollManager() {
                             Number(finalDays || 0) *
                             100,
                         ) / 100;
-                  // Tax-first: tax computed on gross, then deductions applied
+                  // New tax order: tax is computed on (gross - deductions)
                   const taxableGross = Math.max(
                     0,
-                    Number(activeEntry.gross_salary || 0),
+                    Number(activeEntry.gross_salary || 0) - deductionAmount,
                   );
                   const taxAmount = activeEntry.is_intern
                     ? 0
                     : calculateMonthlyTax(taxableGross);
-                  const netAmount = Math.max(
-                    0,
-                    Number(activeEntry.gross_salary || 0) -
-                      taxAmount -
-                      deductionAmount,
-                  );
+                  const netAmount = Math.max(0, taxableGross - taxAmount);
 
                   // optimistic update
                   setCurrentRun((prev) => {

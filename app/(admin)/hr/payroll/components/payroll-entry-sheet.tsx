@@ -120,11 +120,11 @@ export function PayrollEntrySheet({
     const deductionAmount =
       Math.round((finalDays * dailyRate + othAmount) * 100) / 100;
 
-    // Tax-first: compute tax on gross salary, then apply deductions
+    // New tax order: tax is computed on (gross - deductions)
     const grossSalary = Number(entry.gross_salary || 0);
-    const taxableGross = Math.max(0, grossSalary);
+    const taxableGross = Math.max(0, grossSalary - deductionAmount);
     const taxAmount = entry.is_intern ? 0 : calculateMonthlyTax(taxableGross);
-    const netAmount = Math.max(0, grossSalary - taxAmount - deductionAmount);
+    const netAmount = Math.max(0, taxableGross - taxAmount);
 
     return {
       attAmount: Math.round(att * dailyRate * 100) / 100,
