@@ -10,6 +10,7 @@ import {
   getPayrollRun,
   listPayrollRuns,
   overridePayrollEntry,
+  reopenPayrollRun,
   type PayrollEntry,
   type PayrollRun,
 } from "@/lib/api/payroll";
@@ -304,6 +305,26 @@ export function PayrollManager() {
     }
   };
 
+  const handleReopenRun = async () => {
+    if (!currentRun) return;
+    setIsBusy(true);
+    try {
+      const result = await reopenPayrollRun(currentRun.id);
+      if (!result.success) {
+        throw new Error(result.error.error || "Failed to re-open payroll run.");
+      }
+      toast.success("Payroll run re-opened.");
+      const refreshed = await getPayrollRun(currentRun.id);
+      if (refreshed.success) setCurrentRun(refreshed.data.data);
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to re-open payroll run.",
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   // Export current payroll run as CSV (Excel-compatible)
   const exportPayrollCsv = () => {
     if (!currentRun) return;
@@ -354,7 +375,7 @@ export function PayrollManager() {
       const grossPay = Number(entry.gross_salary ?? 0);
       const payeTaxes = Number(entry.tax_amount ?? 0);
       const otherDeductions = Number(entry.other_deductions_amount ?? 0);
-      const totalDeductions = Number(entry.deduction_amount ?? 0) + payeTaxes;
+      const totalDeductions = Number(entry.deduction_amount ?? 0) + payeTaxes + otherDeductions;
 
       // Attempt to derive additions from calculation snapshot if present
       let additionsValue = 0;
@@ -425,7 +446,7 @@ export function PayrollManager() {
     totalPaid: entries.reduce((acc, e) => acc + Number(e.gross_salary || 0), 0),
     totalDeductions: entries.reduce(
       (acc, e) =>
-        acc + Number(e.deduction_amount || 0) + Number(e.tax_amount || 0),
+        acc + Number(e.deduction_amount || 0) + Number(e.tax_amount || 0) + Number(e.other_deductions_amount || 0),
       0,
     ),
     progress: totalEntries > 0 ? (approvedCount / totalEntries) * 100 : 0,
@@ -512,7 +533,11 @@ export function PayrollManager() {
           {currentRun && (
             <>
               <BulkExportButton 
-                entries={entries} 
+                entries={selectedEntries.length > 0 
+                  ? entries.filter(e => selectedEntries.includes(e.id)) 
+                  : entries
+                } 
+                allCount={entries.length}
                 monthLabel={formatMonthLabel(currentRun.payroll_month)} 
                 payrollMonth={currentRun.payroll_month}
               />
@@ -528,19 +553,30 @@ export function PayrollManager() {
                 Export CSV
               </Button>
 
-              <Button
-                type="button"
-                variant="default"
-                className="font-bold px-6"
-                disabled={
-                  isBusy || pendingCount > 0 || currentRun.status === "closed"
-                }
-                onClick={handleCloseRun}
-              >
-                {currentRun.status === "closed"
-                  ? "Payroll Run Closed"
-                  : "Finalize & Close Run"}
-              </Button>
+              {currentRun.status === "closed" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="font-bold px-6 border-primary text-primary hover:bg-primary/5"
+                  disabled={isBusy}
+                  onClick={handleReopenRun}
+                >
+                  <RefreshCcw className={cn("mr-2 h-4 w-4", isBusy && "animate-spin")} />
+                  Re-open for Edits
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="default"
+                  className="font-bold px-6"
+                  disabled={
+                    isBusy || pendingCount > 0
+                  }
+                  onClick={handleCloseRun}
+                >
+                  Finalize & Close Run
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -761,7 +797,11 @@ export function PayrollManager() {
                             Number(finalDays || 0) *
                             100,
                         ) / 100;
-                  // New tax order: tax is computed on (gross - deductions)
+                  const otherAmount =
+                    payload.other_deductions_amount ??
+                    Number(activeEntry.other_deductions_amount || 0);
+
+                  // New tax order: tax is computed on (gross - attendance/compliance deductions)
                   const taxableGross = Math.max(
                     0,
                     Number(activeEntry.gross_salary || 0) - deductionAmount,
@@ -769,7 +809,9 @@ export function PayrollManager() {
                   const taxAmount = activeEntry.is_intern
                     ? 0
                     : calculateMonthlyTax(taxableGross);
-                  const netAmount = Math.max(0, taxableGross - taxAmount);
+
+                  // Net pay = (Taxable Gross - Tax) - Other Deductions
+                  const netAmount = Math.max(0, taxableGross - taxAmount - otherAmount);
 
                   // optimistic update
                   setCurrentRun((prev) => {

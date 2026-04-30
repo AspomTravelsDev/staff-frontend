@@ -20,7 +20,7 @@ export function PayslipContent({ entry, user, id = "payslip-document", fallbackM
   if (!entry) return null;
 
   const isPending = entry.status !== "approved";
-  const totalDeductions = Math.max(0, Number(entry.deduction_amount || 0) + Number(entry.tax_amount || 0));
+  const totalDeductions = Math.max(0, Number(entry.deduction_amount || 0) + Number(entry.tax_amount || 0) + Number(entry.other_deductions_amount || 0));
   const netPay = Number(entry.net_amount || 0);
   const grossPay = Number(entry.gross_salary || 0);
 
@@ -32,14 +32,13 @@ export function PayslipContent({ entry, user, id = "payslip-document", fallbackM
       className="bg-white text-slate-900 overflow-hidden rounded-sm border md:border-8 border-slate-100 ring-1 ring-slate-200"
     >
       <div className="p-4 md:p-10 space-y-8 md:space-y-12">
-        {/* Header */}
-        <div className="flex flex-col items-center text-center space-y-2 border-b-2 border-primary/20 pb-6 md:pb-8">
+        <div className="flex flex-col items-center text-center space-y-4 border-b-2 border-primary/20 pb-6 md:pb-8">
+          <img src="/aspom-logo.png" alt="ASPOM Logo" className="h-16 md:h-20 object-contain mb-2" />
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-widest md:tracking-[0.15em] text-slate-800 uppercase">
             Payroll Slip
           </h2>
           <div className="flex items-center gap-2 text-primary font-bold tracking-wider">
-            <Building2 className="h-4 w-4 md:h-5 md:w-5" />
-            <span className="text-lg md:text-xl">ASPOM TRAVELS AGENCY</span>
+            <span className="text-lg md:text-xl uppercase">ASPOM TRAVEL AGENCY</span>
           </div>
         </div>
 
@@ -141,19 +140,52 @@ export function PayslipContent({ entry, user, id = "payslip-document", fallbackM
                     {formatPrice(grossPay).replace("NGN", "")}
                   </td>
                 </tr>
-                <tr className="bg-slate-50/30">
-                  <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
-                    Deductions (Attendance & Compliance)
-                    {entry.other_deductions_amount > 0 && (
-                      <span className="block text-[10px] text-muted-foreground">
-                        Includes {formatPrice(entry.other_deductions_amount)} other deductions
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
-                    ({formatPrice(entry.deduction_amount).replace("NGN", "")})
-                  </td>
-                </tr>
+                {/* Attendance Deductions (Absences) */}
+                {Math.max(0, Number(entry.attendance_days) - Number(entry.prorated_days)) > 0 && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Attendance Deductions ({Math.round((Number(entry.attendance_days) - Number(entry.prorated_days)) * 100) / 100} days)
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      ({formatPrice(Math.max(0, Number(entry.attendance_days) - Number(entry.prorated_days)) * Number(entry.daily_rate)).replace("NGN", "")})
+                    </td>
+                  </tr>
+                )}
+
+                {/* Compliance Deductions (Suspensions/Penalties) */}
+                {Number(entry.suspension_days) > 0 && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Compliance Deductions ({entry.suspension_days} days)
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      ({formatPrice(Number(entry.suspension_days) * Number(entry.daily_rate)).replace("NGN", "")})
+                    </td>
+                  </tr>
+                )}
+
+                {/* Mid-month Proration (Pre-employment) */}
+                {Number(entry.prorated_days) > 0 && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Mid-month Proration ({entry.prorated_days} days)
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      ({formatPrice(Number(entry.prorated_days) * Number(entry.daily_rate)).replace("NGN", "")})
+                    </td>
+                  </tr>
+                )}
+
+                {entry.other_deductions_amount > 0 && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Other Deductions
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      ({formatPrice(entry.other_deductions_amount).replace("NGN", "")})
+                    </td>
+                  </tr>
+                )}
                 <tr className="bg-slate-50 border-t border-slate-200">
                   <td className="px-4 md:px-6 py-3 md:py-4">
                     <div className="flex flex-col">

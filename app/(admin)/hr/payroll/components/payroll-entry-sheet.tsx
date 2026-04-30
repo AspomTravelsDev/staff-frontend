@@ -117,21 +117,24 @@ export function PayrollEntrySheet({
     const othAmount = parse(otherAmount);
 
     const finalDays = att + susp;
-    const deductionAmount =
-      Math.round((finalDays * dailyRate + othAmount) * 100) / 100;
+    const attendanceComplianceDeduction =
+      Math.round(finalDays * dailyRate * 100) / 100;
 
-    // New tax order: tax is computed on (gross - deductions)
+    // New tax order: tax is computed on (gross - attendance/compliance)
+    // Note: att already includes mid-month proration from the backend
     const grossSalary = Number(entry.gross_salary || 0);
-    const taxableGross = Math.max(0, grossSalary - deductionAmount);
+    const taxableGross = Math.max(0, grossSalary - attendanceComplianceDeduction);
     const taxAmount = entry.is_intern ? 0 : calculateMonthlyTax(taxableGross);
-    const netAmount = Math.max(0, taxableGross - taxAmount);
+
+    // Net Pay = (Taxable Gross - Tax) - Other Deductions
+    const netAmount = Math.max(0, taxableGross - taxAmount - othAmount);
 
     return {
       attAmount: Math.round(att * dailyRate * 100) / 100,
       suspAmount: Math.round(susp * dailyRate * 100) / 100,
       othAmount,
       finalDays,
-      deductionAmount,
+      attendanceComplianceDeduction,
       taxableGross,
       taxAmount,
       netAmount,
@@ -265,8 +268,13 @@ export function PayrollEntrySheet({
                   </div>
                 </div>
                 {Number(entry.attendance_suggested_days) > 0 && (
-                  <p className="text-[10px] text-orange-600 font-medium">
+                  <p className="text-[10px] text-orange-600 font-medium leading-tight">
                     Suggested: {entry.attendance_suggested_days}
+                    {Number(entry.prorated_days) > 0 && (
+                      <span className="block opacity-75 font-normal">
+                        ({entry.prorated_days} unemployed + {Math.max(0, Number(entry.attendance_suggested_days) - Number(entry.prorated_days))} absent)
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
@@ -353,6 +361,7 @@ export function PayrollEntrySheet({
                 </div>
               </div>
             </div>
+
           </div>
         </div>
 
@@ -368,17 +377,25 @@ export function PayrollEntrySheet({
               <span className="text-muted-foreground">Gross Salary</span>
               <span>{money(entry.gross_salary)}</span>
             </div>
-            <div className="flex justify-between text-sm font-medium text-red-600">
-              <span>Total Deductions ({computed.finalDays} days)</span>
-              <span>- {money(computed.deductionAmount)}</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground italic">Attendance/Compliance Ded. ({computed.finalDays} days):</span>
+              <span className="font-medium text-destructive">
+                -{money(computed.attendanceComplianceDeduction)}
+              </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Taxable Gross</span>
-              <span>{money(computed.taxableGross)}</span>
+            <div className="flex justify-between items-center text-sm border-t pt-1">
+              <span className="font-semibold text-primary">Taxable Gross:</span>
+              <span className="font-bold text-primary">
+                {money(computed.taxableGross)}
+              </span>
             </div>
             <div className="flex justify-between text-sm text-red-600">
               <span>Income Tax (PAYE)</span>
               <span>- {money(computed.taxAmount)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-red-600">
+              <span>Other Deductions</span>
+              <span>- {money(computed.othAmount)}</span>
             </div>
             <Separator className="my-1" />
             <div className="flex justify-between items-center pt-1">

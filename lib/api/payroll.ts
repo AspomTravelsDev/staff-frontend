@@ -25,6 +25,7 @@ export interface PayrollEntry {
   attendance_days: number;
   suspension_days: number;
   other_deductions_amount: number;
+  prorated_days: number;
   attendance_suggested_days: number;
   compliance_suggested_days: number;
   system_suggested_days: number;
@@ -117,6 +118,10 @@ export async function approvePayrollEntry(entryId: string): Promise<ApiResponse<
 
 export async function closePayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/close`);
+}
+
+export async function reopenPayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {
+  return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/reopen`);
 }
 
 export async function getMyPayroll(month?: string): Promise<ApiResponse<{ data: MyPayrollResponse }>> {

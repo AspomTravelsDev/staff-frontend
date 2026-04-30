@@ -11,11 +11,12 @@ import type { PayrollEntry } from "@/lib/api/payroll";
 
 interface BulkExportButtonProps {
   entries: PayrollEntry[];
+  allCount?: number;
   monthLabel: string;
   payrollMonth: string; // Expects YYYY-MM
 }
 
-export function BulkExportButton({ entries, monthLabel, payrollMonth }: BulkExportButtonProps) {
+export function BulkExportButton({ entries, allCount, monthLabel, payrollMonth }: BulkExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
 
@@ -91,7 +92,11 @@ export function BulkExportButton({ entries, monthLabel, payrollMonth }: BulkExpo
         ) : (
           <ImageIcon className="h-4 w-4 mr-2" />
         )}
-        {isExporting ? "Exporting..." : "Export All (JPG)"}
+        {isExporting 
+          ? `Exporting ${entries.length}...` 
+          : entries.length < (allCount || 0) 
+            ? `Export Selected (${entries.length})` 
+            : "Export All (JPG)"}
       </Button>
 
       {/* Hidden Renderer: Only mounted during export */}
