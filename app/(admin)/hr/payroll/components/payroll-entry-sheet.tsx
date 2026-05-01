@@ -21,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info, Save, CheckCircle2, X } from "lucide-react";
+import { Info, Save, CheckCircle2, X, RotateCcw } from "lucide-react";
 
 interface Props {
   entry: PayrollEntry;
@@ -37,6 +37,7 @@ interface Props {
     override_note?: string;
   }) => Promise<void>;
   onApprove: (entryId: string) => Promise<void>;
+  onRecalculate?: (entryId: string) => Promise<void>;
 }
 
 function calculateMonthlyTax(taxableGross: number) {
@@ -83,6 +84,7 @@ export function PayrollEntrySheet({
   onClose,
   onSave,
   onApprove,
+  onRecalculate,
 }: Props) {
   const [attendanceDays, setAttendanceDays] = useState<string>(
     `${entry.attendance_days ?? 0}`,
@@ -96,6 +98,7 @@ export function PayrollEntrySheet({
   const [note, setNote] = useState<string>(entry.override_note ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
     setAttendanceDays(`${entry.attendance_days ?? 0}`);
@@ -179,6 +182,21 @@ export function PayrollEntrySheet({
     } finally {
       setIsSaving(false);
       setIsPublishing(false);
+    }
+  }
+
+  async function handleRecalculate() {
+    if (!onRecalculate) return;
+    setIsRecalculating(true);
+    try {
+      await onRecalculate(entry.id);
+      toast.success("Entry recalculated from system records.");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to recalculate.",
+      );
+    } finally {
+      setIsRecalculating(false);
     }
   }
 
@@ -431,9 +449,24 @@ export function PayrollEntrySheet({
         </Button>
         {isPersisted && (
           <>
+            {onRecalculate && (
+              <Button
+                variant="outline"
+                className="text-orange-600 border-orange-100 hover:bg-orange-50"
+                disabled={isSaving || isPublishing || isRecalculating}
+                onClick={handleRecalculate}
+                title="Reset to system suggested values"
+              >
+                {isRecalculating ? (
+                  "Resetting..."
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+              </Button>
+            )}
             <Button
               variant="secondary"
-              disabled={isSaving || isPublishing}
+              disabled={isSaving || isPublishing || isRecalculating}
               onClick={() => handleSave(false)}
             >
               {isSaving ? "Saving..." : <Save className="h-4 w-4" />}

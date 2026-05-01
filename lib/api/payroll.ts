@@ -116,6 +116,10 @@ export async function approvePayrollEntry(entryId: string): Promise<ApiResponse<
   return api.post<{ data: PayrollEntry }>(`/api/hr/payroll/entries/${entryId}/approve`);
 }
 
+export async function recalculatePayrollEntry(entryId: string): Promise<ApiResponse<{ data: PayrollEntry }>> {
+  return api.post<{ data: PayrollEntry }>(`/api/hr/payroll/entries/${entryId}/recalculate`);
+}
+
 export async function closePayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/close`);
 }

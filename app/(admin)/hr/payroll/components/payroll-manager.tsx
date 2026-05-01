@@ -10,6 +10,7 @@ import {
   getPayrollRun,
   listPayrollRuns,
   overridePayrollEntry,
+  recalculatePayrollEntry,
   reopenPayrollRun,
   type PayrollEntry,
   type PayrollRun,
@@ -325,6 +326,34 @@ export function PayrollManager() {
     }
   };
 
+  const handleRecalculateEntry = async (entryId: string) => {
+    setBusyEntries((p) => ({ ...p, [entryId]: true }));
+    try {
+      const result = await recalculatePayrollEntry(entryId);
+      if (!result.success) {
+        throw new Error(result.error.error || "Failed to recalculate entry.");
+      }
+      
+      if (currentRun?.id) {
+        const refreshed = await getPayrollRun(currentRun.id);
+        if (refreshed.success) {
+          setCurrentRun(refreshed.data.data);
+          // Update active entry if it's the one we just recalculated
+          if (activeEntry?.id === entryId) {
+            const updated = refreshed.data.data.entries?.find(e => e.id === entryId);
+            if (updated) setActiveEntry(updated);
+          }
+        }
+      }
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to recalculate entry.",
+      );
+    } finally {
+      setBusyEntries((p) => ({ ...p, [entryId]: false }));
+    }
+  };
+
   // Export current payroll run as CSV (Excel-compatible)
   const exportPayrollCsv = () => {
     if (!currentRun) return;
@@ -351,6 +380,7 @@ export function PayrollManager() {
     const fileMonthLabel = `${monthNames[monthIndex] ?? parts[1] ?? ""}-${year}`;
 
     const headers = [
+      "Staff ID",
       "Employee Name",
       "Tax ID/ Tax IN",
       "Regular Monthly pay",
@@ -365,6 +395,7 @@ export function PayrollManager() {
 
     const rows = (currentRun.entries ?? []).map((entry) => {
       const userAny = (entry.user || {}) as any;
+      const staffId = userAny?.staff_id ?? "";
       const name = userAny?.name ?? "";
       const taxId =
         userAny?.tax_id || userAny?.tax_in || userAny?.taxNumber || "";
@@ -409,6 +440,7 @@ export function PayrollManager() {
       const netMonthly = Number(entry.net_amount ?? 0);
 
       return [
+        staffId,
         name,
         taxId || "",
         regularMonthlyPay.toFixed(2),
@@ -697,10 +729,11 @@ export function PayrollManager() {
                   </td>
                   <td className="p-4 text-right font-semibold text-rose-600/80 tabular-nums">
                     (
-                    {money(Number(entry.deduction_amount || 0)).replace(
-                      "NGN",
-                      "",
-                    )}
+                    {money(
+                      Number(entry.deduction_amount || 0) + 
+                      Number(entry.tax_amount || 0) + 
+                      Number(entry.other_deductions_amount || 0)
+                    ).replace("NGN", "")}
                     )
                   </td>
                   <td className="p-4 text-right font-black text-primary tabular-nums text-base">
@@ -782,7 +815,6 @@ export function PayrollManager() {
                   toast.message("Generate a payroll run to persist overrides.");
                   return;
                 }
-
                 const entryId = activeEntry.id;
                 setBusyEntries((p) => ({ ...p, [entryId]: true }));
                 try {
@@ -797,6 +829,7 @@ export function PayrollManager() {
                             Number(finalDays || 0) *
                             100,
                         ) / 100;
+
                   const otherAmount =
                     payload.other_deductions_amount ??
                     Number(activeEntry.other_deductions_amount || 0);
@@ -854,53 +887,49 @@ export function PayrollManager() {
 
                   if (currentRun?.id) {
                     const refreshed = await getPayrollRun(currentRun.id);
-                    if (refreshed.success) setCurrentRun(refreshed.data.data);
+                    if (refreshed.success) {
+                      setCurrentRun(refreshed.data.data);
+                      const updated = refreshed.data.data.entries?.find(
+                        (e) => e.id === entryId,
+                      );
+                      if (updated) setActiveEntry(updated);
+                    }
                   }
                 } catch (err: unknown) {
                   toast.error(
-                    err instanceof Error
-                      ? err.message
-                      : "Failed to save override.",
+                    err instanceof Error ? err.message : "Failed to save.",
                   );
-                  if (currentRun?.id) {
-                    const refreshed = await getPayrollRun(currentRun.id);
-                    if (refreshed.success) setCurrentRun(refreshed.data.data);
-                  }
                 } finally {
                   setBusyEntries((p) => ({ ...p, [entryId]: false }));
                 }
               }}
-              onApprove={async (entryId) => {
-                await handleApprove(entryId);
-                setActiveEntry(null);
-              }}
+              onApprove={handleApprove}
+              onRecalculate={handleRecalculateEntry}
             />
           )}
         </SheetContent>
       </Sheet>
 
-      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+      <AlertDialog
+        open={isResetDialogOpen}
+        onOpenChange={setIsResetDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-rose-500" />
-              Reset Payroll Run?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Reset Entire Payroll Run?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all
-              current entries and manual overrides for{" "}
-              <span className="font-bold text-foreground">{selectedMonth}</span>
-              , and recalculate everything from scratch based on the latest
-              attendance records.
+              This will delete all current entries for {formatMonthLabel(selectedMonth)} and
+              regenerate them using the latest system data (attendance, compliance, etc).
+              All manual overrides will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700"
               onClick={handleResetRun}
-              className="bg-rose-600 hover:bg-rose-700 font-bold"
             >
-              Yes, Reset Everything
+              Reset Everything
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
