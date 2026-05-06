@@ -75,10 +75,7 @@ export function Step7Documents({
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
 
-      if (result.indemnityUrl) {
-        await downloadFile(result.indemnityUrl, "ASPOM_Indemnity.pdf");
-        await new Promise((resolve) => setTimeout(resolve, 800));
-      }
+      // Indemnity form support removed; no indemnity URL will be provided.
 
       for (const requiredAsset of requiredAssetDocuments) {
         if (!requiredAsset.assetUrl) continue;
@@ -168,10 +165,7 @@ export function Step7Documents({
                 • <strong>NDA Agreement</strong> - Sign and upload in the final
                 step
               </li>
-              <li>
-                • <strong>Indemnity Form</strong> - Sign and upload in the final
-                step
-              </li>
+              {/* Indemnity Form removed */}
               {requiredAssetDocuments.map((document) => (
                 <li key={document.key}>
                   • <strong>{document.label}</strong> - Sign and upload in the
@@ -202,7 +196,7 @@ export function Step7Documents({
             >
               {isDownloading
                 ? "Generating PDFs..."
-                : `Download Required Forms (${7 + requiredAssetDocuments.length} PDFs + Offer Letter)`}
+                : `Download Required Forms (${6 + requiredAssetDocuments.length} PDFs + Offer Letter)`}
             </Button>
             {downloadError && (
               <div className="mt-3 rounded text-sm text-destructive bg-destructive/10 p-2 border border-destructive/20">
@@ -227,7 +221,7 @@ export function Step7Documents({
             <li>• Print all required forms</li>
             <li>• Distribute guarantor and referee forms appropriately</li>
             <li>• Ensure they complete all required fields</li>
-            <li>• Sign your NDA and indemnity documents</li>
+            <li>• Sign your NDA document</li>
             <li>• Collect all signed forms for upload in the next step</li>
             <li>• Do not upload unsigned drafts in step 8</li>
             <li>• Keep copies for your records</li>

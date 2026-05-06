@@ -58,6 +58,20 @@ function money(amount: number) {
   }).format(amount);
 }
 
+function getOtherDeductionsTotal(entry: PayrollEntry) {
+  if (
+    Array.isArray(entry.other_deductions) &&
+    entry.other_deductions.length > 0
+  ) {
+    return entry.other_deductions.reduce(
+      (sum, item) => sum + Number(item?.amount ?? 0),
+      0,
+    );
+  }
+
+  return Number(entry.other_deductions_amount || 0);
+}
+
 function formatMonthLabel(isoMonth?: string) {
   if (!isoMonth) return "";
   // expect YYYY-MM or YYYY-MM-DD
@@ -319,7 +333,9 @@ export function PayrollManager() {
       if (refreshed.success) setCurrentRun(refreshed.data.data);
     } catch (error: unknown) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to re-open payroll run.",
+        error instanceof Error
+          ? error.message
+          : "Unable to re-open payroll run.",
       );
     } finally {
       setIsBusy(false);
@@ -333,14 +349,16 @@ export function PayrollManager() {
       if (!result.success) {
         throw new Error(result.error.error || "Failed to recalculate entry.");
       }
-      
+
       if (currentRun?.id) {
         const refreshed = await getPayrollRun(currentRun.id);
         if (refreshed.success) {
           setCurrentRun(refreshed.data.data);
           // Update active entry if it's the one we just recalculated
           if (activeEntry?.id === entryId) {
-            const updated = refreshed.data.data.entries?.find(e => e.id === entryId);
+            const updated = refreshed.data.data.entries?.find(
+              (e) => e.id === entryId,
+            );
             if (updated) setActiveEntry(updated);
           }
         }
@@ -405,8 +423,9 @@ export function PayrollManager() {
       );
       const grossPay = Number(entry.gross_salary ?? 0);
       const payeTaxes = Number(entry.tax_amount ?? 0);
-      const otherDeductions = Number(entry.other_deductions_amount ?? 0);
-      const totalDeductions = Number(entry.deduction_amount ?? 0) + payeTaxes + otherDeductions;
+      const otherDeductions = getOtherDeductionsTotal(entry);
+      const totalDeductions =
+        Number(entry.deduction_amount ?? 0) + payeTaxes + otherDeductions;
 
       // Attempt to derive additions from calculation snapshot if present
       let additionsValue = 0;
@@ -475,49 +494,66 @@ export function PayrollManager() {
   };
 
   const stats = {
-    totalPaid: entries.reduce((acc, e) => acc + Number(e.gross_salary || 0), 0),
-    totalDeductions: entries.reduce(
-      (acc, e) =>
-        acc + Number(e.deduction_amount || 0) + Number(e.tax_amount || 0) + Number(e.other_deductions_amount || 0),
+    totalGross: entries.reduce(
+      (acc, e) => acc + Number(e.gross_salary || 0),
       0,
     ),
-    progress: totalEntries > 0 ? (approvedCount / totalEntries) * 100 : 0,
+    totalNet: entries.reduce((acc, e) => acc + Number(e.net_amount || 0), 0),
+    totalTax: entries.reduce((acc, e) => acc + Number(e.tax_amount || 0), 0),
+    totalDeductions: entries.reduce(
+      (acc, e) =>
+        acc +
+        Number(e.deduction_amount || 0) +
+        Number(e.tax_amount || 0) +
+        getOtherDeductionsTotal(e),
+      0,
+    ),
   };
+
+  const totalSavings = Math.max(0, stats.totalDeductions - stats.totalTax);
 
   return (
     <div className="space-y-6">
       {/* Summary Stats Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Payroll Cost"
+          title="Total Gross"
           icon={Banknote}
-          value={money(stats.totalPaid)}
+          value={money(stats.totalGross)}
           description={`Sum of gross pay for ${totalEntries} staff`}
           variant="dashboard"
           cardColor="blue"
         />
         <StatsCard
-          title="Deductions & Tax"
+          title="Total Net"
+          icon={CheckCircle2}
+          value={money(stats.totalNet)}
+          description={`Sum of net pay for ${totalEntries} staff`}
+          variant="dashboard"
+          cardColor="green"
+        />
+        <StatsCard
+          title="Total Tax"
           icon={MinusCircle}
-          value={money(stats.totalDeductions)}
-          description="Total company savings this run"
+          value={money(stats.totalTax)}
+          description="Total PAYE collected"
           variant="dashboard"
           cardColor="red"
         />
         <StatsCard
-          title="Approval Progress"
-          icon={CheckCircle2}
-          value={`${approvedCount} / ${totalEntries}`}
-          description={`${Math.round(stats.progress)}% of entries finalized`}
+          title="Total Savings"
+          icon={MinusCircle}
+          value={money(totalSavings)}
+          description="Deductions minus tax"
           variant="dashboard"
-          cardColor="green"
+          cardColor="orange"
         />
       </div>
 
       {/* Controls Bar */}
       <div className="bg-card border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="space-y-1.5 min-w-[180px]">
+          <div className="space-y-1.5 min-w-45">
             <Label
               htmlFor="payroll-month"
               className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest ml-1"
@@ -564,16 +600,17 @@ export function PayrollManager() {
         <div className="flex items-center gap-3 pt-5">
           {currentRun && (
             <>
-              <BulkExportButton 
-                entries={selectedEntries.length > 0 
-                  ? entries.filter(e => selectedEntries.includes(e.id)) 
-                  : entries
-                } 
+              <BulkExportButton
+                entries={
+                  selectedEntries.length > 0
+                    ? entries.filter((e) => selectedEntries.includes(e.id))
+                    : entries
+                }
                 allCount={entries.length}
-                monthLabel={formatMonthLabel(currentRun.payroll_month)} 
+                monthLabel={formatMonthLabel(currentRun.payroll_month)}
                 payrollMonth={currentRun.payroll_month}
               />
-              
+
               <Button
                 type="button"
                 variant="outline"
@@ -593,7 +630,9 @@ export function PayrollManager() {
                   disabled={isBusy}
                   onClick={handleReopenRun}
                 >
-                  <RefreshCcw className={cn("mr-2 h-4 w-4", isBusy && "animate-spin")} />
+                  <RefreshCcw
+                    className={cn("mr-2 h-4 w-4", isBusy && "animate-spin")}
+                  />
                   Re-open for Edits
                 </Button>
               ) : (
@@ -601,9 +640,7 @@ export function PayrollManager() {
                   type="button"
                   variant="default"
                   className="font-bold px-6"
-                  disabled={
-                    isBusy || pendingCount > 0
-                  }
+                  disabled={isBusy || pendingCount > 0}
                   onClick={handleCloseRun}
                 >
                   Finalize & Close Run
@@ -730,9 +767,9 @@ export function PayrollManager() {
                   <td className="p-4 text-right font-semibold text-rose-600/80 tabular-nums">
                     (
                     {money(
-                      Number(entry.deduction_amount || 0) + 
-                      Number(entry.tax_amount || 0) + 
-                      Number(entry.other_deductions_amount || 0)
+                      Number(entry.deduction_amount || 0) +
+                        Number(entry.tax_amount || 0) +
+                        getOtherDeductionsTotal(entry),
                     ).replace("NGN", "")}
                     )
                   </td>
@@ -830,9 +867,17 @@ export function PayrollManager() {
                             100,
                         ) / 100;
 
+                  const otherAmountFromList = payload.other_deductions
+                    ? payload.other_deductions.reduce(
+                        (sum, item) => sum + Number(item?.amount ?? 0),
+                        0,
+                      )
+                    : undefined;
+
                   const otherAmount =
+                    otherAmountFromList ??
                     payload.other_deductions_amount ??
-                    Number(activeEntry.other_deductions_amount || 0);
+                    getOtherDeductionsTotal(activeEntry);
 
                   // New tax order: tax is computed on (gross - attendance/compliance deductions)
                   const taxableGross = Math.max(
@@ -844,7 +889,10 @@ export function PayrollManager() {
                     : calculateMonthlyTax(taxableGross);
 
                   // Net pay = (Taxable Gross - Tax) - Other Deductions
-                  const netAmount = Math.max(0, taxableGross - taxAmount - otherAmount);
+                  const netAmount = Math.max(
+                    0,
+                    taxableGross - taxAmount - otherAmount,
+                  );
 
                   // optimistic update
                   setCurrentRun((prev) => {
@@ -859,9 +907,9 @@ export function PayrollManager() {
                                 payload.attendance_days ?? e.attendance_days,
                               suspension_days:
                                 payload.suspension_days ?? e.suspension_days,
-                              other_deductions_amount:
-                                payload.other_deductions_amount ??
-                                e.other_deductions_amount,
+                              other_deductions_amount: otherAmount,
+                              other_deductions:
+                                payload.other_deductions ?? e.other_deductions,
                               final_deduction_days: finalDays,
                               deduction_amount: deductionAmount,
                               taxable_gross: taxableGross,
@@ -910,17 +958,15 @@ export function PayrollManager() {
         </SheetContent>
       </Sheet>
 
-      <AlertDialog
-        open={isResetDialogOpen}
-        onOpenChange={setIsResetDialogOpen}
-      >
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reset Entire Payroll Run?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete all current entries for {formatMonthLabel(selectedMonth)} and
-              regenerate them using the latest system data (attendance, compliance, etc).
-              All manual overrides will be lost.
+              This will delete all current entries for{" "}
+              {formatMonthLabel(selectedMonth)} and regenerate them using the
+              latest system data (attendance, compliance, etc). All manual
+              overrides will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

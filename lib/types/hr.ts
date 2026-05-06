@@ -198,7 +198,6 @@ export interface OnboardingFormData {
         guarantor1Signed?: UploadedFile;
         guarantor2Signed?: UploadedFile;
         ndaSigned?: UploadedFile;
-        indemnitySigned?: UploadedFile;
         [key: string]: UploadedFile | undefined;
     };
     generatedPdfs: {
@@ -207,7 +206,6 @@ export interface OnboardingFormData {
         referee?: GeneratedPdfFile;
         offerLetter?: GeneratedPdfFile;
         nda?: GeneratedPdfFile;
-        indemnity?: GeneratedPdfFile;
         personalForm?: GeneratedPdfFile;
         kyc?: GeneratedPdfFile;
     };

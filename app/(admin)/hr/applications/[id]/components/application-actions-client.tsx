@@ -320,7 +320,7 @@ export function ApplicationActionsClient({
                 <Textarea
                   value={correctionNote}
                   onChange={(e) => setCorrectionNote(e.target.value)}
-                  placeholder="Explain exactly what needs correction (e.g. NDA and indemnity were uploaded unsigned)."
+                  placeholder="Explain exactly what needs correction (e.g. NDA was uploaded unsigned)."
                   rows={5}
                 />
                 <p className="text-xs text-muted-foreground">

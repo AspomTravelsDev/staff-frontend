@@ -34,7 +34,6 @@ interface DocumentPreviewsProps {
     referee?: GeneratedPdf;
     offerLetter?: GeneratedPdf;
     nda?: GeneratedPdf;
-    indemnity?: GeneratedPdf;
     personalForm?: GeneratedPdf;
     kyc?: GeneratedPdf;
   };
@@ -43,7 +42,6 @@ interface DocumentPreviewsProps {
     guarantor2Signed?: SignedDocument;
     refereeSigned?: SignedDocument;
     ndaSigned?: SignedDocument;
-    indemnitySigned?: SignedDocument;
     [key: string]: SignedDocument | undefined;
   };
 }
@@ -224,7 +222,6 @@ export function DocumentPreviews({
     "guarantor2Signed",
     "refereeSigned",
     "ndaSigned",
-    "indemnitySigned",
   ]);
 
   const extraSignedDocuments = Object.entries(signedDocuments ?? {}).filter(
@@ -301,16 +298,6 @@ export function DocumentPreviews({
                 type="unsigned"
               />
             )}
-            {!signedDocuments?.indemnitySigned && (
-              <DocumentCard
-                title="Indemnity Form"
-                description="Standard indemnity document"
-                documentUrl={generatedPdfs?.indemnity?.storagePath}
-                uploadedAt={generatedPdfs?.indemnity?.generatedAt}
-                fileId={generatedPdfs?.indemnity?.fileId}
-                type="unsigned"
-              />
-            )}
             <DocumentCard
               title="Personal Data Form"
               description="Internal HR personal profile document"
@@ -378,14 +365,6 @@ export function DocumentPreviews({
               documentUrl={signedDocuments?.ndaSigned?.storagePath}
               uploadedAt={signedDocuments?.ndaSigned?.uploadedAt}
               fileId={signedDocuments?.ndaSigned?.fileId}
-              type="signed"
-            />
-            <DocumentCard
-              title="Indemnity Signed"
-              description="Signed by applicant"
-              documentUrl={signedDocuments?.indemnitySigned?.storagePath}
-              uploadedAt={signedDocuments?.indemnitySigned?.uploadedAt}
-              fileId={signedDocuments?.indemnitySigned?.fileId}
               type="signed"
             />
             <DocumentCard

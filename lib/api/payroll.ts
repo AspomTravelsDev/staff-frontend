@@ -5,6 +5,11 @@ import { api, type ApiResponse } from "@/lib/api/client";
 export type PayrollRunStatus = "draft" | "processing" | "closed";
 export type PayrollEntryStatus = "pending" | "approved";
 
+export interface PayrollOtherDeduction {
+  label: string;
+  amount: number;
+}
+
 export interface PayrollEntryUser {
   id: string;
   name: string;
@@ -25,6 +30,7 @@ export interface PayrollEntry {
   attendance_days: number;
   suspension_days: number;
   other_deductions_amount: number;
+  other_deductions?: PayrollOtherDeduction[];
   prorated_days: number;
   attendance_suggested_days: number;
   compliance_suggested_days: number;
@@ -104,6 +110,7 @@ export async function overridePayrollEntry(
     attendance_days?: number;
     suspension_days?: number;
     other_deductions_amount?: number;
+    other_deductions?: PayrollOtherDeduction[];
     final_deduction_days?: number;
     deduction_amount?: number;
     override_note?: string;

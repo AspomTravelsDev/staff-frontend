@@ -113,7 +113,6 @@ type PdfDownloadResult = {
     refereeUrl?: string
     offerLetterUrl?: string
     ndaUrl?: string
-    indemnityUrl?: string
     personalFormUrl?: string
     kycUrl?: string
 }
@@ -131,7 +130,6 @@ type GeneratedPdfs = {
     referee?: PdfMetadata
     offerLetter?: PdfMetadata
     nda?: PdfMetadata
-    indemnity?: PdfMetadata
     personalForm?: PdfMetadata
     kyc?: PdfMetadata
 }
@@ -216,7 +214,6 @@ export async function downloadPdfFormsAction(
 
         const positionTitle = application.position_title
         const applicationId = application.application_id
-        const indemnityFileName = 'ASPOM_INDEMNITY_-_DUBAI.pdf'
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
         const includeAdminOnly = Boolean(options.includeAdminOnly)
         const personal = formData.personal || {
@@ -375,14 +372,7 @@ export async function downloadPdfFormsAction(
         updatedGeneratedPdfs.nda = ndaResult.metadata
         newPdfsGenerated = true
 
-        const indemnityPublicUrl = `${apiUrl}/api/public/onboarding-applications/${uuid}/assets/${encodeURIComponent(indemnityFileName)}`
-        results.indemnityUrl = indemnityPublicUrl
-        updatedGeneratedPdfs.indemnity = {
-            storagePath: indemnityPublicUrl,
-            generatedAt: new Date().toISOString(),
-            fileSize: 0,
-        }
-        newPdfsGenerated = true
+        // Indemnity document support removed: do not include indemnity public URL or generatedPdfs entry
 
         // Generate internal HR-only PDFs when explicitly requested by admin flows.
         if (includeAdminOnly) {

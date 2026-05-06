@@ -26,7 +26,6 @@ interface SignedDocumentsData {
   guarantor2Signed?: SignedDocument;
   refereeSigned?: SignedDocument;
   ndaSigned?: SignedDocument;
-  indemnitySigned?: SignedDocument;
   [key: string]: SignedDocument | undefined;
 }
 
@@ -66,13 +65,6 @@ const BASE_REQUIRED_DOCUMENTS: RequiredUploadDocument[] = [
     uploadFieldPrefix: "nda_signed",
     label: "Signed NDA Agreement *",
     description: "Upload your signed NDA agreement",
-  },
-  {
-    key: "indemnitySigned",
-    inputName: "indemnity_signed",
-    uploadFieldPrefix: "indemnity_signed",
-    label: "Signed Indemnity Form *",
-    description: "Upload your signed indemnity form",
   },
 ];
 
@@ -201,7 +193,7 @@ export function Step8UploadSigned({
             uploadedAt: new Date().toISOString(),
             fileId: result.fileId,
           };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           setIsUploading(false);
           return {
@@ -224,7 +216,7 @@ export function Step8UploadSigned({
 
       setIsUploading(false);
       return result;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // In Next.js server actions, redirect() throws a special error.
       // We must not catch it if we want the redirect to work.
