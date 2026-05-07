@@ -12,7 +12,7 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { getTodayBirthdays } from "@/lib/api/employees";
+import { getTodayBirthdays, getTodayAnniversaries } from "@/lib/api/employees";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
@@ -49,6 +49,7 @@ export default async function Page() {
     ratesResponse,
     announcementsData,
     todayBirthdays,
+    todayAnniversaries,
     rolesMetadata,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
@@ -63,6 +64,7 @@ export default async function Page() {
       pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
     })),
     getTodayBirthdays().catch(() => []),
+    getTodayAnniversaries().catch(() => []),
     getRolesMetadataContract(),
   ]);
 
@@ -269,6 +271,7 @@ export default async function Page() {
         <DashboardCelebrationCard
           employeeOfTheMonth={employeeOfTheMonth}
           todayBirthdays={todayBirthdays}
+          todayAnniversaries={todayAnniversaries}
         />
       </div>
     </div>

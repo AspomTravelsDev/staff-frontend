@@ -296,3 +296,29 @@ export async function getTodayBirthdays(): Promise<Employee[]> {
     }
     return result.data.data.map(mapUserToEmployee);
 }
+
+/**
+ * Get users with work anniversaries
+ * @param month Optional month (1-12)
+ */
+export async function getUpcomingAnniversaries(month?: number): Promise<Employee[]> {
+    const params = new URLSearchParams();
+    if (month) params.append("month", month.toString());
+
+    const result = await api.get<UsersApiResponse>(`/api/anniversaries/upcoming?${params.toString()}`);
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data.data.map(mapUserToEmployee);
+}
+
+/**
+ * Get users with work anniversaries today
+ */
+export async function getTodayAnniversaries(): Promise<Employee[]> {
+    const result = await api.get<UsersApiResponse>("/api/anniversaries/today");
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data.data.map(mapUserToEmployee);
+}

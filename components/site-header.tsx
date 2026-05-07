@@ -5,22 +5,24 @@ import { ThemeSwitcher } from "./icons/theme-switcher";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { SidebarTrigger } from "./ui/sidebar";
-import { BellIcon, Gift } from "lucide-react";
+import { BellIcon, Gift, Trophy } from "lucide-react";
 import { ClockInWidget } from "./clock-in-widget";
 import { useUser } from "@/providers/user-provider";
 import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
 import { getNavigationForUser } from "@/lib/navigation";
 import Link from "next/link";
-import { getTodayBirthdays, Employee } from "@/lib/api/employees";
+import { getTodayBirthdays, getTodayAnniversaries, Employee } from "@/lib/api/employees";
 
 export const SiteHeader = () => {
   const { user } = useUser();
   const { data: notifications } = useRoleNotifications();
   const [todayBirthdays, setTodayBirthdays] = useState<Employee[]>([]);
+  const [todayAnniversaries, setTodayAnniversaries] = useState<Employee[]>([]);
 
   useEffect(() => {
     if (user) {
       getTodayBirthdays().then(setTodayBirthdays).catch(console.error);
+      getTodayAnniversaries().then(setTodayAnniversaries).catch(console.error);
     }
   }, [user]);
 
@@ -110,7 +112,7 @@ export const SiteHeader = () => {
     Object.values(visibleNotifications).reduce(
       (sum, item) => sum + item.count,
       0,
-    ) + todayBirthdays.length;
+    ) + todayBirthdays.length + todayAnniversaries.length;
 
   return (
     <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 border-b">
@@ -161,6 +163,26 @@ export const SiteHeader = () => {
                             </p>
                             <p className="text-[11px] text-muted-foreground leading-tight">
                               Don&apos;t forget to wish them well today.
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Anniversary Notifications */}
+                      {todayAnniversaries.map((anniv) => (
+                        <div
+                          key={anniv.id}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0 transition-colors bg-amber-50/30 dark:bg-amber-950/10"
+                        >
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">
+                            <Trophy className="h-4 w-4" />
+                          </div>
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              Work Anniversary: {anniv.firstName}! 🏆
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-tight">
+                              Celebrate their career milestone today.
                             </p>
                           </div>
                         </div>
