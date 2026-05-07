@@ -183,6 +183,20 @@ export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): P
     return result.data;
 }
 
+export async function addBatchComplianceOccurrences(data: {
+    user_ids: string[];
+    type: string;
+    occurrence_date: string;
+    severity: Severity;
+    description: string;
+}): Promise<ComplianceIssue[]> {
+    const result = await api.post<ComplianceIssue[]>("/api/compliance", data);
+    if (!result.success) {
+        throw new Error(result.error.error);
+    }
+    return result.data;
+}
+
 export async function addComplianceComment(id: string, comment: string): Promise<ComplianceComment> {
     const result = await api.post<ComplianceComment>(`/api/compliance/${id}/comments`, { comment });
     if (!result.success) {
