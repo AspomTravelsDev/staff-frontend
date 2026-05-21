@@ -17,6 +17,7 @@ import {
   isLate,
   formatLagosDate,
   formatLagosTime,
+  formatLagosDateForInput,
 } from "@/lib/utils/attendance";
 import {
   Select,
@@ -134,41 +135,129 @@ export function AttendanceClient({
     startTransition,
   ]);
 
-  const exportColumns: ExportColumn<ClockInRecord>[] = [
+  // Create a map of date_userId to track status (using earliest clock-in time)
+  const attendanceMap = new Map<string, { clockInTime: number; status: "Early" | "Late" }>();
+  history.forEach((record) => {
+    const dateStr = formatLagosDateForInput(record.clock_in_at);
+    if (!dateStr) return;
+    const userId = record.user_id;
+    const key = `${dateStr}_${userId}`;
+    const clockInTime = new Date(record.clock_in_at).getTime();
+    const status = isLate(record.clock_in_at) ? "Late" : "Early";
+
+    const existing = attendanceMap.get(key);
+    if (!existing || clockInTime < existing.clockInTime) {
+      attendanceMap.set(key, { clockInTime, status });
+    }
+  });
+
+  // Identify all unique staff members
+  const employeeMap = new Map<string, { id: string; name: string }>();
+
+  // Add active employees
+  employees.forEach((emp) => {
+    employeeMap.set(emp.id, {
+      id: emp.id,
+      name: `${emp.firstName} ${emp.lastName}`.trim(),
+    });
+  });
+
+  // Add any employees from history who might not be active employees
+  history.forEach((record) => {
+    if (record.user_id && !employeeMap.has(record.user_id)) {
+      employeeMap.set(record.user_id, {
+        id: record.user_id,
+        name:
+          `${record.user?.first_name || ""} ${record.user?.last_name || ""}`.trim() ||
+          `User ${record.user_id}`,
+      });
+    }
+  });
+
+  let exportEmployees = Array.from(employeeMap.values());
+
+  // Filter by selected staff if not "all"
+  if (selectedStaff && selectedStaff !== "all") {
+    exportEmployees = exportEmployees.filter((emp) => emp.id === selectedStaff);
+  }
+
+  // Determine start and end date for rows
+  let startStr = "";
+  let endStr = "";
+  if (dateRange?.from) {
+    startStr = formatLagosDateForInput(dateRange.from);
+  }
+  if (dateRange?.to) {
+    endStr = formatLagosDateForInput(dateRange.to);
+  }
+
+  if (!startStr || !endStr) {
+    const times = history
+      .map((h) => new Date(h.clock_in_at).getTime())
+      .filter((t) => !isNaN(t));
+    if (times.length > 0) {
+      const minTime = Math.min(...times);
+      const maxTime = Math.max(...times);
+      if (!startStr) startStr = formatLagosDateForInput(new Date(minTime));
+      if (!endStr) endStr = formatLagosDateForInput(new Date(maxTime));
+    } else {
+      const todayStr = formatLagosDateForInput(new Date());
+      if (!startStr) startStr = todayStr;
+      if (!endStr) endStr = todayStr;
+    }
+  }
+
+  // Generate rows for each day in range
+  const pivotedRows: any[] = [];
+  if (startStr && endStr) {
+    const [sYear, sMonth, sDay] = startStr.split("-").map(Number);
+    const [eYear, eMonth, eDay] = endStr.split("-").map(Number);
+
+    const startDateObj = new Date(sYear, sMonth - 1, sDay);
+    const endDateObj = new Date(eYear, eMonth - 1, eDay);
+
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    const curr = new Date(startDateObj);
+    while (curr <= endDateObj) {
+      const y = curr.getFullYear();
+      const m = String(curr.getMonth() + 1).padStart(2, "0");
+      const dStr = String(curr.getDate()).padStart(2, "0");
+      const dateKey = `${y}-${m}-${dStr}`;
+
+      const shortYear = String(y).slice(-2);
+      const formattedDate = `${dStr}/${m}/${shortYear}`;
+      const dayName = daysOfWeek[curr.getDay()];
+
+      const row: any = {
+        day: dayName,
+        date: formattedDate,
+      };
+
+      exportEmployees.forEach((emp) => {
+        const key = `${dateKey}_${emp.id}`;
+        const record = attendanceMap.get(key);
+        row[emp.id] = record ? record.status : "Absent";
+      });
+
+      pivotedRows.push(row);
+      curr.setDate(curr.getDate() + 1);
+    }
+  }
+
+  const exportColumns: ExportColumn<any>[] = [
     {
-      header: "Staff Name",
-      key: (item) =>
-        `${item.user?.first_name || ""} ${item.user?.last_name || ""}`.trim() ||
-        "Unknown",
-    },
-    {
-      header: "Email",
-      key: (item) => item.user?.email || "",
+      header: "Day",
+      key: "day",
     },
     {
       header: "Date",
-      key: (item) => formatLagosDate(item.clock_in_at),
+      key: "date",
     },
-    {
-      header: "Clock In",
-      key: (item) => formatLagosTime(item.clock_in_at),
-    },
-    {
-      header: "Clock Out",
-      key: (item) =>
-        item.clock_out_at ? formatLagosTime(item.clock_out_at) : "",
-    },
-
-    {
-      header: "Duration (Mins)",
-      key: (item) => item.duration_minutes || "",
-    },
-    {
-      header: "Late Status",
-      key: (item) => {
-        return isLate(item.clock_in_at) ? "Late" : "On Time";
-      },
-    },
+    ...exportEmployees.map((emp) => ({
+      header: emp.name,
+      key: (row: any) => row[emp.id] || "Absent",
+    })),
   ];
 
   return (
@@ -261,7 +350,7 @@ export function AttendanceClient({
 
         <div className="flex items-center gap-2">
           <TableExportButton
-            data={history}
+            data={pivotedRows}
             columns={exportColumns}
             filename={`Attendance_Export_${format(new Date(), "yyyy_MM_dd")}`}
           />

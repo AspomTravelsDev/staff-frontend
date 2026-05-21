@@ -3,6 +3,7 @@ import { TaskFilters } from "./components/task-filters";
 import { HRTaskStats } from "./components/task-stats";
 import { getHRTasks } from "./queries";
 import { format } from "date-fns";
+import { getAllClockInsForFilters } from "@/lib/api/clock-in";
 
 interface PageProps {
   searchParams: Promise<{
@@ -34,7 +35,13 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
     filters.date = format(new Date(), "yyyy-MM-dd");
   }
 
-  const records = await getHRTasks(filters);
+  const fromDate = filters.start_date || filters.date;
+  const toDate = filters.end_date || filters.date;
+
+  const [records, attendanceRecords] = await Promise.all([
+    getHRTasks(filters),
+    getAllClockInsForFilters(fromDate, toDate, filters.user_id).catch(() => []),
+  ]);
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -51,7 +58,7 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
 
       <HRTaskStats records={records} />
 
-      <TaskFilters filters={filters} records={records} />
+      <TaskFilters filters={filters} records={records} attendance={attendanceRecords} />
 
       <AllTasksTable records={records} isLoading={false} />
     </div>
