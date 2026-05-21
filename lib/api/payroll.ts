@@ -31,6 +31,8 @@ export interface PayrollEntry {
   suspension_days: number;
   other_deductions_amount: number;
   other_deductions?: PayrollOtherDeduction[];
+  additions_amount: number;
+  additions?: PayrollOtherDeduction[];
   prorated_days: number;
   attendance_suggested_days: number;
   compliance_suggested_days: number;
@@ -111,6 +113,8 @@ export async function overridePayrollEntry(
     suspension_days?: number;
     other_deductions_amount?: number;
     other_deductions?: PayrollOtherDeduction[];
+    additions_amount?: number;
+    additions?: PayrollOtherDeduction[];
     final_deduction_days?: number;
     deduction_amount?: number;
     override_note?: string;

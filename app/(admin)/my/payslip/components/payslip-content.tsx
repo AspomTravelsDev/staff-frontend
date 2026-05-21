@@ -37,6 +37,16 @@ export function PayslipContent({
       ? otherDeductionsTotal
       : Number(entry.other_deductions_amount || 0);
 
+  const additionsList = Array.isArray(entry.additions) ? entry.additions : [];
+  const additionsTotal = additionsList.reduce(
+    (sum: number, item: any) => sum + Number(item?.amount ?? 0),
+    0,
+  );
+  const additionsAmount =
+    additionsList.length > 0
+      ? additionsTotal
+      : Number(entry.additions_amount || 0);
+
   const totalDeductions = Math.max(
     0,
     Number(entry.deduction_amount || 0) +
@@ -229,6 +239,34 @@ export function PayslipContent({
                     {formatPrice(grossPay).replace("NGN", "")}
                   </td>
                 </tr>
+                {additionsList.length > 0
+                  ? additionsList.map((item: any, index: number) => (
+                      <tr
+                        key={`addition-${index}`}
+                        className="bg-emerald-50/40"
+                      >
+                        <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                          {item?.label || "Addition"}
+                        </td>
+                        <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-emerald-700">
+                          +
+                          {formatPrice(Number(item?.amount ?? 0)).replace(
+                            "NGN",
+                            "",
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  : additionsAmount > 0 && (
+                      <tr className="bg-emerald-50/40">
+                        <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                          Additions
+                        </td>
+                        <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-emerald-700">
+                          +{formatPrice(additionsAmount).replace("NGN", "")}
+                        </td>
+                      </tr>
+                    )}
                 {/* Attendance Deductions (Absences) */}
                 {Math.max(
                   0,

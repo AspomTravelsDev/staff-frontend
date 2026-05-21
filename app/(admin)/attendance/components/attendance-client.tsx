@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ClockInRecord, ClockInSummary } from "@/lib/api/clock-in";
 import { Employee } from "@/lib/api/employees";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Filter, Users } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
+import type { ExportColumn } from "@/lib/utils/export";
 import {
   isLate,
   formatLagosDate,
@@ -32,6 +33,8 @@ interface AttendanceClientProps {
   initialFrom?: string;
   initialTo?: string;
   initialUserId?: string;
+  initialPage?: number;
+  initialPageSize?: number;
 }
 
 export function AttendanceClient({
@@ -41,10 +44,13 @@ export function AttendanceClient({
   initialFrom,
   initialTo,
   initialUserId,
+  initialPage = 1,
+  initialPageSize = 100,
 }: AttendanceClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     if (initialFrom) {
@@ -59,8 +65,7 @@ export function AttendanceClient({
   const [selectedStaff, setSelectedStaff] = useState<string>(
     initialUserId || "all",
   );
-
-  const [isPending, setIsPending] = useState(false);
+  const [pageSize, setPageSize] = useState<number>(initialPageSize);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -104,49 +109,63 @@ export function AttendanceClient({
       }
     }
 
-    if (hasChanges) {
-      setIsPending(true);
-      router.push(`${pathname}?${params.toString()}`);
-    } else {
-      setIsPending(false);
+    const pageSizeValue = pageSize.toString();
+    if (params.get("page_size") !== pageSizeValue) {
+      params.set("page_size", pageSizeValue);
+      hasChanges = true;
     }
-  }, [dateRange, selectedStaff, searchParams, pathname, router]);
 
-  useEffect(() => {
-    setIsPending(false);
-  }, [history, stats]);
+    if (hasChanges) {
+      params.set("page", "1");
+    }
 
-  const exportColumns = [
+    if (hasChanges) {
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`);
+      });
+    }
+  }, [
+    dateRange,
+    selectedStaff,
+    pageSize,
+    searchParams,
+    pathname,
+    router,
+    startTransition,
+  ]);
+
+  const exportColumns: ExportColumn<ClockInRecord>[] = [
     {
       header: "Staff Name",
-      key: (item: any) =>
+      key: (item) =>
         `${item.user?.first_name || ""} ${item.user?.last_name || ""}`.trim() ||
         "Unknown",
     },
     {
       header: "Email",
-      key: (item: any) => item.user?.email || "",
+      key: (item) => item.user?.email || "",
     },
     {
       header: "Date",
-      key: (item: any) => formatLagosDate(item.clock_in_at),
+      key: (item) => formatLagosDate(item.clock_in_at),
     },
     {
       header: "Clock In",
-      key: (item: any) => formatLagosTime(item.clock_in_at),
+      key: (item) => formatLagosTime(item.clock_in_at),
     },
     {
       header: "Clock Out",
-      key: (item: any) => formatLagosTime(item.clock_out_at),
+      key: (item) =>
+        item.clock_out_at ? formatLagosTime(item.clock_out_at) : "",
     },
 
     {
       header: "Duration (Mins)",
-      key: (item: any) => item.duration_minutes || "",
+      key: (item) => item.duration_minutes || "",
     },
     {
       header: "Late Status",
-      key: (item: any) => {
+      key: (item) => {
         return isLate(item.clock_in_at) ? "Late" : "On Time";
       },
     },
@@ -173,7 +192,7 @@ export function AttendanceClient({
             date={dateRange}
             setDate={setDateRange}
             disabled={isPending}
-            className="w-full sm:w-[260px]"
+            className="w-full sm:w-65"
           />
         </div>
 
@@ -182,7 +201,7 @@ export function AttendanceClient({
             <Users size={14} className="text-muted-foreground" />
             Staff Member
           </label>
-          <div className="w-full sm:w-[220px]">
+          <div className="w-full sm:w-55">
             <Select
               value={selectedStaff}
               onValueChange={setSelectedStaff}
@@ -216,6 +235,28 @@ export function AttendanceClient({
           </Button>
         </div>
 
+        <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full xl:w-auto">
+          <label className="text-sm font-medium px-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
+            Rows per page
+          </label>
+          <div className="w-full sm:w-28">
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => setPageSize(Number.parseInt(value, 10))}
+              disabled={isPending}
+            >
+              <SelectTrigger className="h-10 bg-background">
+                <SelectValue placeholder="100" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="flex-1" />
 
         <div className="flex items-center gap-2">
@@ -229,7 +270,12 @@ export function AttendanceClient({
 
       {/* 4. List */}
       <div className="flex flex-col gap-4 mt-2">
-        <AdminAttendanceTable history={history} isLoading={isPending} />
+        <AdminAttendanceTable
+          history={history}
+          isLoading={isPending}
+          currentPage={initialPage}
+          pageSize={pageSize}
+        />
       </div>
     </div>
   );

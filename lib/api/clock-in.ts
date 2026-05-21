@@ -127,15 +127,61 @@ export async function getAllClockIns(
     from?: string,
     to?: string,
     userId?: string,
+    page = 1,
     perPage = 50
 ): Promise<ApiResponse<PaginatedClockInResponse>> {
     const params = new URLSearchParams();
     if (from) params.append("from", from);
     if (to) params.append("to", to);
     if (userId && userId !== "all") params.append("user_id", userId);
+    params.append("page", page.toString());
     params.append("per_page", perPage.toString());
 
     return api.get<PaginatedClockInResponse>(`/api/admin/attendance?${params.toString()}`);
+}
+
+/**
+ * Fetch all clock-in records for the active filters.
+ * The backend paginates at a maximum of 100 rows per request, so this
+ * helper walks each page and merges the results into one array.
+ */
+export async function getAllClockInsForFilters(
+    from?: string,
+    to?: string,
+    userId?: string,
+    perPage = 100
+): Promise<ClockInRecord[]> {
+    const firstResponse = await getAllClockIns(from, to, userId, 1, perPage);
+
+    if (!firstResponse.success || !firstResponse.data) {
+        return [];
+    }
+
+    const firstPage = firstResponse.data.data.data;
+    const meta = firstResponse.data.data.meta;
+
+    if (!meta || meta.last_page <= 1) {
+        return firstPage;
+    }
+
+    const remainingPages = Array.from(
+        { length: meta.last_page - 1 },
+        (_, index) => index + 2
+    );
+
+    const pageResults = await Promise.all(
+        remainingPages.map((page) => getAllClockIns(from, to, userId, page, perPage))
+    );
+
+    const records = [...firstPage];
+
+    for (const result of pageResults) {
+        if (result.success && result.data) {
+            records.push(...result.data.data.data);
+        }
+    }
+
+    return records;
 }
 
 /**

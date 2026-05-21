@@ -72,6 +72,17 @@ function getOtherDeductionsTotal(entry: PayrollEntry) {
   return Number(entry.other_deductions_amount || 0);
 }
 
+function getAdditionsTotal(entry: PayrollEntry) {
+  if (Array.isArray(entry.additions) && entry.additions.length > 0) {
+    return entry.additions.reduce(
+      (sum, item) => sum + Number(item?.amount ?? 0),
+      0,
+    );
+  }
+
+  return Number(entry.additions_amount || 0);
+}
+
 function formatMonthLabel(isoMonth?: string) {
   if (!isoMonth) return "";
   // expect YYYY-MM or YYYY-MM-DD
@@ -879,19 +890,31 @@ export function PayrollManager() {
                     payload.other_deductions_amount ??
                     getOtherDeductionsTotal(activeEntry);
 
-                  // New tax order: tax is computed on (gross - attendance/compliance deductions)
-                  const taxableGross = Math.max(
-                    0,
-                    Number(activeEntry.gross_salary || 0) - deductionAmount,
-                  );
+                  const additionsAmountFromList = payload.additions
+                    ? payload.additions.reduce(
+                        (sum, item) => sum + Number(item?.amount ?? 0),
+                        0,
+                      )
+                    : undefined;
+
+                  const additionsAmount =
+                    additionsAmountFromList ??
+                    payload.additions_amount ??
+                    getAdditionsTotal(activeEntry);
+
+                  const grossSalary = Number(activeEntry.gross_salary || 0);
+                  // Tax is computed on gross, then deductions and additions are applied.
+                  const taxBase = grossSalary;
                   const taxAmount = activeEntry.is_intern
                     ? 0
-                    : calculateMonthlyTax(taxableGross);
+                    : calculateMonthlyTax(taxBase);
 
-                  // Net pay = (Taxable Gross - Tax) - Other Deductions
+                  const afterTax = Math.max(0, grossSalary - taxAmount);
+
+                  // Net pay = (Gross - Tax) - Other Deductions + Additions
                   const netAmount = Math.max(
                     0,
-                    taxableGross - taxAmount - otherAmount,
+                    afterTax - deductionAmount - otherAmount + additionsAmount,
                   );
 
                   // optimistic update
@@ -910,9 +933,11 @@ export function PayrollManager() {
                               other_deductions_amount: otherAmount,
                               other_deductions:
                                 payload.other_deductions ?? e.other_deductions,
+                              additions_amount: additionsAmount,
+                              additions: payload.additions ?? e.additions,
                               final_deduction_days: finalDays,
                               deduction_amount: deductionAmount,
-                              taxable_gross: taxableGross,
+                              taxable_gross: grossSalary,
                               tax_amount: taxAmount,
                               net_amount: netAmount,
                               override_note:

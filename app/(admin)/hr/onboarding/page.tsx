@@ -10,7 +10,10 @@ export default async function HROnboardingDocumentsPage() {
   ]);
 
   const departments = roleMetadata.departments.filter(
-    (department) => department !== "Customer Service" && department !== "Other",
+    (department) =>
+      department !== "Customer Service" &&
+      department !== "Other" &&
+      department !== "others",
   );
 
   return (

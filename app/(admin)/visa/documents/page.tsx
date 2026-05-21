@@ -41,6 +41,33 @@ export default async function VisaDocumentsPage() {
         {isSupervisorOrSuper && <UploadDocumentDialog />}
       </div>
 
+      <a
+        href="https://home.mycloud.com/action/share/d0c4d3a8-8f59-4396-98dd-d628d21688ef"
+        target="_blank"
+        rel="noreferrer"
+        className="group relative overflow-hidden rounded-xl border bg-linear-to-r from-amber-50 via-white to-sky-50 p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+      >
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-sky-200/40 blur-2xl" />
+        <div className="absolute -bottom-12 -left-10 h-36 w-36 rounded-full bg-amber-200/40 blur-2xl" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+              Cloud Docs
+            </p>
+            <h2 className="text-lg font-semibold text-slate-900">
+              View Visa Cloud Documents
+            </h2>
+            <p className="text-sm text-slate-600">
+              Open the shared cloud folder for official visa templates.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition group-hover:bg-slate-800">
+            Open
+            <span aria-hidden="true">→</span>
+          </div>
+        </div>
+      </a>
+
       <DocumentListTable
         documents={documents}
         isLoading={false}

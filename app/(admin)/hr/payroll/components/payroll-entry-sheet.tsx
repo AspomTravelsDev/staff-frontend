@@ -33,6 +33,8 @@ interface Props {
     suspension_days?: number;
     other_deductions_amount?: number;
     other_deductions?: { label: string; amount: number }[];
+    additions_amount?: number;
+    additions?: { label: string; amount: number }[];
     final_deduction_days?: number;
     deduction_amount?: number;
     override_note?: string;
@@ -42,6 +44,11 @@ interface Props {
 }
 
 type OtherDeductionInput = {
+  label: string;
+  amount: string;
+};
+
+type AdditionInput = {
   label: string;
   amount: string;
 };
@@ -103,6 +110,24 @@ function normalizeOtherDeductions(entry: PayrollEntry): OtherDeductionInput[] {
   return [];
 }
 
+function normalizeAdditions(entry: PayrollEntry): AdditionInput[] {
+  const list = Array.isArray(entry.additions) ? entry.additions : [];
+
+  if (list.length > 0) {
+    return list.map((item) => ({
+      label: String(item?.label ?? ""),
+      amount: String(item?.amount ?? 0),
+    }));
+  }
+
+  const fallback = Number(entry.additions_amount ?? 0);
+  if (fallback > 0) {
+    return [{ label: "Addition", amount: String(fallback) }];
+  }
+
+  return [];
+}
+
 export function PayrollEntrySheet({
   entry,
   isPersisted = true,
@@ -121,6 +146,9 @@ export function PayrollEntrySheet({
   const [otherDeductions, setOtherDeductions] = useState<OtherDeductionInput[]>(
     () => normalizeOtherDeductions(entry),
   );
+  const [additions, setAdditions] = useState<AdditionInput[]>(() =>
+    normalizeAdditions(entry),
+  );
   const [note, setNote] = useState<string>(entry.override_note ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -130,6 +158,7 @@ export function PayrollEntrySheet({
     setAttendanceDays(`${entry.attendance_days ?? 0}`);
     setSuspensionDays(`${entry.suspension_days ?? 0}`);
     setOtherDeductions(normalizeOtherDeductions(entry));
+    setAdditions(normalizeAdditions(entry));
     setNote(entry.override_note ?? "");
   }, [entry]);
 
@@ -151,6 +180,24 @@ export function PayrollEntrySheet({
     setOtherDeductions((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const updateAddition = (
+    index: number,
+    key: "label" | "amount",
+    value: string,
+  ) => {
+    setAdditions((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+    );
+  };
+
+  const addAddition = () => {
+    setAdditions((prev) => [...prev, { label: "", amount: "" }]);
+  };
+
+  const removeAddition = (index: number) => {
+    setAdditions((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const dailyRate = Number(entry.daily_rate || 0);
 
   const computed = useMemo(() => {
@@ -162,6 +209,10 @@ export function PayrollEntrySheet({
     const att = parse(attendanceDays);
     const susp = parse(suspensionDays);
     const othAmount = otherDeductions.reduce(
+      (sum, item) => sum + parse(item.amount),
+      0,
+    );
+    const addAmount = additions.reduce(
       (sum, item) => sum + parse(item.amount),
       0,
     );
@@ -187,10 +238,10 @@ export function PayrollEntrySheet({
     const attendanceComplianceDeduction =
       Math.round(finalDays * dailyRateProvisional * 100) / 100;
 
-    // Final net = (Gross - Tax) - Attendance/Compliance/Other Deductions
+    // Final net = (Gross - Tax) - Attendance/Compliance/Other Deductions + Additions
     const netAmount = Math.max(
       0,
-      afterTax - attendanceComplianceDeduction - othAmount,
+      afterTax - attendanceComplianceDeduction - othAmount + addAmount,
     );
 
     // Daily rate based on (gross - tax) over working days
@@ -200,6 +251,7 @@ export function PayrollEntrySheet({
       attAmount: Math.round(att * dailyRateProvisional * 100) / 100,
       suspAmount: Math.round(susp * dailyRateProvisional * 100) / 100,
       othAmount,
+      addAmount,
       finalDays,
       attendanceComplianceDeduction,
       taxableGross: grossSalary,
@@ -211,6 +263,7 @@ export function PayrollEntrySheet({
     attendanceDays,
     suspensionDays,
     otherDeductions,
+    additions,
     dailyRate,
     entry.gross_salary,
     entry.is_intern,
@@ -239,11 +292,25 @@ export function PayrollEntrySheet({
         0,
       );
 
+      const additionsPayload = additions
+        .map((item) => ({
+          label: item.label.trim(),
+          amount: parse(item.amount),
+        }))
+        .filter((item) => item.label.length > 0 && item.amount > 0);
+
+      const additionsAmountTotal = additionsPayload.reduce(
+        (sum, item) => sum + item.amount,
+        0,
+      );
+
       await onSave({
         attendance_days: parse(attendanceDays),
         suspension_days: parse(suspensionDays),
         other_deductions_amount: otherAmountTotal,
         other_deductions: otherDeductionsPayload,
+        additions_amount: additionsAmountTotal,
+        additions: additionsPayload,
         override_note: note || undefined,
       });
 
@@ -502,6 +569,73 @@ export function PayrollEntrySheet({
                 </span>
               </div>
             </div>
+
+            {/* Additions */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Additions</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addAddition}
+                >
+                  Add Item
+                </Button>
+              </div>
+              {additions.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  No additions added.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {additions.map((item, index) => (
+                    <div
+                      key={`${index}-${item.label}`}
+                      className="grid grid-cols-[1fr_140px_auto] items-center gap-2"
+                    >
+                      <Input
+                        type="text"
+                        placeholder="Label"
+                        value={item.label}
+                        onChange={(e) =>
+                          updateAddition(index, "label", e.target.value)
+                        }
+                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.amount}
+                          onChange={(e) =>
+                            updateAddition(index, "amount", e.target.value)
+                          }
+                          className="pl-10"
+                        />
+                        <div className="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground pointer-events-none">
+                          ₦
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeAddition(index)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-end text-xs text-muted-foreground">
+                Total:{" "}
+                <span className="ml-2 font-medium text-emerald-600">
+                  {money(computed.addAmount)}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -538,6 +672,10 @@ export function PayrollEntrySheet({
             <div className="flex justify-between text-sm text-red-600">
               <span>Other Deductions</span>
               <span>- {money(computed.othAmount)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-emerald-700">
+              <span>Additions</span>
+              <span>+ {money(computed.addAmount)}</span>
             </div>
             <Separator className="my-1" />
             <div className="flex justify-between items-center pt-1">

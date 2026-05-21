@@ -10,6 +10,7 @@ export const USER_ROLES = {
     BIRTH_SERVICES_OFFICER: "birth-services",
     HOLIDAYS_OFFICER: "holidays",
     TICKETING_OFFICER: "ticket",
+    OFFICE_ASSISTANT: "office-assistant",
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
@@ -44,6 +45,7 @@ export const ROLE_TO_DEPARTMENT_FALLBACK: Record<string, string> = {
     "birth-services": "Birth Services",
     holidays: "Holidays",
     ticket: "Ticketing",
+    "office-assistant": "Office Assistants",
 };
 
 export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRole }> = {
@@ -58,6 +60,7 @@ export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRol
     [USER_ROLES.BIRTH_SERVICES_OFFICER]: { label: "Birth Services Officer", value: "birth-services" },
     [USER_ROLES.HOLIDAYS_OFFICER]: { label: "Holidays Officer", value: "holidays" },
     [USER_ROLES.TICKETING_OFFICER]: { label: "Ticketing Officer", value: "ticket" },
+    [USER_ROLES.OFFICE_ASSISTANT]: { label: "Office Assistant", value: "office-assistant" },
 };
 
 export function getRolesForSelect() {
@@ -81,6 +84,8 @@ export function getFallbackRolesMetadataContract(): RolesMetadataContract {
             "General",
             ...Object.values(ROLE_TO_DEPARTMENT_FALLBACK),
             "Customer Service",
+            "Office Assistants",
+            "others",
             "Other",
         ])
     );
