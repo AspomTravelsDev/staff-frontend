@@ -171,7 +171,10 @@ export function Step8UploadSigned({
 
       if (missingDocuments.length > 0) {
         setIsUploading(false);
-        return { error: "Please upload all required signed documents" };
+        const missingLabels = missingDocuments.map((doc) => doc.label.replace(" *", ""));
+        return {
+          error: `Please upload the following required signed documents: ${missingLabels.join(", ")}`,
+        };
       }
 
       const uploadedSignedDocuments: SignedDocumentsData = {};
@@ -283,7 +286,14 @@ export function Step8UploadSigned({
                 htmlFor={document.inputName}
                 className="text-base font-medium"
               >
-                {document.label}
+                {document.label.endsWith(" *") ? (
+                  <>
+                    {document.label.slice(0, -2)}
+                    <span className="text-destructive font-semibold ml-1">*</span>
+                  </>
+                ) : (
+                  document.label
+                )}
               </Label>
               <p className="text-sm text-muted-foreground mb-3">
                 {document.description}

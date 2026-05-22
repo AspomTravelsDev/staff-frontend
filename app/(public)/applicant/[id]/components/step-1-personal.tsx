@@ -61,14 +61,38 @@ export function Step1Personal({
       "emergencyContact_phone",
     ];
 
+    const fieldLabels: Record<string, string> = {
+      firstName: "First Name",
+      lastName: "Last Name",
+      dateOfBirth: "Date of Birth",
+      gender: "Gender",
+      maritalStatus: "Marital Status",
+      nationality: "Nationality",
+      email: "Email Address",
+      phoneNumber: "Primary Phone",
+      street: "Street Address",
+      city: "City",
+      state: "State",
+      country: "Country",
+      nearestLandmark: "Nearest Landmark",
+      emergencyContact_name: "Emergency Contact Name",
+      emergencyContact_relationship: "Emergency Contact Relationship",
+      emergencyContact_phone: "Emergency Contact Phone",
+    };
+
+    const missingFields: string[] = [];
     for (const field of requiredFields) {
       const value = String(formData.get(field) || "").trim();
       if (!value) {
-        return {
-          error: "Please complete all required personal information fields.",
-          submittedData: toSubmittedData(formData),
-        };
+        missingFields.push(fieldLabels[field] || field);
       }
+    }
+
+    if (missingFields.length > 0) {
+      return {
+        error: `Please complete the following required fields: ${missingFields.join(", ")}`,
+        submittedData: toSubmittedData(formData),
+      };
     }
 
     const data = {
@@ -187,7 +211,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name *</Label>
+            <Label htmlFor="firstName">First Name <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="firstName"
               name="firstName"
@@ -204,7 +228,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name *</Label>
+            <Label htmlFor="lastName">Last Name <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="lastName"
               name="lastName"
@@ -221,7 +245,7 @@ export function Step1Personal({
         <h4 className="font-medium">Basic Information</h4>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+            <Label htmlFor="dateOfBirth">Date of Birth <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="dateOfBirth"
               name="dateOfBirth"
@@ -239,7 +263,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="gender">Gender *</Label>
+            <Label htmlFor="gender">Gender <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Select
               defaultValue={initialData?.gender || ""}
               onValueChange={(value) => {
@@ -265,7 +289,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="maritalStatus">Marital Status *</Label>
+            <Label htmlFor="maritalStatus">Marital Status <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Select
               defaultValue={initialData?.maritalStatus || ""}
               onValueChange={(value) => {
@@ -318,7 +342,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="nationality">Nationality *</Label>
+            <Label htmlFor="nationality">Nationality <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="nationality"
               name="nationality"
@@ -385,7 +409,7 @@ export function Step1Personal({
         <h4 className="font-medium">Contact Information</h4>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
+            <Label htmlFor="email">Email Address <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="email"
               name="email"
@@ -395,7 +419,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phoneNumber">Primary Phone *</Label>
+            <Label htmlFor="phoneNumber">Primary Phone <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="phoneNumber"
               name="phoneNumber"
@@ -422,7 +446,7 @@ export function Step1Personal({
         <h4 className="font-medium">Residential Address</h4>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="street">Street Address *</Label>
+            <Label htmlFor="street">Street Address <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="street"
               name="street"
@@ -439,7 +463,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="city">City *</Label>
+            <Label htmlFor="city">City <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="city"
               name="city"
@@ -448,7 +472,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="state">State *</Label>
+            <Label htmlFor="state">State <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="state"
               name="state"
@@ -457,7 +481,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="country">Country *</Label>
+            <Label htmlFor="country">Country <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="country"
               name="country"
@@ -474,7 +498,7 @@ export function Step1Personal({
         <h4 className="font-medium">Physical Verification Data</h4>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="nearestLandmark">Nearest Landmark *</Label>
+            <Label htmlFor="nearestLandmark">Nearest Landmark <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="nearestLandmark"
               name="nearestLandmark"
@@ -518,7 +542,7 @@ export function Step1Personal({
         <h4 className="font-medium">Emergency Contact (Next of Kin)</h4>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="emergencyContact_name">Name *</Label>
+            <Label htmlFor="emergencyContact_name">Name <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="emergencyContact_name"
               name="emergencyContact_name"
@@ -528,7 +552,7 @@ export function Step1Personal({
           </div>
           <div className="space-y-2">
             <Label htmlFor="emergencyContact_relationship">
-              Relationship *
+              Relationship <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Select
               defaultValue={initialData?.emergencyContact?.relationship || ""}
@@ -562,7 +586,7 @@ export function Step1Personal({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="emergencyContact_phone">Phone *</Label>
+            <Label htmlFor="emergencyContact_phone">Phone <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="emergencyContact_phone"
               name="emergencyContact_phone"

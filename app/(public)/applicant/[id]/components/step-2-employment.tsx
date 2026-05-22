@@ -108,58 +108,80 @@ export function Step2Employment({
     _prevState: FormState | null,
     formData: FormData,
   ): Promise<FormState> => {
+    const missingFields: string[] = [];
+
     const bankName = String(formData.get("bankName") || "").trim();
     const bankAccountNumber = String(
       formData.get("bankAccountNumber") || "",
     ).trim();
 
-    if (!bankName || !bankAccountNumber) {
-      return {
-        error: "Please complete required bank details.",
-        submittedData: toSubmittedData(formData),
-      };
-    }
+    if (!bankName) missingFields.push("Bank Name");
+    if (!bankAccountNumber) missingFields.push("Bank Account Number");
 
     // Parse education array
     const educationCount =
       parseInt(formData.get("educationCount") as string) || 1;
     const education = [];
-    for (let i = 0; i < educationCount; i++) {
+
+    // First education row is strictly required
+    const inst0 = String(formData.get("education_0_institution") || "").trim();
+    const qual0 = String(formData.get("education_0_qualification") || "").trim();
+    const start0 = String(formData.get("education_0_startYear") || "").trim();
+    const end0 = String(formData.get("education_0_endYear") || "").trim();
+
+    if (!inst0) missingFields.push("Education 1: Institution");
+    if (!qual0) missingFields.push("Education 1: Qualification");
+    if (!start0) missingFields.push("Education 1: Start Year");
+    if (!end0) missingFields.push("Education 1: End Year");
+
+    if (inst0 && qual0 && start0 && end0) {
+      education.push({
+        institution: inst0,
+        qualification: qual0,
+        fieldOfStudy: formData.get("education_0_fieldOfStudy"),
+        startYear: start0,
+        endYear: end0,
+        grade: formData.get("education_0_grade"),
+      });
+    }
+
+    // Additional education rows (optional, but if started, they must be completed)
+    for (let i = 1; i < educationCount; i++) {
       const institution = String(
         formData.get(`education_${i}_institution`) || "",
       ).trim();
-      if (institution) {
-        const qualification = String(
-          formData.get(`education_${i}_qualification`) || "",
-        ).trim();
-        const startYear = String(
-          formData.get(`education_${i}_startYear`) || "",
-        ).trim();
-        const endYear = String(
-          formData.get(`education_${i}_endYear`) || "",
-        ).trim();
+      const qualification = String(
+        formData.get(`education_${i}_qualification`) || "",
+      ).trim();
+      const startYear = String(
+        formData.get(`education_${i}_startYear`) || "",
+      ).trim();
+      const endYear = String(
+        formData.get(`education_${i}_endYear`) || "",
+      ).trim();
 
-        if (!qualification || !startYear || !endYear) {
-          return {
-            error: "Please complete all required education fields.",
-            submittedData: toSubmittedData(formData),
-          };
+      if (institution || qualification || startYear || endYear) {
+        if (!institution) missingFields.push(`Education ${i + 1}: Institution`);
+        if (!qualification) missingFields.push(`Education ${i + 1}: Qualification`);
+        if (!startYear) missingFields.push(`Education ${i + 1}: Start Year`);
+        if (!endYear) missingFields.push(`Education ${i + 1}: End Year`);
+
+        if (institution && qualification && startYear && endYear) {
+          education.push({
+            institution,
+            qualification,
+            fieldOfStudy: formData.get(`education_${i}_fieldOfStudy`),
+            startYear,
+            endYear,
+            grade: formData.get(`education_${i}_grade`),
+          });
         }
-
-        education.push({
-          institution,
-          qualification,
-          fieldOfStudy: formData.get(`education_${i}_fieldOfStudy`),
-          startYear,
-          endYear,
-          grade: formData.get(`education_${i}_grade`),
-        });
       }
     }
 
-    if (!education.length) {
+    if (missingFields.length > 0) {
       return {
-        error: "At least one education record is required.",
+        error: `Please complete the following required fields: ${missingFields.join(", ")}`,
         submittedData: toSubmittedData(formData),
       };
     }
@@ -312,7 +334,7 @@ export function Step2Employment({
         <h4 className="font-medium">Bank Details</h4>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="bankName">Bank Name *</Label>
+            <Label htmlFor="bankName">Bank Name <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="bankName"
               name="bankName"
@@ -321,7 +343,7 @@ export function Step2Employment({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bankAccountNumber">Account Number *</Label>
+            <Label htmlFor="bankAccountNumber">Account Number <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
               id="bankAccountNumber"
               name="bankAccountNumber"
@@ -344,7 +366,7 @@ export function Step2Employment({
       <div className="space-y-4">
         <Separator />
         <div className="flex items-center justify-between">
-          <h4 className="font-medium">Educational History *</h4>
+          <h4 className="font-medium">Educational History <span className="text-destructive font-semibold ml-1">*</span></h4>
           <Button
             type="button"
             variant="outline"
@@ -376,7 +398,7 @@ export function Step2Employment({
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor={`education_${idx}_institution`}>
-                    Institution *
+                    Institution {idx === 0 && <span className="text-destructive font-semibold ml-1">*</span>}
                   </Label>
                   <Input
                     id={`education_${idx}_institution`}
@@ -387,7 +409,7 @@ export function Step2Employment({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`education_${idx}_qualification`}>
-                    Qualification
+                    Qualification {idx === 0 && <span className="text-destructive font-semibold ml-1">*</span>}
                   </Label>
                   <Select
                     value={qualificationValues[idx]}
@@ -431,7 +453,7 @@ export function Step2Employment({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`education_${idx}_startYear`}>
-                    Start Year *
+                    Start Year {idx === 0 && <span className="text-destructive font-semibold ml-1">*</span>}
                   </Label>
                   <Input
                     id={`education_${idx}_startYear`}
@@ -443,7 +465,9 @@ export function Step2Employment({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`education_${idx}_endYear`}>End Year *</Label>
+                  <Label htmlFor={`education_${idx}_endYear`}>
+                    End Year {idx === 0 && <span className="text-destructive font-semibold ml-1">*</span>}
+                  </Label>
                   <Input
                     id={`education_${idx}_endYear`}
                     name={`education_${idx}_endYear`}

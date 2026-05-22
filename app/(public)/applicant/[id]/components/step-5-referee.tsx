@@ -138,20 +138,36 @@ export function Step5Referee({
       const requiredFields = [
         "referee_fullName",
         "referee_phoneNumber",
-        "referee_relationshipType",
-        "referee_howLongKnown",
+        "referee_organization",
         "referee_occupation",
         "referee_address",
+        "referee_relationshipType",
+        "referee_howLongKnown",
       ];
 
+      const fieldLabels: Record<string, string> = {
+        referee_fullName: "Full Name",
+        referee_phoneNumber: "Phone Number",
+        referee_organization: "Organization / Company",
+        referee_occupation: "Occupation / Job Title",
+        referee_address: "Address",
+        referee_relationshipType: "Relationship Type",
+        referee_howLongKnown: "How Long Have You Known Applicant?",
+      };
+
+      const missingFields: string[] = [];
       for (const field of requiredFields) {
         const value = String(formData.get(field) || "").trim();
         if (!value) {
-          return {
-            error: "Please complete all required referee fields.",
-            submittedData: toSubmittedData(formData),
-          };
+          missingFields.push(fieldLabels[field] || field);
         }
+      }
+
+      if (missingFields.length > 0) {
+        return {
+          error: `Please complete the following required fields: ${missingFields.join(", ")}`,
+          submittedData: toSubmittedData(formData),
+        };
       }
 
       const refereeRelationshipType = normalizeText(
@@ -372,7 +388,7 @@ export function Step5Referee({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_fullName" className="text-sm">
-              Full Name *
+              Full Name <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id="referee_fullName"
@@ -383,7 +399,7 @@ export function Step5Referee({
           </div>
           <div>
             <Label htmlFor="referee_phoneNumber" className="text-sm">
-              Phone Number *
+              Phone Number <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id="referee_phoneNumber"
@@ -421,7 +437,7 @@ export function Step5Referee({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="referee_organization" className="text-sm">
-              Organization / Company *
+              Organization / Company <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id="referee_organization"
@@ -432,7 +448,7 @@ export function Step5Referee({
           </div>
           <div>
             <Label htmlFor="referee_occupation" className="text-sm">
-              Occupation / Job Title *
+              Occupation / Job Title <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id="referee_occupation"
@@ -445,7 +461,7 @@ export function Step5Referee({
 
         <div>
           <Label htmlFor="referee_address" className="text-sm">
-            Address *
+            Address <span className="text-destructive font-semibold ml-1">*</span>
           </Label>
           <Input
             id="referee_address"
@@ -458,7 +474,7 @@ export function Step5Referee({
         <div className="grid gap-4 md:grid-cols-1">
           <div>
             <Label htmlFor="referee_relationshipType" className="text-sm">
-              Relationship Type *
+              Relationship Type <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Select
               value={relationshipType}
@@ -485,7 +501,7 @@ export function Step5Referee({
 
         <div>
           <Label htmlFor="referee_howLongKnown" className="text-sm">
-            How Long Have You Known Applicant? *
+            How Long Have You Known Applicant? <span className="text-destructive font-semibold ml-1">*</span>
           </Label>
           <Input
             id="referee_howLongKnown"

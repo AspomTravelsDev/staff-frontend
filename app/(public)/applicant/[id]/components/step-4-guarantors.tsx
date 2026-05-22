@@ -143,14 +143,30 @@ export function Step4Guarantors({
         "guarantor2_relationship",
       ];
 
+      const fieldLabels: Record<string, string> = {
+        guarantor1_firstName: "Guarantor 1: First Name",
+        guarantor1_lastName: "Guarantor 1: Last Name",
+        guarantor1_phoneNumber: "Guarantor 1: Phone Number",
+        guarantor1_relationship: "Guarantor 1: Relationship",
+        guarantor2_firstName: "Guarantor 2: First Name",
+        guarantor2_lastName: "Guarantor 2: Last Name",
+        guarantor2_phoneNumber: "Guarantor 2: Phone Number",
+        guarantor2_relationship: "Guarantor 2: Relationship",
+      };
+
+      const missingFields: string[] = [];
       for (const field of requiredFields) {
         const value = String(formData.get(field) || "").trim();
         if (!value) {
-          return {
-            error: "Please complete all required guarantor fields.",
-            submittedData: toSubmittedData(formData),
-          };
+          missingFields.push(fieldLabels[field] || field);
         }
+      }
+
+      if (missingFields.length > 0) {
+        return {
+          error: `Please complete the following required fields: ${missingFields.join(", ")}`,
+          submittedData: toSubmittedData(formData),
+        };
       }
 
       // Upload guarantor 1 photo
@@ -350,7 +366,7 @@ export function Step4Guarantors({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}firstName`} className="text-sm">
-              First Name *
+              First Name <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id={`${prefix}firstName`}
@@ -373,7 +389,7 @@ export function Step4Guarantors({
 
         <div>
           <Label htmlFor={`${prefix}lastName`} className="text-sm">
-            Last Name *
+            Last Name <span className="text-destructive font-semibold ml-1">*</span>
           </Label>
           <Input
             id={`${prefix}lastName`}
@@ -397,7 +413,7 @@ export function Step4Guarantors({
           </div>
           <div>
             <Label htmlFor={`${prefix}phoneNumber`} className="text-sm">
-              Phone Number *
+              Phone Number <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id={`${prefix}phoneNumber`}
@@ -513,7 +529,7 @@ export function Step4Guarantors({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}relationship`} className="text-sm">
-              Relationship to Applicant *
+              Relationship to Applicant <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Select
               defaultValue={data?.relationship || ""}

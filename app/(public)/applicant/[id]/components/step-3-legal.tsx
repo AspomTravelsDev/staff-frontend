@@ -40,14 +40,15 @@ export function Step3Legal({
       formData.get("confidentialityAccepted") === "on";
     const termsAccepted = formData.get("termsAccepted") === "on";
 
-    if (
-      !ndaAccepted ||
-      !nonCompeteAccepted ||
-      !confidentialityAccepted ||
-      !termsAccepted
-    ) {
+    const missingAgreements: string[] = [];
+    if (!ndaAccepted) missingAgreements.push("NDA");
+    if (!nonCompeteAccepted) missingAgreements.push("Non-Compete Clause");
+    if (!confidentialityAccepted) missingAgreements.push("Confidentiality Agreement");
+    if (!termsAccepted) missingAgreements.push("Terms & Conditions");
+
+    if (missingAgreements.length > 0) {
       return {
-        error: "You must accept all required legal agreements to continue.",
+        error: `Please accept the following required legal agreements: ${missingAgreements.join(", ")}`,
         submittedData: toSubmittedData(formData),
       };
     }
@@ -123,7 +124,7 @@ export function Step3Legal({
               required
             />
             <Label htmlFor="ndaAccepted" className="font-normal">
-              I accept the NDA *
+              I accept the NDA <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
           </div>
         </div>
@@ -148,7 +149,7 @@ export function Step3Legal({
               required
             />
             <Label htmlFor="nonCompeteAccepted" className="font-normal">
-              I accept the Non-Compete Clause *
+              I accept the Non-Compete Clause <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
           </div>
         </div>
@@ -173,7 +174,7 @@ export function Step3Legal({
               required
             />
             <Label htmlFor="confidentialityAccepted" className="font-normal">
-              I accept the Confidentiality Agreement *
+              I accept the Confidentiality Agreement <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
           </div>
         </div>
@@ -195,7 +196,7 @@ export function Step3Legal({
             />
             <Label htmlFor="termsAccepted" className="font-normal">
               I have read, understood, and agree to abide by all company
-              policies and procedures *
+              policies and procedures <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
           </div>
         </div>
