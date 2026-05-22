@@ -92,7 +92,7 @@ export default async function ApplicantStepPage({
         {stepNumber === 7 && (
           <Step7Documents
             applicationId={id}
-            initialData={formData.media}
+            initialData={formData.documents}
             requiredAssetDocuments={requiredAssetDocuments}
           />
         )}

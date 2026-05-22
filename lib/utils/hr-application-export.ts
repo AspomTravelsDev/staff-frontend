@@ -199,6 +199,14 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
         key: (app) => stringify(getPath(app.form_data, "signedDocuments.indemnitySigned.storagePath")),
     },
     {
+        header: "Dress Code Acknowledged",
+        key: (app) => yesNo(getPath(app.form_data, "documents.dressCodeAcknowledged")),
+    },
+    {
+        header: "Dress Code Acknowledged At",
+        key: (app) => stringify(getPath(app.form_data, "documents.dressCodeAcknowledgedAt")),
+    },
+    {
         header: "All Required Signed Docs Uploaded",
         key: (app) => {
             const signed = app.form_data?.signedDocuments;
@@ -206,8 +214,7 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
                 signed?.guarantor1Signed?.storagePath &&
                 signed?.guarantor2Signed?.storagePath &&
                 signed?.refereeSigned?.storagePath &&
-                signed?.ndaSigned?.storagePath &&
-                signed?.indemnitySigned?.storagePath,
+                signed?.ndaSigned?.storagePath
             );
             return allPresent ? "Yes" : "No";
         },

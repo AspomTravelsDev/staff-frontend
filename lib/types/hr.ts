@@ -188,6 +188,8 @@ export interface OnboardingFormData {
     documents: {
         downloadedAt?: string;
         formsDownloaded: boolean;
+        dressCodeAcknowledged?: boolean;
+        dressCodeAcknowledgedAt?: string;
     };
     currentStep: number;
     lastUpdated?: string;

@@ -259,6 +259,30 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
                 : `Your net salary after Statutory deduction is ${formatAmount(netSalary)}`}
             </Text>
           </View>
+          <View style={pdfStyles.listItem}>
+            <Text style={pdfStyles.listNumber}>4.5</Text>
+            <Text style={pdfStyles.listContent}>
+              This offer letter details your compensation and benefits package. You will be paid first week of every new month for previous month salary via bank credit transfer directly into your Bank account.
+            </Text>
+          </View>
+          <View style={pdfStyles.listItem}>
+            <Text style={pdfStyles.listNumber}>4.6</Text>
+            <Text style={pdfStyles.listContent}>
+              A breakdown of your salary can be obtained from your pay slip which is usually generated on Our Staff Portal Platform “Intranet” as soon as your salary is paid.
+            </Text>
+          </View>
+          <View style={pdfStyles.listItem}>
+            <Text style={pdfStyles.listNumber}>4.7</Text>
+            <Text style={pdfStyles.listContent}>
+              Upon resumption, you will be registered on Aspom Staff Portal as an employee of Aspom, after which, you will be able to access your payslip on the Portal.
+            </Text>
+          </View>
+          <View style={pdfStyles.listItem}>
+            <Text style={pdfStyles.listNumber}>4.8</Text>
+            <Text style={pdfStyles.listContent}>
+              If you have any questions about your salary, please talk to a Human Resources representative who will be happy to explain anything you are unsure about.
+            </Text>
+          </View>
         </View>
 
         {/* <View break /> */}
@@ -295,10 +319,15 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>7.</Text>
             <View style={pdfStyles.listContent}>
-              <Text style={pdfStyles.bold}>PROBATIONS</Text>
+              <Text style={pdfStyles.bold}>PROBATIONARY AND ASSESSMENT PERIODS</Text>
               <Text style={{ marginTop: 5 }}>
-                You shall complete the first six (6) months of your Employment
-                on a probationary basis from the date of commencement of work.
+                The purpose of the probationary and assessment periods is to give managers the opportunity to evaluate an employee’s competency to fulfil the duties / responsibilities of the employee’s position. It also gives the employee an opportunity to evaluate the new position.
+              </Text>
+              <Text style={{ marginTop: 5 }}>
+                All new employees and rehires will be on a minimum of two (2) weeks probationary period starting from the first day worked. However, current employees promoted or transferred to a new position will be on a One (1) month assessment period starting on their first day worked in their new position. The probationary or assessment period may be extended if more time is required to assess an employee's performance completely. If the employee's performance is unsatisfactory after the extension, progressive discipline up to dismissal may be used by the management.
+              </Text>
+              <Text style={{ marginTop: 5 }}>
+                Without prejudice to the earlier paragraph, the company reserves the right to summarily dismiss a staff whose performance is way below expectation in the first month of employment.
               </Text>
             </View>
           </View>
@@ -318,12 +347,15 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>9.</Text>
             <View style={pdfStyles.listContent}>
-              <Text style={pdfStyles.bold}>EXIT, TERMINATION AND NOTICE</Text>
+              <Text style={pdfStyles.bold}>SEPARATION/ RESIGNATION</Text>
               <Text style={{ marginTop: 5 }}>
-                To resign from this employment, either prior to or after your
-                confirmation, you will be required to give a minimum of one
-                month written notice of intention to resign or pay one-month
-                salary in lieu of notice.
+                An employee wishing to resign in good standing shall submit to the Management and Human Resources a resignation letter dated and signed stating the effective date of the resignation. Employees are expected to give 1 month prior notice of resignation or payment in lieu of the 30 days’ notice; which is the monthly pay(Incase of Immediate Resignation) or two weeks of work without payment in lieu of a two weeks notice.
+              </Text>
+              <Text style={{ marginTop: 5 }}>
+                Employees should actually work during the two weeks(No payment) notice period or 30 days notice period as they would be paid at the end of the month. An employee who fails to comply with this requirement may have monies deducted from their final pay and may be considered ineligible for rehire and such employee would not be given reference / recommendation from Aspom Travel Agency.
+              </Text>
+              <Text style={{ marginTop: 5 }}>
+                Where a staff is on a company-sponsored trip abroad or training and the staff resigns within six (6) months after said trip, the staff would be required to refund 50% of the trip/ training total expenses. Refund structure must be agreed before the resignation due date.
               </Text>
             </View>
           </View>

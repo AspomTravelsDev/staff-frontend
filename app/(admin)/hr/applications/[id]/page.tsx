@@ -122,6 +122,24 @@ export default async function ApplicationDetailPage({
               </p>
               <p className="text-sm">{formatDate(application.completed_at)}</p>
             </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Dress Code Acknowledged
+              </p>
+              <p className="text-sm flex items-center gap-1.5 mt-0.5">
+                {application.form_data?.documents?.dressCodeAcknowledged ? (
+                  <>
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                    Yes (on {formatDate(application.form_data.documents.dressCodeAcknowledgedAt)})
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
+                    No
+                  </>
+                )}
+              </p>
+            </div>
           </div>
 
           <Separator />
