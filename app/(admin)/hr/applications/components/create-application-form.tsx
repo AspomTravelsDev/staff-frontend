@@ -235,7 +235,9 @@ export function CreateApplicationForm() {
               name="reporting_to"
               type="text"
               required
-              placeholder="e.g., Nancy O. Peters"
+              defaultValue="Nancy O. Peters"
+              readOnly
+              className="bg-muted"
             />
           </div>
 

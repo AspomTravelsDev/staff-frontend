@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { saveFormStep } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,16 @@ export function Step1Personal({
   initialData?: PersonalData;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+
+  const [title, setTitle] = useState<string>(initialData?.title || "");
+  const [gender, setGender] = useState<string>(initialData?.gender || "");
+  const [maritalStatus, setMaritalStatus] = useState<string>(
+    initialData?.maritalStatus || "",
+  );
+  const [religion, setReligion] = useState<string>(initialData?.religion || "");
+  const [emergencyRelationship, setEmergencyRelationship] = useState<string>(
+    initialData?.emergencyContact?.relationship || "",
+  );
 
   const toSubmittedData = (formData: FormData) =>
     Object.fromEntries(
@@ -165,6 +175,11 @@ export function Step1Personal({
           element.value = value;
         }
       });
+      if (name === "title") setTitle(value);
+      if (name === "gender") setGender(value);
+      if (name === "maritalStatus") setMaritalStatus(value);
+      if (name === "religion") setReligion(value);
+      if (name === "emergencyContact_relationship") setEmergencyRelationship(value);
     }
   }, [state]);
 
@@ -185,13 +200,8 @@ export function Step1Personal({
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Select
-              defaultValue={initialData?.title || ""}
-              onValueChange={(value) => {
-                const input = document.querySelector(
-                  'input[name="title"]',
-                ) as HTMLInputElement;
-                if (input) input.value = value;
-              }}
+              value={title}
+              onValueChange={setTitle}
             >
               <SelectTrigger id="title">
                 <SelectValue placeholder="Select title" />
@@ -207,7 +217,7 @@ export function Step1Personal({
             <input
               type="hidden"
               name="title"
-              defaultValue={initialData?.title || ""}
+              value={title}
             />
           </div>
           <div className="space-y-2">
@@ -265,13 +275,8 @@ export function Step1Personal({
           <div className="space-y-2">
             <Label htmlFor="gender">Gender <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Select
-              defaultValue={initialData?.gender || ""}
-              onValueChange={(value) => {
-                const input = document.querySelector(
-                  'input[name="gender"]',
-                ) as HTMLInputElement;
-                if (input) input.value = value;
-              }}
+              value={gender}
+              onValueChange={setGender}
             >
               <SelectTrigger id="gender">
                 <SelectValue placeholder="Select gender" />
@@ -285,19 +290,14 @@ export function Step1Personal({
             <input
               type="hidden"
               name="gender"
-              defaultValue={initialData?.gender || ""}
+              value={gender}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="maritalStatus">Marital Status <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Select
-              defaultValue={initialData?.maritalStatus || ""}
-              onValueChange={(value) => {
-                const input = document.querySelector(
-                  'input[name="maritalStatus"]',
-                ) as HTMLInputElement;
-                if (input) input.value = value;
-              }}
+              value={maritalStatus}
+              onValueChange={setMaritalStatus}
             >
               <SelectTrigger id="maritalStatus">
                 <SelectValue placeholder="Select status" />
@@ -312,19 +312,14 @@ export function Step1Personal({
             <input
               type="hidden"
               name="maritalStatus"
-              defaultValue={initialData?.maritalStatus || ""}
+              value={maritalStatus}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="religion">Religion</Label>
             <Select
-              defaultValue={initialData?.religion || ""}
-              onValueChange={(value) => {
-                const input = document.querySelector(
-                  'input[name="religion"]',
-                ) as HTMLInputElement;
-                if (input) input.value = value;
-              }}
+              value={religion}
+              onValueChange={setReligion}
             >
               <SelectTrigger id="religion">
                 <SelectValue placeholder="Select religion" />
@@ -338,7 +333,7 @@ export function Step1Personal({
             <input
               type="hidden"
               name="religion"
-              defaultValue={initialData?.religion || ""}
+              value={religion}
             />
           </div>
           <div className="space-y-2">
@@ -555,14 +550,8 @@ export function Step1Personal({
               Relationship <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Select
-              defaultValue={initialData?.emergencyContact?.relationship || ""}
-              onValueChange={(value) => {
-                const input = document.querySelector(
-                  'input[name="emergencyContact_relationship"]',
-                ) as HTMLInputElement;
-                if (input) input.value = value;
-              }}
-              required
+              value={emergencyRelationship}
+              onValueChange={setEmergencyRelationship}
             >
               <SelectTrigger id="emergencyContact_relationship">
                 <SelectValue placeholder="Select relationship" />
@@ -582,7 +571,7 @@ export function Step1Personal({
             <input
               type="hidden"
               name="emergencyContact_relationship"
-              defaultValue={initialData?.emergencyContact?.relationship || ""}
+              value={emergencyRelationship}
             />
           </div>
           <div className="space-y-2">

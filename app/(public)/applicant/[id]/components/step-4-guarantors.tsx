@@ -70,6 +70,13 @@ export function Step4Guarantors({
     1: null,
   });
 
+  const [guarantor1Relationship, setGuarantor1Relationship] = useState<string>(
+    initialData?.guarantors?.[0]?.relationship || "",
+  );
+  const [guarantor2Relationship, setGuarantor2Relationship] = useState<string>(
+    initialData?.guarantors?.[1]?.relationship || "",
+  );
+
   const toSubmittedData = (formData: FormData) =>
     Object.fromEntries(
       Array.from(formData.entries()).filter(
@@ -341,10 +348,18 @@ export function Step4Guarantors({
           element.value = value;
         }
       });
+      if (name === "guarantor1_relationship") setGuarantor1Relationship(value);
+      if (name === "guarantor2_relationship") setGuarantor2Relationship(value);
     }
   }, [state]);
 
-  const renderGuarantorSection = (index: number, title: string, data?: any) => {
+  const renderGuarantorSection = (
+    index: number,
+    title: string,
+    relationship: string,
+    setRelationship: (val: string) => void,
+    data?: any,
+  ) => {
     const prefix = `guarantor${index + 1}_`;
     const existingStoredUrl =
       index === 0 ? guarantor1PhotoUrl : guarantor2PhotoUrl;
@@ -532,13 +547,8 @@ export function Step4Guarantors({
               Relationship to Applicant <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Select
-              defaultValue={data?.relationship || ""}
-              onValueChange={(value) => {
-                const input = document.querySelector(
-                  `input[name="${prefix}relationship"]`,
-                ) as HTMLInputElement;
-                if (input) input.value = value;
-              }}
+              value={relationship}
+              onValueChange={setRelationship}
             >
               <SelectTrigger id={`${prefix}relationship`}>
                 <SelectValue placeholder="Select relationship" />
@@ -558,7 +568,7 @@ export function Step4Guarantors({
             <input
               type="hidden"
               name={`${prefix}relationship`}
-              defaultValue={data?.relationship || ""}
+              value={relationship}
               required
             />
           </div>
@@ -690,10 +700,22 @@ export function Step4Guarantors({
       </div>
 
       {/* Guarantor 1 */}
-      {renderGuarantorSection(0, "Guarantor 1", initialData?.guarantors?.[0])}
+      {renderGuarantorSection(
+        0,
+        "Guarantor 1",
+        guarantor1Relationship,
+        setGuarantor1Relationship,
+        initialData?.guarantors?.[0],
+      )}
 
       {/* Guarantor 2 */}
-      {renderGuarantorSection(1, "Guarantor 2", initialData?.guarantors?.[1])}
+      {renderGuarantorSection(
+        1,
+        "Guarantor 2",
+        guarantor2Relationship,
+        setGuarantor2Relationship,
+        initialData?.guarantors?.[1],
+      )}
 
       {/* Error Display */}
       {state?.error && (
