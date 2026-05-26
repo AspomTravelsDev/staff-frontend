@@ -17,6 +17,8 @@ export interface PayrollEntryUser {
   staff_id: string;
   department: string | null;
   contract_type?: string | null;
+  date_joined?: string | null;
+  gross_pay?: number | null;
 }
 
 export interface PayrollEntry {

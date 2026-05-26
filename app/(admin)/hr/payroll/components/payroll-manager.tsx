@@ -866,17 +866,59 @@ export function PayrollManager() {
                 const entryId = activeEntry.id;
                 setBusyEntries((p) => ({ ...p, [entryId]: true }));
                 try {
-                  const finalDays =
-                    payload.final_deduction_days ??
-                    activeEntry.final_deduction_days;
-                  const deductionAmount =
-                    payload.deduction_amount !== undefined
-                      ? payload.deduction_amount
-                      : Math.round(
-                          Number(activeEntry.daily_rate || 0) *
-                            Number(finalDays || 0) *
-                            100,
-                        ) / 100;
+                  const proratedDays =
+                    payload.prorated_days !== undefined
+                      ? payload.prorated_days
+                      : Number(activeEntry.prorated_days || 0);
+
+                  const attendanceDays =
+                    payload.attendance_days !== undefined
+                      ? payload.attendance_days
+                      : Number(activeEntry.attendance_days || 0);
+
+                  const suspensionDays =
+                    payload.suspension_days !== undefined
+                      ? payload.suspension_days
+                      : Number(activeEntry.suspension_days || 0);
+
+                  const baseSalary =
+                    (activeEntry.calculation_snapshot as any)?.base_monthly_salary ||
+                    Number(activeEntry.user?.gross_pay || activeEntry.gross_salary || 0);
+
+                  const monthStr = currentRun?.payroll_month;
+                  let daysInMonth = 30;
+                  if (monthStr) {
+                    const [year, month] = monthStr.split("-").map(Number);
+                    daysInMonth = new Date(year, month, 0).getDate();
+                  }
+
+                  let tenureMonths = 0;
+                  if (activeEntry.user?.date_joined && monthStr) {
+                    const [joinYear, joinMonth] = activeEntry.user.date_joined.split("-").map(Number);
+                    const [payYear, payMonth] = monthStr.split("-").map(Number);
+                    tenureMonths = (payYear - joinYear) * 12 + (payMonth - joinMonth);
+                  }
+
+                  let accommodationRate = 10000;
+                  if (activeEntry.user?.contract_type === "intern" || activeEntry.user?.contract_type === "nysc") {
+                    accommodationRate = 5000;
+                  } else if (tenureMonths >= 6) {
+                    accommodationRate = 0;
+                  }
+
+                  const actualGross = Math.round(((baseSalary / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100;
+                  const taxAmount = activeEntry.is_intern ? 0 : calculateMonthlyTax(actualGross);
+                  const proratedAccommodation = Math.round(((accommodationRate / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100;
+
+                  const afterTaxAndAccommodation = Math.max(0, actualGross - taxAmount - proratedAccommodation);
+
+                  const snapshot = activeEntry.calculation_snapshot as any;
+                  const rateDays = snapshot?.rate_days || daysInMonth;
+
+                  const dailyRateFinal = rateDays > 0 ? Math.round((afterTaxAndAccommodation / rateDays) * 100) / 100 : 0;
+
+                  const finalDays = attendanceDays + suspensionDays;
+                  const deductionAmount = Math.round(finalDays * dailyRateFinal * 100) / 100;
 
                   const otherAmountFromList = payload.other_deductions
                     ? payload.other_deductions.reduce(
@@ -902,19 +944,9 @@ export function PayrollManager() {
                     payload.additions_amount ??
                     getAdditionsTotal(activeEntry);
 
-                  const grossSalary = Number(activeEntry.gross_salary || 0);
-                  // Tax is computed on gross, then deductions and additions are applied.
-                  const taxBase = grossSalary;
-                  const taxAmount = activeEntry.is_intern
-                    ? 0
-                    : calculateMonthlyTax(taxBase);
-
-                  const afterTax = Math.max(0, grossSalary - taxAmount);
-
-                  // Net pay = (Gross - Tax) - Other Deductions + Additions
                   const netAmount = Math.max(
                     0,
-                    afterTax - deductionAmount - otherAmount + additionsAmount,
+                    afterTaxAndAccommodation - deductionAmount - otherAmount + additionsAmount,
                   );
 
                   // optimistic update
@@ -926,10 +958,9 @@ export function PayrollManager() {
                         e.id === entryId
                           ? {
                               ...e,
-                              attendance_days:
-                                payload.attendance_days ?? e.attendance_days,
-                              suspension_days:
-                                payload.suspension_days ?? e.suspension_days,
+                              attendance_days: attendanceDays,
+                              suspension_days: suspensionDays,
+                              prorated_days: proratedDays,
                               other_deductions_amount: otherAmount,
                               other_deductions:
                                 payload.other_deductions ?? e.other_deductions,
@@ -937,7 +968,8 @@ export function PayrollManager() {
                               additions: payload.additions ?? e.additions,
                               final_deduction_days: finalDays,
                               deduction_amount: deductionAmount,
-                              taxable_gross: grossSalary,
+                              taxable_gross: actualGross,
+                              gross_salary: actualGross,
                               tax_amount: taxAmount,
                               net_amount: netAmount,
                               override_note:
