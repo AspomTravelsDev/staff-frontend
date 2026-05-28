@@ -33,6 +33,8 @@ import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 import { getRates } from "@/lib/api/rates";
 import { getAnnouncements } from "@/lib/api/announcements";
+import { getRandomCheatsheetItems } from "@/lib/api/cheatsheet";
+import { CheatsheetCard } from "@/components/dashboard/cheatsheet-card";
 
 export default async function Page() {
   const now = new Date();
@@ -51,6 +53,7 @@ export default async function Page() {
     todayBirthdays,
     todayAnniversaries,
     rolesMetadata,
+    cheatsheetItems,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getAllAwards().catch(() => []),
@@ -66,6 +69,7 @@ export default async function Page() {
     getTodayBirthdays().catch(() => []),
     getTodayAnniversaries().catch(() => []),
     getRolesMetadataContract(),
+    getRandomCheatsheetItems(2).catch(() => []),
   ]);
 
   const roleToDepartment = rolesMetadata.role_to_department;
@@ -173,6 +177,14 @@ export default async function Page() {
         />
         <ExchangeRateCard rates={rates} />
       </div>
+
+      {cheatsheetItems && cheatsheetItems.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {cheatsheetItems.map((item) => (
+            <CheatsheetCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         <h6 className="text-sm font-bold">Quick Links</h6>

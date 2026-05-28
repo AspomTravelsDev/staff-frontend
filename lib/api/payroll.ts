@@ -28,6 +28,7 @@ export interface PayrollEntry {
   user?: PayrollEntryUser;
   gross_salary: number;
   taxable_gross: number;
+  accommodation_amount?: number;
   is_intern: boolean;
   attendance_days: number;
   suspension_days: number;
@@ -113,6 +114,8 @@ export async function overridePayrollEntry(
   payload: {
     attendance_days?: number;
     suspension_days?: number;
+    prorated_days?: number;
+    accommodation_amount?: number;
     other_deductions_amount?: number;
     other_deductions?: PayrollOtherDeduction[];
     additions_amount?: number;

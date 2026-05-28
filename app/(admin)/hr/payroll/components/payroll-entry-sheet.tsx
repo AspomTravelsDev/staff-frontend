@@ -32,6 +32,7 @@ interface Props {
     attendance_days?: number;
     suspension_days?: number;
     prorated_days?: number;
+    accommodation_amount?: number;
     other_deductions_amount?: number;
     other_deductions?: { label: string; amount: number }[];
     additions_amount?: number;
@@ -42,6 +43,7 @@ interface Props {
   }) => Promise<void>;
   onApprove: (entryId: string) => Promise<void>;
   onRecalculate?: (entryId: string) => Promise<void>;
+  payrollMonth?: string;
 }
 
 type OtherDeductionInput = {
@@ -137,6 +139,7 @@ export function PayrollEntrySheet({
   onSave,
   onApprove,
   onRecalculate,
+  payrollMonth,
 }: Props) {
   const [attendanceDays, setAttendanceDays] = useState<string>(
     `${entry.attendance_days ?? 0}`,
@@ -146,6 +149,20 @@ export function PayrollEntrySheet({
   );
   const [proratedDays, setProratedDays] = useState<string>(
     `${entry.prorated_days ?? 0}`,
+  );
+  const [isMidMonthResumption, setIsMidMonthResumption] = useState<boolean>(() => {
+    const monthStrVal = payrollMonth || entry.run?.payroll_month;
+    return Number(entry.prorated_days ?? 0) > 0 || (!!entry.user?.date_joined && !!monthStrVal && entry.user.date_joined.startsWith(monthStrVal));
+  });
+  const [resumptionDate, setResumptionDate] = useState<string>(() => {
+    const monthStrVal = payrollMonth || entry.run?.payroll_month;
+    if (entry.user?.date_joined && monthStrVal && entry.user.date_joined.startsWith(monthStrVal)) {
+      return entry.user.date_joined.split(" ")[0];
+    }
+    return monthStrVal ? `${monthStrVal}-01` : "";
+  });
+  const [accommodationAmount, setAccommodationAmount] = useState<string>(
+    `${entry.accommodation_amount ?? entry.calculation_snapshot?.accommodation_amount ?? 0}`,
   );
   const [otherDeductions, setOtherDeductions] = useState<OtherDeductionInput[]>(
     () => normalizeOtherDeductions(entry),
@@ -157,15 +174,28 @@ export function PayrollEntrySheet({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
-
+ 
   useEffect(() => {
     setAttendanceDays(`${entry.attendance_days ?? 0}`);
     setSuspensionDays(`${entry.suspension_days ?? 0}`);
     setProratedDays(`${entry.prorated_days ?? 0}`);
+    setAccommodationAmount(
+      `${entry.accommodation_amount ?? entry.calculation_snapshot?.accommodation_amount ?? 0}`,
+    );
     setOtherDeductions(normalizeOtherDeductions(entry));
     setAdditions(normalizeAdditions(entry));
     setNote(entry.override_note ?? "");
-  }, [entry]);
+
+    const monthStrVal = payrollMonth || entry.run?.payroll_month;
+    const hasProration = Number(entry.prorated_days ?? 0) > 0;
+    const isJoinedThisMonth = !!entry.user?.date_joined && !!monthStrVal && entry.user.date_joined.startsWith(monthStrVal);
+    setIsMidMonthResumption(hasProration || isJoinedThisMonth);
+    setResumptionDate(
+      isJoinedThisMonth
+        ? entry.user!.date_joined!.split(" ")[0]
+        : (monthStrVal ? `${monthStrVal}-01` : "")
+    );
+  }, [entry, payrollMonth]);
 
   const updateOtherDeduction = (
     index: number,
@@ -203,19 +233,47 @@ export function PayrollEntrySheet({
     setAdditions((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const monthStr = payrollMonth || entry.run?.payroll_month;
+
   const daysInMonth = useMemo(() => {
-    const monthStr = entry.run?.payroll_month;
     if (!monthStr) return 30;
     const [year, month] = monthStr.split("-").map(Number);
     return new Date(year, month, 0).getDate();
-  }, [entry.run?.payroll_month]);
-
+  }, [monthStr]);
+ 
   const tenureMonths = useMemo(() => {
-    if (!entry.user?.date_joined || !entry.run?.payroll_month) return 0;
+    if (!entry.user?.date_joined || !monthStr) return 0;
     const [joinYear, joinMonth] = entry.user.date_joined.split("-").map(Number);
-    const [payYear, payMonth] = entry.run.payroll_month.split("-").map(Number);
+    const [payYear, payMonth] = monthStr.split("-").map(Number);
     return (payYear - joinYear) * 12 + (payMonth - joinMonth);
-  }, [entry.user?.date_joined, entry.run?.payroll_month]);
+  }, [entry.user?.date_joined, monthStr]);
+ 
+  const suggestedProratedDays = useMemo(() => {
+    if (!entry.user?.date_joined || !monthStr) return 0;
+    
+    const joinDateParts = entry.user.date_joined.split(" ")[0].split("-").map(Number);
+    if (joinDateParts.length < 3) return 0;
+    
+    const joinYear = joinDateParts[0];
+    const joinMonth = joinDateParts[1] - 1;
+    const joinDay = joinDateParts[2];
+    
+    const [payYear, payMonth] = monthStr.split("-").map(Number);
+    const startD = new Date(payYear, payMonth - 1, 1);
+    const joinD = new Date(joinYear, joinMonth, joinDay);
+    
+    if (joinD > startD) {
+      const diffTime = joinD.getTime() - startD.getTime();
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    }
+    return 0;
+  }, [entry.user?.date_joined, monthStr]);
+
+  const calculateDelayFromDate = (dateVal: string) => {
+    if (!dateVal || !monthStr) return 0;
+    const [year, month, day] = dateVal.split("-").map(Number);
+    return Math.max(0, day - 1);
+  };
 
   const accommodationRate = useMemo(() => {
     if (entry.user?.contract_type === "intern" || entry.user?.contract_type === "nysc") {
@@ -255,11 +313,10 @@ export function PayrollEntrySheet({
     // Tax computed on actualGross
     const taxAmount = entry.is_intern ? 0 : calculateMonthlyTax(actualGross);
 
-    // Accommodation prorated by active days
-    const proratedAccommodation = Math.round(((accommodationRate / daysInMonth) * (daysInMonth - prorated)) * 100) / 100;
+    const accAmount = parse(accommodationAmount);
 
     // After-tax & after-accommodation amount
-    const afterTaxAndAccommodation = Math.max(0, actualGross - taxAmount - proratedAccommodation);
+    const afterTaxAndAccommodation = Math.max(0, actualGross - taxAmount - accAmount);
 
     // Daily rate based on afterTaxAndAccommodation over rateDays
     const snapshot = entry.calculation_snapshot as any;
@@ -281,7 +338,7 @@ export function PayrollEntrySheet({
     return {
       baseSalary,
       actualGross,
-      accommodation: proratedAccommodation,
+      accommodation: accAmount,
       attAmount,
       suspAmount,
       othAmount,
@@ -296,6 +353,7 @@ export function PayrollEntrySheet({
     attendanceDays,
     suspensionDays,
     proratedDays,
+    accommodationAmount,
     otherDeductions,
     additions,
     daysInMonth,
@@ -344,6 +402,7 @@ export function PayrollEntrySheet({
         attendance_days: parse(attendanceDays),
         suspension_days: parse(suspensionDays),
         prorated_days: parse(proratedDays),
+        accommodation_amount: parse(accommodationAmount),
         other_deductions_amount: otherAmountTotal,
         other_deductions: otherDeductionsPayload,
         additions_amount: additionsAmountTotal,
@@ -409,183 +468,270 @@ export function PayrollEntrySheet({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8">
-        {/* Salary Overview */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="bg-muted/30 border-none shadow-none">
-            <CardHeader className="pb-2 p-3">
-              <CardDescription className="text-[11px] truncate">Monthly Salary</CardDescription>
-              <CardTitle className="text-base truncate">
-                {money(computed.baseSalary)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="bg-muted/30 border-none shadow-none">
-            <CardHeader className="pb-2 p-3">
-              <CardDescription className="text-[11px] truncate">Actual Gross</CardDescription>
-              <CardTitle className="text-base truncate">
-                {money(computed.actualGross)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="bg-muted/30 border-none shadow-none">
-            <CardHeader className="pb-2 p-3">
-              <CardDescription className="text-[11px] truncate">Daily Rate (Post-Tax/Acc)</CardDescription>
-              <CardTitle className="text-base truncate">
-                {money(computed.dailyRate)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
-
-        {/* Deductions Breakdown */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Deductions Breakdown
-            </h3>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Suggested days are pre-filled based on system records.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          <div className="grid gap-6">
-            {/* Absent Days (Resumption Delay) */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="prorated-days" className="text-xs">
-                  Absent Days (Resumption Delay)
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="prorated-days"
-                    type="number"
-                    step="0.01"
-                    value={proratedDays}
-                    onChange={(e) => setProratedDays(e.target.value)}
-                    className="pr-16"
-                  />
-                  <div className="absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground pointer-events-none">
-                    days
-                  </div>
-                </div>
-                {Number(entry.prorated_days) > 0 && (
-                  <p className="text-[10px] text-orange-600 font-medium">
-                    Suggested delay: {entry.prorated_days} days
-                  </p>
-                )}
-              </div>
-              <div className="h-10 flex items-center text-muted-foreground">
-                <Separator orientation="vertical" className="h-4" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">
-                  Proration Effect (Deducted from Gross)
-                </Label>
-                <div className="h-10 flex items-center font-medium text-amber-600">
-                  -{money(computed.baseSalary - computed.actualGross)}
-                </div>
-              </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+          {/* Left Column (Inputs) */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Salary Overview */}
+            <div className="grid grid-cols-3 gap-3">
+              <Card className="bg-muted/30 border-none shadow-none">
+                <CardHeader className="pb-1.5 p-3">
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">Salary</CardDescription>
+                  <CardTitle className="text-sm font-bold text-slate-800 truncate">
+                    {money(computed.baseSalary)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card className="bg-muted/30 border-none shadow-none">
+                <CardHeader className="pb-1.5 p-3">
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">Actual Gross</CardDescription>
+                  <CardTitle className="text-sm font-bold text-slate-800 truncate">
+                    {money(computed.actualGross)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card className="bg-muted/30 border-none shadow-none">
+                <CardHeader className="pb-1.5 p-3">
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">Daily Rate</CardDescription>
+                  <CardTitle className="text-sm font-bold text-slate-800 truncate">
+                    {money(computed.dailyRate)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
             </div>
 
-            {/* Attendance */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="att-days" className="text-xs">
-                  Attendance Days (Absence After Resuming)
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="att-days"
-                    type="number"
-                    step="0.01"
-                    value={attendanceDays}
-                    onChange={(e) => setAttendanceDays(e.target.value)}
-                    className="pr-16"
-                  />
-                  <div className="absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground pointer-events-none">
-                    days
-                  </div>
-                </div>
-                {Number(entry.attendance_suggested_days) > 0 && (
-                  <p className="text-[10px] text-orange-600 font-medium leading-tight">
-                    Suggested absences: {entry.attendance_suggested_days} days
-                  </p>
-                )}
+            {/* Deductions Breakdown Inputs */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Deductions & Adjustments
+                </h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Suggested values are calculated from system logs.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              <div className="h-10 flex items-center text-muted-foreground">
-                <Separator orientation="vertical" className="h-4" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">
-                  Monetary Value
-                </Label>
-                <div className="h-10 flex items-center font-medium text-red-600">
-                  {money(computed.attAmount)}
-                </div>
-              </div>
-            </div>
 
-            {/* Suspensions */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="susp-days" className="text-xs">
-                  Suspension Days
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="susp-days"
-                    type="number"
-                    step="0.01"
-                    value={suspensionDays}
-                    onChange={(e) => setSuspensionDays(e.target.value)}
-                    className="pr-16"
-                  />
-                  <div className="absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground pointer-events-none">
-                    days
+              <div className="grid gap-4">
+                {/* Resumption Delay (Joined Mid-Month) */}
+                <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="mid-month-toggle" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                        Resumed Mid-Month?
+                      </Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        Toggle to calculate proration delay for mid-month resumption.
+                      </p>
+                    </div>
+                    <input
+                      id="mid-month-toggle"
+                      type="checkbox"
+                      checked={isMidMonthResumption}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsMidMonthResumption(checked);
+                        if (!checked) {
+                          setProratedDays("0");
+                        } else {
+                          setProratedDays(`${calculateDelayFromDate(resumptionDate)}`);
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                    />
+                  </div>
+
+                  {isMidMonthResumption && (
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
+                      <div className="space-y-2">
+                        <Label htmlFor="resumption-date" className="text-xs font-semibold text-slate-600">
+                          Resumption Date
+                        </Label>
+                        <Input
+                          id="resumption-date"
+                          type="date"
+                          min={monthStr ? `${monthStr}-01` : undefined}
+                          max={monthStr && daysInMonth ? `${monthStr}-${daysInMonth}` : undefined}
+                          value={resumptionDate}
+                          onChange={(e) => {
+                            const dateVal = e.target.value;
+                            setResumptionDate(dateVal);
+                            setProratedDays(`${calculateDelayFromDate(dateVal)}`);
+                          }}
+                          className="bg-background text-xs h-9 cursor-pointer"
+                        />
+                        {entry.user?.date_joined && (
+                          <p className="text-[10px] text-muted-foreground">
+                            System Date: <span className="font-semibold text-slate-600">{entry.user.date_joined.split(" ")[0]}</span>
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="prorated-days" className="text-xs font-semibold text-slate-600">
+                          Days Missed Before Joining
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="prorated-days"
+                            type="number"
+                            step="0.01"
+                            value={proratedDays}
+                            onChange={(e) => setProratedDays(e.target.value)}
+                            className="pr-16 bg-background text-xs h-9"
+                          />
+                          <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                            days
+                          </div>
+                        </div>
+                        {suggestedProratedDays > 0 && (
+                          <p className="text-[10px] text-orange-600 font-medium">
+                            Suggested delay: {suggestedProratedDays} days
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {isMidMonthResumption && (
+                    <div className="flex justify-between items-center text-right pt-2 border-t">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                        Proration Effect
+                      </span>
+                      <span className="text-base font-bold text-amber-600">
+                        -{money(computed.baseSalary - computed.actualGross)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Accommodation */}
+                <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
+                  <div className="space-y-2">
+                    <Label htmlFor="accommodation-amount" className="text-xs font-semibold text-slate-700">
+                      Accommodation Fee
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="accommodation-amount"
+                        type="number"
+                        step="0.01"
+                        value={accommodationAmount}
+                        onChange={(e) => setAccommodationAmount(e.target.value)}
+                        className="pr-16 bg-background text-xs h-9"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        NGN
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Default Rate: {money(accommodationRate)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col justify-center items-end text-right">
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                      Deduction Value
+                    </span>
+                    <span className="text-base font-bold text-red-600 mt-1">
+                      -{money(computed.accommodation)}
+                    </span>
                   </div>
                 </div>
-                {Number(entry.compliance_suggested_days) > 0 && (
-                  <p className="text-[10px] text-orange-600 font-medium">
-                    Suggested: {entry.compliance_suggested_days}
-                  </p>
-                )}
-              </div>
-              <div className="h-10 flex items-center text-muted-foreground">
-                <Separator orientation="vertical" className="h-4" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">
-                  Monetary Value
-                </Label>
-                <div className="h-10 flex items-center font-medium text-red-600">
-                  {money(computed.suspAmount)}
+
+                {/* Attendance */}
+                <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
+                  <div className="space-y-2">
+                    <Label htmlFor="att-days" className="text-xs font-semibold text-slate-700">
+                      Absent Days (Unpaid)
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="att-days"
+                        type="number"
+                        step="0.01"
+                        value={attendanceDays}
+                        onChange={(e) => setAttendanceDays(e.target.value)}
+                        className="pr-16 bg-background text-xs h-9"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        days
+                      </div>
+                    </div>
+                    {Number(entry.attendance_suggested_days) > 0 && (
+                      <p className="text-[10px] text-orange-600 font-medium leading-tight">
+                        Suggested absences: {entry.attendance_suggested_days} days
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center items-end text-right">
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                      Absence Deduction
+                    </span>
+                    <span className="text-base font-bold text-red-600 mt-1">
+                      -{money(computed.attAmount)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Suspensions */}
+                <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
+                  <div className="space-y-2">
+                    <Label htmlFor="susp-days" className="text-xs font-semibold text-slate-700">
+                      Suspension Period
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="susp-days"
+                        type="number"
+                        step="0.01"
+                        value={suspensionDays}
+                        onChange={(e) => setSuspensionDays(e.target.value)}
+                        className="pr-16 bg-background text-xs h-9"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        days
+                      </div>
+                    </div>
+                    {Number(entry.compliance_suggested_days) > 0 && (
+                      <p className="text-[10px] text-orange-600 font-medium">
+                        Suggested: {entry.compliance_suggested_days} days
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center items-end text-right">
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                      Suspension Deduction
+                    </span>
+                    <span className="text-base font-bold text-red-600 mt-1">
+                      -{money(computed.suspAmount)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Other Deductions */}
-            <div className="space-y-3">
+            <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Other Deductions</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Other Deductions</Label>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addOtherDeduction}
+                  className="h-7 text-[11px] font-semibold"
                 >
                   Add Item
                 </Button>
               </div>
               {otherDeductions.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground italic">
                   No other deductions added.
                 </p>
               ) : (
@@ -602,6 +748,7 @@ export function PayrollEntrySheet({
                         onChange={(e) =>
                           updateOtherDeduction(index, "label", e.target.value)
                         }
+                        className="h-9 text-xs bg-background"
                       />
                       <div className="relative">
                         <Input
@@ -615,7 +762,7 @@ export function PayrollEntrySheet({
                                e.target.value,
                              )
                            }
-                           className="pl-10"
+                           className="pl-10 h-9 text-xs bg-background"
                         />
                         <div className="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground pointer-events-none">
                           ₦
@@ -626,7 +773,7 @@ export function PayrollEntrySheet({
                         variant="ghost"
                         size="icon"
                         onClick={() => removeOtherDeduction(index)}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground h-9 w-9"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -634,29 +781,30 @@ export function PayrollEntrySheet({
                   ))}
                 </div>
               )}
-              <div className="flex justify-end text-xs text-muted-foreground">
+              <div className="flex justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
                 Total:{" "}
-                <span className="ml-2 font-medium text-red-600">
+                <span className="ml-2 font-bold text-red-600">
                   {money(computed.othAmount)}
                 </span>
               </div>
             </div>
 
             {/* Additions */}
-            <div className="space-y-3">
+            <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Additions</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Additions</Label>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addAddition}
+                  className="h-7 text-[11px] font-semibold"
                 >
                   Add Item
                 </Button>
               </div>
               {additions.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground italic">
                   No additions added.
                 </p>
               ) : (
@@ -673,6 +821,7 @@ export function PayrollEntrySheet({
                         onChange={(e) =>
                           updateAddition(index, "label", e.target.value)
                         }
+                        className="h-9 text-xs bg-background"
                       />
                       <div className="relative">
                         <Input
@@ -682,7 +831,7 @@ export function PayrollEntrySheet({
                           onChange={(e) =>
                             updateAddition(index, "amount", e.target.value)
                           }
-                          className="pl-10"
+                          className="pl-10 h-9 text-xs bg-background"
                         />
                         <div className="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground pointer-events-none">
                           ₦
@@ -693,7 +842,7 @@ export function PayrollEntrySheet({
                         variant="ghost"
                         size="icon"
                         onClick={() => removeAddition(index)}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground h-9 w-9"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -701,115 +850,119 @@ export function PayrollEntrySheet({
                   ))}
                 </div>
               )}
-              <div className="flex justify-end text-xs text-muted-foreground">
+              <div className="flex justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
                 Total:{" "}
-                <span className="ml-2 font-medium text-emerald-600">
+                <span className="ml-2 font-bold text-emerald-600">
                   {money(computed.addAmount)}
                 </span>
               </div>
             </div>
           </div>
-        </div>
 
-        <Separator />
+          {/* Right Column (Computation & Summary) */}
+          <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-0">
+            {/* Calculation Summary */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Net Computation
+              </h3>
+              <div className="grid gap-3 rounded-xl border p-4 bg-card shadow-sm text-xs">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Monthly Contract Salary</span>
+                  <span className="font-semibold">{money(computed.baseSalary)}</span>
+                </div>
+                {computed.prorated > 0 && (
+                  <div className="flex justify-between text-red-600 bg-red-50/55 p-2 rounded-lg">
+                    <span className="italic">Joined Mid-Month ({computed.prorated} days)</span>
+                    <span className="font-semibold">-{money(computed.baseSalary - computed.actualGross)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center border-t pt-2 font-bold text-slate-800">
+                  <span>Actual Gross Salary:</span>
+                  <span>{money(computed.actualGross)}</span>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex justify-between text-red-600">
+                  <span>Income Tax (PAYE)</span>
+                  <span className="font-semibold">-{money(computed.taxAmount)}</span>
+                </div>
+                {computed.accommodation > 0 && (
+                  <div className="flex justify-between text-red-600">
+                    <span>Accommodation Fee</span>
+                    <span className="font-semibold">-{money(computed.accommodation)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center border-t pt-2 bg-slate-50/50 p-2 rounded-lg">
+                  <span className="font-bold text-slate-700">After Tax & Acc:</span>
+                  <span className="font-black text-slate-900">
+                    {money(computed.actualGross - computed.taxAmount - computed.accommodation)}
+                  </span>
+                </div>
+                
+                <Separator />
+                
+                {computed.attAmount > 0 && (
+                  <div className="flex justify-between items-center text-red-600">
+                    <span className="italic">
+                      Absent Days ({attendanceDays} days):
+                    </span>
+                    <span className="font-semibold">
+                      -{money(computed.attAmount)}
+                    </span>
+                  </div>
+                )}
+                {computed.suspAmount > 0 && (
+                  <div className="flex justify-between items-center text-red-600">
+                    <span className="italic">
+                      Suspension Ded. ({suspensionDays} days):
+                    </span>
+                    <span className="font-semibold">
+                      -{money(computed.suspAmount)}
+                    </span>
+                  </div>
+                )}
+                {computed.othAmount > 0 && (
+                  <div className="flex justify-between text-red-600">
+                    <span>Other Deductions</span>
+                    <span className="font-semibold">-{money(computed.othAmount)}</span>
+                  </div>
+                )}
+                {computed.addAmount > 0 && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Additions</span>
+                    <span className="font-semibold">+{money(computed.addAmount)}</span>
+                  </div>
+                )}
+                <Separator className="border-dashed" />
+                <div className="flex justify-between items-center pt-1">
+                  <span className="font-bold text-slate-800 text-sm">Final Net Pay</span>
+                  <span className="text-xl font-black text-primary tracking-tight">
+                    {money(computed.netAmount)}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-        {/* Calculation Summary */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Net Computation
-          </h3>
-          <div className="grid gap-3 rounded-lg border p-4 bg-muted/10 text-sm">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Monthly Contract Salary</span>
-              <span>{money(computed.baseSalary)}</span>
-            </div>
-            {computed.prorated > 0 && (
-              <div className="flex justify-between text-sm text-red-600">
-                <span className="italic">Resumption Delay proration ({computed.prorated} days)</span>
-                <span>- {money(computed.baseSalary - computed.actualGross)}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center text-sm border-t pt-1 font-semibold">
-              <span>Actual Gross Salary:</span>
-              <span>{money(computed.actualGross)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-red-600">
-              <span>Income Tax (PAYE)</span>
-              <span>- {money(computed.taxAmount)}</span>
-            </div>
-            {(computed.accommodation > 0 || tenureMonths >= 6) && (
-              <div className="flex justify-between text-sm text-red-600">
-                <span>
-                  Accommodation Fee{" "}
-                  {tenureMonths >= 6 && entry.user?.contract_type === "staff" ? (
-                    <span className="text-emerald-600 font-medium">(Exempt 6+ mo tenure)</span>
-                  ) : ""}
-                </span>
-                <span>- {money(computed.accommodation)}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center text-sm border-t pt-1">
-              <span className="font-semibold text-primary">After Tax & Accommodation:</span>
-              <span className="font-bold text-primary">
-                {money(computed.actualGross - computed.taxAmount - computed.accommodation)}
-              </span>
-            </div>
-            {computed.attAmount > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground italic">
-                  Attendance Ded. ({attendanceDays} days):
-                </span>
-                <span className="font-medium text-destructive">
-                  -{money(computed.attAmount)}
-                </span>
-              </div>
-            )}
-            {computed.suspAmount > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground italic">
-                  Suspension Ded. ({suspensionDays} days):
-                </span>
-                <span className="font-medium text-destructive">
-                  -{money(computed.suspAmount)}
-                </span>
-              </div>
-            )}
-            {computed.othAmount > 0 && (
-              <div className="flex justify-between text-sm text-red-600">
-                <span>Other Deductions</span>
-                <span>- {money(computed.othAmount)}</span>
-              </div>
-            )}
-            {computed.addAmount > 0 && (
-              <div className="flex justify-between text-sm text-emerald-700">
-                <span>Additions</span>
-                <span>+ {money(computed.addAmount)}</span>
-              </div>
-            )}
-            <Separator className="my-1" />
-            <div className="flex justify-between items-center pt-1">
-              <span className="font-bold">Final Net Pay</span>
-              <span className="text-xl font-bold text-primary">
-                {money(computed.netAmount)}
-              </span>
+            {/* Notes */}
+            <div className="space-y-2 border rounded-xl p-4 bg-muted/5">
+              <Label
+                htmlFor="override-note"
+                className="text-xs uppercase tracking-wider text-muted-foreground font-bold"
+              >
+                Internal Note
+              </Label>
+              <Input
+                id="override-note"
+                placeholder="Reason for overrides..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="bg-background text-xs h-9"
+              />
             </div>
           </div>
-        </div>
-
-        {/* Notes */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="override-note"
-            className="text-xs uppercase tracking-wider text-muted-foreground font-semibold"
-          >
-            Internal Note
-          </Label>
-          <Input
-            id="override-note"
-            placeholder="Add a reason for this override..."
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
         </div>
       </div>
 

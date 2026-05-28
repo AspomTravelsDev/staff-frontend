@@ -47,10 +47,30 @@ export function PayslipContent({
       ? additionsTotal
       : Number(entry.additions_amount || 0);
 
+  const accommodationAmount = Number(
+    entry.accommodation_amount ??
+      entry.calculation_snapshot?.accommodation_amount ??
+      0,
+  );
+
+  const snapshotAttDeduction =
+    entry.calculation_snapshot?.attendance_deduction !== undefined
+      ? Number(entry.calculation_snapshot.attendance_deduction)
+      : Number(entry.attendance_days || 0) * Number(entry.daily_rate || 0);
+
+  const snapshotSuspDeduction =
+    entry.calculation_snapshot?.suspension_deduction !== undefined
+      ? Number(entry.calculation_snapshot.suspension_deduction)
+      : Number(entry.suspension_days || 0) * Number(entry.daily_rate || 0);
+
+  const storedDeductionAmount = Number(entry.deduction_amount || 0);
+  const deductionAdjustment = storedDeductionAmount - (snapshotAttDeduction + snapshotSuspDeduction);
+
   const totalDeductions = Math.max(
     0,
-    Number(entry.deduction_amount || 0) +
+    storedDeductionAmount +
       Number(entry.tax_amount || 0) +
+      accommodationAmount +
       otherDeductionsAmount,
   );
   const netPay = Number(entry.net_amount || 0);
@@ -120,6 +140,16 @@ export function PayslipContent({
                   {user.department || "Corporate"}
                 </span>
               </div>
+              {Number(entry.prorated_days) > 0 && (
+                <div className="flex flex-col gap-0.5 border-l-2 border-slate-100 pl-4">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                    Joined Mid-Month
+                  </span>
+                  <span className="text-sm font-semibold text-amber-600 font-bold">
+                    {entry.prorated_days} days missed before joining
+                  </span>
+                </div>
+              )}
             </div>
           </section>
 
@@ -268,29 +298,14 @@ export function PayslipContent({
                       </tr>
                     )}
                 {/* Attendance Deductions (Absences) */}
-                {Math.max(
-                  0,
-                  Number(entry.attendance_days) - Number(entry.prorated_days),
-                ) > 0 && (
+                {Number(entry.attendance_days) > 0 && (
                   <tr className="bg-slate-50/30">
                     <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
-                      Attendance Deductions (
-                      {Math.round(
-                        (Number(entry.attendance_days) -
-                          Number(entry.prorated_days)) *
-                          100,
-                      ) / 100}{" "}
-                      days)
+                      Absent Days (Unpaid) ({entry.attendance_days} days)
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
                       (
-                      {formatPrice(
-                        Math.max(
-                          0,
-                          Number(entry.attendance_days) -
-                            Number(entry.prorated_days),
-                        ) * Number(entry.daily_rate),
-                      ).replace("NGN", "")}
+                      {formatPrice(snapshotAttDeduction).replace("NGN", "")}
                       )
                     </td>
                   </tr>
@@ -300,30 +315,39 @@ export function PayslipContent({
                 {Number(entry.suspension_days) > 0 && (
                   <tr className="bg-slate-50/30">
                     <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
-                      Compliance Deductions ({entry.suspension_days} days)
+                      Suspension Period ({entry.suspension_days} days)
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
                       (
-                      {formatPrice(
-                        Number(entry.suspension_days) *
-                          Number(entry.daily_rate),
-                      ).replace("NGN", "")}
+                      {formatPrice(snapshotSuspDeduction).replace("NGN", "")}
                       )
                     </td>
                   </tr>
                 )}
 
-                {/* Mid-month Proration (Pre-employment) */}
-                {Number(entry.prorated_days) > 0 && (
+                {/* Deduction Adjustment (if any) */}
+                {Math.abs(deductionAdjustment) > 0.01 && (
                   <tr className="bg-slate-50/30">
                     <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
-                      Mid-month Proration ({entry.prorated_days} days)
+                      Deductions Adjustment
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
                       (
-                      {formatPrice(
-                        Number(entry.prorated_days) * Number(entry.daily_rate),
-                      ).replace("NGN", "")}
+                      {formatPrice(Math.abs(deductionAdjustment)).replace("NGN", "")}
+                      )
+                    </td>
+                  </tr>
+                )}
+
+                {/* Accommodation Fee */}
+                {accommodationAmount > 0 && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Accommodation Fee
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      (
+                      {formatPrice(accommodationAmount).replace("NGN", "")}
                       )
                     </td>
                   </tr>

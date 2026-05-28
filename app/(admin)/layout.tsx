@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getNotifications } from "@/lib/api/notifications";
 import { NotificationsUpdater } from "@/components/notifications-updater";
+import { CheatsheetFloatingWidget } from "@/components/cheatsheet-floating-widget";
 
 export default async function AdminLayout({
   children,
@@ -32,6 +33,7 @@ export default async function AdminLayout({
             <div className="flex flex-1 flex-col gap-4 p-4 pt-4">
               {children}
             </div>
+            <CheatsheetFloatingWidget />
           </SidebarInset>
         </SidebarProvider>
       </UserProvider>

@@ -202,6 +202,12 @@ export const departmentNav: NavItem[] = [
         badgeLabel: "IT issues open or in progress",
     },
     {
+        title: "Cheatsheet Admin",
+        url: "/admin/cheatsheet",
+        icon: FileText,
+        allowedRoles: ["it", "super"],
+    },
+    {
 
         title: "Employee List",
         url: "/hr/employees",
@@ -428,6 +434,9 @@ export const personalNav: NavItem[] = [
                 title: "IT Information Desk", url: "/my/it",
                 badgeKey: "unreadITGuides",
                 badgeLabel: "New IT guides available",
+            },
+            {
+                title: "Daily Product Quiz", url: "/my/cheatsheet-quiz"
             }
         ]
     },

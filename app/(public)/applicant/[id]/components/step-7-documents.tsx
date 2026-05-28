@@ -1,10 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect } from "react";
-import { redirectToPreviousStep, saveFormStep } from "../actions";
+// import { redirectToPreviousStep, saveFormStep } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MediaData } from "@/lib/types/form-data";
+// import { MediaData } from "@/lib/types/form-data";
 import { downloadPdfFormsAction } from "../pdf-actions";
 import { RequiredSignedAssetDocument } from "@/lib/types/hr";
 import { toast } from "sonner";
@@ -388,7 +389,7 @@ export function Step7Documents({
               <h4 className="text-sm font-semibold">3. Dress Guidelines</h4>
             </div>
             <p className="text-xs text-muted-foreground pl-7 -mt-2">
-              Please review ASPOM's corporate dress code and guidelines. You are required to read and acknowledge these guidelines to proceed.
+              Please review ASPOM&apos;s corporate dress code and guidelines. You are required to read and acknowledge these guidelines to proceed.
             </p>
 
             <div className="pl-0 md:pl-7 space-y-4">
@@ -396,7 +397,7 @@ export function Step7Documents({
                 <img
                   src="/dresscode.png"
                   alt="ASPOM Dress Code Guidelines"
-                  className="w-full h-auto object-contain max-h-[350px] transition-transform duration-300 group-hover:scale-[1.02]"
+                  className="w-full h-auto object-contain max-h-87.5 transition-transform duration-300 group-hover:scale-[1.02]"
                 />
               </div>
 

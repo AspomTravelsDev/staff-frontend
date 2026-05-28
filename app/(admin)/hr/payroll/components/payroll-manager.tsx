@@ -851,11 +851,12 @@ export function PayrollManager() {
           if (!open) setActiveEntry(null);
         }}
       >
-        <SheetContent className="p-0">
+        <SheetContent className="p-0 sm:max-w-[850px] w-[100vw]">
           {activeEntry && (
             <PayrollEntrySheet
               inSheet
               entry={activeEntry}
+              payrollMonth={currentRun?.payroll_month || selectedMonth}
               isPersisted={isPersistedRun(currentRun)}
               onClose={() => setActiveEntry(null)}
               onSave={async (payload) => {
@@ -908,7 +909,11 @@ export function PayrollManager() {
 
                   const actualGross = Math.round(((baseSalary / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100;
                   const taxAmount = activeEntry.is_intern ? 0 : calculateMonthlyTax(actualGross);
-                  const proratedAccommodation = Math.round(((accommodationRate / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100;
+                  const proratedAccommodation = payload.accommodation_amount !== undefined
+                    ? payload.accommodation_amount
+                    : (activeEntry.accommodation_amount !== undefined
+                        ? Number(activeEntry.accommodation_amount)
+                        : Math.round(((accommodationRate / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100);
 
                   const afterTaxAndAccommodation = Math.max(0, actualGross - taxAmount - proratedAccommodation);
 
@@ -961,6 +966,7 @@ export function PayrollManager() {
                               attendance_days: attendanceDays,
                               suspension_days: suspensionDays,
                               prorated_days: proratedDays,
+                              accommodation_amount: proratedAccommodation,
                               other_deductions_amount: otherAmount,
                               other_deductions:
                                 payload.other_deductions ?? e.other_deductions,
