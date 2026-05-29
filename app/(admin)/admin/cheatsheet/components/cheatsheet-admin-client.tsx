@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import {
   Sheet,
@@ -87,6 +88,26 @@ export function CheatsheetAdminClient({
   const [attemptDetails, setAttemptDetails] = useState<CheatsheetQuizAttemptDetail | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Editing states for Cheatsheet Items
+  const [editingItem, setEditingItem] = useState<CheatsheetItemAdmin | null>(null);
+  const [itemForm, setItemForm] = useState({
+    title: "",
+    category: "",
+    content: "",
+  });
+  const [savingItem, setSavingItem] = useState(false);
+
+  // Editing states for Quiz Questions
+  const [editingQuestion, setEditingQuestion] = useState<CheatsheetQuestionAdmin | null>(null);
+  const [questionForm, setQuestionForm] = useState({
+    question: "",
+    category: "",
+    options: ["", "", "", ""],
+    correct_option: "",
+    explanation: "",
+  });
+  const [savingQuestion, setSavingQuestion] = useState(false);
 
   const filteredDepts = useMemo(() => {
     if (!analytics || !analytics.department_performance) return [];
@@ -276,6 +297,98 @@ export function CheatsheetAdminClient({
     toast.success("Quiz question deleted successfully.");
   };
 
+  const startEditItem = (item: CheatsheetItemAdmin) => {
+    setEditingItem(item);
+    setItemForm({
+      title: item.title,
+      category: item.category || "",
+      content: item.content,
+    });
+  };
+
+  const handleUpdateItemSubmit = async () => {
+    if (!editingItem) return;
+    if (!itemForm.title.trim() || !itemForm.content.trim()) {
+      toast.error("Title and Content are required.");
+      return;
+    }
+    
+    setSavingItem(true);
+    const result = await updateCheatsheetItemAction(editingItem.id, {
+      title: itemForm.title.trim(),
+      category: itemForm.category.trim() || null,
+      content: itemForm.content.trim(),
+    });
+    setSavingItem(false);
+    
+    if (!result.success || !result.data) {
+      toast.error(result.error || "Failed to update item");
+      return;
+    }
+    
+    setItems((prev) =>
+      prev.map((item) => (item.id === editingItem.id ? result.data! : item))
+    );
+    setEditingItem(null);
+    toast.success("Cheatsheet item updated successfully.");
+  };
+
+  const startEditQuestion = (q: CheatsheetQuestionAdmin) => {
+    setEditingQuestion(q);
+    setQuestionForm({
+      question: q.question,
+      category: q.category || "",
+      options: [...q.options, "", "", "", ""].slice(0, 4).map(o => o || ""),
+      correct_option: q.correct_option,
+      explanation: q.explanation || "",
+    });
+  };
+
+  const handleUpdateQuestionSubmit = async () => {
+    if (!editingQuestion) return;
+    if (!questionForm.question.trim()) {
+      toast.error("Question text is required.");
+      return;
+    }
+    
+    const validOptions = questionForm.options.map(o => o.trim()).filter(Boolean);
+    if (validOptions.length < 2) {
+      toast.error("At least 2 options are required.");
+      return;
+    }
+    
+    if (!questionForm.correct_option.trim()) {
+      toast.error("Correct option is required.");
+      return;
+    }
+    
+    if (!validOptions.includes(questionForm.correct_option.trim())) {
+      toast.error("Correct option must match one of the options exactly.");
+      return;
+    }
+    
+    setSavingQuestion(true);
+    const result = await updateCheatsheetQuestionAction(editingQuestion.id, {
+      question: questionForm.question.trim(),
+      category: questionForm.category.trim() || null,
+      options: validOptions,
+      correct_option: questionForm.correct_option.trim(),
+      explanation: questionForm.explanation.trim() || null,
+    });
+    setSavingQuestion(false);
+    
+    if (!result.success || !result.data) {
+      toast.error(result.error || "Failed to update question");
+      return;
+    }
+    
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === editingQuestion.id ? result.data! : q))
+    );
+    setEditingQuestion(null);
+    toast.success("Quiz question updated successfully.");
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -431,6 +544,14 @@ export function CheatsheetAdminClient({
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:bg-muted"
+                          onClick={() => startEditItem(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => handleDeleteItem(item.id)}
                         >
@@ -466,9 +587,16 @@ export function CheatsheetAdminClient({
                     className="flex flex-col gap-2 rounded-lg border p-3"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-sm">
-                        {question.question}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm">
+                          {question.question}
+                        </p>
+                        {question.category && (
+                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary font-semibold">
+                            {question.category}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-muted-foreground">Active</span>
@@ -479,6 +607,14 @@ export function CheatsheetAdminClient({
                             }
                           />
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:bg-muted"
+                          onClick={() => startEditQuestion(question)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -900,6 +1036,148 @@ export function CheatsheetAdminClient({
               )}
             </>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Cheatsheet Item Sheet */}
+      <Sheet open={editingItem !== null} onOpenChange={(open) => {
+        if (!open) setEditingItem(null);
+      }}>
+        <SheetContent className="sm:max-w-md overflow-y-auto px-6 py-8">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Edit Cheatsheet Item</SheetTitle>
+            <SheetDescription>
+              Update the facts, title, or country category for this study item.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Title</label>
+              <Input
+                value={itemForm.title}
+                onChange={(e) => setItemForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Item Title"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Country Category</label>
+              <Input
+                value={itemForm.category}
+                onChange={(e) => setItemForm(prev => ({ ...prev, category: e.target.value }))}
+                placeholder="e.g. UK, USA, Schengen, Brazil, Mexico"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Tying each item to a country (like UK, USA, Schengen) is strictly required to prevent generic travel questions.
+              </p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Content</label>
+              <Textarea
+                value={itemForm.content}
+                onChange={(e) => setItemForm(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Factual guideline content..."
+                className="min-h-[120px]"
+              />
+            </div>
+            
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleUpdateItemSubmit} disabled={savingItem} className="flex-1">
+                {savingItem ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button variant="outline" onClick={() => setEditingItem(null)} disabled={savingItem}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Quiz Question Sheet */}
+      <Sheet open={editingQuestion !== null} onOpenChange={(open) => {
+        if (!open) setEditingQuestion(null);
+      }}>
+        <SheetContent className="sm:max-w-md overflow-y-auto px-6 py-8">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Edit Quiz Question</SheetTitle>
+            <SheetDescription>
+              Update the question text, country category, multiple choice options, correct choice, and explanation.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Question Text</label>
+              <Input
+                value={questionForm.question}
+                onChange={(e) => setQuestionForm(prev => ({ ...prev, question: e.target.value }))}
+                placeholder="Question text"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Country Category</label>
+              <Input
+                value={questionForm.category}
+                onChange={(e) => setQuestionForm(prev => ({ ...prev, category: e.target.value }))}
+                placeholder="e.g. UK, USA, Schengen, Brazil, Mexico"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Tying each question to a country (like UK, USA, Schengen) is strictly required to prevent generic travel questions.
+              </p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Options</label>
+              {questionForm.options.map((option, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground w-4">{idx + 1}.</span>
+                  <Input
+                    value={option}
+                    onChange={(e) => {
+                      const nextOptions = [...questionForm.options];
+                      nextOptions[idx] = e.target.value;
+                      setQuestionForm(prev => ({ ...prev, options: nextOptions }));
+                    }}
+                    placeholder={`Option ${idx + 1}`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Correct Answer</label>
+              <select
+                value={questionForm.correct_option}
+                onChange={(e) => setQuestionForm(prev => ({ ...prev, correct_option: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Select correct option...</option>
+                {questionForm.options.map(o => o.trim()).filter(Boolean).map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Explanation</label>
+              <Textarea
+                value={questionForm.explanation}
+                onChange={(e) => setQuestionForm(prev => ({ ...prev, explanation: e.target.value }))}
+                placeholder="Why is this option correct?"
+                className="min-h-[80px]"
+              />
+            </div>
+            
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleUpdateQuestionSubmit} disabled={savingQuestion} className="flex-1">
+                {savingQuestion ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button variant="outline" onClick={() => setEditingQuestion(null)} disabled={savingQuestion}>
+                Cancel
+              </Button>
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
     </div>

@@ -33,6 +33,7 @@ export interface CheatsheetQuestionFilters {
     page?: number;
     limit?: number;
     source_id?: string;
+    category?: string;
     is_active?: boolean;
 }
 
@@ -162,6 +163,7 @@ export async function getCheatsheetQuestions(
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.limit) params.append("limit", filters.limit.toString());
     if (filters.source_id) params.append("source_id", filters.source_id);
+    if (filters.category) params.append("category", filters.category);
     if (typeof filters.is_active === "boolean") {
         params.append("is_active", String(filters.is_active));
     }
@@ -191,6 +193,7 @@ export async function updateCheatsheetQuestion(
         options: string[];
         correct_option: string;
         explanation: string | null;
+        category: string | null;
         is_active: boolean;
     }>,
 ): Promise<CheatsheetQuestionAdmin> {

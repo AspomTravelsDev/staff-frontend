@@ -94,6 +94,7 @@ export async function updateCheatsheetQuestionAction(
         options: string[];
         correct_option: string;
         explanation: string | null;
+        category: string | null;
         is_active: boolean;
     }>,
 ): Promise<{

@@ -214,7 +214,42 @@ export interface OnboardingFormData {
     employment_terms: EmploymentTerms;
     guarantorReferee: GuarantorReferee;
     employmentFinance: EmploymentFinance;
+    review?: OnboardingCorrectionEntry;
+    reviewHistory?: OnboardingHistoryEntry[];
 }
+
+export type OnboardingCorrectionReason =
+    | "unsigned_documents"
+    | "missing_required_pages"
+    | "invalid_document_quality"
+    | "mismatched_information"
+    | "other";
+
+export interface OnboardingReviewUser {
+    id: string | number;
+    name: string;
+}
+
+export interface OnboardingCorrectionEntry {
+    needsCorrection: boolean;
+    reason: OnboardingCorrectionReason;
+    note: string;
+    requestedAt: string;
+    requestedBy?: OnboardingReviewUser;
+    previousStatus: string;
+}
+
+export interface OnboardingReminderEntry {
+    type: "reminder";
+    note: string;
+    sentAt: string;
+    sentBy?: OnboardingReviewUser;
+}
+
+export type OnboardingHistoryEntry =
+    | (OnboardingCorrectionEntry & { type?: never })
+    | OnboardingReminderEntry;
+
 
 export interface OnboardingApplication {
     id: string; // uuid

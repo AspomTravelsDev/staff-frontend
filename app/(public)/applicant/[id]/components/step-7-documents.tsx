@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// import { redirectToPreviousStep, saveFormStep } from "../actions";
+import { redirectToPreviousStep, saveFormStep } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 // import { MediaData } from "@/lib/types/form-data";

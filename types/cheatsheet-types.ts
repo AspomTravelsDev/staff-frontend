@@ -65,6 +65,7 @@ export interface CheatsheetQuestionAdmin {
     options: string[];
     correct_option: string;
     explanation: string | null;
+    category: string | null;
     is_active: boolean;
     created_at: string;
     updated_at: string;

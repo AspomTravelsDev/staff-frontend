@@ -10,6 +10,8 @@ import { DocumentPreviews } from "./components/document-previews";
 import { ApplicationActionsClient } from "./components/application-actions-client";
 import { BioData } from "./components/bio-data";
 import { ApplicationExportButton } from "../components/application-export-button";
+import { ApplicationTimeline } from "./components/application-timeline";
+
 
 export default async function ApplicationDetailPage({
   params,
@@ -155,6 +157,9 @@ export default async function ApplicationDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Onboarding History Timeline */}
+      <ApplicationTimeline application={application as any} />
 
       {/* Bio Data */}
       {application.form_data && (
