@@ -44,6 +44,15 @@ import {
   CheckCheck,
   ChevronRight,
 } from "lucide-react";
+import {
+  calculateAccommodationWeeks,
+  calculateActualGrossWorkingDays,
+  calculateMonthlyTax,
+  calculateWeeklyAccommodationAmount,
+  getAccommodationRate,
+  getDaysInMonth,
+  getWorkingDaysInMonth,
+} from "@/lib/payroll/calculations";
 
 const getCurrentMonth = () => {
   const date = new Date();
@@ -81,6 +90,14 @@ function getAdditionsTotal(entry: PayrollEntry) {
   }
 
   return Number(entry.additions_amount || 0);
+}
+
+function getAccommodationTotal(entry: PayrollEntry) {
+  return Number(
+    entry.accommodation_amount ??
+      (entry as any).calculation_snapshot?.accommodation_amount ??
+      0,
+  );
 }
 
 function formatMonthLabel(isoMonth?: string) {
@@ -125,35 +142,6 @@ export function PayrollManager() {
   const isPersistedRun = (run?: PayrollRun | null) => {
     return !!run && !!run.id;
   };
-
-  function calculateMonthlyTax(taxableGross: number) {
-    let remainingTaxable = Math.max(0, taxableGross * 12);
-    let annualTax = 0;
-
-    const band1 = Math.min(remainingTaxable, 800000);
-    remainingTaxable -= band1;
-
-    if (remainingTaxable > 0) {
-      const band2 = Math.min(remainingTaxable, 2200000);
-      annualTax += band2 * 0.15;
-      remainingTaxable -= band2;
-    }
-    if (remainingTaxable > 0) {
-      const band3 = Math.min(remainingTaxable, 9000000);
-      annualTax += band3 * 0.18;
-      remainingTaxable -= band3;
-    }
-    if (remainingTaxable > 0) {
-      const band4 = Math.min(remainingTaxable, 13000000);
-      annualTax += band4 * 0.21;
-      remainingTaxable -= band4;
-    }
-    if (remainingTaxable > 0) {
-      annualTax += remainingTaxable * 0.25;
-    }
-
-    return Math.round((annualTax / 12) * 100) / 100;
-  }
 
   const entries = currentRun?.entries ?? [];
   const pendingCount = entries.filter(
@@ -415,6 +403,7 @@ export function PayrollManager() {
       "Regular Monthly pay",
       `${displayMonthLabel} GROSS PAY`,
       "PAYE Taxes",
+      "Accommodation",
       "Other Deductions",
       "Total Deductions",
       "Additions",
@@ -435,8 +424,9 @@ export function PayrollManager() {
       const grossPay = Number(entry.gross_salary ?? 0);
       const payeTaxes = Number(entry.tax_amount ?? 0);
       const otherDeductions = getOtherDeductionsTotal(entry);
+      const accommodation = getAccommodationTotal(entry);
       const totalDeductions =
-        Number(entry.deduction_amount ?? 0) + payeTaxes + otherDeductions;
+        Number(entry.deduction_amount ?? 0) + payeTaxes + otherDeductions + accommodation;
 
       // Attempt to derive additions from calculation snapshot if present
       let additionsValue = 0;
@@ -476,6 +466,7 @@ export function PayrollManager() {
         regularMonthlyPay.toFixed(2),
         grossPay.toFixed(2),
         payeTaxes.toFixed(2),
+        accommodation.toFixed(2),
         otherDeductions.toFixed(2),
         totalDeductions.toFixed(2),
         additionsDesc || additionsValue.toFixed(2),
@@ -516,6 +507,7 @@ export function PayrollManager() {
         acc +
         Number(e.deduction_amount || 0) +
         Number(e.tax_amount || 0) +
+        getAccommodationTotal(e) +
         getOtherDeductionsTotal(e),
       0,
     ),
@@ -780,6 +772,7 @@ export function PayrollManager() {
                     {money(
                       Number(entry.deduction_amount || 0) +
                         Number(entry.tax_amount || 0) +
+                        getAccommodationTotal(entry) +
                         getOtherDeductionsTotal(entry),
                     ).replace("NGN", "")}
                     )
@@ -883,47 +876,97 @@ export function PayrollManager() {
                       : Number(activeEntry.suspension_days || 0);
 
                   const baseSalary =
-                    (activeEntry.calculation_snapshot as any)?.base_monthly_salary ||
-                    Number(activeEntry.user?.gross_pay || activeEntry.gross_salary || 0);
+                    (activeEntry.calculation_snapshot as any)
+                      ?.base_monthly_salary ||
+                    Number(
+                      activeEntry.user?.gross_pay ||
+                        activeEntry.gross_salary ||
+                        0,
+                    );
 
                   const monthStr = currentRun?.payroll_month;
                   let daysInMonth = 30;
+                  let workingDaysInMonth = 22;
                   if (monthStr) {
                     const [year, month] = monthStr.split("-").map(Number);
-                    daysInMonth = new Date(year, month, 0).getDate();
+                    daysInMonth = getDaysInMonth(year, month);
+                    workingDaysInMonth = getWorkingDaysInMonth(year, month);
                   }
 
                   let tenureMonths = 0;
                   if (activeEntry.user?.date_joined && monthStr) {
-                    const [joinYear, joinMonth] = activeEntry.user.date_joined.split("-").map(Number);
+                    const [joinYear, joinMonth] = activeEntry.user.date_joined
+                      .split("-")
+                      .map(Number);
                     const [payYear, payMonth] = monthStr.split("-").map(Number);
-                    tenureMonths = (payYear - joinYear) * 12 + (payMonth - joinMonth);
+                    tenureMonths =
+                      (payYear - joinYear) * 12 + (payMonth - joinMonth);
                   }
 
-                  let accommodationRate = 10000;
-                  if (activeEntry.user?.contract_type === "intern" || activeEntry.user?.contract_type === "nysc") {
-                    accommodationRate = 5000;
-                  } else if (tenureMonths >= 6) {
-                    accommodationRate = 0;
+                  const accommodationRate = getAccommodationRate(
+                    activeEntry.user?.contract_type ?? undefined,
+                    tenureMonths,
+                  );
+
+                  const actualGross = calculateActualGrossWorkingDays(
+                    baseSalary,
+                    workingDaysInMonth,
+                    proratedDays,
+                  );
+                  const taxAmount = activeEntry.is_intern
+                    ? 0
+                    : calculateMonthlyTax(actualGross);
+
+                  let calendarProratedDays = 0;
+                  if (activeEntry.user?.date_joined && monthStr) {
+                    const joinDate = new Date(
+                      activeEntry.user.date_joined.split(" ")[0],
+                    );
+                    const [year, month] = monthStr.split("-").map(Number);
+                    const monthStart = new Date(year, month - 1, 1);
+                    if (joinDate > monthStart) {
+                      const diffMs = joinDate.getTime() - monthStart.getTime();
+                      calendarProratedDays = Math.floor(
+                        diffMs / (1000 * 60 * 60 * 24),
+                      );
+                    }
                   }
 
-                  const actualGross = Math.round(((baseSalary / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100;
-                  const taxAmount = activeEntry.is_intern ? 0 : calculateMonthlyTax(actualGross);
-                  const proratedAccommodation = payload.accommodation_amount !== undefined
-                    ? payload.accommodation_amount
-                    : (activeEntry.accommodation_amount !== undefined
+                  const accommodationWeeks = calculateAccommodationWeeks(
+                    daysInMonth,
+                    calendarProratedDays,
+                  );
+                  const weeklyAccommodationAmount =
+                    calculateWeeklyAccommodationAmount(
+                      accommodationRate,
+                      accommodationWeeks,
+                    );
+
+                  const proratedAccommodation =
+                    payload.accommodation_amount !== undefined
+                      ? payload.accommodation_amount
+                      : activeEntry.accommodation_amount !== undefined
                         ? Number(activeEntry.accommodation_amount)
-                        : Math.round(((accommodationRate / daysInMonth) * (daysInMonth - proratedDays)) * 100) / 100);
+                        : weeklyAccommodationAmount;
 
-                  const afterTaxAndAccommodation = Math.max(0, actualGross - taxAmount - proratedAccommodation);
+                  const afterTaxAndAccommodation = Math.max(
+                    0,
+                    actualGross - taxAmount - proratedAccommodation,
+                  );
 
                   const snapshot = activeEntry.calculation_snapshot as any;
                   const rateDays = snapshot?.rate_days || daysInMonth;
 
-                  const dailyRateFinal = rateDays > 0 ? Math.round((afterTaxAndAccommodation / rateDays) * 100) / 100 : 0;
+                  const dailyRateFinal =
+                    rateDays > 0
+                      ? Math.round(
+                          (afterTaxAndAccommodation / rateDays) * 100,
+                        ) / 100
+                      : 0;
 
                   const finalDays = attendanceDays + suspensionDays;
-                  const deductionAmount = Math.round(finalDays * dailyRateFinal * 100) / 100;
+                  const deductionAmount =
+                    Math.round(finalDays * dailyRateFinal * 100) / 100;
 
                   const otherAmountFromList = payload.other_deductions
                     ? payload.other_deductions.reduce(
@@ -951,7 +994,10 @@ export function PayrollManager() {
 
                   const netAmount = Math.max(
                     0,
-                    afterTaxAndAccommodation - deductionAmount - otherAmount + additionsAmount,
+                    afterTaxAndAccommodation -
+                      deductionAmount -
+                      otherAmount +
+                      additionsAmount,
                   );
 
                   // optimistic update

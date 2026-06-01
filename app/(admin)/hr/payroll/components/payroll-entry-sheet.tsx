@@ -22,6 +22,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Info, Save, CheckCircle2, X, RotateCcw } from "lucide-react";
+import {
+  calculateAccommodationWeeks,
+  calculateActualGrossWorkingDays,
+  calculateMonthlyTax,
+  calculateWeeklyAccommodationAmount,
+  countWeekdaysBetween,
+  getAccommodationRate,
+  getDaysInMonth,
+  getWorkingDaysInMonth,
+} from "@/lib/payroll/calculations";
 
 interface Props {
   entry: PayrollEntry;
@@ -55,35 +65,6 @@ type AdditionInput = {
   label: string;
   amount: string;
 };
-
-function calculateMonthlyTax(taxableGross: number) {
-  let remainingTaxable = Math.max(0, taxableGross * 12);
-  let annualTax = 0;
-
-  const band1 = Math.min(remainingTaxable, 800000);
-  remainingTaxable -= band1;
-
-  if (remainingTaxable > 0) {
-    const band2 = Math.min(remainingTaxable, 2200000);
-    annualTax += band2 * 0.15;
-    remainingTaxable -= band2;
-  }
-  if (remainingTaxable > 0) {
-    const band3 = Math.min(remainingTaxable, 9000000);
-    annualTax += band3 * 0.18;
-    remainingTaxable -= band3;
-  }
-  if (remainingTaxable > 0) {
-    const band4 = Math.min(remainingTaxable, 13000000);
-    annualTax += band4 * 0.21;
-    remainingTaxable -= band4;
-  }
-  if (remainingTaxable > 0) {
-    annualTax += remainingTaxable * 0.25;
-  }
-
-  return Math.round((annualTax / 12) * 100) / 100;
-}
 
 function money(amount: number) {
   const val = isNaN(amount) ? 0 : amount;
@@ -150,13 +131,24 @@ export function PayrollEntrySheet({
   const [proratedDays, setProratedDays] = useState<string>(
     `${entry.prorated_days ?? 0}`,
   );
-  const [isMidMonthResumption, setIsMidMonthResumption] = useState<boolean>(() => {
-    const monthStrVal = payrollMonth || entry.run?.payroll_month;
-    return Number(entry.prorated_days ?? 0) > 0 || (!!entry.user?.date_joined && !!monthStrVal && entry.user.date_joined.startsWith(monthStrVal));
-  });
+  const [isMidMonthResumption, setIsMidMonthResumption] = useState<boolean>(
+    () => {
+      const monthStrVal = payrollMonth || entry.run?.payroll_month;
+      return (
+        Number(entry.prorated_days ?? 0) > 0 ||
+        (!!entry.user?.date_joined &&
+          !!monthStrVal &&
+          entry.user.date_joined.startsWith(monthStrVal))
+      );
+    },
+  );
   const [resumptionDate, setResumptionDate] = useState<string>(() => {
     const monthStrVal = payrollMonth || entry.run?.payroll_month;
-    if (entry.user?.date_joined && monthStrVal && entry.user.date_joined.startsWith(monthStrVal)) {
+    if (
+      entry.user?.date_joined &&
+      monthStrVal &&
+      entry.user.date_joined.startsWith(monthStrVal)
+    ) {
       return entry.user.date_joined.split(" ")[0];
     }
     return monthStrVal ? `${monthStrVal}-01` : "";
@@ -171,10 +163,11 @@ export function PayrollEntrySheet({
     normalizeAdditions(entry),
   );
   const [note, setNote] = useState<string>(entry.override_note ?? "");
+  const [isAccommodationOverride, setIsAccommodationOverride] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
- 
+
   useEffect(() => {
     setAttendanceDays(`${entry.attendance_days ?? 0}`);
     setSuspensionDays(`${entry.suspension_days ?? 0}`);
@@ -185,15 +178,21 @@ export function PayrollEntrySheet({
     setOtherDeductions(normalizeOtherDeductions(entry));
     setAdditions(normalizeAdditions(entry));
     setNote(entry.override_note ?? "");
+    setIsAccommodationOverride(false);
 
     const monthStrVal = payrollMonth || entry.run?.payroll_month;
     const hasProration = Number(entry.prorated_days ?? 0) > 0;
-    const isJoinedThisMonth = !!entry.user?.date_joined && !!monthStrVal && entry.user.date_joined.startsWith(monthStrVal);
+    const isJoinedThisMonth =
+      !!entry.user?.date_joined &&
+      !!monthStrVal &&
+      entry.user.date_joined.startsWith(monthStrVal);
     setIsMidMonthResumption(hasProration || isJoinedThisMonth);
     setResumptionDate(
       isJoinedThisMonth
         ? entry.user!.date_joined!.split(" ")[0]
-        : (monthStrVal ? `${monthStrVal}-01` : "")
+        : monthStrVal
+          ? `${monthStrVal}-01`
+          : "",
     );
   }, [entry, payrollMonth]);
 
@@ -238,33 +237,43 @@ export function PayrollEntrySheet({
   const daysInMonth = useMemo(() => {
     if (!monthStr) return 30;
     const [year, month] = monthStr.split("-").map(Number);
-    return new Date(year, month, 0).getDate();
+    return getDaysInMonth(year, month);
   }, [monthStr]);
- 
+
+  const workingDaysInMonth = useMemo(() => {
+    if (!monthStr) return 22;
+    const [year, month] = monthStr.split("-").map(Number);
+    return getWorkingDaysInMonth(year, month);
+  }, [monthStr]);
+
   const tenureMonths = useMemo(() => {
     if (!entry.user?.date_joined || !monthStr) return 0;
     const [joinYear, joinMonth] = entry.user.date_joined.split("-").map(Number);
     const [payYear, payMonth] = monthStr.split("-").map(Number);
     return (payYear - joinYear) * 12 + (payMonth - joinMonth);
   }, [entry.user?.date_joined, monthStr]);
- 
+
   const suggestedProratedDays = useMemo(() => {
     if (!entry.user?.date_joined || !monthStr) return 0;
-    
-    const joinDateParts = entry.user.date_joined.split(" ")[0].split("-").map(Number);
+
+    const joinDateParts = entry.user.date_joined
+      .split(" ")[0]
+      .split("-")
+      .map(Number);
     if (joinDateParts.length < 3) return 0;
-    
+
     const joinYear = joinDateParts[0];
     const joinMonth = joinDateParts[1] - 1;
     const joinDay = joinDateParts[2];
-    
+
     const [payYear, payMonth] = monthStr.split("-").map(Number);
     const startD = new Date(payYear, payMonth - 1, 1);
     const joinD = new Date(joinYear, joinMonth, joinDay);
-    
+
     if (joinD > startD) {
-      const diffTime = joinD.getTime() - startD.getTime();
-      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const end = new Date(joinD.getTime());
+      end.setDate(end.getDate() - 1);
+      return countWeekdaysBetween(startD, end);
     }
     return 0;
   }, [entry.user?.date_joined, monthStr]);
@@ -272,18 +281,38 @@ export function PayrollEntrySheet({
   const calculateDelayFromDate = (dateVal: string) => {
     if (!dateVal || !monthStr) return 0;
     const [year, month, day] = dateVal.split("-").map(Number);
-    return Math.max(0, day - 1);
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month - 1, day - 1);
+    return countWeekdaysBetween(start, end);
   };
 
   const accommodationRate = useMemo(() => {
-    if (entry.user?.contract_type === "intern" || entry.user?.contract_type === "nysc") {
-      return 5000;
-    }
-    if (tenureMonths >= 6) {
+    if (!entry.user?.contract_type) {
       return 0;
     }
-    return 10000;
+    return getAccommodationRate(entry.user?.contract_type, tenureMonths);
   }, [entry.user?.contract_type, tenureMonths]);
+
+  const accommodationWeeks = useMemo(() => {
+    if (!monthStr) return 4;
+    const delayDays = isMidMonthResumption
+      ? calculateDelayFromDate(resumptionDate)
+      : 0;
+    return calculateAccommodationWeeks(daysInMonth, delayDays);
+  }, [daysInMonth, isMidMonthResumption, monthStr, resumptionDate]);
+
+  const derivedAccommodationAmount = useMemo(() => {
+    return calculateWeeklyAccommodationAmount(
+      accommodationRate,
+      accommodationWeeks,
+    );
+  }, [accommodationRate, accommodationWeeks]);
+
+  useEffect(() => {
+    if (!isAccommodationOverride) {
+      setAccommodationAmount(`${derivedAccommodationAmount}`);
+    }
+  }, [derivedAccommodationAmount, isAccommodationOverride]);
 
   const computed = useMemo(() => {
     const parse = (val: string) => {
@@ -308,31 +337,44 @@ export function PayrollEntrySheet({
       Number(entry.user?.gross_pay || entry.gross_salary || 0);
 
     // Actual Gross = Base Salary prorated by active days
-    const actualGross = Math.round(((baseSalary / daysInMonth) * (daysInMonth - prorated)) * 100) / 100;
+    const actualGross = calculateActualGrossWorkingDays(
+      baseSalary,
+      workingDaysInMonth,
+      prorated,
+    );
 
     // Tax computed on actualGross
     const taxAmount = entry.is_intern ? 0 : calculateMonthlyTax(actualGross);
 
-    const accAmount = parse(accommodationAmount);
+    const accAmount = isAccommodationOverride
+      ? parse(accommodationAmount)
+      : derivedAccommodationAmount;
 
     // After-tax & after-accommodation amount
-    const afterTaxAndAccommodation = Math.max(0, actualGross - taxAmount - accAmount);
+    const afterTaxAndAccommodation = Math.max(
+      0,
+      actualGross - taxAmount - accAmount - othAmount,
+    );
 
     // Daily rate based on afterTaxAndAccommodation over rateDays
     const snapshot = entry.calculation_snapshot as any;
     const rateDays = snapshot?.rate_days || daysInMonth;
 
-    const dailyRateFinal = rateDays > 0 ? Math.round((afterTaxAndAccommodation / rateDays) * 100) / 100 : 0;
+    const dailyRateFinal =
+      rateDays > 0
+        ? Math.round((afterTaxAndAccommodation / rateDays) * 100) / 100
+        : 0;
 
     const attAmount = Math.round(att * dailyRateFinal * 100) / 100;
     const suspAmount = Math.round(susp * dailyRateFinal * 100) / 100;
 
-    const attendanceComplianceDeduction = Math.round((att + susp) * dailyRateFinal * 100) / 100;
+    const attendanceComplianceDeduction =
+      Math.round((att + susp) * dailyRateFinal * 100) / 100;
 
-    // Final Net = (Gross - Tax - Accommodation) - penalties - other + additions
+    // Final Net = (Gross - Tax - Accommodation - Other) - penalties + additions
     const netAmount = Math.max(
       0,
-      afterTaxAndAccommodation - attendanceComplianceDeduction - othAmount + addAmount,
+      afterTaxAndAccommodation - attendanceComplianceDeduction + addAmount,
     );
 
     return {
@@ -357,11 +399,14 @@ export function PayrollEntrySheet({
     otherDeductions,
     additions,
     daysInMonth,
+    workingDaysInMonth,
     accommodationRate,
     entry.gross_salary,
     entry.is_intern,
     entry.calculation_snapshot,
     entry.user,
+    derivedAccommodationAmount,
+    isAccommodationOverride,
   ]);
 
   async function handleSave(approveAfter = false) {
@@ -476,7 +521,9 @@ export function PayrollEntrySheet({
             <div className="grid grid-cols-3 gap-3">
               <Card className="bg-muted/30 border-none shadow-none">
                 <CardHeader className="pb-1.5 p-3">
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">Salary</CardDescription>
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Salary
+                  </CardDescription>
                   <CardTitle className="text-sm font-bold text-slate-800 truncate">
                     {money(computed.baseSalary)}
                   </CardTitle>
@@ -484,7 +531,9 @@ export function PayrollEntrySheet({
               </Card>
               <Card className="bg-muted/30 border-none shadow-none">
                 <CardHeader className="pb-1.5 p-3">
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">Actual Gross</CardDescription>
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Actual Gross
+                  </CardDescription>
                   <CardTitle className="text-sm font-bold text-slate-800 truncate">
                     {money(computed.actualGross)}
                   </CardTitle>
@@ -492,7 +541,9 @@ export function PayrollEntrySheet({
               </Card>
               <Card className="bg-muted/30 border-none shadow-none">
                 <CardHeader className="pb-1.5 p-3">
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">Daily Rate</CardDescription>
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Daily Rate
+                  </CardDescription>
                   <CardTitle className="text-sm font-bold text-slate-800 truncate">
                     {money(computed.dailyRate)}
                   </CardTitle>
@@ -523,11 +574,15 @@ export function PayrollEntrySheet({
                 <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="mid-month-toggle" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                      <Label
+                        htmlFor="mid-month-toggle"
+                        className="text-xs font-semibold text-slate-700 cursor-pointer"
+                      >
                         Resumed Mid-Month?
                       </Label>
                       <p className="text-[10px] text-muted-foreground">
-                        Toggle to calculate proration delay for mid-month resumption.
+                        Toggle to calculate proration delay for mid-month
+                        resumption.
                       </p>
                     </div>
                     <input
@@ -540,7 +595,9 @@ export function PayrollEntrySheet({
                         if (!checked) {
                           setProratedDays("0");
                         } else {
-                          setProratedDays(`${calculateDelayFromDate(resumptionDate)}`);
+                          setProratedDays(
+                            `${calculateDelayFromDate(resumptionDate)}`,
+                          );
                         }
                       }}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
@@ -550,31 +607,46 @@ export function PayrollEntrySheet({
                   {isMidMonthResumption && (
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
                       <div className="space-y-2">
-                        <Label htmlFor="resumption-date" className="text-xs font-semibold text-slate-600">
+                        <Label
+                          htmlFor="resumption-date"
+                          className="text-xs font-semibold text-slate-600"
+                        >
                           Resumption Date
                         </Label>
                         <Input
                           id="resumption-date"
                           type="date"
                           min={monthStr ? `${monthStr}-01` : undefined}
-                          max={monthStr && daysInMonth ? `${monthStr}-${daysInMonth}` : undefined}
+                          max={
+                            monthStr && daysInMonth
+                              ? `${monthStr}-${daysInMonth}`
+                              : undefined
+                          }
                           value={resumptionDate}
                           onChange={(e) => {
                             const dateVal = e.target.value;
                             setResumptionDate(dateVal);
-                            setProratedDays(`${calculateDelayFromDate(dateVal)}`);
+                            setProratedDays(
+                              `${calculateDelayFromDate(dateVal)}`,
+                            );
                           }}
                           className="bg-background text-xs h-9 cursor-pointer"
                         />
                         {entry.user?.date_joined && (
                           <p className="text-[10px] text-muted-foreground">
-                            System Date: <span className="font-semibold text-slate-600">{entry.user.date_joined.split(" ")[0]}</span>
+                            System Date:{" "}
+                            <span className="font-semibold text-slate-600">
+                              {entry.user.date_joined.split(" ")[0]}
+                            </span>
                           </p>
                         )}
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <Label htmlFor="prorated-days" className="text-xs font-semibold text-slate-600">
+                        <Label
+                          htmlFor="prorated-days"
+                          className="text-xs font-semibold text-slate-600"
+                        >
                           Days Missed Before Joining
                         </Label>
                         <div className="relative">
@@ -614,7 +686,10 @@ export function PayrollEntrySheet({
                 {/* Accommodation */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
-                    <Label htmlFor="accommodation-amount" className="text-xs font-semibold text-slate-700">
+                    <Label
+                      htmlFor="accommodation-amount"
+                      className="text-xs font-semibold text-slate-700"
+                    >
                       Accommodation Fee
                     </Label>
                     <div className="relative">
@@ -623,7 +698,10 @@ export function PayrollEntrySheet({
                         type="number"
                         step="0.01"
                         value={accommodationAmount}
-                        onChange={(e) => setAccommodationAmount(e.target.value)}
+                        onChange={(e) => {
+                          setIsAccommodationOverride(true);
+                          setAccommodationAmount(e.target.value);
+                        }}
                         className="pr-16 bg-background text-xs h-9"
                       />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
@@ -647,7 +725,10 @@ export function PayrollEntrySheet({
                 {/* Attendance */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
-                    <Label htmlFor="att-days" className="text-xs font-semibold text-slate-700">
+                    <Label
+                      htmlFor="att-days"
+                      className="text-xs font-semibold text-slate-700"
+                    >
                       Absent Days (Unpaid)
                     </Label>
                     <div className="relative">
@@ -665,7 +746,8 @@ export function PayrollEntrySheet({
                     </div>
                     {Number(entry.attendance_suggested_days) > 0 && (
                       <p className="text-[10px] text-orange-600 font-medium leading-tight">
-                        Suggested absences: {entry.attendance_suggested_days} days
+                        Suggested absences: {entry.attendance_suggested_days}{" "}
+                        days
                       </p>
                     )}
                   </div>
@@ -682,7 +764,10 @@ export function PayrollEntrySheet({
                 {/* Suspensions */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
-                    <Label htmlFor="susp-days" className="text-xs font-semibold text-slate-700">
+                    <Label
+                      htmlFor="susp-days"
+                      className="text-xs font-semibold text-slate-700"
+                    >
                       Suspension Period
                     </Label>
                     <div className="relative">
@@ -719,7 +804,9 @@ export function PayrollEntrySheet({
             {/* Other Deductions */}
             <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Other Deductions</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Other Deductions
+                </Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -752,17 +839,17 @@ export function PayrollEntrySheet({
                       />
                       <div className="relative">
                         <Input
-                           type="number"
-                           step="0.01"
-                           value={item.amount}
-                           onChange={(e) =>
-                             updateOtherDeduction(
-                               index,
-                               "amount",
-                               e.target.value,
-                             )
-                           }
-                           className="pl-10 h-9 text-xs bg-background"
+                          type="number"
+                          step="0.01"
+                          value={item.amount}
+                          onChange={(e) =>
+                            updateOtherDeduction(
+                              index,
+                              "amount",
+                              e.target.value,
+                            )
+                          }
+                          className="pl-10 h-9 text-xs bg-background"
                         />
                         <div className="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground pointer-events-none">
                           ₦
@@ -792,7 +879,9 @@ export function PayrollEntrySheet({
             {/* Additions */}
             <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Additions</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Additions
+                </Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -869,41 +958,57 @@ export function PayrollEntrySheet({
               <div className="grid gap-3 rounded-xl border p-4 bg-card shadow-sm text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Monthly Contract Salary</span>
-                  <span className="font-semibold">{money(computed.baseSalary)}</span>
+                  <span className="font-semibold">
+                    {money(computed.baseSalary)}
+                  </span>
                 </div>
                 {computed.prorated > 0 && (
                   <div className="flex justify-between text-red-600 bg-red-50/55 p-2 rounded-lg">
-                    <span className="italic">Joined Mid-Month ({computed.prorated} days)</span>
-                    <span className="font-semibold">-{money(computed.baseSalary - computed.actualGross)}</span>
+                    <span className="italic">
+                      Joined Mid-Month ({computed.prorated} days)
+                    </span>
+                    <span className="font-semibold">
+                      -{money(computed.baseSalary - computed.actualGross)}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between items-center border-t pt-2 font-bold text-slate-800">
                   <span>Actual Gross Salary:</span>
                   <span>{money(computed.actualGross)}</span>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="flex justify-between text-red-600">
                   <span>Income Tax (PAYE)</span>
-                  <span className="font-semibold">-{money(computed.taxAmount)}</span>
+                  <span className="font-semibold">
+                    -{money(computed.taxAmount)}
+                  </span>
                 </div>
                 {computed.accommodation > 0 && (
                   <div className="flex justify-between text-red-600">
                     <span>Accommodation Fee</span>
-                    <span className="font-semibold">-{money(computed.accommodation)}</span>
+                    <span className="font-semibold">
+                      -{money(computed.accommodation)}
+                    </span>
                   </div>
                 )}
-                
+
                 <div className="flex justify-between items-center border-t pt-2 bg-slate-50/50 p-2 rounded-lg">
-                  <span className="font-bold text-slate-700">After Tax & Acc:</span>
+                  <span className="font-bold text-slate-700">
+                    After Tax & Acc:
+                  </span>
                   <span className="font-black text-slate-900">
-                    {money(computed.actualGross - computed.taxAmount - computed.accommodation)}
+                    {money(
+                      computed.actualGross -
+                        computed.taxAmount -
+                        computed.accommodation,
+                    )}
                   </span>
                 </div>
-                
+
                 <Separator />
-                
+
                 {computed.attAmount > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span className="italic">
@@ -927,18 +1032,24 @@ export function PayrollEntrySheet({
                 {computed.othAmount > 0 && (
                   <div className="flex justify-between text-red-600">
                     <span>Other Deductions</span>
-                    <span className="font-semibold">-{money(computed.othAmount)}</span>
+                    <span className="font-semibold">
+                      -{money(computed.othAmount)}
+                    </span>
                   </div>
                 )}
                 {computed.addAmount > 0 && (
                   <div className="flex justify-between text-emerald-700">
                     <span>Additions</span>
-                    <span className="font-semibold">+{money(computed.addAmount)}</span>
+                    <span className="font-semibold">
+                      +{money(computed.addAmount)}
+                    </span>
                   </div>
                 )}
                 <Separator className="border-dashed" />
                 <div className="flex justify-between items-center pt-1">
-                  <span className="font-bold text-slate-800 text-sm">Final Net Pay</span>
+                  <span className="font-bold text-slate-800 text-sm">
+                    Final Net Pay
+                  </span>
                   <span className="text-xl font-black text-primary tracking-tight">
                     {money(computed.netAmount)}
                   </span>
