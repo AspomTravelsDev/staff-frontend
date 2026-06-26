@@ -340,15 +340,15 @@ export function PayrollEntrySheet({
 
     const accAmount = parse(accommodationAmount);
 
-    // After-tax & after-accommodation amount (Daily rate penalty base)
+    // After-tax salary (Daily rate base)
     const afterTaxAndAccommodation = Math.max(
       0,
-      actualGross - taxAmount - accAmount,
+      actualGross - taxAmount,
     );
 
     // Daily rate based on afterTaxAndAccommodation over rateDays
     const snapshot = entry.calculation_snapshot as any;
-    const rateDays = snapshot?.rate_days || daysInMonth;
+    const rateDays = snapshot?.rate_days || workingDaysInMonth;
 
     const dailyRateFinal =
       rateDays > 0

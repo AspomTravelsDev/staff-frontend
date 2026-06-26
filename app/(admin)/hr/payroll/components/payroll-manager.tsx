@@ -946,11 +946,11 @@ export function PayrollManager() {
 
                   const afterTaxAndAccommodation = Math.max(
                     0,
-                    actualGross - taxAmount - proratedAccommodation,
+                    actualGross - taxAmount,
                   );
 
                   const snapshot = activeEntry.calculation_snapshot as any;
-                  const rateDays = snapshot?.rate_days || daysInMonth;
+                  const rateDays = snapshot?.rate_days || workingDaysInMonth;
 
                   const dailyRateFinal =
                     rateDays > 0
