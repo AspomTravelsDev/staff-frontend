@@ -908,14 +908,16 @@ export function PayrollManager() {
                     tenureMonths,
                   );
 
-                  const actualGross = calculateActualGrossWorkingDays(
-                    baseSalary,
-                    workingDaysInMonth,
-                    proratedDays,
-                  );
-                  const taxAmount = activeEntry.is_intern
-                    ? 0
-                    : calculateMonthlyTax(actualGross);
+                  // Linear Proration Factor
+                  const activeWorkingDays = Math.max(0, workingDaysInMonth - proratedDays);
+                  const factor = workingDaysInMonth > 0 ? activeWorkingDays / workingDaysInMonth : 0;
+
+                  const actualGross = Math.round(baseSalary * factor * 100) / 100;
+                  const baseTax = activeEntry.is_intern ? 0 : calculateMonthlyTax(baseSalary);
+                  const taxAmount = activeEntry.is_intern ? 0 : Math.round(baseTax * factor * 100) / 100;
+
+                  const baseNet = Math.max(0, baseSalary - baseTax);
+                  const proratedNet = Math.round(baseNet * factor * 100) / 100;
 
                   let calendarProratedDays = 0;
                   if (activeEntry.user?.date_joined && monthStr) {
@@ -932,22 +934,15 @@ export function PayrollManager() {
                     }
                   }
 
-                  const accommodationWeeks = calculateAccommodationWeeks(
-                    daysInMonth,
-                    calendarProratedDays,
-                  );
-                  const weeklyAccommodationAmount =
-                    calculateWeeklyAccommodationAmount(
-                      accommodationRate,
-                      accommodationWeeks,
-                    );
+                  const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
+                  const calendarProratedAccommodationAmount = Math.round((accommodationRate / daysInMonth) * activeCalendarDays * 100) / 100;
 
                   const proratedAccommodation =
                     payload.accommodation_amount !== undefined
                       ? payload.accommodation_amount
                       : activeEntry.accommodation_amount !== undefined
                         ? Number(activeEntry.accommodation_amount)
-                        : weeklyAccommodationAmount;
+                        : calendarProratedAccommodationAmount;
 
                   const afterTaxAndAccommodation = Math.max(
                     0,
@@ -994,13 +989,13 @@ export function PayrollManager() {
 
                   const netAmount = Math.max(
                     0,
-                    afterTaxAndAccommodation -
-                      deductionAmount -
-                      otherAmount +
+                    proratedNet -
+                      proratedAccommodation -
+                      otherAmount -
+                      deductionAmount +
                       additionsAmount,
                   );
 
-                  // optimistic update
                   setCurrentRun((prev) => {
                     if (!prev) return prev;
                     return {

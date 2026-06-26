@@ -8,23 +8,20 @@ export function calculateMonthlyTax(taxableGross: number) {
     let remainingTaxable = Math.max(0, taxableGross * 12);
     let annualTax = 0;
 
-    const band1 = Math.min(remainingTaxable, 800000);
-    remainingTaxable -= band1;
+    const bands = [
+        { threshold: 800000, rate: 0.0 },
+        { threshold: 2200000, rate: 0.15 },
+        { threshold: 9000000, rate: 0.18 },
+        { threshold: 13000000, rate: 0.21 },
+        { threshold: 25000000, rate: 0.23 },
+        { threshold: 50000000, rate: 0.25 }
+    ];
 
-    if (remainingTaxable > 0) {
-        const band2 = Math.min(remainingTaxable, 2200000);
-        annualTax += band2 * 0.15;
-        remainingTaxable -= band2;
-    }
-    if (remainingTaxable > 0) {
-        const band3 = Math.min(remainingTaxable, 9000000);
-        annualTax += band3 * 0.18;
-        remainingTaxable -= band3;
-    }
-    if (remainingTaxable > 0) {
-        const band4 = Math.min(remainingTaxable, 13000000);
-        annualTax += band4 * 0.21;
-        remainingTaxable -= band4;
+    for (const band of bands) {
+        const bandAmount = Math.min(remainingTaxable, band.threshold);
+        annualTax += bandAmount * band.rate;
+        remainingTaxable -= bandAmount;
+        if (remainingTaxable <= 0) break;
     }
     if (remainingTaxable > 0) {
         annualTax += remainingTaxable * 0.25;

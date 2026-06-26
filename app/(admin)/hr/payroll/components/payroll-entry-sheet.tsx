@@ -293,26 +293,16 @@ export function PayrollEntrySheet({
     return getAccommodationRate(entry.user?.contract_type, tenureMonths);
   }, [entry.user?.contract_type, tenureMonths]);
 
-  const accommodationWeeks = useMemo(() => {
-    if (!monthStr) return 4;
-    const delayDays = isMidMonthResumption
-      ? calculateDelayFromDate(resumptionDate)
-      : 0;
-    return calculateAccommodationWeeks(daysInMonth, delayDays);
-  }, [daysInMonth, isMidMonthResumption, monthStr, resumptionDate]);
-
   const derivedAccommodationAmount = useMemo(() => {
-    return calculateWeeklyAccommodationAmount(
-      accommodationRate,
-      accommodationWeeks,
-    );
-  }, [accommodationRate, accommodationWeeks]);
-
-  useEffect(() => {
-    if (!isAccommodationOverride) {
-      setAccommodationAmount(`${derivedAccommodationAmount}`);
+    if (!isMidMonthResumption) {
+      return accommodationRate;
     }
-  }, [derivedAccommodationAmount, isAccommodationOverride]);
+    const parts = resumptionDate.split("-");
+    const day = parts.length === 3 ? Number(parts[2]) : 1;
+    const calendarProratedDays = day - 1;
+    const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
+    return Math.round((accommodationRate / daysInMonth) * activeCalendarDays * 100) / 100;
+  }, [accommodationRate, daysInMonth, isMidMonthResumption, resumptionDate]);
 
   const computed = useMemo(() => {
     const parse = (val: string) => {
@@ -336,24 +326,24 @@ export function PayrollEntrySheet({
       (entry.calculation_snapshot as any)?.base_monthly_salary ||
       Number(entry.user?.gross_pay || entry.gross_salary || 0);
 
-    // Actual Gross = Base Salary prorated by active days
-    const actualGross = calculateActualGrossWorkingDays(
-      baseSalary,
-      workingDaysInMonth,
-      prorated,
-    );
+    // Linear Proration Factor
+    const activeWorkingDays = Math.max(0, workingDaysInMonth - prorated);
+    const factor = workingDaysInMonth > 0 ? activeWorkingDays / workingDaysInMonth : 0.0;
 
-    // Tax computed on actualGross
-    const taxAmount = entry.is_intern ? 0 : calculateMonthlyTax(actualGross);
+    // Prorated Gross & Tax (Linear)
+    const actualGross = Math.round(baseSalary * factor * 100) / 100;
+    const baseTax = entry.is_intern ? 0 : calculateMonthlyTax(baseSalary);
+    const taxAmount = entry.is_intern ? 0 : Math.round(baseTax * factor * 100) / 100;
 
-    const accAmount = isAccommodationOverride
-      ? parse(accommodationAmount)
-      : derivedAccommodationAmount;
+    const baseNet = Math.max(0, baseSalary - baseTax);
+    const proratedNet = Math.round(baseNet * factor * 100) / 100;
 
-    // After-tax & after-accommodation amount
+    const accAmount = parse(accommodationAmount);
+
+    // After-tax & after-accommodation amount (Daily rate penalty base)
     const afterTaxAndAccommodation = Math.max(
       0,
-      actualGross - taxAmount - accAmount - othAmount,
+      actualGross - taxAmount - accAmount,
     );
 
     // Daily rate based on afterTaxAndAccommodation over rateDays
@@ -371,10 +361,10 @@ export function PayrollEntrySheet({
     const attendanceComplianceDeduction =
       Math.round((att + susp) * dailyRateFinal * 100) / 100;
 
-    // Final Net = (Gross - Tax - Accommodation - Other) - penalties + additions
+    // Final Net = proratedNet - accommodation - other - penalties + additions
     const netAmount = Math.max(
       0,
-      afterTaxAndAccommodation - attendanceComplianceDeduction + addAmount,
+      proratedNet - accAmount - othAmount - attendanceComplianceDeduction + addAmount,
     );
 
     return {
@@ -400,13 +390,10 @@ export function PayrollEntrySheet({
     additions,
     daysInMonth,
     workingDaysInMonth,
-    accommodationRate,
     entry.gross_salary,
     entry.is_intern,
     entry.calculation_snapshot,
     entry.user,
-    derivedAccommodationAmount,
-    isAccommodationOverride,
   ]);
 
   async function handleSave(approveAfter = false) {
@@ -594,10 +581,17 @@ export function PayrollEntrySheet({
                         setIsMidMonthResumption(checked);
                         if (!checked) {
                           setProratedDays("0");
+                          if (!isAccommodationOverride) {
+                            const weeks = calculateAccommodationWeeks(daysInMonth, 0);
+                            setAccommodationAmount(`${calculateWeeklyAccommodationAmount(accommodationRate, weeks)}`);
+                          }
                         } else {
-                          setProratedDays(
-                            `${calculateDelayFromDate(resumptionDate)}`,
-                          );
+                          const delay = calculateDelayFromDate(resumptionDate);
+                          setProratedDays(`${delay}`);
+                          if (!isAccommodationOverride) {
+                            const weeks = calculateAccommodationWeeks(daysInMonth, delay);
+                            setAccommodationAmount(`${calculateWeeklyAccommodationAmount(accommodationRate, weeks)}`);
+                          }
                         }
                       }}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
@@ -626,9 +620,12 @@ export function PayrollEntrySheet({
                           onChange={(e) => {
                             const dateVal = e.target.value;
                             setResumptionDate(dateVal);
-                            setProratedDays(
-                              `${calculateDelayFromDate(dateVal)}`,
-                            );
+                            const delay = calculateDelayFromDate(dateVal);
+                            setProratedDays(`${delay}`);
+                            if (!isAccommodationOverride) {
+                              const weeks = calculateAccommodationWeeks(daysInMonth, delay);
+                              setAccommodationAmount(`${calculateWeeklyAccommodationAmount(accommodationRate, weeks)}`);
+                            }
                           }}
                           className="bg-background text-xs h-9 cursor-pointer"
                         />
