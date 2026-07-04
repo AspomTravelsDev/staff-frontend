@@ -23,10 +23,9 @@ import {
 } from "@/components/ui/tooltip";
 import { Info, Save, CheckCircle2, X, RotateCcw } from "lucide-react";
 import {
-  calculateAccommodationWeeks,
+  calculateAccommodationAmount,
   calculateActualGrossWorkingDays,
   calculateMonthlyTax,
-  calculateWeeklyAccommodationAmount,
   countWeekdaysBetween,
   getAccommodationRate,
   getDaysInMonth,
@@ -293,16 +292,7 @@ export function PayrollEntrySheet({
     return getAccommodationRate(entry.user?.contract_type, tenureMonths);
   }, [entry.user?.contract_type, tenureMonths]);
 
-  const derivedAccommodationAmount = useMemo(() => {
-    if (!isMidMonthResumption) {
-      return accommodationRate;
-    }
-    const parts = resumptionDate.split("-");
-    const day = parts.length === 3 ? Number(parts[2]) : 1;
-    const calendarProratedDays = day - 1;
-    const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
-    return Math.round((accommodationRate / daysInMonth) * activeCalendarDays * 100) / 100;
-  }, [accommodationRate, daysInMonth, isMidMonthResumption, resumptionDate]);
+
 
   const computed = useMemo(() => {
     const parse = (val: string) => {
@@ -340,26 +330,23 @@ export function PayrollEntrySheet({
 
     const accAmount = parse(accommodationAmount);
 
-    // After-tax salary (Daily rate base)
-    const afterTaxAndAccommodation = Math.max(
+    // Daily rate base (June Gross - Tax - Accommodation - Other Deductions)
+    const dailyRateBase = Math.max(
       0,
-      actualGross - taxAmount,
+      actualGross - taxAmount - accAmount - othAmount,
     );
 
-    // Daily rate based on afterTaxAndAccommodation over rateDays
-    const snapshot = entry.calculation_snapshot as any;
-    const rateDays = snapshot?.rate_days || workingDaysInMonth;
-
+    // Daily rate based on dailyRateBase over workingDaysInMonth
     const dailyRateFinal =
-      rateDays > 0
-        ? Math.round((afterTaxAndAccommodation / rateDays) * 100) / 100
+      workingDaysInMonth > 0
+        ? Math.round((dailyRateBase / workingDaysInMonth) * 100) / 100
         : 0;
 
     const attAmount = Math.round(att * dailyRateFinal * 100) / 100;
     const suspAmount = Math.round(susp * dailyRateFinal * 100) / 100;
 
     const attendanceComplianceDeduction =
-      Math.round((att + susp) * dailyRateFinal * 100) / 100;
+      Math.round((attAmount + suspAmount) * 100) / 100;
 
     // Final Net = proratedNet - accommodation - other - penalties + additions
     const netAmount = Math.max(
@@ -582,15 +569,17 @@ export function PayrollEntrySheet({
                         if (!checked) {
                           setProratedDays("0");
                           if (!isAccommodationOverride) {
-                            const weeks = calculateAccommodationWeeks(daysInMonth, 0);
-                            setAccommodationAmount(`${calculateWeeklyAccommodationAmount(accommodationRate, weeks)}`);
+                            setAccommodationAmount(`${accommodationRate}`);
                           }
                         } else {
                           const delay = calculateDelayFromDate(resumptionDate);
                           setProratedDays(`${delay}`);
                           if (!isAccommodationOverride) {
-                            const weeks = calculateAccommodationWeeks(daysInMonth, delay);
-                            setAccommodationAmount(`${calculateWeeklyAccommodationAmount(accommodationRate, weeks)}`);
+                            const parts = resumptionDate.split("-");
+                            const day = parts.length === 3 ? Number(parts[2]) : 1;
+                            const calendarProratedDays = day - 1;
+                            const calculated = calculateAccommodationAmount(accommodationRate, daysInMonth, calendarProratedDays);
+                            setAccommodationAmount(`${calculated}`);
                           }
                         }
                       }}
@@ -623,8 +612,11 @@ export function PayrollEntrySheet({
                             const delay = calculateDelayFromDate(dateVal);
                             setProratedDays(`${delay}`);
                             if (!isAccommodationOverride) {
-                              const weeks = calculateAccommodationWeeks(daysInMonth, delay);
-                              setAccommodationAmount(`${calculateWeeklyAccommodationAmount(accommodationRate, weeks)}`);
+                              const parts = dateVal.split("-");
+                              const day = parts.length === 3 ? Number(parts[2]) : 1;
+                              const calendarProratedDays = day - 1;
+                              const calculated = calculateAccommodationAmount(accommodationRate, daysInMonth, calendarProratedDays);
+                              setAccommodationAmount(`${calculated}`);
                             }
                           }}
                           className="bg-background text-xs h-9 cursor-pointer"

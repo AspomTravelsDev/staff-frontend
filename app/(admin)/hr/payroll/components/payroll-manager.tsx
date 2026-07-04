@@ -44,11 +44,10 @@ import {
   CheckCheck,
   ChevronRight,
 } from "lucide-react";
+
 import {
-  calculateAccommodationWeeks,
-  calculateActualGrossWorkingDays,
+  calculateAccommodationAmount,
   calculateMonthlyTax,
-  calculateWeeklyAccommodationAmount,
   getAccommodationRate,
   getDaysInMonth,
   getWorkingDaysInMonth,
@@ -935,7 +934,11 @@ export function PayrollManager() {
                   }
 
                   const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
-                  const calendarProratedAccommodationAmount = Math.round((accommodationRate / daysInMonth) * activeCalendarDays * 100) / 100;
+                  const calendarProratedAccommodationAmount = calculateAccommodationAmount(
+                    accommodationRate,
+                    daysInMonth,
+                    calendarProratedDays,
+                  );
 
                   const proratedAccommodation =
                     payload.accommodation_amount !== undefined
@@ -943,25 +946,6 @@ export function PayrollManager() {
                       : activeEntry.accommodation_amount !== undefined
                         ? Number(activeEntry.accommodation_amount)
                         : calendarProratedAccommodationAmount;
-
-                  const afterTaxAndAccommodation = Math.max(
-                    0,
-                    actualGross - taxAmount,
-                  );
-
-                  const snapshot = activeEntry.calculation_snapshot as any;
-                  const rateDays = snapshot?.rate_days || workingDaysInMonth;
-
-                  const dailyRateFinal =
-                    rateDays > 0
-                      ? Math.round(
-                          (afterTaxAndAccommodation / rateDays) * 100,
-                        ) / 100
-                      : 0;
-
-                  const finalDays = attendanceDays + suspensionDays;
-                  const deductionAmount =
-                    Math.round(finalDays * dailyRateFinal * 100) / 100;
 
                   const otherAmountFromList = payload.other_deductions
                     ? payload.other_deductions.reduce(
@@ -974,6 +958,21 @@ export function PayrollManager() {
                     otherAmountFromList ??
                     payload.other_deductions_amount ??
                     getOtherDeductionsTotal(activeEntry);
+
+                  const dailyRateBase = Math.max(
+                    0,
+                    actualGross - taxAmount - proratedAccommodation - otherAmount,
+                  );
+
+                  const dailyRateFinal =
+                    workingDaysInMonth > 0
+                      ? Math.round((dailyRateBase / workingDaysInMonth) * 100) / 100
+                      : 0;
+
+                  const finalDays = attendanceDays + suspensionDays;
+                  const attAmount = Math.round(attendanceDays * dailyRateFinal * 100) / 100;
+                  const suspAmount = Math.round(suspensionDays * dailyRateFinal * 100) / 100;
+                  const deductionAmount = Math.round((attAmount + suspAmount) * 100) / 100;
 
                   const additionsAmountFromList = payload.additions
                     ? payload.additions.reduce(

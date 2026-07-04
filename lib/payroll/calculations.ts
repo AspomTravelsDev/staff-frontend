@@ -68,17 +68,13 @@ export function calculateActualGrossWorkingDays(
     return round2((baseSalary / workingDaysInMonth) * activeWorkingDays);
 }
 
-export function calculateAccommodationWeeks(
+export function calculateAccommodationAmount(
+    accommodationRate: number,
     daysInMonth: number,
     calendarProratedDays: number,
 ) {
     const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
-    return Math.ceil(activeCalendarDays / 7);
+    if (daysInMonth <= 0) return 0;
+    return round2((accommodationRate / daysInMonth) * activeCalendarDays);
 }
 
-export function calculateWeeklyAccommodationAmount(
-    accommodationRate: number,
-    accommodationWeeks: number,
-) {
-    return round2((accommodationRate / 4) * accommodationWeeks);
-}
