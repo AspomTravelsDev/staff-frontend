@@ -10,6 +10,7 @@ import {
   getPayrollRun,
   listPayrollRuns,
   overridePayrollEntry,
+  previewPayroll,
   recalculatePayrollEntry,
   reopenPayrollRun,
   type PayrollEntry,
@@ -48,6 +49,7 @@ import {
 import {
   calculateAccommodationAmount,
   calculateMonthlyTax,
+  calculatePayrollEntry,
   getAccommodationRate,
   getDaysInMonth,
   getWorkingDaysInMonth,
@@ -165,7 +167,53 @@ export function PayrollManager() {
 
       const firstRun = runsResult.data.data[0];
       if (!firstRun) {
-        const result = await createPayrollRun(selectedMonth);
+        // Fetch raw suggestions from preview endpoint
+        const previewRes = await previewPayroll(selectedMonth);
+        if (!previewRes.success) {
+          throw new Error(previewRes.error.error || "Failed to load preview suggestions.");
+        }
+
+        const previewEntries = previewRes.data.data.entries;
+        const calculatedEntries = previewEntries.map((pe: any) => {
+          const result = calculatePayrollEntry({
+            baseSalary: Number(pe.user.gross_pay || 0),
+            contractType: pe.user.contract_type ?? null,
+            isIntern: !!pe.is_intern,
+            dateJoined: pe.user.date_joined ?? null,
+            payrollMonth: selectedMonth,
+            proratedDays: Number(pe.prorated_days || 0),
+            accommodationAmount: Number(pe.accommodation_amount || 0),
+            attendanceDays: Number(pe.attendance_suggested_days || 0),
+            suspensionDays: Number(pe.compliance_suggested_days || 0),
+            otherDeductions: [],
+            additions: [],
+          });
+          return {
+            user_id: pe.user.id,
+            gross_salary: result.gross_salary,
+            taxable_gross: result.taxable_gross,
+            is_intern: result.is_intern,
+            attendance_days: result.attendance_days,
+            suspension_days: result.suspension_days,
+            prorated_days: result.prorated_days,
+            other_deductions_amount: result.other_deductions_amount,
+            other_deductions: result.other_deductions,
+            accommodation_amount: result.accommodation_amount,
+            additions_amount: result.additions_amount,
+            additions: result.additions,
+            attendance_suggested_days: Number(pe.attendance_suggested_days || 0),
+            compliance_suggested_days: Number(pe.compliance_suggested_days || 0),
+            system_suggested_days: Number(pe.attendance_suggested_days || 0) + Number(pe.compliance_suggested_days || 0),
+            final_deduction_days: result.final_deduction_days,
+            daily_rate: result.daily_rate,
+            deduction_amount: result.deduction_amount,
+            tax_amount: result.tax_amount,
+            net_amount: result.net_amount,
+            calculation_snapshot: result.calculation_snapshot,
+          };
+        });
+
+        const result = await createPayrollRun(selectedMonth, false, calculatedEntries);
         if (!result.success) {
           throw new Error(
             result.error.error || "Failed to auto-generate payroll run.",
@@ -231,7 +279,52 @@ export function PayrollManager() {
     setIsResetDialogOpen(false);
     setIsBusy(true);
     try {
-      const result = await createPayrollRun(selectedMonth, true);
+      const previewRes = await previewPayroll(selectedMonth);
+      if (!previewRes.success) {
+        throw new Error(previewRes.error.error || "Failed to load preview suggestions.");
+      }
+
+      const previewEntries = previewRes.data.data.entries;
+      const calculatedEntries = previewEntries.map((pe: any) => {
+        const result = calculatePayrollEntry({
+          baseSalary: Number(pe.user.gross_pay || 0),
+          contractType: pe.user.contract_type ?? null,
+          isIntern: !!pe.is_intern,
+          dateJoined: pe.user.date_joined ?? null,
+          payrollMonth: selectedMonth,
+          proratedDays: Number(pe.prorated_days || 0),
+          accommodationAmount: Number(pe.accommodation_amount || 0),
+          attendanceDays: Number(pe.attendance_suggested_days || 0),
+          suspensionDays: Number(pe.compliance_suggested_days || 0),
+          otherDeductions: [],
+          additions: [],
+        });
+        return {
+          user_id: pe.user.id,
+          gross_salary: result.gross_salary,
+          taxable_gross: result.taxable_gross,
+          is_intern: result.is_intern,
+          attendance_days: result.attendance_days,
+          suspension_days: result.suspension_days,
+          prorated_days: result.prorated_days,
+          other_deductions_amount: result.other_deductions_amount,
+          other_deductions: result.other_deductions,
+          accommodation_amount: result.accommodation_amount,
+          additions_amount: result.additions_amount,
+          additions: result.additions,
+          attendance_suggested_days: Number(pe.attendance_suggested_days || 0),
+          compliance_suggested_days: Number(pe.compliance_suggested_days || 0),
+          system_suggested_days: Number(pe.attendance_suggested_days || 0) + Number(pe.compliance_suggested_days || 0),
+          final_deduction_days: result.final_deduction_days,
+          daily_rate: result.daily_rate,
+          deduction_amount: result.deduction_amount,
+          tax_amount: result.tax_amount,
+          net_amount: result.net_amount,
+          calculation_snapshot: result.calculation_snapshot,
+        };
+      });
+
+      const result = await createPayrollRun(selectedMonth, true, calculatedEntries);
       if (!result.success) {
         throw new Error(result.error.error || "Failed to reset payroll run.");
       }
@@ -343,16 +436,57 @@ export function PayrollManager() {
   const handleRecalculateEntry = async (entryId: string) => {
     setBusyEntries((p) => ({ ...p, [entryId]: true }));
     try {
-      const result = await recalculatePayrollEntry(entryId);
+      const defaultsRes = await recalculatePayrollEntry(entryId);
+      if (!defaultsRes.success) {
+        throw new Error(defaultsRes.error.error || "Failed to recalculate entry.");
+      }
+
+      const raw = defaultsRes.data.data as any;
+      const target = currentRun?.entries?.find((e) => e.id === entryId);
+      if (!target) throw new Error("Entry not found in current run.");
+
+      const baseSalary = (target.calculation_snapshot as any)?.base_monthly_salary || Number(target.user?.gross_pay || target.gross_salary || 0);
+      const computed = calculatePayrollEntry({
+        baseSalary,
+        contractType: target.user?.contract_type ?? null,
+        isIntern: !!raw.is_intern,
+        dateJoined: target.user?.date_joined ?? null,
+        payrollMonth: currentRun?.payroll_month || selectedMonth,
+        proratedDays: Number(raw.prorated_days || 0),
+        accommodationAmount: Number(raw.accommodation_amount || 0),
+        attendanceDays: Number(raw.attendance_suggested_days || 0),
+        suspensionDays: Number(raw.compliance_suggested_days || 0),
+        otherDeductions: [],
+        additions: [],
+      });
+
+      const result = await overridePayrollEntry(entryId, {
+        attendance_days: Number(raw.attendance_suggested_days || 0),
+        suspension_days: Number(raw.compliance_suggested_days || 0),
+        prorated_days: Number(raw.prorated_days || 0),
+        accommodation_amount: Number(raw.accommodation_amount || 0),
+        other_deductions_amount: 0,
+        other_deductions: [],
+        additions_amount: 0,
+        additions: [],
+        override_note: "",
+
+        gross_salary: computed.gross_salary,
+        taxable_gross: computed.taxable_gross,
+        daily_rate: computed.daily_rate,
+        tax_amount: computed.tax_amount,
+        net_amount: computed.net_amount,
+        calculation_snapshot: computed.calculation_snapshot,
+      });
+
       if (!result.success) {
-        throw new Error(result.error.error || "Failed to recalculate entry.");
+        throw new Error(result.error.error || "Failed to save recalculated default entry.");
       }
 
       if (currentRun?.id) {
         const refreshed = await getPayrollRun(currentRun.id);
         if (refreshed.success) {
           setCurrentRun(refreshed.data.data);
-          // Update active entry if it's the one we just recalculated
           if (activeEntry?.id === entryId) {
             const updated = refreshed.data.data.entries?.find(
               (e) => e.id === entryId,
@@ -859,142 +993,6 @@ export function PayrollManager() {
                 const entryId = activeEntry.id;
                 setBusyEntries((p) => ({ ...p, [entryId]: true }));
                 try {
-                  const proratedDays =
-                    payload.prorated_days !== undefined
-                      ? payload.prorated_days
-                      : Number(activeEntry.prorated_days || 0);
-
-                  const attendanceDays =
-                    payload.attendance_days !== undefined
-                      ? payload.attendance_days
-                      : Number(activeEntry.attendance_days || 0);
-
-                  const suspensionDays =
-                    payload.suspension_days !== undefined
-                      ? payload.suspension_days
-                      : Number(activeEntry.suspension_days || 0);
-
-                  const baseSalary =
-                    (activeEntry.calculation_snapshot as any)
-                      ?.base_monthly_salary ||
-                    Number(
-                      activeEntry.user?.gross_pay ||
-                        activeEntry.gross_salary ||
-                        0,
-                    );
-
-                  const monthStr = currentRun?.payroll_month;
-                  let daysInMonth = 30;
-                  let workingDaysInMonth = 22;
-                  if (monthStr) {
-                    const [year, month] = monthStr.split("-").map(Number);
-                    daysInMonth = getDaysInMonth(year, month);
-                    workingDaysInMonth = getWorkingDaysInMonth(year, month);
-                  }
-
-                  let tenureMonths = 0;
-                  if (activeEntry.user?.date_joined && monthStr) {
-                    const [joinYear, joinMonth] = activeEntry.user.date_joined
-                      .split("-")
-                      .map(Number);
-                    const [payYear, payMonth] = monthStr.split("-").map(Number);
-                    tenureMonths =
-                      (payYear - joinYear) * 12 + (payMonth - joinMonth);
-                  }
-
-                  const accommodationRate = getAccommodationRate(
-                    activeEntry.user?.contract_type ?? undefined,
-                    tenureMonths,
-                  );
-
-                  // Linear Proration Factor
-                  const activeWorkingDays = Math.max(0, workingDaysInMonth - proratedDays);
-                  const factor = workingDaysInMonth > 0 ? activeWorkingDays / workingDaysInMonth : 0;
-
-                  const actualGross = Math.round(baseSalary * factor * 100) / 100;
-                  const baseTax = activeEntry.is_intern ? 0 : calculateMonthlyTax(baseSalary);
-                  const taxAmount = activeEntry.is_intern ? 0 : Math.round(baseTax * factor * 100) / 100;
-
-                  const baseNet = Math.max(0, baseSalary - baseTax);
-                  const proratedNet = Math.round(baseNet * factor * 100) / 100;
-
-                  let calendarProratedDays = 0;
-                  if (activeEntry.user?.date_joined && monthStr) {
-                    const joinDate = new Date(
-                      activeEntry.user.date_joined.split(" ")[0],
-                    );
-                    const [year, month] = monthStr.split("-").map(Number);
-                    const monthStart = new Date(year, month - 1, 1);
-                    if (joinDate > monthStart) {
-                      const diffMs = joinDate.getTime() - monthStart.getTime();
-                      calendarProratedDays = Math.floor(
-                        diffMs / (1000 * 60 * 60 * 24),
-                      );
-                    }
-                  }
-
-                  const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
-                  const calendarProratedAccommodationAmount = calculateAccommodationAmount(
-                    accommodationRate,
-                    daysInMonth,
-                    calendarProratedDays,
-                  );
-
-                  const proratedAccommodation =
-                    payload.accommodation_amount !== undefined
-                      ? payload.accommodation_amount
-                      : activeEntry.accommodation_amount !== undefined
-                        ? Number(activeEntry.accommodation_amount)
-                        : calendarProratedAccommodationAmount;
-
-                  const otherAmountFromList = payload.other_deductions
-                    ? payload.other_deductions.reduce(
-                        (sum, item) => sum + Number(item?.amount ?? 0),
-                        0,
-                      )
-                    : undefined;
-
-                  const otherAmount =
-                    otherAmountFromList ??
-                    payload.other_deductions_amount ??
-                    getOtherDeductionsTotal(activeEntry);
-
-                  const dailyRateBase = Math.max(
-                    0,
-                    actualGross - taxAmount - proratedAccommodation - otherAmount,
-                  );
-
-                  const dailyRateFinal =
-                    workingDaysInMonth > 0
-                      ? Math.round((dailyRateBase / workingDaysInMonth) * 100) / 100
-                      : 0;
-
-                  const finalDays = attendanceDays + suspensionDays;
-                  const attAmount = Math.round(attendanceDays * dailyRateFinal * 100) / 100;
-                  const suspAmount = Math.round(suspensionDays * dailyRateFinal * 100) / 100;
-                  const deductionAmount = Math.round((attAmount + suspAmount) * 100) / 100;
-
-                  const additionsAmountFromList = payload.additions
-                    ? payload.additions.reduce(
-                        (sum, item) => sum + Number(item?.amount ?? 0),
-                        0,
-                      )
-                    : undefined;
-
-                  const additionsAmount =
-                    additionsAmountFromList ??
-                    payload.additions_amount ??
-                    getAdditionsTotal(activeEntry);
-
-                  const netAmount = Math.max(
-                    0,
-                    proratedNet -
-                      proratedAccommodation -
-                      otherAmount -
-                      deductionAmount +
-                      additionsAmount,
-                  );
-
                   setCurrentRun((prev) => {
                     if (!prev) return prev;
                     return {
@@ -1003,23 +1001,7 @@ export function PayrollManager() {
                         e.id === entryId
                           ? {
                               ...e,
-                              attendance_days: attendanceDays,
-                              suspension_days: suspensionDays,
-                              prorated_days: proratedDays,
-                              accommodation_amount: proratedAccommodation,
-                              other_deductions_amount: otherAmount,
-                              other_deductions:
-                                payload.other_deductions ?? e.other_deductions,
-                              additions_amount: additionsAmount,
-                              additions: payload.additions ?? e.additions,
-                              final_deduction_days: finalDays,
-                              deduction_amount: deductionAmount,
-                              taxable_gross: actualGross,
-                              gross_salary: actualGross,
-                              tax_amount: taxAmount,
-                              net_amount: netAmount,
-                              override_note:
-                                payload.override_note ?? e.override_note,
+                              ...payload,
                             }
                           : e,
                       ),

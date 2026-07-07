@@ -78,3 +78,179 @@ export function calculateAccommodationAmount(
     return round2((accommodationRate / daysInMonth) * activeCalendarDays);
 }
 
+export const SALARY_PERCENTAGES = {
+  basic: 0.1835,
+  rent_housing: 0.0552,
+  transport: 0.0552,
+  medical: 0.1826,
+  furniture: 0.0634,
+  utility: 0.0345,
+  entertainment: 0.0446,
+  meal_subsidy: 0.1336,
+  clothing: 0.1328,
+  passages: 0.1146,
+};
+
+export interface PayrollEntryInput {
+  baseSalary: number;
+  contractType?: string | null;
+  isIntern: boolean;
+  dateJoined?: string | null;
+  payrollMonth: string;
+  proratedDays: number;
+  accommodationAmount?: number | null;
+  attendanceDays: number;
+  suspensionDays: number;
+  otherDeductions: { label: string; amount: number }[];
+  additions: { label: string; amount: number }[];
+  customGross?: number | null;
+  customTax?: number | null;
+  customDailyRate?: number | null;
+  customNet?: number | null;
+}
+
+export function calculatePayrollEntry(input: PayrollEntryInput) {
+  const {
+    baseSalary,
+    contractType,
+    isIntern,
+    dateJoined,
+    payrollMonth,
+    proratedDays,
+    accommodationAmount,
+    attendanceDays,
+    suspensionDays,
+    otherDeductions,
+    additions,
+    customGross,
+    customTax,
+    customDailyRate,
+    customNet,
+  } = input;
+
+  const [year, month] = payrollMonth.split("-").map(Number);
+  const daysInMonth = getDaysInMonth(year, month);
+  const workingDaysInMonth = getWorkingDaysInMonth(year, month);
+
+  // Tenure
+  let tenureMonths = 0;
+  if (dateJoined) {
+    const [joinYear, joinMonth] = dateJoined.split(" ")[0].split("-").map(Number);
+    tenureMonths = (year - joinYear) * 12 + (month - joinMonth);
+  }
+
+  const accommodationRate = getAccommodationRate(contractType ?? undefined, tenureMonths);
+
+  // Linear Proration Factor
+  const activeWorkingDays = Math.max(0, workingDaysInMonth - proratedDays);
+  const factor = workingDaysInMonth > 0 ? activeWorkingDays / workingDaysInMonth : 0.0;
+
+  // Actual gross (prorated)
+  const actualGross = (customGross !== undefined && customGross !== null)
+    ? customGross
+    : round2(baseSalary * factor);
+
+  // progressive tax calculated on actual gross salary
+  const taxAmount = isIntern ? 0 : (
+    (customTax !== undefined && customTax !== null)
+      ? customTax
+      : calculateMonthlyTax(actualGross)
+  );
+
+  // prorated net pay
+  const proratedNet = round2(Math.max(0, actualGross - taxAmount));
+
+  // Calendar proration for accommodation
+  let calendarProratedDays = 0;
+  if (dateJoined) {
+    const joinDate = new Date(dateJoined.split(" ")[0]);
+    const monthStart = new Date(year, month - 1, 1);
+    if (joinDate > monthStart) {
+      const diffMs = joinDate.getTime() - monthStart.getTime();
+      calendarProratedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+  }
+  const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);
+  const defaultAccommodationAmount = calculateAccommodationAmount(accommodationRate, daysInMonth, calendarProratedDays);
+  const finalAccommodationAmount = (accommodationAmount !== undefined && accommodationAmount !== null)
+    ? accommodationAmount
+    : defaultAccommodationAmount;
+
+  // Other Deductions
+  const otherDeductionsAmount = otherDeductions.reduce((sum, d) => sum + Number(d.amount), 0);
+
+  // Additions
+  const additionsAmount = additions.reduce((sum, a) => sum + Number(a.amount), 0);
+
+  // Daily rate base
+  const dailyRateBase = Math.max(0, actualGross - taxAmount - finalAccommodationAmount - otherDeductionsAmount);
+  const defaultDailyRate = workingDaysInMonth > 0 ? round2(dailyRateBase / workingDaysInMonth) : 0;
+  const dailyRate = (customDailyRate !== undefined && customDailyRate !== null)
+    ? customDailyRate
+    : defaultDailyRate;
+
+  // Absences and Suspensions
+  const attendanceDeduction = round2(attendanceDays * dailyRate);
+  const suspensionDeduction = round2(suspensionDays * dailyRate);
+  const deductionAmount = round2(attendanceDeduction + suspensionDeduction);
+
+  const finalDeductionDays = round2(attendanceDays + suspensionDays);
+
+  const defaultNet = Math.max(0, proratedNet - finalAccommodationAmount - otherDeductionsAmount - deductionAmount + additionsAmount);
+  const netAmount = (customNet !== undefined && customNet !== null)
+    ? customNet
+    : defaultNet;
+
+  // Salary breakdown
+  const breakdown: Record<string, number> = {};
+  for (const [key, pct] of Object.entries(SALARY_PERCENTAGES)) {
+    breakdown[key] = round2(actualGross * pct);
+  }
+
+  const snapshot = {
+    ...breakdown,
+    base_monthly_salary: baseSalary,
+    gross_salary: actualGross,
+    tax_amount: taxAmount,
+    accommodation_rate: accommodationRate,
+    accommodation_amount: finalAccommodationAmount,
+    accommodation_weeks: Math.ceil(activeCalendarDays / 7),
+    after_tax: round2(actualGross - taxAmount),
+    after_tax_accommodation: dailyRateBase,
+    daily_rate: dailyRate,
+    working_days: workingDaysInMonth,
+    rate_days: workingDaysInMonth,
+    deduction_amount: deductionAmount,
+    attendance_deduction: attendanceDeduction,
+    suspension_deduction: suspensionDeduction,
+    prorated_days: proratedDays,
+    attendance_absence_days: attendanceDays,
+    other_deductions_amount: otherDeductionsAmount,
+    other_deductions: otherDeductions,
+    additions_amount: additionsAmount,
+    additions: additions,
+    net_amount: netAmount,
+    is_intern: isIntern,
+  };
+
+  return {
+    gross_salary: actualGross,
+    taxable_gross: actualGross,
+    is_intern: isIntern,
+    accommodation_amount: finalAccommodationAmount,
+    attendance_days: attendanceDays,
+    suspension_days: suspensionDays,
+    prorated_days: proratedDays,
+    other_deductions_amount: otherDeductionsAmount,
+    other_deductions: otherDeductions,
+    additions_amount: additionsAmount,
+    additions: additions,
+    final_deduction_days: finalDeductionDays,
+    daily_rate: dailyRate,
+    deduction_amount: deductionAmount,
+    tax_amount: taxAmount,
+    net_amount: netAmount,
+    calculation_snapshot: snapshot,
+  };
+}
+

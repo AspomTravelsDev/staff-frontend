@@ -84,10 +84,15 @@ export async function listPayrollRuns(month?: string): Promise<ApiResponse<{ dat
   return api.get<{ data: PayrollRun[] }>(`/api/hr/payroll/runs${query}`);
 }
 
-export async function createPayrollRun(payrollMonth: string, reset: boolean = false): Promise<ApiResponse<{ data: PayrollRun }>> {
+export async function createPayrollRun(
+  payrollMonth: string,
+  reset: boolean = false,
+  entries?: any[],
+): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>("/api/hr/payroll/runs", {
     payroll_month: payrollMonth,
     reset: reset,
+    entries: entries,
   });
 }
 
@@ -123,6 +128,12 @@ export async function overridePayrollEntry(
     final_deduction_days?: number;
     deduction_amount?: number;
     override_note?: string;
+    gross_salary?: number;
+    taxable_gross?: number;
+    daily_rate?: number;
+    tax_amount?: number;
+    net_amount?: number;
+    calculation_snapshot?: Record<string, any>;
   },
 ): Promise<ApiResponse<{ data: PayrollEntry }>> {
   return api.patch<{ data: PayrollEntry }>(`/api/hr/payroll/entries/${entryId}/override`, payload);

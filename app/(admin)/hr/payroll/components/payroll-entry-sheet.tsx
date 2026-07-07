@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import type { PayrollEntry } from "@/lib/api/payroll";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,13 +25,15 @@ import {
 import { Info, Save, CheckCircle2, X, RotateCcw } from "lucide-react";
 import {
   calculateAccommodationAmount,
-  calculateActualGrossWorkingDays,
   calculateMonthlyTax,
+  calculatePayrollEntry,
   countWeekdaysBetween,
   getAccommodationRate,
   getDaysInMonth,
   getWorkingDaysInMonth,
 } from "@/lib/payroll/calculations";
+
+const round2 = (val: number) => Math.round(val * 100) / 100;
 
 interface Props {
   entry: PayrollEntry;
@@ -49,6 +52,12 @@ interface Props {
     final_deduction_days?: number;
     deduction_amount?: number;
     override_note?: string;
+    gross_salary?: number;
+    taxable_gross?: number;
+    daily_rate?: number;
+    tax_amount?: number;
+    net_amount?: number;
+    calculation_snapshot?: Record<string, any>;
   }) => Promise<void>;
   onApprove: (entryId: string) => Promise<void>;
   onRecalculate?: (entryId: string) => Promise<void>;
@@ -130,15 +139,17 @@ export function PayrollEntrySheet({
   const [proratedDays, setProratedDays] = useState<string>(
     `${entry.prorated_days ?? 0}`,
   );
-  const [isMidMonthResumption, setIsMidMonthResumption] = useState<boolean>(
+  const [adjustmentType, setAdjustmentType] = useState<"none" | "resumption" | "resignation">(
     () => {
-      const monthStrVal = payrollMonth || entry.run?.payroll_month;
-      return (
-        Number(entry.prorated_days ?? 0) > 0 ||
-        (!!entry.user?.date_joined &&
+      if (Number(entry.prorated_days ?? 0) > 0) {
+        const monthStrVal = payrollMonth || entry.run?.payroll_month;
+        const isJoinedThisMonth =
+          !!entry.user?.date_joined &&
           !!monthStrVal &&
-          entry.user.date_joined.startsWith(monthStrVal))
-      );
+          entry.user.date_joined.startsWith(monthStrVal);
+        return isJoinedThisMonth ? "resumption" : "resignation";
+      }
+      return "none";
     },
   );
   const [resumptionDate, setResumptionDate] = useState<string>(() => {
@@ -151,6 +162,10 @@ export function PayrollEntrySheet({
       return entry.user.date_joined.split(" ")[0];
     }
     return monthStrVal ? `${monthStrVal}-01` : "";
+  });
+  const [resignationDate, setResignationDate] = useState<string>(() => {
+    const monthStrVal = payrollMonth || entry.run?.payroll_month;
+    return monthStrVal ? `${monthStrVal}-15` : "";
   });
   const [accommodationAmount, setAccommodationAmount] = useState<string>(
     `${entry.accommodation_amount ?? entry.calculation_snapshot?.accommodation_amount ?? 0}`,
@@ -166,6 +181,12 @@ export function PayrollEntrySheet({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const [customActualGross, setCustomActualGross] = useState<string>("");
+  const [customTaxAmount, setCustomTaxAmount] = useState<string>("");
+  const [customDailyRate, setCustomDailyRate] = useState<string>("");
+  const [customNetAmount, setCustomNetAmount] = useState<string>("");
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
 
   useEffect(() => {
     setAttendanceDays(`${entry.attendance_days ?? 0}`);
@@ -185,7 +206,14 @@ export function PayrollEntrySheet({
       !!entry.user?.date_joined &&
       !!monthStrVal &&
       entry.user.date_joined.startsWith(monthStrVal);
-    setIsMidMonthResumption(hasProration || isJoinedThisMonth);
+    
+    setAdjustmentType(
+      hasProration
+        ? isJoinedThisMonth
+          ? "resumption"
+          : "resignation"
+        : "none"
+    );
     setResumptionDate(
       isJoinedThisMonth
         ? entry.user!.date_joined!.split(" ")[0]
@@ -193,6 +221,60 @@ export function PayrollEntrySheet({
           ? `${monthStrVal}-01`
           : "",
     );
+    setResignationDate(
+      monthStrVal ? `${monthStrVal}-15` : ""
+    );
+
+    // Compute dynamic defaults based on raw inputs to detect database overrides
+    if (monthStrVal) {
+      const [year, month] = monthStrVal.split("-").map(Number);
+      const daysInMonthVal = getDaysInMonth(year, month);
+      const workingDaysInMonthVal = getWorkingDaysInMonth(year, month);
+
+      const baseSalaryVal = (entry.calculation_snapshot as any)?.base_monthly_salary || Number(entry.user?.gross_pay || entry.gross_salary || 0);
+
+      const activeWorkingDays = Math.max(0, workingDaysInMonthVal - Number(entry.prorated_days ?? 0));
+      const factor = workingDaysInMonthVal > 0 ? activeWorkingDays / workingDaysInMonthVal : 0;
+      const defaultGross = round2(baseSalaryVal * factor);
+      const defaultTax = entry.is_intern ? 0 : calculateMonthlyTax(defaultGross);
+
+      let calendarProratedDays = 0;
+      if (entry.user?.date_joined) {
+        const joinDate = new Date(entry.user.date_joined.split(" ")[0]);
+        const monthStart = new Date(year, month - 1, 1);
+        if (joinDate > monthStart) {
+          const diffMs = joinDate.getTime() - monthStart.getTime();
+          calendarProratedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        }
+      }
+      const tenureMonthsVal = (() => {
+        if (!entry.user?.date_joined) return 0;
+        const [joinYear, joinMonth] = entry.user.date_joined.split("-").map(Number);
+        return (year - joinYear) * 12 + (month - joinMonth);
+      })();
+      const accommodationRateVal = getAccommodationRate(entry.user?.contract_type ?? undefined, tenureMonthsVal);
+      const defaultAccommodationAmount = calculateAccommodationAmount(accommodationRateVal, daysInMonthVal, calendarProratedDays);
+      const finalAccommodationAmount = Number(entry.accommodation_amount !== undefined ? entry.accommodation_amount : defaultAccommodationAmount);
+
+      const otherDeductionsAmount = normalizeOtherDeductions(entry).reduce((sum, d) => sum + Number(d.amount), 0);
+      const additionsAmount = normalizeAdditions(entry).reduce((sum, a) => sum + Number(a.amount), 0);
+
+      const dailyRateBase = Math.max(0, defaultGross - defaultTax - finalAccommodationAmount - otherDeductionsAmount);
+      const defaultDailyRate = workingDaysInMonthVal > 0 ? round2(dailyRateBase / workingDaysInMonthVal) : 0;
+
+      const attVal = Number(entry.attendance_days ?? 0);
+      const suspVal = Number(entry.suspension_days ?? 0);
+      const attAmount = round2(attVal * defaultDailyRate);
+      const suspAmount = round2(suspVal * defaultDailyRate);
+      const defaultDeductionAmount = round2(attAmount + suspAmount);
+
+      const defaultNet = Math.max(0, round2(Math.max(0, defaultGross - defaultTax)) - finalAccommodationAmount - otherDeductionsAmount - defaultDeductionAmount + additionsAmount);
+
+      setCustomActualGross(Number(entry.gross_salary) !== defaultGross ? String(entry.gross_salary) : "");
+      setCustomTaxAmount(Number(entry.tax_amount) !== defaultTax ? String(entry.tax_amount) : "");
+      setCustomDailyRate(Number(entry.daily_rate) !== defaultDailyRate ? String(entry.daily_rate) : "");
+      setCustomNetAmount(Number(entry.net_amount) !== defaultNet ? String(entry.net_amount) : "");
+    }
   }, [entry, payrollMonth]);
 
   const updateOtherDeduction = (
@@ -285,6 +367,15 @@ export function PayrollEntrySheet({
     return countWeekdaysBetween(start, end);
   };
 
+  const calculateResignationDelayFromDate = (dateVal: string) => {
+    if (!dateVal || !monthStr) return 0;
+    const [year, month, day] = dateVal.split("-").map(Number);
+    const lastDay = getDaysInMonth(year, month);
+    const start = new Date(year, month - 1, day + 1);
+    const end = new Date(year, month - 1, lastDay);
+    return countWeekdaysBetween(start, end);
+  };
+
   const accommodationRate = useMemo(() => {
     if (!entry.user?.contract_type) {
       return 0;
@@ -303,70 +394,57 @@ export function PayrollEntrySheet({
     const att = parse(attendanceDays);
     const susp = parse(suspensionDays);
     const prorated = parse(proratedDays);
-    const othAmount = otherDeductions.reduce(
-      (sum, item) => sum + parse(item.amount),
-      0,
-    );
-    const addAmount = additions.reduce(
-      (sum, item) => sum + parse(item.amount),
-      0,
-    );
+
+    const otherDeductionsPayload = otherDeductions
+      .map((item) => ({
+        label: item.label.trim(),
+        amount: parse(item.amount),
+      }))
+      .filter((item) => item.label.length > 0 && item.amount > 0);
+
+    const additionsPayload = additions
+      .map((item) => ({
+        label: item.label.trim(),
+        amount: parse(item.amount),
+      }))
+      .filter((item) => item.label.length > 0 && item.amount > 0);
 
     const baseSalary =
       (entry.calculation_snapshot as any)?.base_monthly_salary ||
       Number(entry.user?.gross_pay || entry.gross_salary || 0);
 
-    // Linear Proration Factor
-    const activeWorkingDays = Math.max(0, workingDaysInMonth - prorated);
-    const factor = workingDaysInMonth > 0 ? activeWorkingDays / workingDaysInMonth : 0.0;
-
-    // Prorated Gross & Tax (Linear)
-    const actualGross = Math.round(baseSalary * factor * 100) / 100;
-    const baseTax = entry.is_intern ? 0 : calculateMonthlyTax(baseSalary);
-    const taxAmount = entry.is_intern ? 0 : Math.round(baseTax * factor * 100) / 100;
-
-    const baseNet = Math.max(0, baseSalary - baseTax);
-    const proratedNet = Math.round(baseNet * factor * 100) / 100;
-
-    const accAmount = parse(accommodationAmount);
-
-    // Daily rate base (June Gross - Tax - Accommodation - Other Deductions)
-    const dailyRateBase = Math.max(
-      0,
-      actualGross - taxAmount - accAmount - othAmount,
-    );
-
-    // Daily rate based on dailyRateBase over workingDaysInMonth
-    const dailyRateFinal =
-      workingDaysInMonth > 0
-        ? Math.round((dailyRateBase / workingDaysInMonth) * 100) / 100
-        : 0;
-
-    const attAmount = Math.round(att * dailyRateFinal * 100) / 100;
-    const suspAmount = Math.round(susp * dailyRateFinal * 100) / 100;
-
-    const attendanceComplianceDeduction =
-      Math.round((attAmount + suspAmount) * 100) / 100;
-
-    // Final Net = proratedNet - accommodation - other - penalties + additions
-    const netAmount = Math.max(
-      0,
-      proratedNet - accAmount - othAmount - attendanceComplianceDeduction + addAmount,
-    );
+    const result = calculatePayrollEntry({
+      baseSalary,
+      contractType: entry.user?.contract_type ?? null,
+      isIntern: !!entry.is_intern,
+      dateJoined: entry.user?.date_joined ?? null,
+      payrollMonth: monthStr || "",
+      proratedDays: prorated,
+      accommodationAmount: parse(accommodationAmount),
+      attendanceDays: att,
+      suspensionDays: susp,
+      otherDeductions: otherDeductionsPayload,
+      additions: additionsPayload,
+      customGross: customActualGross !== "" ? parse(customActualGross) : null,
+      customTax: customTaxAmount !== "" ? parse(customTaxAmount) : null,
+      customDailyRate: customDailyRate !== "" ? parse(customDailyRate) : null,
+      customNet: customNetAmount !== "" ? parse(customNetAmount) : null,
+    });
 
     return {
       baseSalary,
-      actualGross,
-      accommodation: accAmount,
-      attAmount,
-      suspAmount,
-      othAmount,
-      addAmount,
+      actualGross: result.gross_salary,
+      accommodation: result.accommodation_amount,
+      attAmount: round2(att * result.daily_rate),
+      suspAmount: round2(susp * result.daily_rate),
+      othAmount: result.other_deductions_amount,
+      addAmount: result.additions_amount,
       prorated,
-      attendanceComplianceDeduction,
-      taxAmount,
-      netAmount,
-      dailyRate: dailyRateFinal,
+      attendanceComplianceDeduction: result.deduction_amount,
+      taxAmount: result.tax_amount,
+      netAmount: result.net_amount,
+      dailyRate: result.daily_rate,
+      fullOutput: result,
     };
   }, [
     attendanceDays,
@@ -375,8 +453,7 @@ export function PayrollEntrySheet({
     accommodationAmount,
     otherDeductions,
     additions,
-    daysInMonth,
-    workingDaysInMonth,
+    monthStr,
     entry.gross_salary,
     entry.is_intern,
     entry.calculation_snapshot,
@@ -422,11 +499,18 @@ export function PayrollEntrySheet({
         suspension_days: parse(suspensionDays),
         prorated_days: parse(proratedDays),
         accommodation_amount: parse(accommodationAmount),
-        other_deductions_amount: otherAmountTotal,
+        other_deductions_amount: computed.othAmount,
         other_deductions: otherDeductionsPayload,
-        additions_amount: additionsAmountTotal,
+        additions_amount: computed.addAmount,
         additions: additionsPayload,
         override_note: note || undefined,
+        
+        gross_salary: computed.actualGross,
+        taxable_gross: computed.actualGross,
+        daily_rate: computed.dailyRate,
+        tax_amount: computed.taxAmount,
+        net_amount: computed.netAmount,
+        calculation_snapshot: computed.fullOutput.calculation_snapshot,
       });
 
       if (approveAfter) {
@@ -544,34 +628,24 @@ export function PayrollEntrySheet({
               </div>
 
               <div className="grid gap-4">
-                {/* Resumption Delay (Joined Mid-Month) */}
+                {/* Proration Adjustment (Resumption / Resignation) */}
                 <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label
-                        htmlFor="mid-month-toggle"
-                        className="text-xs font-semibold text-slate-700 cursor-pointer"
-                      >
-                        Resumed Mid-Month?
-                      </Label>
-                      <p className="text-[10px] text-muted-foreground">
-                        Toggle to calculate proration delay for mid-month
-                        resumption.
-                      </p>
-                    </div>
-                    <input
-                      id="mid-month-toggle"
-                      type="checkbox"
-                      checked={isMidMonthResumption}
+                  <div className="space-y-2">
+                    <Label htmlFor="adjustment-type" className="text-xs font-semibold text-slate-700">
+                      Proration Adjustment Type
+                    </Label>
+                    <select
+                      id="adjustment-type"
+                      value={adjustmentType}
                       onChange={(e) => {
-                        const checked = e.target.checked;
-                        setIsMidMonthResumption(checked);
-                        if (!checked) {
+                        const val = e.target.value as "none" | "resumption" | "resignation";
+                        setAdjustmentType(val);
+                        if (val === "none") {
                           setProratedDays("0");
                           if (!isAccommodationOverride) {
                             setAccommodationAmount(`${accommodationRate}`);
                           }
-                        } else {
+                        } else if (val === "resumption") {
                           const delay = calculateDelayFromDate(resumptionDate);
                           setProratedDays(`${delay}`);
                           if (!isAccommodationOverride) {
@@ -581,13 +655,27 @@ export function PayrollEntrySheet({
                             const calculated = calculateAccommodationAmount(accommodationRate, daysInMonth, calendarProratedDays);
                             setAccommodationAmount(`${calculated}`);
                           }
+                        } else if (val === "resignation") {
+                          const delay = calculateResignationDelayFromDate(resignationDate);
+                          setProratedDays(`${delay}`);
+                          if (!isAccommodationOverride) {
+                            const parts = resignationDate.split("-");
+                            const day = parts.length === 3 ? Number(parts[2]) : 15;
+                            const calendarProratedDays = daysInMonth - day;
+                            const calculated = calculateAccommodationAmount(accommodationRate, daysInMonth, calendarProratedDays);
+                            setAccommodationAmount(`${calculated}`);
+                          }
                         }
                       }}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                    />
+                      className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="none">No Proration Adjustment</option>
+                      <option value="resumption">Resumed Mid-Month</option>
+                      <option value="resignation">Resigned Before Month End</option>
+                    </select>
                   </div>
 
-                  {isMidMonthResumption && (
+                  {adjustmentType === "resumption" && (
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
                       <div className="space-y-2">
                         <Label
@@ -660,7 +748,67 @@ export function PayrollEntrySheet({
                     </div>
                   )}
 
-                  {isMidMonthResumption && (
+                  {adjustmentType === "resignation" && (
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="resignation-date"
+                          className="text-xs font-semibold text-slate-600"
+                        >
+                          Resignation Date
+                        </Label>
+                        <Input
+                          id="resignation-date"
+                          type="date"
+                          min={monthStr ? `${monthStr}-01` : undefined}
+                          max={
+                            monthStr && daysInMonth
+                              ? `${monthStr}-${daysInMonth}`
+                              : undefined
+                          }
+                          value={resignationDate}
+                          onChange={(e) => {
+                            const dateVal = e.target.value;
+                            setResignationDate(dateVal);
+                            const delay = calculateResignationDelayFromDate(dateVal);
+                            setProratedDays(`${delay}`);
+                            if (!isAccommodationOverride) {
+                              const parts = dateVal.split("-");
+                              const day = parts.length === 3 ? Number(parts[2]) : 15;
+                              const calendarProratedDays = daysInMonth - day;
+                              const calculated = calculateAccommodationAmount(accommodationRate, daysInMonth, calendarProratedDays);
+                              setAccommodationAmount(`${calculated}`);
+                            }
+                          }}
+                          className="bg-background text-xs h-9 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="prorated-days"
+                          className="text-xs font-semibold text-slate-600"
+                        >
+                          Days Missed After Resignation
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="prorated-days"
+                            type="number"
+                            step="0.01"
+                            value={proratedDays}
+                            onChange={(e) => setProratedDays(e.target.value)}
+                            className="pr-16 bg-background text-xs h-9"
+                          />
+                          <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                            days
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {adjustmentType !== "none" && (
                     <div className="flex justify-between items-center text-right pt-2 border-t">
                       <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                         Proration Effect
@@ -788,6 +936,178 @@ export function PayrollEntrySheet({
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Advanced Overrides Collapsible */}
+            <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
+              <button
+                type="button"
+                className="flex items-center justify-between w-full text-left font-bold text-xs uppercase tracking-wider text-slate-700 focus:outline-none cursor-pointer"
+                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+              >
+                <span>Manual Calculation Overrides (Advanced)</span>
+                <span className="text-muted-foreground font-semibold">{isAdvancedOpen ? "Hide" : "Show"}</span>
+              </button>
+              
+              {isAdvancedOpen && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
+                  {/* Actual Gross Override */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="custom-gross" className="text-xs font-semibold text-slate-600">
+                        Actual Gross Pay
+                      </Label>
+                      {customActualGross !== "" && (
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                          onClick={() => setCustomActualGross("")}
+                        >
+                          Revert to Auto
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="custom-gross"
+                        type="number"
+                        step="0.01"
+                        value={customActualGross !== "" ? customActualGross : computed.fullOutput.gross_salary}
+                        onChange={(e) => setCustomActualGross(e.target.value)}
+                        onFocus={() => {
+                          if (customActualGross === "") {
+                            setCustomActualGross(String(computed.fullOutput.gross_salary));
+                          }
+                        }}
+                        className={cn(
+                          "pr-12 bg-background text-xs h-9",
+                          customActualGross !== "" && "border-amber-500 focus-visible:ring-amber-500"
+                        )}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        NGN
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PAYE Tax Override */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="custom-tax" className="text-xs font-semibold text-slate-600">
+                        PAYE Tax
+                      </Label>
+                      {customTaxAmount !== "" && (
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                          onClick={() => setCustomTaxAmount("")}
+                        >
+                          Revert to Auto
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="custom-tax"
+                        type="number"
+                        step="0.01"
+                        value={customTaxAmount !== "" ? customTaxAmount : computed.fullOutput.tax_amount}
+                        onChange={(e) => setCustomTaxAmount(e.target.value)}
+                        onFocus={() => {
+                          if (customTaxAmount === "") {
+                            setCustomTaxAmount(String(computed.fullOutput.tax_amount));
+                          }
+                        }}
+                        className={cn(
+                          "pr-12 bg-background text-xs h-9",
+                          customTaxAmount !== "" && "border-amber-500 focus-visible:ring-amber-500"
+                        )}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        NGN
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Daily Rate Override */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="custom-daily-rate" className="text-xs font-semibold text-slate-600">
+                        Daily Rate
+                      </Label>
+                      {customDailyRate !== "" && (
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                          onClick={() => setCustomDailyRate("")}
+                        >
+                          Revert to Auto
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="custom-daily-rate"
+                        type="number"
+                        step="0.01"
+                        value={customDailyRate !== "" ? customDailyRate : computed.fullOutput.daily_rate}
+                        onChange={(e) => setCustomDailyRate(e.target.value)}
+                        onFocus={() => {
+                          if (customDailyRate === "") {
+                            setCustomDailyRate(String(computed.fullOutput.daily_rate));
+                          }
+                        }}
+                        className={cn(
+                          "pr-12 bg-background text-xs h-9",
+                          customDailyRate !== "" && "border-amber-500 focus-visible:ring-amber-500"
+                        )}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        NGN
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Net Pay Override */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="custom-net" className="text-xs font-semibold text-slate-600">
+                        Net Pay
+                      </Label>
+                      {customNetAmount !== "" && (
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                          onClick={() => setCustomNetAmount("")}
+                        >
+                          Revert to Auto
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="custom-net"
+                        type="number"
+                        step="0.01"
+                        value={customNetAmount !== "" ? customNetAmount : computed.fullOutput.net_amount}
+                        onChange={(e) => setCustomNetAmount(e.target.value)}
+                        onFocus={() => {
+                          if (customNetAmount === "") {
+                            setCustomNetAmount(String(computed.fullOutput.net_amount));
+                          }
+                        }}
+                        className={cn(
+                          "pr-12 bg-background text-xs h-9",
+                          customNetAmount !== "" && "border-amber-500 focus-visible:ring-amber-500"
+                        )}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                        NGN
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Other Deductions */}
