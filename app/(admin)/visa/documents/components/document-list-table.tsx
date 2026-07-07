@@ -97,12 +97,9 @@ export function DocumentListTable({
       // Use file_id if available (for documents that have separate file records), otherwise fallback to id
       const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+      const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
-      const response = await fetch(downloadUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(proxyUrl);
 
       if (!response.ok) {
         console.error("Download failed:", response.status, response.statusText);

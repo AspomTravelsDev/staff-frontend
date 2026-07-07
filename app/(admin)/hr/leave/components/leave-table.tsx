@@ -34,6 +34,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LeaveRequest, approveLeaveRequest, rejectLeaveRequest } from "@/lib/api/leave";
+import { LeaveDetailsSheet } from "../../../my/leave/components/leave-details-sheet";
 
 interface LeaveTableProps {
   requests: LeaveRequest[];
@@ -46,6 +47,9 @@ export function LeaveTable({ requests }: LeaveTableProps) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const handleApprove = async (id: string) => {
     setLoadingId(id);
@@ -162,7 +166,13 @@ export function LeaveTable({ requests }: LeaveTableProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
+                       <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setSelectedLeave(req);
+                          setDetailsOpen(true);
+                        }}
+                      >
                         <Eye className="mr-2 h-4 w-4" /> View Details
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -220,7 +230,26 @@ export function LeaveTable({ requests }: LeaveTableProps) {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+       </Dialog>
+
+      <LeaveDetailsSheet
+        leave={selectedLeave ? {
+          id: selectedLeave.id,
+          type: selectedLeave.type,
+          days: selectedLeave.days,
+          startDate: selectedLeave.startDate,
+          endDate: selectedLeave.endDate,
+          reason: selectedLeave.reason,
+          status: selectedLeave.status,
+          employeeName: selectedLeave.employeeName,
+          department: selectedLeave.department,
+          rejectionReason: selectedLeave.rejectionReason,
+          approvedByName: selectedLeave.approvedByName,
+          approvedAt: selectedLeave.approvedAt,
+        } : null}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </div>
   );
 }

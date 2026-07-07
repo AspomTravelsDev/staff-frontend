@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,6 +55,12 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
     return format(end, "yyyy-MM-dd");
   }, [startDate, days]);
 
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -85,23 +93,27 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="default" className="mb-4">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="default">
           Request Leave
         </Button>
-      </SheetTrigger>
-      <SheetContent className="p-4">
-        <SheetHeader>
-          <SheetTitle>Request Leave</SheetTitle>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="max-w-md p-6">
+        <DialogHeader>
+          <DialogTitle>Request Leave</DialogTitle>
+          <DialogDescription>
+            Submit a new leave application. Your request will be reviewed by HR.
+          </DialogDescription>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Name</Label>
               <Input value={userName} readOnly />
             </div>
             <div>
+              <Label>Role</Label>
               <Input value={getRoleLabel(role) || "-"} readOnly />
             </div>
           </div>
@@ -141,8 +153,7 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
                 value={startDate}
                 onChange={setStartDate}
                 placeholder="Pick a start date"
-                // name="startDate"
-                // required
+                minDate={today}
               />
             </div>
             <div>
@@ -159,14 +170,17 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
               required
             />
           </div>
-          <div className="flex justify-end">
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Submit
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

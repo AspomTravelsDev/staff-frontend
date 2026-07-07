@@ -107,6 +107,7 @@ export const departmentNav: NavItem[] = [
         url: "/hr/leave",
         icon: CalendarCheck,
         allowedRoles: ["hr"],
+        badgeKey: "pendingLeaves",
     },
     {
         title: "Performance Reviews",
@@ -338,7 +339,7 @@ export const personalNav: NavItem[] = [
         url: "",
         icon: Users,
         items: [
-            { title: "Leave", url: "/my/leave"},
+            { title: "Leave", url: "/my/leave", badgeKey: "myLeaveUpdates" },
             {
                 title: "To-Do & Reports",
                 url: "/my/tasks",

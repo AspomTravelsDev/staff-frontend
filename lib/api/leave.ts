@@ -22,6 +22,9 @@ export interface LeaveRequest {
     days: number;
     status: LeaveStatus;
     reason: string;
+    rejectionReason?: string;
+    approvedByName?: string;
+    approvedAt?: string;
 }
 
 export interface LeaveStats {
@@ -186,6 +189,9 @@ export async function getMyLeaveRequests(): Promise<LeaveRequest[]> {
         days: req.days,
         status: req.status as LeaveStatus,
         reason: req.reason,
+        rejectionReason: req.rejectionReason,
+        approvedByName: req.approvedByName,
+        approvedAt: req.approvedAt,
     }));
 }
 
@@ -236,5 +242,11 @@ export async function rejectLeaveRequest(id: string, reason: string) {
     if (!result.success) throw new Error(result.error.error || "Failed to reject leave request");
     revalidatePath("/my/leave");
     revalidatePath("/hr/leave");
+    return result.data;
+}
+
+export async function markLeaveNotificationsViewed() {
+    const result = await api.post<{ message: string }>("/api/my/leave/notifications/mark-viewed", {});
+    if (!result.success) throw new Error(result.error.error || "Failed to mark leave notifications viewed");
     return result.data;
 }

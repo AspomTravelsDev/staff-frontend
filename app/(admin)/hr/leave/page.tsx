@@ -3,8 +3,13 @@ import { redirect } from "next/navigation";
 import { getLeaveRequests, getLeaveStats } from "@/lib/api/leave";
 import { LeaveStatsCards } from "./components/leave-stats";
 import { LeaveTable } from "./components/leave-table";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default async function LeaveManagementPage() {
   const user = await getCurrentUser();
@@ -24,20 +29,26 @@ export default async function LeaveManagementPage() {
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Leave Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Leave Management</h1>
           <p className="text-sm text-muted-foreground">
             Review and manage employee leave requests
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Request
-        </Button>
       </div>
 
       <LeaveStatsCards stats={stats} />
 
-      <LeaveTable requests={requestsData.items} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Employee Leave Requests</CardTitle>
+          <CardDescription>
+            Review pending applications, approve time off, or reject requests with comments.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LeaveTable requests={requestsData.items} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

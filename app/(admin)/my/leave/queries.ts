@@ -14,6 +14,9 @@ export type LeaveEntry = {
     endDate: string
     reason: string
     status: string
+    rejectionReason?: string
+    approvedByName?: string
+    approvedAt?: string
 }
 
 import { getMyLeaveStats, getMyLeaveRequests } from "@/lib/api/leave";
@@ -38,5 +41,8 @@ export async function getLeaveEntries(userId: string | number): Promise<LeaveEnt
         endDate: req.endDate,
         reason: req.reason,
         status: req.status,
+        rejectionReason: req.rejectionReason,
+        approvedByName: req.approvedByName,
+        approvedAt: req.approvedAt,
     }));
 }

@@ -32,14 +32,19 @@ export async function GET(request: NextRequest) {
         }
 
         const contentType = response.headers.get("content-type");
+        const contentDisposition = response.headers.get("content-disposition");
         const buffer = await response.arrayBuffer();
 
-        return new NextResponse(buffer, {
-            headers: {
-                "Content-Type": contentType || "application/octet-stream",
-                "Cache-Control": "public, max-age=31536000, immutable",
-            },
-        });
+        const headers: Record<string, string> = {
+            "Content-Type": contentType || "application/octet-stream",
+            "Cache-Control": "public, max-age=31536000, immutable",
+        };
+
+        if (contentDisposition) {
+            headers["Content-Disposition"] = contentDisposition;
+        }
+
+        return new NextResponse(buffer, { headers });
     } catch (error) {
         console.error("Proxy error fetching file:", error);
         return new NextResponse("Error fetching file proxy", { status: 500 });

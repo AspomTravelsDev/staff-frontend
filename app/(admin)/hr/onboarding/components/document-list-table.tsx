@@ -75,12 +75,9 @@ export function DocumentListTable({
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+      const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
-      const response = await fetch(downloadUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(proxyUrl);
 
       if (!response.ok) {
         console.error("Download failed:", response.status, response.statusText);

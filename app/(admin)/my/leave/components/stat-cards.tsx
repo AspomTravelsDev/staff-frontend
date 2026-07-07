@@ -1,4 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import { StatsCard } from "@/components/stats-card";
+import { CalendarDays, Coffee, AlertTriangle, UserX } from "lucide-react";
 import type { LeaveStat } from "../queries";
 
 interface StatCardsProps {
@@ -6,26 +9,39 @@ interface StatCardsProps {
 }
 
 export function StatCards({ stats }: StatCardsProps) {
-  const items = [
-    { label: "Total Leave Days Left", value: stats.totalLeaveDaysLeft },
-    { label: "Casual Leave Days", value: stats.casualLeaveDays },
-    { label: "Emergency Leave Taken", value: stats.emergencyLeaveTaken },
-    { label: "Total Days Absent", value: stats.totalDaysAbsent },
-  ];
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-      {items.map((item) => (
-        <Card key={item.label}>
-          <CardHeader>
-            <CardTitle className="text-base font-medium">
-              {item.label}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-2xl font-bold">{item.value}</span>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid gap-4 md:grid-cols-4">
+      <StatsCard
+        title="Leave Days Left"
+        icon={CalendarDays}
+        value={stats.totalLeaveDaysLeft}
+        description="Out of 20 allowed days"
+        iconClassName="text-green-500"
+      />
+
+      <StatsCard
+        title="Casual Leave Days"
+        icon={Coffee}
+        value={stats.casualLeaveDays}
+        description="Approved casual days"
+        iconClassName="text-blue-500"
+      />
+
+      <StatsCard
+        title="Emergency Leave Taken"
+        icon={AlertTriangle}
+        value={stats.emergencyLeaveTaken}
+        description="Emergency days used"
+        iconClassName="text-orange-500"
+      />
+
+      <StatsCard
+        title="Total Days Absent"
+        icon={UserX}
+        value={stats.totalDaysAbsent}
+        description="All absent/leave days"
+        iconClassName="text-red-500"
+      />
     </div>
   );
 }

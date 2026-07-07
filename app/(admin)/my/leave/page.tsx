@@ -3,35 +3,58 @@ import { getLeaveStats, getLeaveEntries } from "./queries";
 import { StatCards } from "./components/stat-cards";
 import { LeaveTable } from "./components/leave-table";
 import { RequestLeaveModal } from "./components/request-leave-modal";
-import { getCurrentUser } from "@/lib/auth/session"; // adjust if user context is elsewhere
+import { getCurrentUser } from "@/lib/auth/session";
+import { markLeaveNotificationsViewed } from "@/lib/api/leave";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default async function MyLeavePage() {
-  // Get user info from context/provider (adjust as needed)
   const user = await getCurrentUser();
   const userId = user?.id || "user-id";
   const userName = user?.name || "John Doe";
   const department = user?.role;
 
-  // Fetch leave stats and entries (mock for now)
   const [stats, entries] = await Promise.all([
     getLeaveStats(userId),
     getLeaveEntries(userId),
+    markLeaveNotificationsViewed().catch((err) =>
+      console.error("Error marking leave notifications viewed:", err)
+    ),
   ]);
 
   return (
-    <main className="py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">My Leave</h1>
-      <StatCards stats={stats} />
-      <RequestLeaveModal
-        userName={userName}
-        role={department}
-      />
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-2">Leave History</h2>
-        <Suspense fallback={<div>Loading leave history...</div>}>
-          <LeaveTable entries={entries} />
-        </Suspense>
+    <div className="flex flex-col gap-6 p-4 pt-0">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Leave</h1>
+          <p className="text-sm text-muted-foreground">
+            Request time off and track your leave request history
+          </p>
+        </div>
+        <RequestLeaveModal
+          userName={userName}
+          role={department}
+        />
       </div>
-    </main>
+
+      <StatCards stats={stats} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Leave History</CardTitle>
+          <CardDescription>View your past and pending leave requests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<div>Loading leave history...</div>}>
+            <LeaveTable entries={entries} />
+          </Suspense>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

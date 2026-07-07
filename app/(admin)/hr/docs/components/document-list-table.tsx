@@ -73,22 +73,14 @@ export function DocumentListTable({
 
   const handleDownload = async (doc: DocumentFile) => {
     try {
-      if (!token) {
-        console.error("No auth token available");
-        return;
-      }
-
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
       const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+      const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
-      const response = await fetch(downloadUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(proxyUrl);
 
       if (!response.ok) {
         console.error("Download failed:", response.status, response.statusText);
@@ -121,22 +113,14 @@ export function DocumentListTable({
 
   const handleOpenInNewTab = async (doc: DocumentFile) => {
     try {
-      if (!token) {
-        console.error("No auth token available");
-        return;
-      }
-
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
       const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+      const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
-      const response = await fetch(downloadUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(proxyUrl);
 
       if (!response.ok) {
         console.error(
