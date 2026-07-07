@@ -1,7 +1,8 @@
 "use server";
 
 import { PaginatedResponse } from "./types";
-import { shouldMock } from "./client";
+import { api, shouldMock } from "./client";
+import { revalidatePath } from "next/cache";
 
 // ============================================================================
 // Types
@@ -108,7 +109,25 @@ export async function getLeaveRequests(
         };
     }
 
-    return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
+    const params = new URLSearchParams();
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.status) params.append("status", filters.status);
+    if (filters.department) params.append("department", filters.department);
+    if (filters.search) params.append("search", filters.search);
+
+    const result = await api.get<{ data: LeaveRequest[] }>(`/api/hr/leave?${params.toString()}`);
+    if (!result.success) return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
+    
+    return {
+        items: result.data.data,
+        pagination: {
+            page: filters.page ?? 1,
+            limit: filters.limit ?? 20,
+            total: result.data.data.length,
+            total_pages: 1
+        }
+    };
 }
 
 export async function getLeaveStats(): Promise<LeaveStats> {
@@ -141,10 +160,81 @@ export async function getLeaveStats(): Promise<LeaveStats> {
         }
     }
 
-    return {
-        requestsPending: 0,
-        approvedThisMonth: 0,
-        onLeave: 0,
-        rejectedThisMonth: 0
+    const result = await api.get<{ data: LeaveStats }>("/api/hr/leave/stats");
+    if (!result.success) {
+        return {
+            requestsPending: 0,
+            approvedThisMonth: 0,
+            onLeave: 0,
+            rejectedThisMonth: 0
+        };
     }
+    return result.data.data;
+}
+
+export async function getMyLeaveRequests(): Promise<LeaveRequest[]> {
+    const result = await api.get<{ data: any[] }>("/api/my/leave");
+    if (!result.success) return [];
+    return result.data.data.map(req => ({
+        id: req.id,
+        employeeId: "",
+        employeeName: "",
+        department: "",
+        type: req.type as LeaveType,
+        startDate: req.startDate,
+        endDate: req.endDate,
+        days: req.days,
+        status: req.status as LeaveStatus,
+        reason: req.reason,
+    }));
+}
+
+export async function getMyLeaveStats(): Promise<any> {
+    const result = await api.get<{ data: any }>("/api/my/leave/stats");
+    if (!result.success) {
+        return {
+            totalLeaveDaysLeft: 20,
+            casualLeaveDays: 0,
+            emergencyLeaveTaken: 0,
+            totalDaysAbsent: 0,
+        };
+    }
+    return result.data.data;
+}
+
+export async function createLeaveRequest(data: {
+    type: string;
+    start_date: string;
+    days: number;
+    reason: string;
+}) {
+    const result = await api.post<{ message: string; data: any }>("/api/my/leave", data);
+    if (!result.success) throw new Error(result.error.error || "Failed to create leave request");
+    revalidatePath("/my/leave");
+    revalidatePath("/hr/leave");
+    return result.data;
+}
+
+export async function cancelLeaveRequest(id: string) {
+    const result = await api.post<{ message: string }>(`/api/my/leave/${id}/cancel`, {});
+    if (!result.success) throw new Error(result.error.error || "Failed to cancel leave request");
+    revalidatePath("/my/leave");
+    revalidatePath("/hr/leave");
+    return result.data;
+}
+
+export async function approveLeaveRequest(id: string) {
+    const result = await api.post<{ message: string }>(`/api/hr/leave/${id}/approve`, {});
+    if (!result.success) throw new Error(result.error.error || "Failed to approve leave request");
+    revalidatePath("/my/leave");
+    revalidatePath("/hr/leave");
+    return result.data;
+}
+
+export async function rejectLeaveRequest(id: string, reason: string) {
+    const result = await api.post<{ message: string }>(`/api/hr/leave/${id}/reject`, { rejection_reason: reason });
+    if (!result.success) throw new Error(result.error.error || "Failed to reject leave request");
+    revalidatePath("/my/leave");
+    revalidatePath("/hr/leave");
+    return result.data;
 }

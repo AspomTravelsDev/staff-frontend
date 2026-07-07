@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { createLeaveRequest } from "@/lib/api/leave";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -49,10 +53,35 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
     return format(end, "yyyy-MM-dd");
   }, [startDate, days]);
 
-  function handleSubmit(e: React.FormEvent) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: Call server action to request leave
-    setOpen(false);
+    if (!startDate) {
+      toast.error("Please pick a proposed start date.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await createLeaveRequest({
+        type,
+        start_date: format(startDate, "yyyy-MM-dd"),
+        days,
+        reason,
+      });
+      toast.success("Leave request submitted successfully.");
+      setOpen(false);
+      // Reset form
+      setDays(1);
+      setStartDate(undefined);
+      setReason("");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit leave request.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -131,7 +160,10 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
             />
           </div>
           <div className="flex justify-end">
-            <Button type="submit">Submit</Button>
+            <Button type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit
+            </Button>
           </div>
         </form>
       </SheetContent>

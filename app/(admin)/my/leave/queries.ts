@@ -16,37 +16,27 @@ export type LeaveEntry = {
     status: string
 }
 
-// TODO: Replace with Supabase queries
+import { getMyLeaveStats, getMyLeaveRequests } from "@/lib/api/leave";
+
 export async function getLeaveStats(userId: string | number): Promise<LeaveStat> {
-    // Mock data
+    const stats = await getMyLeaveStats();
     return {
-        totalLeaveDaysLeft: 12,
-        casualLeaveDays: 8,
-        emergencyLeaveTaken: 2,
-        totalDaysAbsent: 3,
-    }
+        totalLeaveDaysLeft: stats.totalLeaveDaysLeft,
+        casualLeaveDays: stats.casualLeaveDays,
+        emergencyLeaveTaken: stats.emergencyLeaveTaken,
+        totalDaysAbsent: stats.totalDaysAbsent,
+    };
 }
 
 export async function getLeaveEntries(userId: string | number): Promise<LeaveEntry[]> {
-    // Mock data
-    return [
-        {
-            id: '1',
-            type: 'Casual',
-            days: 2,
-            startDate: '2026-01-10',
-            endDate: '2026-01-11',
-            reason: 'Family event',
-            status: 'Approved',
-        },
-        {
-            id: '2',
-            type: 'Emergency',
-            days: 1,
-            startDate: '2026-01-15',
-            endDate: '2026-01-15',
-            reason: 'Medical',
-            status: 'Pending',
-        },
-    ]
+    const list = await getMyLeaveRequests();
+    return list.map(req => ({
+        id: req.id,
+        type: req.type.replace(" Leave", ""),
+        days: req.days,
+        startDate: req.startDate,
+        endDate: req.endDate,
+        reason: req.reason,
+        status: req.status,
+    }));
 }

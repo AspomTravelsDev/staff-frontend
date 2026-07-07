@@ -19,13 +19,74 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Check, X, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { LeaveRequest } from "@/lib/api/leave";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { LeaveRequest, approveLeaveRequest, rejectLeaveRequest } from "@/lib/api/leave";
 
 interface LeaveTableProps {
   requests: LeaveRequest[];
 }
 
 export function LeaveTable({ requests }: LeaveTableProps) {
+  const router = useRouter();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  const handleApprove = async (id: string) => {
+    setLoadingId(id);
+    try {
+      await approveLeaveRequest(id);
+      toast.success("Leave request approved successfully.");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to approve request.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectId) return;
+    if (!rejectionReason.trim()) {
+      toast.error("Rejection reason is required.");
+      return;
+    }
+    setLoadingId(rejectId);
+    try {
+      await rejectLeaveRequest(rejectId, rejectionReason);
+      toast.success("Leave request rejected successfully.");
+      setRejectOpen(false);
+      setRejectionReason("");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reject request.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const openRejectDialog = (id: string) => {
+    setRejectId(id);
+    setRejectionReason("");
+    setRejectOpen(true);
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "Approved":
@@ -105,10 +166,18 @@ export function LeaveTable({ requests }: LeaveTableProps) {
                         <Eye className="mr-2 h-4 w-4" /> View Details
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-green-600">
-                        <Check className="mr-2 h-4 w-4" /> Approve
+                       <DropdownMenuItem
+                        className="text-green-600 cursor-pointer"
+                        disabled={loadingId !== null || req.status !== "Pending"}
+                        onClick={() => handleApprove(req.id)}
+                      >
+                        <Check className="mr-2 h-4 w-4" /> {loadingId === req.id ? "Processing..." : "Approve"}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem
+                        className="text-destructive cursor-pointer"
+                        disabled={loadingId !== null || req.status !== "Pending"}
+                        onClick={() => openRejectDialog(req.id)}
+                      >
                         <X className="mr-2 h-4 w-4" /> Reject
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -119,6 +188,39 @@ export function LeaveTable({ requests }: LeaveTableProps) {
           )}
         </TableBody>
       </Table>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Leave Request</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this leave request. This will be visible to the employee.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRejectSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejectionReason">Reason for Rejection</Label>
+              <Textarea
+                id="rejectionReason"
+                placeholder="Enter rejection details..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                required
+                className="min-h-[100px]"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRejectOpen(false)} disabled={loadingId !== null}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="destructive" disabled={loadingId !== null}>
+                {loadingId !== null && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Reject Request
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -285,6 +285,8 @@ export function PayrollEntrySheet({
     setOtherDeductions((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
+    setCustomDailyRate("");
+    setCustomNetAmount("");
   };
 
   const addOtherDeduction = () => {
@@ -293,6 +295,8 @@ export function PayrollEntrySheet({
 
   const removeOtherDeduction = (index: number) => {
     setOtherDeductions((prev) => prev.filter((_, i) => i !== index));
+    setCustomDailyRate("");
+    setCustomNetAmount("");
   };
 
   const updateAddition = (
@@ -303,6 +307,7 @@ export function PayrollEntrySheet({
     setAdditions((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
+    setCustomNetAmount("");
   };
 
   const addAddition = () => {
@@ -311,6 +316,7 @@ export function PayrollEntrySheet({
 
   const removeAddition = (index: number) => {
     setAdditions((prev) => prev.filter((_, i) => i !== index));
+    setCustomNetAmount("");
   };
 
   const monthStr = payrollMonth || entry.run?.payroll_month;
@@ -504,6 +510,8 @@ export function PayrollEntrySheet({
         additions_amount: computed.addAmount,
         additions: additionsPayload,
         override_note: note || undefined,
+        deduction_amount: computed.attendanceComplianceDeduction,
+        final_deduction_days: computed.fullOutput.final_deduction_days,
         
         gross_salary: computed.actualGross,
         taxable_gross: computed.actualGross,
@@ -640,6 +648,10 @@ export function PayrollEntrySheet({
                       onChange={(e) => {
                         const val = e.target.value as "none" | "resumption" | "resignation";
                         setAdjustmentType(val);
+                        setCustomActualGross("");
+                        setCustomTaxAmount("");
+                        setCustomDailyRate("");
+                        setCustomNetAmount("");
                         if (val === "none") {
                           setProratedDays("0");
                           if (!isAccommodationOverride) {
@@ -697,6 +709,10 @@ export function PayrollEntrySheet({
                           onChange={(e) => {
                             const dateVal = e.target.value;
                             setResumptionDate(dateVal);
+                            setCustomActualGross("");
+                            setCustomTaxAmount("");
+                            setCustomDailyRate("");
+                            setCustomNetAmount("");
                             const delay = calculateDelayFromDate(dateVal);
                             setProratedDays(`${delay}`);
                             if (!isAccommodationOverride) {
@@ -732,7 +748,13 @@ export function PayrollEntrySheet({
                             type="number"
                             step="0.01"
                             value={proratedDays}
-                            onChange={(e) => setProratedDays(e.target.value)}
+                            onChange={(e) => {
+                              setProratedDays(e.target.value);
+                              setCustomActualGross("");
+                              setCustomTaxAmount("");
+                              setCustomDailyRate("");
+                              setCustomNetAmount("");
+                            }}
                             className="pr-16 bg-background text-xs h-9"
                           />
                           <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
@@ -770,6 +792,10 @@ export function PayrollEntrySheet({
                           onChange={(e) => {
                             const dateVal = e.target.value;
                             setResignationDate(dateVal);
+                            setCustomActualGross("");
+                            setCustomTaxAmount("");
+                            setCustomDailyRate("");
+                            setCustomNetAmount("");
                             const delay = calculateResignationDelayFromDate(dateVal);
                             setProratedDays(`${delay}`);
                             if (!isAccommodationOverride) {
@@ -797,7 +823,13 @@ export function PayrollEntrySheet({
                             type="number"
                             step="0.01"
                             value={proratedDays}
-                            onChange={(e) => setProratedDays(e.target.value)}
+                            onChange={(e) => {
+                              setProratedDays(e.target.value);
+                              setCustomActualGross("");
+                              setCustomTaxAmount("");
+                              setCustomDailyRate("");
+                              setCustomNetAmount("");
+                            }}
                             className="pr-16 bg-background text-xs h-9"
                           />
                           <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
@@ -838,6 +870,10 @@ export function PayrollEntrySheet({
                         onChange={(e) => {
                           setIsAccommodationOverride(true);
                           setAccommodationAmount(e.target.value);
+                          setCustomActualGross("");
+                          setCustomTaxAmount("");
+                          setCustomDailyRate("");
+                          setCustomNetAmount("");
                         }}
                         className="pr-16 bg-background text-xs h-9"
                       />
@@ -874,7 +910,13 @@ export function PayrollEntrySheet({
                         type="number"
                         step="0.01"
                         value={attendanceDays}
-                        onChange={(e) => setAttendanceDays(e.target.value)}
+                        onChange={(e) => {
+                          setAttendanceDays(e.target.value);
+                          setCustomActualGross("");
+                          setCustomTaxAmount("");
+                          setCustomDailyRate("");
+                          setCustomNetAmount("");
+                        }}
                         className="pr-16 bg-background text-xs h-9"
                       />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
@@ -913,7 +955,13 @@ export function PayrollEntrySheet({
                         type="number"
                         step="0.01"
                         value={suspensionDays}
-                        onChange={(e) => setSuspensionDays(e.target.value)}
+                        onChange={(e) => {
+                        setSuspensionDays(e.target.value);
+                        setCustomActualGross("");
+                        setCustomTaxAmount("");
+                        setCustomDailyRate("");
+                        setCustomNetAmount("");
+                      }}
                         className="pr-16 bg-background text-xs h-9"
                       />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
@@ -1274,7 +1322,9 @@ export function PayrollEntrySheet({
                 {computed.prorated > 0 && (
                   <div className="flex justify-between text-red-600 bg-red-50/55 p-2 rounded-lg">
                     <span className="italic">
-                      Joined Mid-Month ({computed.prorated} days)
+                      {adjustmentType === "resignation"
+                        ? `Resigned Before Month End (${computed.prorated} days)`
+                        : `Joined Mid-Month (${computed.prorated} days)`}
                     </span>
                     <span className="font-semibold">
                       -{money(computed.baseSalary - computed.actualGross)}

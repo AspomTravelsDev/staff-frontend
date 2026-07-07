@@ -127,7 +127,7 @@ function formatMonthLabel(isoMonth?: string) {
 }
 
 export function PayrollManager() {
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [currentRun, setCurrentRun] = useState<PayrollRun | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [overrideNotes, setOverrideNotes] = useState<Record<string, string>>(
@@ -158,7 +158,7 @@ export function PayrollManager() {
   const loadMonthRun = useCallback(async () => {
     setIsBusy(true);
     try {
-      const runsResult = await listPayrollRuns(selectedMonth);
+      const runsResult = await listPayrollRuns(selectedMonth || undefined);
       if (!runsResult.success) {
         throw new Error(
           runsResult.error.error || "Failed to load payroll run.",
@@ -167,8 +167,11 @@ export function PayrollManager() {
 
       const firstRun = runsResult.data.data[0];
       if (!firstRun) {
+        const targetMonth = selectedMonth || getCurrentMonth();
+        setSelectedMonth(targetMonth);
+
         // Fetch raw suggestions from preview endpoint
-        const previewRes = await previewPayroll(selectedMonth);
+        const previewRes = await previewPayroll(targetMonth);
         if (!previewRes.success) {
           throw new Error(previewRes.error.error || "Failed to load preview suggestions.");
         }
@@ -180,7 +183,7 @@ export function PayrollManager() {
             contractType: pe.user.contract_type ?? null,
             isIntern: !!pe.is_intern,
             dateJoined: pe.user.date_joined ?? null,
-            payrollMonth: selectedMonth,
+            payrollMonth: targetMonth,
             proratedDays: Number(pe.prorated_days || 0),
             accommodationAmount: Number(pe.accommodation_amount || 0),
             attendanceDays: Number(pe.attendance_suggested_days || 0),
@@ -213,7 +216,7 @@ export function PayrollManager() {
           };
         });
 
-        const result = await createPayrollRun(selectedMonth, false, calculatedEntries);
+        const result = await createPayrollRun(targetMonth, false, calculatedEntries);
         if (!result.success) {
           throw new Error(
             result.error.error || "Failed to auto-generate payroll run.",
@@ -229,8 +232,12 @@ export function PayrollManager() {
         }
 
         setCurrentRun(runDetails.data.data);
-        toast.success(`Payroll run generated for ${selectedMonth}`);
+        toast.success(`Production payroll run generated for ${targetMonth}`);
         return;
+      }
+
+      if (!selectedMonth) {
+        setSelectedMonth(firstRun.payroll_month);
       }
 
       const runResult = await getPayrollRun(firstRun.id);
@@ -470,6 +477,8 @@ export function PayrollManager() {
         additions_amount: 0,
         additions: [],
         override_note: "",
+        deduction_amount: computed.deduction_amount,
+        final_deduction_days: computed.final_deduction_days,
 
         gross_salary: computed.gross_salary,
         taxable_gross: computed.taxable_gross,
