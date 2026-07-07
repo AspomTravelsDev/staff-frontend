@@ -52,6 +52,7 @@ export function DocumentListTable({
 }: DocumentListTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     getFileDownloadToken().then(setToken);
@@ -72,11 +73,12 @@ export function DocumentListTable({
   };
 
   const handleDownload = async (doc: DocumentFile) => {
+    const downloadId = doc.file_id || doc.id;
+    setDownloadingId(downloadId);
     try {
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
       const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
@@ -108,6 +110,8 @@ export function DocumentListTable({
       document.body.removeChild(a);
     } catch (e) {
       console.error("Download error", e);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -276,8 +280,13 @@ export function DocumentListTable({
                       size="icon"
                       onClick={() => handleDownload(doc)}
                       title="Download"
+                      disabled={downloadingId !== null}
                     >
-                      <Download className="h-4 w-4" />
+                      {downloadingId === (doc.file_id || doc.id) ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
                     </Button>
                   ) : (
                     <Button

@@ -62,7 +62,7 @@ export function LeaveDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md overflow-y-auto">
+      <SheetContent className="sm:max-w-md overflow-y-auto px-4 pt-6">
         <SheetHeader className="space-y-1 mb-6 border-b pb-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-xl font-semibold">Leave Details</SheetTitle>

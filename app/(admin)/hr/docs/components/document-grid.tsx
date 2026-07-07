@@ -10,6 +10,7 @@ import {
   HardDrive,
   Pencil,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +57,7 @@ export function DocumentGrid({
   departments,
 }: DocumentGridProps) {
   const [token, setToken] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     getFileDownloadToken().then(setToken);
@@ -75,10 +77,11 @@ export function DocumentGrid({
   };
 
   const handleDownload = async (doc: DocumentFile) => {
+    const downloadId = doc.file_id || doc.id;
+    setDownloadingId(downloadId);
     try {
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
       const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
@@ -110,6 +113,8 @@ export function DocumentGrid({
       document.body.removeChild(a);
     } catch (e) {
       console.error("Download error", e);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -242,8 +247,14 @@ export function DocumentGrid({
                   <DropdownMenuItem
                     onClick={() => handleDownload(doc)}
                     className="gap-2 cursor-pointer py-1"
+                    disabled={downloadingId !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Download
+                    {downloadingId === (doc.file_id || doc.id) ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    Download
                   </DropdownMenuItem>
                   {showDelete && (
                     <UploadDocumentDialog
@@ -293,8 +304,12 @@ export function DocumentGrid({
             </div>
 
             {/* Icon Area */}
-            <div className="pt-3 pb-1 flex flex-col items-center justify-center">
-              {renderFileIcon(doc.original_name)}
+            <div className="pt-3 pb-1 flex flex-col items-center justify-center min-h-[36px]">
+              {downloadingId === (doc.file_id || doc.id) ? (
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              ) : (
+                renderFileIcon(doc.original_name)
+              )}
             </div>
 
             {/* Content Area */}
@@ -333,7 +348,14 @@ export function DocumentGrid({
 
             {/* Subtle Action Prompt */}
             <div className="absolute inset-x-0 bottom-0 py-1 bg-primary/10 border-t border-primary/20 translate-y-full group-hover:translate-y-0 transition-transform duration-200 flex items-center justify-center text-[9px] font-bold text-primary pointer-events-none">
-              DOWNLOAD
+              {downloadingId === (doc.file_id || doc.id) ? (
+                <>
+                  <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
+                  DOWNLOADING...
+                </>
+              ) : (
+                "DOWNLOAD"
+              )}
             </div>
           </Card>
         ))}

@@ -45,6 +45,7 @@ export function DocumentListTable({
 }: DocumentListTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [tagFilter, setTagFilter] = useState("");
 
@@ -85,6 +86,8 @@ export function DocumentListTable({
   ).sort();
 
   const handleDownload = async (doc: DocumentFile) => {
+    const downloadId = doc.file_id || doc.id;
+    setDownloadingId(downloadId);
     try {
       if (!token) {
         console.error("No auth token available");
@@ -95,7 +98,6 @@ export function DocumentListTable({
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
       // Use file_id if available (for documents that have separate file records), otherwise fallback to id
-      const downloadId = doc.file_id || doc.id;
       const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
       const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 
@@ -135,6 +137,8 @@ export function DocumentListTable({
       document.body.removeChild(a);
     } catch (e) {
       console.error("Download error", e);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -270,8 +274,13 @@ export function DocumentListTable({
                         onClick={() => handleDownload(doc)}
                         title="Download"
                         className="text-muted-foreground hover:text-primary"
+                        disabled={downloadingId !== null}
                       >
-                        <Download className="h-4 w-4" />
+                        {downloadingId === (doc.file_id || doc.id) ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
                       </Button>
                     ) : (
                       <Button

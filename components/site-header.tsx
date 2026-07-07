@@ -9,7 +9,7 @@ import { BellIcon, Gift, Trophy } from "lucide-react";
 import { ClockInWidget } from "./clock-in-widget";
 import { useUser } from "@/providers/user-provider";
 import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
-import { getNavigationForUser } from "@/lib/navigation";
+import { getNavigationForUser, NavItem } from "@/lib/navigation";
 import Link from "next/link";
 import { getTodayBirthdays, getTodayAnniversaries, Employee } from "@/lib/api/employees";
 
@@ -27,7 +27,7 @@ export const SiteHeader = () => {
   }, [user]);
 
   // Find badge labels from all navigation config for the user's role
-  const allNav = user ? getNavigationForUser(user as any) : null;
+  const allNav = user ? getNavigationForUser(user as Parameters<typeof getNavigationForUser>[0]) : null;
   // Flatten all navigation items to include sub-items for badge matching
   const allNavItems = allNav
     ? [...allNav.dashboard, ...allNav.department, ...allNav.personal].reduce(
@@ -38,7 +38,7 @@ export const SiteHeader = () => {
           }
           return acc;
         },
-        [] as any[],
+        [] as NavItem[],
       )
     : [];
 
@@ -58,7 +58,10 @@ export const SiteHeader = () => {
       });
 
       if (navItem) {
-        let label = navItem.badgeLabel || `${key} pending`;
+        let label = navItem.badgeLabel || (
+          key.replace(/([A-Z])/g, " $1")
+             .replace(/^./, (str) => str.toUpperCase())
+        );
         // Custom labels for specific keys if they share a nav item
         if (key === "reportReminder") {
           label = "Submit your daily report";
@@ -70,6 +73,10 @@ export const SiteHeader = () => {
           label = "New compliance query issued";
         } else if (key === "complianceReplies") {
           label = "Staff reply to compliance query";
+        } else if (key === "pendingLeaves") {
+          label = "Pending leave requests";
+        } else if (key === "myLeaveUpdates") {
+          label = "Leave request updates";
         }
 
         let targetUrl = navItem.url || "#";

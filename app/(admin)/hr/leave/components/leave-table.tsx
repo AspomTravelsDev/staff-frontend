@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LeaveRequest, approveLeaveRequest, rejectLeaveRequest } from "@/lib/api/leave";
 import { LeaveDetailsSheet } from "../../../my/leave/components/leave-details-sheet";
+import { format } from "date-fns";
 
 interface LeaveTableProps {
   requests: LeaveRequest[];
@@ -43,6 +44,14 @@ interface LeaveTableProps {
 export function LeaveTable({ requests }: LeaveTableProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const formatDateString = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "EEE, d MMM, yyyy");
+    } catch {
+      return dateStr;
+    }
+  };
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -57,8 +66,9 @@ export function LeaveTable({ requests }: LeaveTableProps) {
       await approveLeaveRequest(id);
       toast.success("Leave request approved successfully.");
       router.refresh();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to approve request.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to approve request.";
+      toast.error(message);
     } finally {
       setLoadingId(null);
     }
@@ -78,8 +88,9 @@ export function LeaveTable({ requests }: LeaveTableProps) {
       setRejectOpen(false);
       setRejectionReason("");
       router.refresh();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to reject request.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to reject request.";
+      toast.error(message);
     } finally {
       setLoadingId(null);
     }
@@ -113,7 +124,8 @@ export function LeaveTable({ requests }: LeaveTableProps) {
           <TableRow>
             <TableHead>Employee</TableHead>
             <TableHead>Type</TableHead>
-            <TableHead>Duration</TableHead>
+            <TableHead>Start Date</TableHead>
+            <TableHead>End Date</TableHead>
             <TableHead>Days</TableHead>
             <TableHead>Reason</TableHead>
             <TableHead>Status</TableHead>
@@ -123,7 +135,7 @@ export function LeaveTable({ requests }: LeaveTableProps) {
         <TableBody>
           {requests.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No leave requests found.
               </TableCell>
             </TableRow>
@@ -139,17 +151,13 @@ export function LeaveTable({ requests }: LeaveTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>{req.type}</TableCell>
-                <TableCell className="text-sm">
-                  {req.startDate}{" "}
-                  <span className="text-muted-foreground">-&gt;</span>{" "}
-                  {req.endDate}
-                </TableCell>
+                <TableCell>{formatDateString(req.startDate)}</TableCell>
+                <TableCell>{formatDateString(req.endDate)}</TableCell>
                 <TableCell>{req.days}</TableCell>
-                <TableCell
-                  className="max-w-[150px] truncate text-muted-foreground"
-                  title={req.reason}
-                >
-                  {req.reason}
+                <TableCell className="text-muted-foreground">
+                  <div className="max-w-[150px] truncate" title={req.reason}>
+                    {req.reason}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(req.status)}>
