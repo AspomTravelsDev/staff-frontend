@@ -17,6 +17,7 @@ import {
     Trophy,
     Coins,
     Megaphone,
+    MessageSquare,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 
@@ -175,6 +176,13 @@ export const departmentNav: NavItem[] = [
         url: "/hr/weekly-feedback",
         icon: ClipboardList,
         allowedRoles: ["hr", "super"],
+    },
+    {
+        title: "Anonymous Comments",
+        url: "/hr/anonymous-comments",
+        icon: MessageSquare,
+        allowedRoles: ["hr", "super"],
+        badgeKey: "anonymousComments",
     },
     // {
     //     title: "Applications",

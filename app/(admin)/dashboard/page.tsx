@@ -10,6 +10,7 @@ import {
   MailIcon,
   TreePalm,
   Trophy,
+  MessageSquare,
 } from "lucide-react";
 
 import { getTodayBirthdays, getTodayAnniversaries } from "@/lib/api/employees";
@@ -23,6 +24,7 @@ import {
 } from "@/components/dashboard/attendance-status-blocks";
 import { getClockInHistory } from "@/lib/api/clock-in";
 import { QuickLinkButton } from "@/components/dashboard/quick-link-button";
+import { AnonymousCommentDialog } from "@/components/dashboard/anonymous-comment-dialog";
 
 import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
@@ -118,31 +120,22 @@ export default async function Page() {
     });
   }
 
-  const employeeOfTheMonthAward = allAwards.find(
-    (a) =>
-      a.award_type === "staff_of_the_month" &&
-      a.month === formatMonthKey(previousMonthDate),
-  );
-
-  const employeeOfTheMonth = employeeOfTheMonthAward
-    ? {
-        name: employeeOfTheMonthAward.user
-          ? employeeOfTheMonthAward.user.name
-          : "Unknown",
-        role:
-          employeeOfTheMonthAward.user?.department ||
-          roleToDepartment[employeeOfTheMonthAward.user?.role ?? ""] ||
-          "Staff",
-        image:
-          toProxiedImageUrl(
-            employeeOfTheMonthAward.image?.url ||
-              employeeOfTheMonthAward.user?.image_url,
-          ) || null,
-        initials: employeeOfTheMonthAward.user
-          ? getInitials(employeeOfTheMonthAward.user.name)
-          : "EM",
-      }
-    : undefined;
+  const monthlyAwards = allAwards
+    .filter((a) => a.month === formatMonthKey(previousMonthDate))
+    .map((award) => ({
+      id: award.id,
+      name: award.user ? award.user.name : "Unknown",
+      role:
+        award.user?.department ||
+        roleToDepartment[award.user?.role ?? ""] ||
+        "Staff",
+      image:
+        toProxiedImageUrl(
+          award.image?.url || award.user?.image_url,
+        ) || null,
+      initials: award.user ? getInitials(award.user.name) : "EM",
+      awardName: award.award_name || "Employee of the Month",
+    }));
 
   return (
     <div className="flex flex-1 flex-col gap-12 pt-6">
@@ -178,13 +171,13 @@ export default async function Page() {
         <ExchangeRateCard rates={rates} />
       </div>
 
-      {cheatsheetItems && cheatsheetItems.length > 0 && (
+      {/* {cheatsheetItems && cheatsheetItems.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {cheatsheetItems.map((item) => (
             <CheatsheetCard key={item.id} item={item} />
           ))}
         </div>
-      )}
+      )} */}
 
       <div className="flex flex-col gap-4">
         <h6 className="text-sm font-bold">Quick Links</h6>
@@ -269,6 +262,17 @@ export default async function Page() {
             target="_self"
             color="rose"
           />
+          <AnonymousCommentDialog
+            trigger={
+              <button
+                type="button"
+                className="h-10 px-4 rounded-md border flex items-center justify-center gap-2 transition-all text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-100 cursor-pointer"
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span className="font-semibold">Leave Comment</span>
+              </button>
+            }
+          />
         </div>
       </div>
 
@@ -281,7 +285,7 @@ export default async function Page() {
           })}
         />
         <DashboardCelebrationCard
-          employeeOfTheMonth={employeeOfTheMonth}
+          monthlyAwards={monthlyAwards}
           todayBirthdays={todayBirthdays}
           todayAnniversaries={todayAnniversaries}
         />

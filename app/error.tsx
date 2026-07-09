@@ -15,10 +15,8 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to console
     console.error("Application error:", error);
 
-    // clear session on error to fix potential stale state issues
     const performLogout = async () => {
       try {
         await logoutAction();

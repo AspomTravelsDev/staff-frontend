@@ -8,20 +8,23 @@ import { Employee } from "@/lib/api/employees";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface DashboardCelebrationCardProps {
-  employeeOfTheMonth?: {
+  monthlyAwards?: {
+    id: string;
     name: string;
     role: string;
     image?: string | null;
     initials: string;
-  };
+    awardName: string;
+  }[];
   todayBirthdays: Employee[];
   todayAnniversaries: Employee[];
 }
 
 export function DashboardCelebrationCard({
-  employeeOfTheMonth,
+  monthlyAwards,
   todayBirthdays,
   todayAnniversaries,
 }: DashboardCelebrationCardProps) {
@@ -91,35 +94,53 @@ export function DashboardCelebrationCard({
     });
   }
 
-  // 3. Employee of the Month Slide
-  slides.push({
-    type: "eom",
-    content: (
-      <div className="flex flex-1 flex-col items-center justify-center p-6 text-center mt-4 w-full animate-in fade-in slide-in-from-right-4 duration-500">
-        <div className="relative mb-6 group">
-          <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
-          <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
-          <Sparkles className="absolute -left-6 top-0 h-6 w-6 text-primary fill-primary/20 animate-pulse" />
-          <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-primary fill-primary/20 animate-pulse delay-75" />
-          <Avatar className="h-48 w-48 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0">
-            {employeeOfTheMonth ? (
-              <>
-                <AvatarImage src={employeeOfTheMonth.image || ""} alt={employeeOfTheMonth.name} className="object-cover object-top" />
-                <AvatarFallback>{employeeOfTheMonth.initials}</AvatarFallback>
-              </>
-            ) : (
+  // 3. Monthly Awards Slides
+  if (monthlyAwards && monthlyAwards.length > 0) {
+    monthlyAwards.forEach((award) => {
+      slides.push({
+        type: `award-${award.id}`,
+        content: (
+          <div className="flex flex-1 flex-col items-center justify-center p-6 text-center mt-4 w-full animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="relative mb-6 group">
+              <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
+              <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
+              <Sparkles className="absolute -left-6 top-0 h-6 w-6 text-primary fill-primary/20 animate-pulse" />
+              <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-primary fill-primary/20 animate-pulse delay-75" />
+              <Avatar className="h-48 w-48 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0">
+                <AvatarImage src={award.image || ""} alt={award.name} className="object-cover object-top" />
+                <AvatarFallback>{award.initials}</AvatarFallback>
+              </Avatar>
+            </div>
+            <CardTitle className="text-center">{award.awardName}</CardTitle>
+            <h3 className="font-bold text-lg">{award.name}</h3>
+            <p className="text-sm text-muted-foreground">{award.role}</p>
+          </div>
+        ),
+        borderColor: "border-border",
+        bgColor: "bg-background"
+      });
+    });
+  } else {
+    slides.push({
+      type: "no-awards",
+      content: (
+        <div className="flex flex-1 flex-col items-center justify-center p-6 text-center mt-4 w-full animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="relative mb-6 group">
+            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
+            <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
+            <Avatar className="h-48 w-48 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0">
               <AvatarFallback className="bg-muted"><Crown className="h-12 w-12 text-primary/40" /></AvatarFallback>
-            )}
-          </Avatar>
+            </Avatar>
+          </div>
+          <CardTitle className="text-center">Employee of the Month</CardTitle>
+          <h3 className="font-bold text-lg">To be announced</h3>
+          <p className="text-sm text-muted-foreground">Keep up the great work!</p>
         </div>
-        <CardTitle className="text-center">Employee of the Month</CardTitle>
-        <h3 className="font-bold text-lg">{employeeOfTheMonth?.name || "To be announced"}</h3>
-        <p className="text-sm text-muted-foreground">{employeeOfTheMonth?.role || "Keep up the great work!"}</p>
-      </div>
-    ),
-    borderColor: "border-border",
-    bgColor: "bg-background"
-  });
+      ),
+      borderColor: "border-border",
+      bgColor: "bg-background"
+    });
+  }
 
   // Auto-cycle effect
   useEffect(() => {
@@ -138,24 +159,36 @@ export function DashboardCelebrationCard({
   return (
     <Card className={`flex flex-col justify-between h-full w-full lg:w-2/7 overflow-hidden transition-all duration-500 ${activeSlide.borderColor} ${activeSlide.bgColor} relative`}>
       <CardContent className="p-0 h-full flex flex-col items-center justify-center relative">
-        {activeSlide.content}
+        {slides.map((slide, index) => (
+          <div
+            key={slide.type}
+            className={cn(
+              "absolute inset-0 flex flex-col items-center justify-center transition-all duration-500",
+              index === currentSlide
+                ? "opacity-100 scale-100 pointer-events-auto visible"
+                : "opacity-0 scale-95 pointer-events-none invisible"
+            )}
+          >
+            {slide.content}
+          </div>
+        ))}
         
         {/* Navigation Controls */}
         {slides.length > 1 && (
           <>
-            <div className="absolute inset-y-0 left-1 flex items-center">
+            <div className="absolute inset-y-0 left-1 flex items-center z-10">
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-20 hover:opacity-100 transition-opacity" onClick={prevSlide}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
-            <div className="absolute inset-y-0 right-1 flex items-center">
+            <div className="absolute inset-y-0 right-1 flex items-center z-10">
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-20 hover:opacity-100 transition-opacity" onClick={nextSlide}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
             
             {/* Dots */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
               {slides.map((_, i) => (
                 <button
                   key={i}

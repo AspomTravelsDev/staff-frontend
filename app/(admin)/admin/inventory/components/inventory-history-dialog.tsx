@@ -21,6 +21,7 @@ import {
   ClipboardCheck,
   ChevronRight,
   UserCircle,
+  Quote,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -60,6 +61,108 @@ export function InventoryHistoryDialog({
     }
   };
 
+  const getEventSummary = (entry: InventoryHistory, nextOlderEntry?: InventoryHistory) => {
+    if (!nextOlderEntry) {
+      if (entry.status === "Storage") {
+        return {
+          title: "Added to Inventory (Storage)",
+          description: "Item was initialized and placed in storage.",
+        };
+      }
+      if (entry.status === "Assigned") {
+        return {
+          title: `Added & Assigned to ${entry.assignedToName || "Staff"}`,
+          description: `Item was initialized and immediately assigned to ${entry.assignedToName || "Staff"}.`,
+        };
+      }
+      return {
+        title: "Added to Inventory",
+        description: "Item was initialized.",
+      };
+    }
+
+    const statusChanged = entry.status !== nextOlderEntry.status;
+    const assignmentChanged = entry.assignedTo !== nextOlderEntry.assignedTo;
+
+    if (statusChanged) {
+      if (entry.status === "Assigned") {
+        const fromSource = nextOlderEntry.status === "Storage" ? "storage" : "repairs";
+        return {
+          title: `Assigned to ${entry.assignedToName || "Staff"}`,
+          description: `Dispatched from ${fromSource} and assigned to ${entry.assignedToName || "Staff"}.`,
+        };
+      }
+      if (entry.status === "Storage") {
+        if (nextOlderEntry.status === "Assigned") {
+          return {
+            title: "Returned to Storage",
+            description: `Returned from ${nextOlderEntry.assignedToName || "Staff"} and checked back into storage.`,
+          };
+        }
+        if (nextOlderEntry.status === "Repairs") {
+          return {
+            title: "Returned to Storage",
+            description: "Repaired and returned to storage.",
+          };
+        }
+        return {
+          title: "Moved to Storage",
+          description: `Status changed from ${nextOlderEntry.status} to Storage.`,
+        };
+      }
+      if (entry.status === "Repairs") {
+        const fromSource = nextOlderEntry.status === "Assigned"
+          ? `from ${nextOlderEntry.assignedToName || "Staff"}`
+          : "from storage";
+        return {
+          title: "Sent for Repairs",
+          description: `Sent for repairs ${fromSource}.`,
+        };
+      }
+    }
+
+    if (assignmentChanged) {
+      if (entry.assignedTo && nextOlderEntry.assignedTo) {
+        return {
+          title: "Device Reassigned",
+          description: `Transferred from ${nextOlderEntry.assignedToName || "previous staff"} to ${entry.assignedToName || "new staff"}.`,
+        };
+      }
+      if (entry.assignedTo && !nextOlderEntry.assignedTo) {
+        return {
+          title: `Assigned to ${entry.assignedToName || "Staff"}`,
+          description: `Assigned to ${entry.assignedToName || "Staff"}.`,
+        };
+      }
+      if (!entry.assignedTo && nextOlderEntry.assignedTo) {
+        return {
+          title: "Unassigned Device",
+          description: `Returned from ${nextOlderEntry.assignedToName || "Staff"}.`,
+        };
+      }
+    }
+
+    const conditionChanged = entry.conditionRating !== nextOlderEntry.conditionRating;
+    if (conditionChanged) {
+      return {
+        title: "Condition Updated",
+        description: `Condition rating changed from ${nextOlderEntry.conditionRating} to ${entry.conditionRating}.`,
+      };
+    }
+
+    if (entry.notes && entry.notes !== nextOlderEntry.notes && !entry.notes.includes("initialized") && !entry.notes.includes("details updated")) {
+      return {
+        title: "Device Details Updated",
+        description: entry.notes,
+      };
+    }
+
+    return {
+      title: "Device Details Updated",
+      description: "Details or notes revised.",
+    };
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Storage":
@@ -71,6 +174,25 @@ export function InventoryHistoryDialog({
       default:
         return <ClipboardCheck className="w-4 h-4 text-muted-foreground" />;
     }
+  };
+
+  const getEventIcon = (title: string, status: string) => {
+    if (title.includes("Reassigned") || title.includes("Transferred")) {
+      return <UserCircle className="w-4 h-4 text-orange-500" />;
+    }
+    if (title.includes("Added") || title.includes("initialized")) {
+      return <ClipboardCheck className="w-4 h-4 text-emerald-500" />;
+    }
+    if (title.includes("Assigned")) {
+      return <User className="w-4 h-4 text-green-500" />;
+    }
+    if (title.includes("Returned") || title.includes("Storage")) {
+      return <Archive className="w-4 h-4 text-blue-500" />;
+    }
+    if (title.includes("Repairs") || title.includes("Repair")) {
+      return <Wrench className="w-4 h-4 text-red-500" />;
+    }
+    return getStatusIcon(status);
   };
 
   const getConditionColor = (rating: string) => {
@@ -119,92 +241,116 @@ export function InventoryHistoryDialog({
             </div>
           ) : (
             <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:h-full before:w-0.5 before:bg-linear-to-b before:from-transparent before:via-slate-200 before:to-transparent dark:before:via-slate-800">
-              {history.map((entry, index) => (
-                <div key={entry.id} className="relative flex items-start gap-6">
-                  {/* Timeline Dot/Icon */}
-                  <div className="absolute left-0 mt-1.5 flex h-10 w-10 items-center justify-center rounded-full border bg-background shadow-sm z-10">
-                    {getStatusIcon(entry.status)}
-                  </div>
+              {history.map((entry, index) => {
+                const nextOlderEntry = history[index + 1];
+                const eventSummary = getEventSummary(entry, nextOlderEntry);
+                const eventIcon = getEventIcon(eventSummary.title, entry.status);
 
-                  {/* Content */}
-                  <div className="flex-1 ml-12 rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className="font-semibold uppercase tracking-wider text-[10px]"
-                        >
-                          {entry.status}
-                        </Badge>
-                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                        <div
-                          className={`px-2 py-0.5 rounded text-[11px] font-bold ${getConditionColor(entry.conditionRating)}`}
-                        >
-                          {entry.conditionRating}
-                        </div>
-                      </div>
-                      <time className="text-xs font-medium text-muted-foreground">
-                        {format(new Date(entry.createdAt), "PPP p")}
-                      </time>
+                return (
+                  <div key={entry.id} className="relative flex items-start gap-6">
+                    {/* Timeline Dot/Icon */}
+                    <div className="absolute left-0 mt-1.5 flex h-10 w-10 items-center justify-center rounded-full border bg-background shadow-sm z-10">
+                      {eventIcon}
                     </div>
 
-                    <p className="text-sm font-medium mb-2 leading-relaxed">
-                      {entry.notes || "No details provided for this event."}
-                    </p>
+                    {/* Content */}
+                    <div className="flex-1 ml-12 rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className="font-semibold uppercase tracking-wider text-[10px]"
+                          >
+                            {entry.status}
+                          </Badge>
+                          <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                          <div
+                            className={`px-2 py-0.5 rounded text-[11px] font-bold ${getConditionColor(entry.conditionRating)}`}
+                          >
+                            {entry.conditionRating}
+                          </div>
+                        </div>
+                        <time className="text-xs font-medium text-muted-foreground">
+                          {format(new Date(entry.createdAt), "PPP p")}
+                        </time>
+                      </div>
 
-                    {(entry.conditionDetails ||
-                      entry.assignedTo ||
-                      entry.technicianDetails) && (
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-muted/30 p-3 rounded-md border border-muted">
-                        {entry.conditionDetails && (
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground block">
-                              Physical Details
-                            </span>
-                            <span className="font-medium">
-                              {entry.conditionDetails}
-                            </span>
+                      {/* Descriptive Event Header */}
+                      <div className="mb-2">
+                        <h4 className="text-sm font-semibold text-slate-800">
+                          {eventSummary.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {eventSummary.description}
+                        </p>
+                      </div>
+
+                      {/* Custom Action Notes (if entered and different from generic title) */}
+                      {entry.notes &&
+                        entry.notes !== eventSummary.title &&
+                        entry.notes !== eventSummary.description &&
+                        !entry.notes.includes("initialized") &&
+                        !entry.notes.includes("details updated") && (
+                          <div className="mt-3 text-xs italic text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-100 relative pl-7">
+                            <Quote className="absolute top-2 left-2 h-4 w-4 text-slate-300" />
+                            <span>{entry.notes}</span>
                           </div>
                         )}
-                        {entry.status === "Assigned" && entry.assignedTo && (
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground block">
-                              Assigned To
-                            </span>
-                            <span className="font-medium flex items-center gap-1">
-                              <User className="w-3 h-3" />{" "}
-                              {entry.assignedToName || entry.assignedTo}
-                            </span>
-                          </div>
-                        )}
-                        {entry.status === "Repairs" &&
-                          entry.technicianDetails && (
+
+                      {(entry.conditionDetails ||
+                        entry.assignedTo ||
+                        entry.technicianDetails) && (
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-muted/30 p-3 rounded-md border border-muted">
+                          {entry.conditionDetails && (
                             <div className="space-y-1">
-                              <span className="text-muted-foreground block">
-                                Technician
+                              <span className="text-muted-foreground block font-medium">
+                                Physical Condition Details
                               </span>
-                              <span className="font-medium text-red-600 dark:text-red-400">
-                                {entry.technicianDetails.name}
+                              <span className="font-semibold text-slate-700">
+                                {entry.conditionDetails}
                               </span>
                             </div>
                           )}
-                      </div>
-                    )}
+                          {entry.status === "Assigned" && entry.assignedTo && (
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground block font-medium">
+                                Assigned User
+                              </span>
+                              <span className="font-semibold flex items-center gap-1 text-slate-700">
+                                <User className="w-3.5 h-3.5 text-muted-foreground" />{" "}
+                                {entry.assignedToName || entry.assignedTo}
+                              </span>
+                            </div>
+                          )}
+                          {entry.status === "Repairs" &&
+                            entry.technicianDetails && (
+                              <div className="space-y-1">
+                                <span className="text-muted-foreground block font-medium">
+                                  Repair Technician
+                                </span>
+                                <span className="font-semibold text-red-600 dark:text-red-400">
+                                  {entry.technicianDetails.name} ({entry.technicianDetails.phone})
+                                </span>
+                              </div>
+                            )}
+                        </div>
+                      )}
 
-                    <Separator className="my-3 opacity-50" />
+                      <Separator className="my-3 opacity-50" />
 
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <UserCircle className="w-3 h-3" />
-                        <span>
-                          Recorded by:{" "}
-                          <strong>{entry.changerName || "System"}</strong>
-                        </span>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <UserCircle className="w-3 h-3" />
+                          <span>
+                            Recorded by:{" "}
+                            <strong>{entry.changerName || "System"}</strong>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </ScrollArea>
