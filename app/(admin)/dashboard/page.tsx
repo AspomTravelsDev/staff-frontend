@@ -232,7 +232,6 @@ export default async function Page() {
             url="/my/leave"
             target="_self"
             color="rose"
-            disabled={true}
           />
           <QuickLinkButton
             icon={FileText}

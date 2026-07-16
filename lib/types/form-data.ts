@@ -190,6 +190,34 @@ export interface MediaData {
         base64?: string;
         fileId?: string;
     };
+    validId?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
+    oLevelResults?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
+    nyscCertificate?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
+    universityCertificate?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
 }
 
 export interface ApplicationFormData {

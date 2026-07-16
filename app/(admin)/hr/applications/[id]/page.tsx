@@ -245,6 +245,7 @@ export default async function ApplicationDetailPage({
         applicationId={application.application_id}
         generatedPdfs={application.form_data?.generatedPdfs as any}
         signedDocuments={application.form_data?.signedDocuments as any}
+        media={application.form_data?.media as any}
       />
 
       {/* Actions */}

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getProxiedImageUrl } from "@/lib/utils";
+import { MediaData } from "@/lib/types/form-data";
 
 interface SignedDocument {
   fileName: string;
@@ -44,6 +45,7 @@ interface DocumentPreviewsProps {
     ndaSigned?: SignedDocument;
     [key: string]: SignedDocument | undefined;
   };
+  media?: MediaData;
 }
 
 interface DocumentCardProps {
@@ -53,6 +55,20 @@ interface DocumentCardProps {
   uploadedAt?: string;
   type: "unsigned" | "signed";
   fileId?: string;
+  fileName?: string;
+}
+
+function getFileExtension(fileName?: string, url?: string): string {
+  const nameOrUrl = fileName || url || "";
+  const cleanPath = nameOrUrl.split("?")[0];
+  const parts = cleanPath.split(".");
+  if (parts.length > 1) {
+    const ext = parts[parts.length - 1].toLowerCase();
+    if (["pdf", "jpg", "jpeg", "png"].includes(ext)) {
+      return ext;
+    }
+  }
+  return "pdf";
 }
 
 function DocumentCard({
@@ -62,6 +78,7 @@ function DocumentCard({
   uploadedAt,
   type,
   fileId,
+  fileName,
 }: DocumentCardProps) {
   // Use secure download route if fileId is available, otherwise fallback to the provided URL
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -87,7 +104,8 @@ function DocumentCard({
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = `${title.replace(/\s+/g, "_")}.pdf`;
+      const ext = getFileExtension(fileName, documentUrl);
+      link.download = `${title.replace(/\s+/g, "_")}.${ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -112,6 +130,15 @@ function DocumentCard({
     });
   };
 
+  const ext = documentUrl ? getFileExtension(fileName, documentUrl) : "pdf";
+  const isImage = ["jpg", "jpeg", "png"].includes(ext);
+
+  const iconContainerClass = documentUrl
+    ? isImage
+      ? "flex h-10 w-10 items-center justify-center rounded bg-blue-100 text-blue-600"
+      : "flex h-10 w-10 items-center justify-center rounded bg-red-100 text-red-600"
+    : "flex h-10 w-10 items-center justify-center rounded bg-gray-100 text-gray-400";
+
   return (
     <div
       className="relative rounded-lg border bg-card p-4 transition-all hover:shadow-md"
@@ -121,23 +148,41 @@ function DocumentCard({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded bg-red-100 text-red-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                <polyline points="14 2 14 8 20 8" />
-                <path d="M10 12h4" />
-                <path d="M10 16h4" />
-              </svg>
+            <div className={iconContainerClass}>
+              {isImage ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <path d="M10 12h4" />
+                  <path d="M10 16h4" />
+                </svg>
+              )}
             </div>
             <div>
               <h4 className="font-medium text-sm">{title}</h4>
@@ -216,6 +261,7 @@ export function DocumentPreviews({
   applicationId,
   generatedPdfs,
   signedDocuments,
+  media,
 }: DocumentPreviewsProps) {
   const knownSignedDocumentKeys = new Set([
     "guarantor1Signed",
@@ -255,7 +301,7 @@ export function DocumentPreviews({
         {/* Unsigned/Generated Documents */}
         <div>
           <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-            Generated Forms (Unsigned)
+            Generated Forms
           </h4>
           <div className="grid gap-3 md:grid-cols-3">
             {!signedDocuments?.guarantor1Signed && (
@@ -341,6 +387,7 @@ export function DocumentPreviews({
               documentUrl={signedDocuments?.guarantor1Signed?.storagePath}
               uploadedAt={signedDocuments?.guarantor1Signed?.uploadedAt}
               fileId={signedDocuments?.guarantor1Signed?.fileId}
+              fileName={signedDocuments?.guarantor1Signed?.fileName}
               type="signed"
             />
             <DocumentCard
@@ -349,6 +396,7 @@ export function DocumentPreviews({
               documentUrl={signedDocuments?.guarantor2Signed?.storagePath}
               uploadedAt={signedDocuments?.guarantor2Signed?.uploadedAt}
               fileId={signedDocuments?.guarantor2Signed?.fileId}
+              fileName={signedDocuments?.guarantor2Signed?.fileName}
               type="signed"
             />
             <DocumentCard
@@ -357,6 +405,7 @@ export function DocumentPreviews({
               documentUrl={signedDocuments?.refereeSigned?.storagePath}
               uploadedAt={signedDocuments?.refereeSigned?.uploadedAt}
               fileId={signedDocuments?.refereeSigned?.fileId}
+              fileName={signedDocuments?.refereeSigned?.fileName}
               type="signed"
             />
             <DocumentCard
@@ -365,6 +414,7 @@ export function DocumentPreviews({
               documentUrl={signedDocuments?.ndaSigned?.storagePath}
               uploadedAt={signedDocuments?.ndaSigned?.uploadedAt}
               fileId={signedDocuments?.ndaSigned?.fileId}
+              fileName={signedDocuments?.ndaSigned?.fileName}
               type="signed"
             />
             <DocumentCard
@@ -386,12 +436,74 @@ export function DocumentPreviews({
                   documentUrl={value.storagePath}
                   uploadedAt={value.uploadedAt}
                   fileId={value.fileId}
+                  fileName={value.fileName}
                   type="signed"
                 />
               );
             })}
           </div>
         </div>
+
+        {/* Supporting Documents (Optional) */}
+        {!!(
+          media?.validId?.storagePath ||
+          media?.oLevelResults?.storagePath ||
+          media?.nyscCertificate?.storagePath ||
+          media?.universityCertificate?.storagePath
+        ) && (
+          <div>
+            <div className="border-t my-6 border-zinc-200 dark:border-zinc-800" />
+            <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+              Supporting Documents (Uploaded by Applicant)
+            </h4>
+            <div className="grid gap-3 md:grid-cols-3">
+              {media?.validId?.storagePath && (
+                <DocumentCard
+                  title="Valid Means of ID"
+                  description="Applicant identity document"
+                  documentUrl={media.validId.storagePath}
+                  uploadedAt={media.validId.uploadedAt}
+                  fileId={media.validId.fileId}
+                  fileName={media.validId.fileName}
+                  type="signed"
+                />
+              )}
+              {media?.oLevelResults?.storagePath && (
+                <DocumentCard
+                  title="O Level Results"
+                  description="Academic qualification document"
+                  documentUrl={media.oLevelResults.storagePath}
+                  uploadedAt={media.oLevelResults.uploadedAt}
+                  fileId={media.oLevelResults.fileId}
+                  fileName={media.oLevelResults.fileName}
+                  type="signed"
+                />
+              )}
+              {media?.nyscCertificate?.storagePath && (
+                <DocumentCard
+                  title="NYSC Certificate"
+                  description="NYSC discharge or exemption certificate"
+                  documentUrl={media.nyscCertificate.storagePath}
+                  uploadedAt={media.nyscCertificate.uploadedAt}
+                  fileId={media.nyscCertificate.fileId}
+                  fileName={media.nyscCertificate.fileName}
+                  type="signed"
+                />
+              )}
+              {media?.universityCertificate?.storagePath && (
+                <DocumentCard
+                  title="University Certificate"
+                  description="Degree certificate or proof of completion"
+                  documentUrl={media.universityCertificate.storagePath}
+                  uploadedAt={media.universityCertificate.uploadedAt}
+                  fileId={media.universityCertificate.fileId}
+                  fileName={media.universityCertificate.fileName}
+                  type="signed"
+                />
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -43,28 +43,28 @@ const BASE_REQUIRED_DOCUMENTS: RequiredUploadDocument[] = [
     inputName: "guarantor1_signed",
     uploadFieldPrefix: "guarantor_1_signed",
     label: "Signed Guarantor 1 Form *",
-    description: "Upload the signed form from your first guarantor",
+    description: "Upload the complete signed multi-page PDF form from your first guarantor",
   },
   {
     key: "guarantor2Signed",
     inputName: "guarantor2_signed",
     uploadFieldPrefix: "guarantor_2_signed",
     label: "Signed Guarantor 2 Form *",
-    description: "Upload the signed form from your second guarantor",
+    description: "Upload the complete signed multi-page PDF form from your second guarantor",
   },
   {
     key: "refereeSigned",
     inputName: "referee_signed",
     uploadFieldPrefix: "referee_signed",
     label: "Signed Referee Form *",
-    description: "Upload the signed form from your referee",
+    description: "Upload the complete signed multi-page PDF form from your referee",
   },
   {
     key: "ndaSigned",
     inputName: "nda_signed",
     uploadFieldPrefix: "nda_signed",
     label: "Signed NDA Agreement *",
-    description: "Upload your signed NDA agreement",
+    description: "Upload the complete signed multi-page PDF Non-Disclosure Agreement",
   },
 ];
 
@@ -97,7 +97,7 @@ export function Step8UploadSigned({
       inputName: document.key,
       uploadFieldPrefix: document.key,
       label: `Signed ${document.label} *`,
-      description: `Upload your signed ${document.label.toLowerCase()}`,
+      description: `Upload the complete signed multi-page PDF for ${document.label.toLowerCase()}`,
     }));
 
   const requiredDocuments = [
@@ -114,12 +114,11 @@ export function Step8UploadSigned({
 
     if (file) {
       // Validate file type
-      const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+      const validTypes = ["application/pdf"];
       if (!validTypes.includes(file.type)) {
         setFileErrors((prev) => ({
           ...prev,
-          [fieldName]:
-            "Please upload a PDF, PNG, or JPEG. WebP is not supported.",
+          [fieldName]: "Please upload a PDF document.",
         }));
         setPreviews((prev) => ({ ...prev, [fieldName]: null }));
         e.target.value = ""; // Clear input
@@ -263,14 +262,27 @@ export function Step8UploadSigned({
 
       <div className="rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 p-4">
         <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-500 mb-2">
-          Important Instructions
+          Important Upload Instructions
         </h4>
-        <ul className="text-sm text-amber-700 dark:text-amber-600 space-y-1">
-          <li>• Upload scanned copies or photos of the signed forms</li>
-          <li>• Accepted formats: PDF, JPG, PNG (max 2MB each)</li>
-          <li>• Ensure signatures are clearly visible</li>
-          <li>• Unsigned uploads may be returned for correction</li>
-          <li>• All required signed documents must be uploaded to complete</li>
+        <ul className="text-sm text-amber-700 dark:text-amber-600 space-y-1.5">
+          <li>
+            • <strong>Upload the entire document:</strong> Do not upload only the signature page or a cropped photo of the signature. You must upload the <strong>complete multi-page PDF document</strong>.
+          </li>
+          <li>• <strong>Accepted format:</strong> PDF only (max 2MB each). Image uploads (PNG, JPEG, WebP) are not accepted.</li>
+          <li>
+            • <strong>Signing Digitally:</strong> You can sign without printing. Windows users can download the free{" "}
+            <a
+              href="https://apps.microsoft.com/detail/9p90n80cht78"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium hover:text-amber-900 dark:hover:text-amber-400"
+            >
+              PDF Ink App
+            </a>{" "}
+            to draw signatures. Mac/iOS users can open the PDF and use built-in Markup.
+          </li>
+          <li>• Ensure all signatures, dates, and filled fields are clear and legible.</li>
+          <li>• Incomplete or unsigned documents will be returned for correction.</li>
         </ul>
       </div>
 
@@ -303,7 +315,7 @@ export function Step8UploadSigned({
                 type="file"
                 id={document.inputName}
                 name={document.inputName}
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".pdf"
                 onChange={(e) => handleFilePreview(e, document.key)}
                 className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />

@@ -1,5 +1,7 @@
 import { SalaryAdvanceRequestsPageShell } from "@/components/payroll/salary-advance-requests-page-shell";
 
+export const dynamic = "force-dynamic";
+
 export default async function MySalaryAdvanceRequestsPage() {
   return SalaryAdvanceRequestsPageShell({
     mode: "my",

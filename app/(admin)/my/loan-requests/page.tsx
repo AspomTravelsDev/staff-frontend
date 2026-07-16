@@ -1,5 +1,7 @@
 import { LoanRequestsPageShell } from "@/components/payroll/loan-requests-page-shell";
 
+export const dynamic = "force-dynamic";
+
 export default async function MyLoanRequestsPage() {
   return LoanRequestsPageShell({
     mode: "my",

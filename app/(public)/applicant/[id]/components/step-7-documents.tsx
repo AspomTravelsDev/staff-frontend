@@ -110,7 +110,7 @@ export function Step7Documents({
       list.push({
         id: "guarantor1",
         label: "Guarantor 1 Form",
-        description: "To be printed, completed and physically signed by your first guarantor.",
+        description: "To be filled and signed by your first guarantor.",
         url: pdfUrls.guarantor1Url,
         filename: "Guarantor_1_Form.pdf",
       });
@@ -119,7 +119,7 @@ export function Step7Documents({
       list.push({
         id: "guarantor2",
         label: "Guarantor 2 Form",
-        description: "To be printed, completed and physically signed by your second guarantor.",
+        description: "To be filled and signed by your second guarantor.",
         url: pdfUrls.guarantor2Url,
         filename: "Guarantor_2_Form.pdf",
       });
@@ -128,7 +128,7 @@ export function Step7Documents({
       list.push({
         id: "referee",
         label: "Referee Form",
-        description: "To be printed, completed and physically signed by your professional or academic referee.",
+        description: "To be filled and signed by your professional or academic referee.",
         url: pdfUrls.refereeUrl,
         filename: "Referee_Form.pdf",
       });
@@ -137,13 +137,12 @@ export function Step7Documents({
       list.push({
         id: "nda",
         label: "NDA Agreement",
-        description: "Your Non-Disclosure Agreement. Print, sign, and date it.",
+        description: "Your Non-Disclosure Agreement. Review, sign, and date it digitally (recommended) or physically.",
         url: pdfUrls.ndaUrl,
         filename: "NDA_Agreement.pdf",
       });
     }
 
-    // Add extra required documents from assets
     for (const doc of requiredAssetDocuments) {
       if (!doc.assetUrl) continue;
       const extension = doc.filename.split(".").pop() || "pdf";
@@ -151,7 +150,7 @@ export function Step7Documents({
       list.push({
         id: doc.key,
         label: doc.label,
-        description: "Required company document. Print, sign, and date it.",
+        description: "Required company document. Sign digitally (recommended) or print to sign, then upload the complete file in the next step.",
         url: doc.assetUrl,
         filename: `${normalized}.${extension}`,
       });
@@ -271,18 +270,56 @@ export function Step7Documents({
         </div>
       ) : (
         <div className="space-y-6">
-          {/* iOS / iPhone Warning Notice */}
-          <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-900/30 dark:bg-amber-900/10 p-4">
-            <div className="flex gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <h5 className="text-sm font-semibold text-amber-900 dark:text-amber-400">
-                  Are you on an iPhone or iPad?
-                </h5>
-                <p className="text-xs text-amber-800 dark:text-amber-500 mt-1">
-                  Mobile browsers (especially Safari) block downloading multiple files automatically. 
-                  Please use the individual <strong>Download PDF</strong> buttons below to download each document one by one.
+          {/* Tips & Instructions Grid */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* E-Signature Guide Card */}
+            <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 dark:border-indigo-950/20 dark:bg-indigo-950/5 p-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-400">
+                  <Sparkles className="h-5 w-5 text-indigo-500 shrink-0" />
+                  <h5 className="text-sm font-semibold">Save Paper: Use E-Signatures (Recommended)</h5>
+                </div>
+                <p className="text-xs text-indigo-800 dark:text-indigo-500 leading-relaxed">
+                  You do not need to print these forms physically. You can annotate and sign the downloaded PDFs directly on your device:
                 </p>
+                <ul className="text-xs text-indigo-700 dark:text-indigo-500/80 space-y-1.5 pl-4 list-disc">
+                  <li>
+                    <strong>Windows:</strong> Download the free{" "}
+                    <a
+                      href="https://apps.microsoft.com/detail/9p90n80cht78"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline font-medium hover:text-indigo-950 dark:hover:text-indigo-300"
+                    >
+                      PDF Ink App
+                    </a>{" "}
+                    to draw your signature.
+                  </li>
+                  <li>
+                    <strong>Mac / iOS:</strong> Open the PDF in Preview, Safari, or Files and click the marker icon to use built-in <strong>Markup</strong>.
+                  </li>
+                  <li>
+                    <strong>Android:</strong> Open the file with Adobe Acrobat Reader or any free PDF annotator app.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Printing & Format Guide Card */}
+            <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-900/30 dark:bg-amber-900/10 p-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-400">
+                  <Info className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0" />
+                  <h5 className="text-sm font-semibold">Important Scan & Download Rules</h5>
+                </div>
+                <ul className="text-xs text-amber-800 dark:text-amber-500/90 space-y-1.5 pl-4 list-disc">
+                  <li>
+                    <strong>Upload Complete PDFs:</strong> When scanning/saving, ensure you upload the <strong>entire multi-page document</strong> as a PDF, not just a picture of the signature page.
+                  </li>
+                  <li>
+                    <strong>iPhone/iPad Users:</strong> Mobile Safari blocks downloading multiple files at once. Please download each PDF individually using the buttons below.
+                  </li>
+                </ul>
               </div>
             </div>
           </div>

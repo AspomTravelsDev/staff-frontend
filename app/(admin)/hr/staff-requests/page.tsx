@@ -2,6 +2,8 @@ import { StaffRequestsTable } from "./components/staff-requests-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllHrRequests } from "@/lib/api/hr-requests";
 
+export const dynamic = "force-dynamic";
+
 export default async function StaffRequestsPage() {
   let requests = [];
   try {

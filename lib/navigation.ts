@@ -348,7 +348,7 @@ export const personalNav: NavItem[] = [
         url: "",
         icon: Users,
         items: [
-            { title: "Leave", url: "/my/leave", badgeKey: "myLeaveUpdates", badgeLabel: "Leave request updates" },
+            { title: "Request Leave", url: "/my/leave", badgeKey: "myLeaveUpdates", badgeLabel: "Leave request updates" },
             {
                 title: "To-Do & Reports",
                 url: "/my/tasks",

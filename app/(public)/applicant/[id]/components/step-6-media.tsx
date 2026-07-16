@@ -54,6 +54,46 @@ export function Step6Media({
   const [fileError, setFileError] = useState<string | null>(null);
   const [signatureError, setSignatureError] = useState<string | null>(null);
 
+  const [validIdName, setValidIdName] = useState<string | null>(initialData?.validId?.fileName || null);
+  const [oLevelName, setOLevelName] = useState<string | null>(initialData?.oLevelResults?.fileName || null);
+  const [nyscName, setNyscName] = useState<string | null>(initialData?.nyscCertificate?.fileName || null);
+  const [uniName, setUniName] = useState<string | null>(initialData?.universityCertificate?.fileName || null);
+
+  const [validIdError, setValidIdError] = useState<string | null>(null);
+  const [oLevelError, setOLevelError] = useState<string | null>(null);
+  const [nyscError, setNyscError] = useState<string | null>(null);
+  const [uniError, setUniError] = useState<string | null>(null);
+
+  const handleOptionalFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setName: (name: string | null) => void,
+    setError: (error: string | null) => void
+  ) => {
+    const file = e.target.files?.[0];
+    setError(null);
+
+    if (file) {
+      const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        setError("Please upload a PDF, PNG, or JPEG. WebP is not supported.");
+        setName(null);
+        e.target.value = "";
+        return;
+      }
+
+      if (file.size > 2 * 1024 * 1024) {
+        setError("Document exceeds 2MB. Please compress and re-upload.");
+        setName(null);
+        e.target.value = "";
+        return;
+      }
+
+      setName(file.name);
+    } else {
+      setName(null);
+    }
+  };
+
   const toSubmittedData = (formData: FormData) =>
     Object.fromEntries(
       Array.from(formData.entries()).filter(
@@ -267,6 +307,105 @@ export function Step6Media({
       const signatureStoragePath = signatureResult.url || "";
       const signatureFileId = signatureResult.fileId;
 
+      // Handle optional document uploads
+      const validIdFile = formData.get("validId") as File | null;
+      const oLevelFile = formData.get("oLevelResults") as File | null;
+      const nyscFile = formData.get("nyscCertificate") as File | null;
+      const uniFile = formData.get("universityCertificate") as File | null;
+
+      const hasNewValidId = !!(validIdFile && validIdFile.size > 0 && validIdFile.name);
+      const hasNewOLevel = !!(oLevelFile && oLevelFile.size > 0 && oLevelFile.name);
+      const hasNewNysc = !!(nyscFile && nyscFile.size > 0 && nyscFile.name);
+      const hasNewUni = !!(uniFile && uniFile.size > 0 && uniFile.name);
+
+      let validIdData = initialData?.validId;
+      if (hasNewValidId) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            validIdFile as File,
+            `applicant_id_${applicationId}`
+          );
+          validIdData = {
+            fileName: (validIdFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `ID upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
+      let oLevelData = initialData?.oLevelResults;
+      if (hasNewOLevel) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            oLevelFile as File,
+            `applicant_olevel_${applicationId}`
+          );
+          oLevelData = {
+            fileName: (oLevelFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `O-Level results upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
+      let nyscData = initialData?.nyscCertificate;
+      if (hasNewNysc) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            nyscFile as File,
+            `applicant_nysc_${applicationId}`
+          );
+          nyscData = {
+            fileName: (nyscFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `NYSC certificate upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
+      let uniData = initialData?.universityCertificate;
+      if (hasNewUni) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            uniFile as File,
+            `applicant_uni_${applicationId}`
+          );
+          uniData = {
+            fileName: (uniFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `University certificate upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
       const data = {
         media: {
           passportPhoto: {
@@ -283,6 +422,10 @@ export function Step6Media({
             storagePath: signatureStoragePath,
             fileId: signatureFileId,
           },
+          validId: validIdData,
+          oLevelResults: oLevelData,
+          nyscCertificate: nyscData,
+          universityCertificate: uniData,
         },
       };
 
@@ -451,6 +594,99 @@ export function Step6Media({
               </Button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Supporting Documents (Optional) */}
+      <Separator />
+      <div className="space-y-4">
+        <div>
+          <h4 className="font-semibold text-base mb-1">Supporting Documents (Optional)</h4>
+          <p className="text-sm text-muted-foreground">
+            Please upload clear copies of your credentials and identification. Accepted formats are PDF, PNG, and JPEG up to 2MB each.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Valid ID */}
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="validId" className="text-sm font-medium">Valid Means of ID (Passport, National ID, Voter Card, or Driver License)</Label>
+            <input
+              type="file"
+              id="validId"
+              name="validId"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setValidIdName, setValidIdError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {validIdError && <p className="text-xs font-medium text-destructive">{validIdError}</p>}
+            {validIdName && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.validId?.fileName === validIdName ? "Stored:" : "Selected:"} {validIdName}</span>
+              </div>
+            )}
+          </div>
+
+          {/* O Level Results */}
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="oLevelResults" className="text-sm font-medium">O Level Results</Label>
+            <input
+              type="file"
+              id="oLevelResults"
+              name="oLevelResults"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setOLevelName, setOLevelError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {oLevelError && <p className="text-xs font-medium text-destructive">{oLevelError}</p>}
+            {oLevelName && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.oLevelResults?.fileName === oLevelName ? "Stored:" : "Selected:"} {oLevelName}</span>
+              </div>
+            )}
+          </div>
+
+          {/* NYSC Certificate */}
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="nyscCertificate" className="text-sm font-medium">NYSC Certificate</Label>
+            <input
+              type="file"
+              id="nyscCertificate"
+              name="nyscCertificate"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setNyscName, setNyscError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {nyscError && <p className="text-xs font-medium text-destructive">{nyscError}</p>}
+            {nyscName && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.nyscCertificate?.fileName === nyscName ? "Stored:" : "Selected:"} {nyscName}</span>
+              </div>
+            )}
+          </div>
+
+          {/* University Certificate */}
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="universityCertificate" className="text-sm font-medium">University Certificate / Proof of Completion</Label>
+            <input
+              type="file"
+              id="universityCertificate"
+              name="universityCertificate"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setUniName, setUniError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {uniError && <p className="text-xs font-medium text-destructive">{uniError}</p>}
+            {uniName && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.universityCertificate?.fileName === uniName ? "Stored:" : "Selected:"} {uniName}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

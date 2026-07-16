@@ -20,17 +20,15 @@ export default async function ApplicantPage({
 
       <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
         <p className="font-semibold">Before you start</p>
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           <li>• Use a laptop/desktop browser for best experience.</li>
           <li>• Passport images must be JPG/PNG and up to 1MB each.</li>
-          <li>• Signed documents must be PDF and up to 2MB each.</li>
+          <li>• <strong>Signed documents:</strong> Must be uploaded as <strong>PDF only</strong> (up to 2MB each). Digital signatures are highly recommended (no printing required).</li>
+          <li>• <strong>Complete uploads:</strong> In steps 7 and 8, make sure you upload the <strong>entire, complete multi-page document</strong> as a PDF, not just the page with the signature.</li>
           <li>• Fill all required fields on each step before continuing.</li>
           <li>
             • Your referee must not be one of your guarantors and should be from
             a professional or educational environment.
-          </li>
-          <li>
-            • In steps 7 and 8, ensure documents are signed before upload.
           </li>
         </ul>
       </div>
