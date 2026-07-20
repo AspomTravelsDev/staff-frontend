@@ -218,6 +218,20 @@ export interface MediaData {
         fileSize?: number;
         fileId?: string;
     };
+    birthCertificate?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
+    resumeCv?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
 }
 
 export interface ApplicationFormData {

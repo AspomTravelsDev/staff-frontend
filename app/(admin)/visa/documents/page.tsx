@@ -1,11 +1,16 @@
-import { DocumentListTable } from "./components/document-list-table";
-import { UploadDocumentDialog } from "./components/upload-document-dialog";
-import { getAllDocuments } from "@/lib/api/files";
+import { VisaDocumentsExplorer } from "./components/visa-documents-explorer";
+import { getNestedDocuments, getAllFolders } from "@/lib/api/files";
 import { getCurrentUser } from "@/lib/auth/session";
 import { USER_ROLES } from "@/types/user-types";
 import { redirect } from "next/navigation";
 
-export default async function VisaDocumentsPage() {
+interface PageProps {
+  searchParams: Promise<{
+    folder?: string;
+  }>;
+}
+
+export default async function VisaDocumentsPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -20,8 +25,23 @@ export default async function VisaDocumentsPage() {
     redirect("/dashboard");
   }
 
-  const result = await getAllDocuments({ type: "visa" });
-  const documents = result.success ? result.data : [];
+  const resolvedSearchParams = await searchParams;
+  const currentFolderId = resolvedSearchParams.folder || "root";
+
+  const [result, allFoldersResult] = await Promise.all([
+    getNestedDocuments({
+      type: "visa",
+      folder_id: currentFolderId,
+    }),
+    getAllFolders({
+      type: "visa",
+    }),
+  ]);
+
+  const folders = result.success && result.data.folders ? result.data.folders : [];
+  const documents = result.success && result.data.documents ? result.data.documents : [];
+  const breadcrumbs = result.success && result.data.breadcrumbs ? result.data.breadcrumbs : [];
+  const allFolders = allFoldersResult.success && allFoldersResult.data ? allFoldersResult.data : [];
 
   const isSupervisorOrSuper =
     user.role === USER_ROLES.SUPER_ADMIN ||
@@ -38,7 +58,6 @@ export default async function VisaDocumentsPage() {
             Access sample checklists and forms for Visa applications.
           </p>
         </div>
-        {isSupervisorOrSuper && <UploadDocumentDialog />}
       </div>
 
       <a
@@ -68,10 +87,13 @@ export default async function VisaDocumentsPage() {
         </div>
       </a>
 
-      <DocumentListTable
+      <VisaDocumentsExplorer
+        folders={folders}
         documents={documents}
-        isLoading={false}
-        showDelete={isSupervisorOrSuper}
+        breadcrumbs={breadcrumbs}
+        allFolders={allFolders}
+        isSupervisorOrSuper={isSupervisorOrSuper}
+        currentFolderId={currentFolderId === "root" ? null : currentFolderId}
       />
     </div>
   );

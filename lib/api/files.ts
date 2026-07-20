@@ -1,7 +1,7 @@
 "use server";
 
 import { api, type ApiResponse } from "./client";
-import { DocumentFile, UploadDocumentResponse, DocumentFilters, DocumentCategoriesResponse } from "@/types/file-types";
+import { DocumentFile, UploadDocumentResponse, DocumentFilters, DocumentCategoriesResponse, DocumentFolder, NestedDocumentsResponse } from "@/types/file-types";
 
 // ============================================================================
 // Types
@@ -181,4 +181,72 @@ export async function getDocumentCategories(): Promise<DocumentCategoriesRespons
 export async function getFileDownloadToken(): Promise<string | null> {
     const { getAuthToken } = await import("@/lib/auth/session");
     return getAuthToken();
+}
+
+/**
+ * Get folders and documents nested in a folder
+ * GET /api/documents?folder_id=...
+ */
+export async function getNestedDocuments(filters: DocumentFilters = {}): Promise<ApiResponse<NestedDocumentsResponse>> {
+    const params = new URLSearchParams();
+    if (filters.type) params.append("type", filters.type);
+    if (filters.category) params.append("category", filters.category);
+    if (filters.department) params.append("department", filters.department);
+    if (filters.search) params.append("search", filters.search);
+    if (filters.tags) params.append("tags", filters.tags);
+    if (filters.visibility_scope) params.append("visibility_scope", filters.visibility_scope);
+    
+    // Default folder_id to 'root' to trigger nested mode
+    params.append("folder_id", filters.folder_id || "root");
+
+    const result = await api.get<NestedDocumentsResponse>(`/api/documents?${params.toString()}`);
+    return result;
+}
+
+/**
+ * Create a folder
+ * POST /api/folders
+ */
+export async function createFolder(payload: {
+    name: string;
+    parent_id?: string | null;
+    type: string;
+    department: string;
+}): Promise<ApiResponse<DocumentFolder>> {
+    return api.post<DocumentFolder>("/api/folders", payload);
+}
+
+/**
+ * Update folder name or parent
+ * PATCH /api/folders/{id}
+ */
+export async function updateFolder(
+    id: string,
+    payload: { name?: string; parent_id?: string | null }
+): Promise<ApiResponse<DocumentFolder>> {
+    return api.patch<DocumentFolder>(`/api/folders/${id}`, payload);
+}
+
+/**
+ * Delete folder recursively
+ * DELETE /api/folders/{id}
+ */
+export async function deleteFolder(id: string): Promise<ApiResponse<void>> {
+    const result = await api.delete<{ message: string }>(`/api/folders/${id}`);
+    if (!result.success) return result;
+    return { success: true, data: undefined };
+}
+
+/**
+ * Get all folders under type/department constraints
+ * GET /api/folders?type=...&department=...
+ */
+export async function getAllFolders(filters: DocumentFilters = {}): Promise<ApiResponse<DocumentFolder[]>> {
+    const params = new URLSearchParams();
+    if (filters.type) params.append("type", filters.type);
+    if (filters.category) params.append("category", filters.category);
+    if (filters.department) params.append("department", filters.department);
+    if (filters.visibility_scope) params.append("visibility_scope", filters.visibility_scope);
+
+    return api.get<DocumentFolder[]>(`/api/folders?${params.toString()}`);
 }

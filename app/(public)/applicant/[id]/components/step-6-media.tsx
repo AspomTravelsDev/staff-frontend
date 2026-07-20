@@ -58,11 +58,15 @@ export function Step6Media({
   const [oLevelName, setOLevelName] = useState<string | null>(initialData?.oLevelResults?.fileName || null);
   const [nyscName, setNyscName] = useState<string | null>(initialData?.nyscCertificate?.fileName || null);
   const [uniName, setUniName] = useState<string | null>(initialData?.universityCertificate?.fileName || null);
+  const [birthCertName, setBirthCertName] = useState<string | null>(initialData?.birthCertificate?.fileName || null);
+  const [resumeName, setResumeName] = useState<string | null>(initialData?.resumeCv?.fileName || null);
 
   const [validIdError, setValidIdError] = useState<string | null>(null);
   const [oLevelError, setOLevelError] = useState<string | null>(null);
   const [nyscError, setNyscError] = useState<string | null>(null);
   const [uniError, setUniError] = useState<string | null>(null);
+  const [birthCertError, setBirthCertError] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
   const handleOptionalFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -312,11 +316,15 @@ export function Step6Media({
       const oLevelFile = formData.get("oLevelResults") as File | null;
       const nyscFile = formData.get("nyscCertificate") as File | null;
       const uniFile = formData.get("universityCertificate") as File | null;
+      const birthCertFile = formData.get("birthCertificate") as File | null;
+      const resumeFile = formData.get("resumeCv") as File | null;
 
       const hasNewValidId = !!(validIdFile && validIdFile.size > 0 && validIdFile.name);
       const hasNewOLevel = !!(oLevelFile && oLevelFile.size > 0 && oLevelFile.name);
       const hasNewNysc = !!(nyscFile && nyscFile.size > 0 && nyscFile.name);
       const hasNewUni = !!(uniFile && uniFile.size > 0 && uniFile.name);
+      const hasNewBirthCert = !!(birthCertFile && birthCertFile.size > 0 && birthCertFile.name);
+      const hasNewResume = !!(resumeFile && resumeFile.size > 0 && resumeFile.name);
 
       let validIdData = initialData?.validId;
       if (hasNewValidId) {
@@ -406,6 +414,50 @@ export function Step6Media({
         }
       }
 
+      let birthCertData = initialData?.birthCertificate;
+      if (hasNewBirthCert) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            birthCertFile as File,
+            `applicant_birth_cert_${applicationId}`
+          );
+          birthCertData = {
+            fileName: (birthCertFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `Birth certificate upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
+      let resumeData = initialData?.resumeCv;
+      if (hasNewResume) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            resumeFile as File,
+            `applicant_resume_${applicationId}`
+          );
+          resumeData = {
+            fileName: (resumeFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `Resume/CV upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+      }
+
       const data = {
         media: {
           passportPhoto: {
@@ -426,6 +478,8 @@ export function Step6Media({
           oLevelResults: oLevelData,
           nyscCertificate: nyscData,
           universityCertificate: uniData,
+          birthCertificate: birthCertData,
+          resumeCv: resumeData,
         },
       };
 
@@ -684,6 +738,46 @@ export function Step6Media({
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.universityCertificate?.fileName === uniName ? "Stored:" : "Selected:"} {uniName}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Birth Certificate */}
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="birthCertificate" className="text-sm font-medium">Birth Certificate / Age Declaration</Label>
+            <input
+              type="file"
+              id="birthCertificate"
+              name="birthCertificate"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setBirthCertName, setBirthCertError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {birthCertError && <p className="text-xs font-medium text-destructive">{birthCertError}</p>}
+            {birthCertName && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.birthCertificate?.fileName === birthCertName ? "Stored:" : "Selected:"} {birthCertName}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Resume/CV */}
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="resumeCv" className="text-sm font-medium">Resume / CV</Label>
+            <input
+              type="file"
+              id="resumeCv"
+              name="resumeCv"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setResumeName, setResumeError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {resumeError && <p className="text-xs font-medium text-destructive">{resumeError}</p>}
+            {resumeName && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.resumeCv?.fileName === resumeName ? "Stored:" : "Selected:"} {resumeName}</span>
               </div>
             )}
           </div>

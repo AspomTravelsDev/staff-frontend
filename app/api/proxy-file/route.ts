@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
             throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
         }
 
+        const inline = request.nextUrl.searchParams.get("inline") === "true";
         const contentType = response.headers.get("content-type");
         const contentDisposition = response.headers.get("content-disposition");
         const buffer = await response.arrayBuffer();
@@ -40,7 +41,9 @@ export async function GET(request: NextRequest) {
             "Cache-Control": "public, max-age=31536000, immutable",
         };
 
-        if (contentDisposition) {
+        if (inline) {
+            headers["Content-Disposition"] = "inline";
+        } else if (contentDisposition) {
             headers["Content-Disposition"] = contentDisposition;
         }
 

@@ -34,6 +34,7 @@ export interface DocumentFile {
         name: string;
     };
     download_url?: string;
+    folder_id?: string | null;
 }
 
 export interface CreateDocumentRequest {
@@ -43,6 +44,7 @@ export interface CreateDocumentRequest {
     department: string;
     tags?: string;
     description?: string;
+    folder_id?: string | null;
 }
 
 export interface UploadDocumentResponse {
@@ -62,4 +64,29 @@ export interface DocumentFilters {
     tags?: string;
     search?: string;
     visibility_scope?: 'my';
+    folder_id?: string;
+}
+
+export interface DocumentFolder {
+    id: string;
+    name: string;
+    parent_id: string | null;
+    type: string;
+    department: string;
+    created_by: {
+        id: string;
+        name: string;
+    };
+    created_at: string;
+}
+
+export interface BreadcrumbItem {
+    id: string;
+    name: string;
+}
+
+export interface NestedDocumentsResponse {
+    folders: DocumentFolder[];
+    documents: DocumentFile[];
+    breadcrumbs: BreadcrumbItem[];
 }

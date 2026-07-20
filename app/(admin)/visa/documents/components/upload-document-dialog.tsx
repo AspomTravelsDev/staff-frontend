@@ -23,11 +23,13 @@ import { DocumentFile } from "@/types/file-types";
 interface UploadDocumentDialogProps {
   document?: DocumentFile;
   trigger?: React.ReactNode;
+  folderId?: string | null;
 }
 
 export function UploadDocumentDialog({
   document: existingDoc,
   trigger,
+  folderId,
 }: UploadDocumentDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -97,6 +99,7 @@ export function UploadDocumentDialog({
     formData.append("title", title);
     if (description) formData.append("description", description);
     if (tags) formData.append("tags", tags);
+    if (folderId) formData.append("folder_id", folderId);
 
     try {
       setIsPending(true);

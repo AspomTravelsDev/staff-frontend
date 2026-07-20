@@ -449,7 +449,9 @@ export function DocumentPreviews({
           media?.validId?.storagePath ||
           media?.oLevelResults?.storagePath ||
           media?.nyscCertificate?.storagePath ||
-          media?.universityCertificate?.storagePath
+          media?.universityCertificate?.storagePath ||
+          media?.birthCertificate?.storagePath ||
+          media?.resumeCv?.storagePath
         ) && (
           <div>
             <div className="border-t my-6 border-zinc-200 dark:border-zinc-800" />
@@ -498,6 +500,28 @@ export function DocumentPreviews({
                   uploadedAt={media.universityCertificate.uploadedAt}
                   fileId={media.universityCertificate.fileId}
                   fileName={media.universityCertificate.fileName}
+                  type="signed"
+                />
+              )}
+              {media?.birthCertificate?.storagePath && (
+                <DocumentCard
+                  title="Birth Certificate"
+                  description="Birth certificate or age declaration"
+                  documentUrl={media.birthCertificate.storagePath}
+                  uploadedAt={media.birthCertificate.uploadedAt}
+                  fileId={media.birthCertificate.fileId}
+                  fileName={media.birthCertificate.fileName}
+                  type="signed"
+                />
+              )}
+              {media?.resumeCv?.storagePath && (
+                <DocumentCard
+                  title="Resume / CV"
+                  description="Applicant professional resume or CV"
+                  documentUrl={media.resumeCv.storagePath}
+                  uploadedAt={media.resumeCv.uploadedAt}
+                  fileId={media.resumeCv.fileId}
+                  fileName={media.resumeCv.fileName}
                   type="signed"
                 />
               )}
