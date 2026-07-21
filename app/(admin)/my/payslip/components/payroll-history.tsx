@@ -20,6 +20,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {  type PayrollEntry } from "@/lib/api/payroll";
 import { PayslipDocument } from "./payslip-document";
 import { StatsCard } from "@/components/stats-card";
@@ -46,10 +52,10 @@ export function PayrollHistory({ initialEntries, user }: PayrollHistoryProps) {
     count: entries.length
   };
 
-  const handleDirectDownload = async (entry: PayrollEntry) => {
+  const handleDirectDownload = async (entry: PayrollEntry, formatType: "jpg" | "pdf") => {
     setSelectedEntry(entry);
     
-    const toastId = toast.loading("Preparing your payslip for download...");
+    const toastId = toast.loading(`Preparing your payslip as ${formatType.toUpperCase()}...`);
     
     try {
       await new Promise(r => setTimeout(r, 500));
@@ -60,6 +66,8 @@ export function PayrollHistory({ initialEntries, user }: PayrollHistoryProps) {
       }
 
       const { toJpeg } = await import("html-to-image");
+      const { jsPDF } = await import("jspdf");
+
       const dataUrl = await toJpeg(element, {
         quality: 1,
         backgroundColor: "#ffffff",
@@ -69,16 +77,27 @@ export function PayrollHistory({ initialEntries, user }: PayrollHistoryProps) {
         }
       });
 
-      const link = document.createElement("a");
       const monthName = format(new Date(entry.run?.payroll_month + "-01"), "MMM_yyyy");
-      link.download = `Payslip_${monthName}.jpg`;
-      link.href = dataUrl;
-      link.click();
 
-      toast.success("Payslip downloaded!", { id: toastId });
+      if (formatType === "jpg") {
+        const link = document.createElement("a");
+        link.download = `Payslip_${monthName}.jpg`;
+        link.href = dataUrl;
+        link.click();
+      } else {
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "px",
+          format: [element.offsetWidth, element.offsetHeight],
+        });
+        pdf.addImage(dataUrl, "JPEG", 0, 0, element.offsetWidth, element.offsetHeight);
+        pdf.save(`Payslip_${monthName}.pdf`);
+      }
+
+      toast.success("Payslip downloaded successfully!", { id: toastId });
     } catch (err) {
       console.error(err);
-      toast.error("Failed to download payslip", { id: toastId });
+      toast.error(`Failed to download payslip as ${formatType.toUpperCase()}`, { id: toastId });
     }
   };
 
@@ -186,15 +205,26 @@ export function PayrollHistory({ initialEntries, user }: PayrollHistoryProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right pr-6">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
-                          onClick={() => handleDirectDownload(entry)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem onClick={() => handleDirectDownload(entry, "pdf")} className="cursor-pointer">
+                              📄 PDF Format
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDirectDownload(entry, "jpg")} className="cursor-pointer">
+                              🖼️ JPG Format
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>

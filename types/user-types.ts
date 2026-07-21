@@ -1,5 +1,7 @@
 export const USER_ROLES = {
     SUPER_ADMIN: "super",
+    MP: "mp",
+    MD: "md",
     ADMIN_OFFICER: "admin",
     IT_OFFICER: "it",
     ACCOUNT_OFFICER: "account",
@@ -35,6 +37,8 @@ export type RolesMetadataContract = {
 
 export const ROLE_TO_DEPARTMENT_FALLBACK: Record<string, string> = {
     super: "Management",
+    mp: "Management",
+    md: "Management",
     admin: "Administration",
     it: "IT",
     account: "Accounts",
@@ -50,6 +54,8 @@ export const ROLE_TO_DEPARTMENT_FALLBACK: Record<string, string> = {
 
 export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRole }> = {
     [USER_ROLES.SUPER_ADMIN]: { label: "Super Admin", value: "super" },
+    [USER_ROLES.MP]: { label: "Managing Partner", value: "mp" },
+    [USER_ROLES.MD]: { label: "Managing Director", value: "md" },
     [USER_ROLES.ADMIN_OFFICER]: { label: "Admin Officer", value: "admin" },
     [USER_ROLES.IT_OFFICER]: { label: "IT Officer", value: "it" },
     [USER_ROLES.ACCOUNT_OFFICER]: { label: "Accounts Officer", value: "account" },

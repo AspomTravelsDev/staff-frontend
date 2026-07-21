@@ -481,8 +481,8 @@ export const personalNav: NavItem[] = [
  * Super see all department items
  */
 export function filterNavByRole(items: NavItem[], role: UserRole): NavItem[] {
-    // Super see everything
-    if (role === "super") {
+    // Super, MP, MD see everything
+    if (role === "super" || role === "mp" || role === "md") {
         return items;
     }
 

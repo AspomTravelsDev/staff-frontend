@@ -132,25 +132,29 @@ export function DocumentListTable({
     window.open(proxyUrl, "_blank");
   };
 
-  // Filter documents
-  const filteredDocuments = documents.filter((doc) => {
-    const matchesSearch =
-      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter & sort documents alphabetically (A-Z)
+  const filteredDocuments = documents
+    .filter((doc) => {
+      const matchesSearch =
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesTag =
-      !tagFilter ||
-      doc.tags?.some((t) => t.toLowerCase().includes(tagFilter.toLowerCase()));
+      const matchesTag =
+        !tagFilter ||
+        doc.tags?.some((t) => t.toLowerCase().includes(tagFilter.toLowerCase()));
 
-    return matchesSearch && matchesTag;
-  });
+      return matchesSearch && matchesTag;
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base", numeric: true }));
 
-  // Filter folders
-  const filteredFolders = folders.filter((folder) => {
-    const matchesSearch = folder.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = !tagFilter; // folders don't have tags
-    return matchesSearch && matchesTag;
-  });
+  // Filter & sort folders alphabetically (A-Z)
+  const filteredFolders = folders
+    .filter((folder) => {
+      const matchesSearch = folder.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTag = !tagFilter; // folders don't have tags
+      return matchesSearch && matchesTag;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
 
   // Get unique tags for quick filtering
   const allTags = Array.from(

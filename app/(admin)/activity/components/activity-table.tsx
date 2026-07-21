@@ -39,6 +39,8 @@ const actionIcons: Record<string, React.ElementType> = {
 
 const roleColors: Record<User["role"], string> = {
   super: "bg-red-500",
+  mp: "bg-red-500",
+  md: "bg-red-500",
   admin: "bg-purple-500",
   it: "bg-blue-500",
   account: "bg-green-500",
