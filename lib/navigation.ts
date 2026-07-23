@@ -196,6 +196,12 @@ export const departmentNav: NavItem[] = [
         icon: FileText,
         allowedRoles: ["visa"],
     },
+    {
+        title: "Visa Samples Generator",
+        url: "/visa/samples",
+        icon: FileText,
+        allowedRoles: ["visa", "super"],
+    },
     // {
     //     title: "IT Service Desk",
     //     url: "/it/service-desk",

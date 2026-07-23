@@ -1,111 +1,86 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import React from "react";
 import { createApplication, sendInvite } from "@/lib/api/hr";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 import { toast } from "sonner";
 import { SALARY_PERCENTAGES } from "@/lib/config/payroll";
-
-// Salary breakdown percentages
-
-// Static simple tax percentage unused now in favor of PAYE logic
-// const TAX_PERCENTAGE = 0.153;
+import {
+  calculateNetFromGross,
+  calculateGrossFromNet,
+  ComputedSalaryPackage,
+} from "@/lib/payroll/payroll-reverse-calculator";
+import { ArrowLeftRight, Sparkles, ShieldOff } from "lucide-react";
 
 export function CreateApplicationForm() {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [grossSalary, setGrossSalary] = useState<number>(0);
-  const [isIntern, setIsIntern] = useState(false);
 
-  // Derive breakdown from grossSalary using useMemo
-  const breakdown = React.useMemo(() => {
-    if (grossSalary > 0) {
-      let calculatedTax = 0;
-      if (!isIntern) {
-        // Calculate PAYE Tax exactly as Payslip does for non-intern staff.
-        let remainingTaxable = grossSalary * 12;
-        let annualTax = 0;
+  // Bidirectional state
+  const [grossInput, setGrossInput] = useState<string>("");
+  const [netInput, setNetInput] = useState<string>("");
+  const [lastEdited, setLastEdited] = useState<"gross" | "net">("gross");
+  const [isTaxExempt, setIsTaxExempt] = useState<boolean>(false);
 
-        const band1 = Math.min(remainingTaxable, 800000);
-        remainingTaxable -= band1;
-
-        if (remainingTaxable > 0) {
-          const band2 = Math.min(remainingTaxable, 2200000);
-          annualTax += band2 * 0.15;
-          remainingTaxable -= band2;
-        }
-        if (remainingTaxable > 0) {
-          const band3 = Math.min(remainingTaxable, 9000000);
-          annualTax += band3 * 0.18;
-          remainingTaxable -= band3;
-        }
-        if (remainingTaxable > 0) {
-          const band4 = Math.min(remainingTaxable, 13000000);
-          annualTax += band4 * 0.21;
-          remainingTaxable -= band4;
-        }
-        if (remainingTaxable > 0) {
-          annualTax += remainingTaxable * 0.25;
-        }
-
-        calculatedTax = Math.round((annualTax / 12) * 100) / 100;
-      }
-
-      const calculated = {
-        basic: Math.round(grossSalary * SALARY_PERCENTAGES.basic * 100) / 100,
-        rent_housing:
-          Math.round(grossSalary * SALARY_PERCENTAGES.rent_housing * 100) / 100,
-        transport:
-          Math.round(grossSalary * SALARY_PERCENTAGES.transport * 100) / 100,
-        medical:
-          Math.round(grossSalary * SALARY_PERCENTAGES.medical * 100) / 100,
-        furniture:
-          Math.round(grossSalary * SALARY_PERCENTAGES.furniture * 100) / 100,
-        utility:
-          Math.round(grossSalary * SALARY_PERCENTAGES.utility * 100) / 100,
-        entertainment:
-          Math.round(grossSalary * SALARY_PERCENTAGES.entertainment * 100) /
-          100,
-        meal_subsidy:
-          Math.round(grossSalary * SALARY_PERCENTAGES.meal_subsidy * 100) / 100,
-        clothing:
-          Math.round(grossSalary * SALARY_PERCENTAGES.clothing * 100) / 100,
-        passages:
-          Math.round(grossSalary * SALARY_PERCENTAGES.passages * 100) / 100,
-        statutory_tax_deduction: calculatedTax,
-        net_salary: 0,
-      };
-      calculated.net_salary =
-        Math.round((grossSalary - calculated.statutory_tax_deduction) * 100) /
-        100;
-      return calculated;
+  // Compute breakdown dynamically based on last active source and tax exemption
+  const breakdown: ComputedSalaryPackage = useMemo(() => {
+    if (lastEdited === "net") {
+      const netVal = Number(netInput) || 0;
+      return calculateGrossFromNet(netVal, isTaxExempt);
     } else {
-      return {
-        basic: 0,
-        rent_housing: 0,
-        transport: 0,
-        medical: 0,
-        furniture: 0,
-        utility: 0,
-        entertainment: 0,
-        meal_subsidy: 0,
-        clothing: 0,
-        passages: 0,
-        statutory_tax_deduction: 0,
-        net_salary: 0,
-      };
+      const grossVal = Number(grossInput) || 0;
+      return calculateNetFromGross(grossVal, isTaxExempt);
     }
-  }, [grossSalary, isIntern]);
+  }, [grossInput, netInput, lastEdited, isTaxExempt]);
 
-  // ... inside component
+  // Gross Input Handler
+  const handleGrossChange = (val: string) => {
+    setLastEdited("gross");
+    setGrossInput(val);
+    const num = Number(val) || 0;
+    if (num > 0) {
+      const calc = calculateNetFromGross(num, isTaxExempt);
+      setNetInput(calc.net_salary ? String(calc.net_salary) : "");
+    } else {
+      setNetInput("");
+    }
+  };
+
+  // Net Input Handler
+  const handleNetChange = (val: string) => {
+    setLastEdited("net");
+    setNetInput(val);
+    const num = Number(val) || 0;
+    if (num > 0) {
+      const calc = calculateGrossFromNet(num, isTaxExempt);
+      setGrossInput(calc.gross_salary ? String(calc.gross_salary) : "");
+    } else {
+      setGrossInput("");
+    }
+  };
+
+  // Tax Exemption Toggle Handler
+  const handleTaxExemptToggle = (checked: boolean) => {
+    setIsTaxExempt(checked);
+    if (lastEdited === "net") {
+      const netVal = Number(netInput) || 0;
+      const calc = calculateGrossFromNet(netVal, checked);
+      setGrossInput(calc.gross_salary ? String(calc.gross_salary) : "");
+    } else {
+      const grossVal = Number(grossInput) || 0;
+      const calc = calculateNetFromGross(grossVal, checked);
+      setNetInput(calc.net_salary ? String(calc.net_salary) : "");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
@@ -117,18 +92,23 @@ export function CreateApplicationForm() {
     const reporting_to = formData.get("reporting_to") as string;
     const effective_date = formData.get("effective_date") as string;
 
-    // Use the calculated breakdown from state
-    // Check if grossSalary matches? It should if state is up to date.
+    const finalGross = breakdown.gross_salary;
+
+    if (finalGross <= 0) {
+      toast.error("Please enter a valid Gross or Net salary.");
+      setIsPending(false);
+      return;
+    }
 
     try {
       const application = await createApplication({
         applicant_name,
         applicant_email,
         position_title,
-        is_intern: isIntern,
+        is_intern: false,
         reporting_to,
         effective_date,
-        salary_gross: grossSalary,
+        salary_gross: finalGross,
         salary_breakdown: breakdown,
       });
 
@@ -175,26 +155,28 @@ export function CreateApplicationForm() {
           <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="applicant_name">Applicant Full Name</Label>
-            <Input
-              id="applicant_name"
-              name="applicant_name"
-              type="text"
-              required
-              placeholder="e.g., John Doe"
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="applicant_name">Applicant Full Name</Label>
+              <Input
+                id="applicant_name"
+                name="applicant_name"
+                type="text"
+                required
+                placeholder="e.g., John Doe"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="applicant_email">Applicant Email</Label>
-            <Input
-              id="applicant_email"
-              name="applicant_email"
-              type="email"
-              required
-              placeholder="applicant@example.com"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="applicant_email">Applicant Email</Label>
+              <Input
+                id="applicant_email"
+                name="applicant_email"
+                type="email"
+                required
+                placeholder="applicant@example.com"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -208,85 +190,119 @@ export function CreateApplicationForm() {
             />
           </div>
 
-          <div className="space-y-2 rounded-md border p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="reporting_to">Reporting To</Label>
+              <Input
+                id="reporting_to"
+                name="reporting_to"
+                type="text"
+                required
+                defaultValue="Nancy O. Peters"
+                readOnly
+                className="bg-muted"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="effective_date">Effective Date</Label>
+              <Input
+                id="effective_date"
+                name="effective_date"
+                type="date"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-md border p-3 bg-muted/20">
             <Label
-              htmlFor="is_intern"
+              htmlFor="is_tax_exempt"
               className="flex cursor-pointer items-start gap-3"
             >
               <input
-                id="is_intern"
-                name="is_intern"
+                id="is_tax_exempt"
+                name="is_tax_exempt"
                 type="checkbox"
-                className="mt-1 h-4 w-4"
-                checked={isIntern}
-                onChange={(event) => setIsIntern(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded"
+                checked={isTaxExempt}
+                onChange={(e) => handleTaxExemptToggle(e.target.checked)}
               />
-              <span className="text-sm">
-                Mark this applicant as an intern (tax exempt in onboarding
-                salary calculation and offer letter).
-              </span>
+              <div className="space-y-0.5">
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <ShieldOff className="size-3.5 text-amber-500" />
+                  Tax Exempt Salary
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  Exempts this salary from PAYE statutory tax deductions (Gross = Net).
+                </p>
+              </div>
             </Label>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="reporting_to">Reporting To</Label>
-            <Input
-              id="reporting_to"
-              name="reporting_to"
-              type="text"
-              required
-              defaultValue="Nancy O. Peters"
-              readOnly
-              className="bg-muted"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="effective_date">Effective Date</Label>
-            <Input
-              id="effective_date"
-              name="effective_date"
-              type="date"
-              required
-            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Salary Information */}
+      {/* Salary Information (Bidirectional Gross ↔ Net) */}
       <Card>
         <CardHeader>
-          <CardTitle>Salary Information</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ArrowLeftRight className="size-5 text-primary" />
+            Salary Package & Auto-Calculation
+          </CardTitle>
+          <CardDescription>
+            Enter either Gross Salary or Desired Net Salary. Amount is automatically calculates the counterpart and PAYE tax in real-time.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="salary_gross">Gross Salary (₦)</Label>
-            <Input
-              id="salary_gross"
-              name="salary_gross"
-              type="number"
-              step="0.01"
-              required
-              placeholder="220000.00"
-              onChange={(e) => setGrossSalary(Number(e.target.value) || 0)}
-            />
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="salary_gross" className="font-semibold text-xs flex items-center justify-between">
+                <span>Gross Salary (₦)</span>
+                {lastEdited === "net" && breakdown.gross_salary > 0 && (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-normal text-[11px] flex items-center gap-1">
+                    <Sparkles className="size-3" /> Auto-calculated from Net
+                  </span>
+                )}
+              </Label>
+              <Input
+                id="salary_gross"
+                name="salary_gross"
+                type="number"
+                step="0.01"
+                required
+                placeholder="e.g. 220000.00"
+                value={grossInput}
+                onChange={(e) => handleGrossChange(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="salary_net" className="font-semibold text-xs flex items-center justify-between">
+                <span>Desired Net Salary (₦)</span>
+                {lastEdited === "gross" && breakdown.net_salary > 0 && (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-normal text-[11px] flex items-center gap-1">
+                    <Sparkles className="size-3" /> Auto-calculated from Gross
+                  </span>
+                )}
+              </Label>
+              <Input
+                id="salary_net"
+                name="salary_net"
+                type="number"
+                step="0.01"
+                placeholder="e.g. 198583.33"
+                value={netInput}
+                onChange={(e) => handleNetChange(e.target.value)}
+              />
+            </div>
           </div>
 
-          {grossSalary > 0 && (
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <div className="font-medium">Auto-calculated Net Salary:</div>
-              <div className="text-lg font-bold text-primary">
-                ₦
-                {breakdown.net_salary.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                (Gross: ₦{grossSalary.toLocaleString()} - Tax: ₦
-                {breakdown.statutory_tax_deduction.toLocaleString()}
-                {isIntern ? " [Intern exemption]" : ""})
-              </div>
+          {breakdown.gross_salary > 0 && (
+            <div className="rounded-lg bg-muted p-3.5 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-medium">Auto-Calculated Net Pay:</span>
+              <span className="text-lg font-bold text-primary">
+                ₦{breakdown.net_salary.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           )}
 
@@ -295,13 +311,13 @@ export function CreateApplicationForm() {
           <div className="text-sm font-medium">
             Salary Breakdown
             <span className="ml-2 text-xs font-normal text-muted-foreground">
-              (Auto-calculated based on percentages)
+              (Auto-calculated from Gross Salary percentages)
             </span>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="basic">Basic (18.35%)</Label>
+              <Label htmlFor="basic">Basic ({SALARY_PERCENTAGES.basic * 100}%)</Label>
               <Input
                 id="basic"
                 name="basic"
@@ -315,7 +331,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="rent_housing">Rent/Housing (5.52%)</Label>
+              <Label htmlFor="rent_housing">Rent/Housing ({SALARY_PERCENTAGES.rent_housing * 100}%)</Label>
               <Input
                 id="rent_housing"
                 name="rent_housing"
@@ -329,7 +345,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="transport">Transport (5.52%)</Label>
+              <Label htmlFor="transport">Transport ({SALARY_PERCENTAGES.transport * 100}%)</Label>
               <Input
                 id="transport"
                 name="transport"
@@ -343,7 +359,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="medical">Medical (18.26%)</Label>
+              <Label htmlFor="medical">Medical ({SALARY_PERCENTAGES.medical * 100}%)</Label>
               <Input
                 id="medical"
                 name="medical"
@@ -357,7 +373,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="furniture">Furniture (6.34%)</Label>
+              <Label htmlFor="furniture">Furniture ({SALARY_PERCENTAGES.furniture * 100}%)</Label>
               <Input
                 id="furniture"
                 name="furniture"
@@ -371,7 +387,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="utility">Utility (3.45%)</Label>
+              <Label htmlFor="utility">Utility ({SALARY_PERCENTAGES.utility * 100}%)</Label>
               <Input
                 id="utility"
                 name="utility"
@@ -385,7 +401,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="entertainment">Entertainment (4.46%)</Label>
+              <Label htmlFor="entertainment">Entertainment ({SALARY_PERCENTAGES.entertainment * 100}%)</Label>
               <Input
                 id="entertainment"
                 name="entertainment"
@@ -399,7 +415,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="meal_subsidy">Meal Subsidy (13.36%)</Label>
+              <Label htmlFor="meal_subsidy">Meal Subsidy ({SALARY_PERCENTAGES.meal_subsidy * 100}%)</Label>
               <Input
                 id="meal_subsidy"
                 name="meal_subsidy"
@@ -413,7 +429,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="clothing">Clothing (13.28%)</Label>
+              <Label htmlFor="clothing">Clothing ({SALARY_PERCENTAGES.clothing * 100}%)</Label>
               <Input
                 id="clothing"
                 name="clothing"
@@ -427,7 +443,7 @@ export function CreateApplicationForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="passages">Passages (11.46%)</Label>
+              <Label htmlFor="passages">Passages ({SALARY_PERCENTAGES.passages * 100}%)</Label>
               <Input
                 id="passages"
                 name="passages"
@@ -440,39 +456,19 @@ export function CreateApplicationForm() {
               />
             </div>
           </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label htmlFor="statutory_tax_deduction">
-              Statutory Tax Deduction{" "}
-              {isIntern ? "(Intern exempt: 0.00)" : "(PAYE calculated)"}
-            </Label>
-            <Input
-              id="statutory_tax_deduction"
-              name="statutory_tax_deduction"
-              type="number"
-              step="0.01"
-              required
-              value={breakdown.statutory_tax_deduction}
-              readOnly
-              className="bg-muted"
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Submit Button */}
-      <div className="flex items-center gap-4">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Creating..." : "Create Application"}
-        </Button>
+      <div className="flex justify-end gap-4">
         <Button
           type="button"
           variant="outline"
-          onClick={() => window.history.back()}
+          onClick={() => router.push("/hr/applications")}
         >
           Cancel
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Creating Application..." : "Create Application & Send Invite"}
         </Button>
       </div>
     </form>
