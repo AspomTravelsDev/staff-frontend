@@ -82,7 +82,7 @@ export function AdminAttendanceTable({
         toast.success("Clock-in time updated to 09:06 AM");
         router.refresh();
       } else {
-        toast.error(res.error?.error || res.data?.message || "Failed to update record");
+        toast.error(res.error?.error || "Failed to update record");
       }
     } catch {
       toast.error("Failed to mark as late");
