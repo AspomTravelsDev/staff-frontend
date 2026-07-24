@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { getDeviceSignature } from "@/lib/utils/device-fingerprint";
 
 export function ClockInWidget() {
   const [loading, setLoading] = useState(false);
@@ -65,7 +66,8 @@ export function ClockInWidget() {
         console.error("Failed to fetch location/IP:", err);
       }
 
-      const response = await clockIn(location, client_ip);
+      const deviceData = getDeviceSignature();
+      const response = await clockIn(location, client_ip, deviceData);
       if (response.success) {
         toast.success(response.data.message || "Successfully clocked in");
         setStatus(response.data.data);

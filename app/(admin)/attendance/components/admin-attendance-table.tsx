@@ -286,6 +286,14 @@ export function AdminAttendanceTable({
                             {record.ip_address}
                           </span>
                         )}
+                        {record.device_name && (
+                          <span
+                            className="text-[9px] text-muted-foreground opacity-70 truncate max-w-[130px]"
+                            title={record.device_name}
+                          >
+                            {record.device_name}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
 
@@ -324,16 +332,41 @@ export function AdminAttendanceTable({
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={late ? "destructive" : "default"}
-                        className={
-                          !late
-                            ? "bg-green-600 text-[10px] hover:bg-green-700"
-                            : "text-[10px]"
-                        }
-                      >
-                        {late ? "Late Arrival" : "On Time"}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge
+                          variant={
+                            record.is_flagged_proxy
+                              ? "outline"
+                              : late
+                                ? "destructive"
+                                : "default"
+                          }
+                          className={
+                            record.is_flagged_proxy
+                              ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold"
+                              : !late
+                                ? "bg-green-600 text-[10px] hover:bg-green-700"
+                                : "text-[10px]"
+                          }
+                          title={
+                            record.is_flagged_proxy
+                              ? record.proxy_reason ||
+                                `Flagged: Shared device with ${record.proxy_matched_user?.name || "a colleague"}`
+                              : undefined
+                          }
+                        >
+                          {record.is_flagged_proxy
+                            ? "Flagged"
+                            : late
+                              ? "Late Arrival"
+                              : "On Time"}
+                        </Badge>
+                        {record.is_flagged_proxy && record.proxy_matched_user?.name && (
+                          <span className="text-[9px] italic text-amber-700 dark:text-amber-400 font-medium">
+                            Shared with {record.proxy_matched_user.name}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     {canMarkLate && (
                       <TableCell className="text-right">

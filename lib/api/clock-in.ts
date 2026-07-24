@@ -15,6 +15,13 @@ export interface ClockInRecord {
     distance?: number;
     accuracy?: number;
     office_name?: string;
+    device_name?: string;
+    is_flagged_proxy?: boolean;
+    proxy_reason?: string;
+    proxy_matched_user?: {
+        id: string;
+        name: string;
+    } | null;
     user?: {
         name: string;
         email: string;
@@ -61,12 +68,18 @@ export async function getTodayStatus(): Promise<ApiResponse<StandardResponse<Clo
  */
 export async function clockIn(
     location?: LocationData,
-    client_ip?: string
+    client_ip?: string,
+    deviceData?: {
+        device_uuid?: string;
+        device_fingerprint?: string;
+        device_name?: string;
+    }
 ): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
     revalidatePath("/my/attendance");
     return api.post<StandardResponse<ClockInRecord>>("/api/clock-in", {
         location,
-        client_ip
+        client_ip,
+        ...(deviceData || {})
     });
 }
 
