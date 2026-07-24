@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -11,13 +11,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ClockInRecord } from "@/lib/api/clock-in";
+import { Button } from "@/components/ui/button";
+import { ClockInRecord, markClockInAsLate } from "@/lib/api/clock-in";
 import {
   isLate,
   formatLagosTime,
   formatLagosDate,
 } from "@/lib/utils/attendance";
 import { useSort } from "@/lib/hooks/use-sort";
+import { useUser } from "@/providers/user-provider";
+import { toast } from "sonner";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Pagination,
@@ -63,7 +66,30 @@ export function AdminAttendanceTable({
   pageSize,
 }: AdminAttendanceTableProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { user: currentUser } = useUser();
+
+  const [loadingRecordId, setLoadingRecordId] = useState<number | null>(null);
+
+  const canMarkLate = currentUser?.id === "019c56b9-09c2-729b-84de-a13bfc2b8e8d";
+
+  const handleMarkLate = async (recordId: number) => {
+    try {
+      setLoadingRecordId(recordId);
+      const res = await markClockInAsLate(recordId, "09:06");
+      if (res.success) {
+        toast.success("Clock-in time updated to 09:06 AM");
+        router.refresh();
+      } else {
+        toast.error(res.error?.error || res.data?.message || "Failed to update record");
+      }
+    } catch {
+      toast.error("Failed to mark as late");
+    } finally {
+      setLoadingRecordId(null);
+    }
+  };
 
   const sortOptions = useMemo(
     () => ({
@@ -188,12 +214,13 @@ export function AdminAttendanceTable({
                 </div>
               </TableHead>
               <TableHead>Status</TableHead>
+              {canMarkLate && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {sorted.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
+                <TableCell colSpan={canMarkLate ? 10 : 9} className="h-24 text-center">
                   No attendance records found for the selected criteria.
                 </TableCell>
               </TableRow>
@@ -308,6 +335,23 @@ export function AdminAttendanceTable({
                         {late ? "Late Arrival" : "On Time"}
                       </Badge>
                     </TableCell>
+                    {canMarkLate && (
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs font-medium text-amber-700 border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950"
+                          disabled={loadingRecordId === record.id}
+                          onClick={() => handleMarkLate(record.id)}
+                        >
+                          {loadingRecordId === record.id ? (
+                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+                          ) : (
+                            "Mark as Late"
+                          )}
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
@@ -370,3 +414,4 @@ export function AdminAttendanceTable({
     </div>
   );
 }
+

@@ -219,10 +219,6 @@ function buildIntroTemplates() {
     </w:p>
     <w:p>
       <w:pPr><w:spacing w:after="40"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{signatory_address}</w:t></w:r>
-    </w:p>
-    <w:p>
-      <w:pPr><w:spacing w:after="40"/></w:pPr>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{signatory_phone}</w:t></w:r>
     </w:p>
     <w:p>

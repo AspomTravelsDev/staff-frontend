@@ -7,6 +7,7 @@ import {
   approvePayrollEntry,
   closePayrollRun,
   createPayrollRun,
+  deletePayrollRun,
   getPayrollRun,
   listPayrollRuns,
   overridePayrollEntry,
@@ -44,6 +45,7 @@ import {
   RotateCcw,
   CheckCheck,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 
 import {
@@ -139,6 +141,7 @@ export function PayrollManager() {
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [isBulkApproving, setIsBulkApproving] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const isPersistedRun = (run?: PayrollRun | null) => {
     return !!run && !!run.id;
@@ -434,6 +437,31 @@ export function PayrollManager() {
         error instanceof Error
           ? error.message
           : "Unable to re-open payroll run.",
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleDeleteRun = async () => {
+    if (!currentRun) return;
+    setIsDeleteDialogOpen(false);
+    setIsBusy(true);
+    try {
+      const result = await deletePayrollRun(currentRun.id);
+      if (!result.success) {
+        throw new Error(result.error.error || "Failed to delete payroll run.");
+      }
+      toast.success(
+        `Payroll run for ${formatMonthLabel(currentRun.payroll_month)} deleted.`,
+      );
+      setCurrentRun(null);
+      await loadMonthRun();
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete payroll run.",
       );
     } finally {
       setIsBusy(false);
@@ -781,15 +809,28 @@ export function PayrollManager() {
                   Re-open for Edits
                 </Button>
               ) : (
-                <Button
-                  type="button"
-                  variant="default"
-                  className="font-bold px-6"
-                  disabled={isBusy || pendingCount > 0}
-                  onClick={handleCloseRun}
-                >
-                  Finalize & Close Run
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="font-semibold h-10 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    disabled={isBusy}
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    title="Delete this unlocked payroll run"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    Delete Run
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="font-bold px-6"
+                    disabled={isBusy || pendingCount > 0}
+                    onClick={handleCloseRun}
+                  >
+                    Finalize & Close Run
+                  </Button>
+                </div>
               )}
             </>
           )}
@@ -1070,6 +1111,29 @@ export function PayrollManager() {
               onClick={handleResetRun}
             >
               Reset Everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payroll Run?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the payroll run for{" "}
+              <strong className="text-slate-900 font-bold">
+                {formatMonthLabel(currentRun?.payroll_month || selectedMonth)}
+              </strong>
+              ? This will remove all calculated payroll entries for this period. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+              onClick={handleDeleteRun}
+            >
+              Delete Run
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -22,7 +22,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info, Save, CheckCircle2, X, RotateCcw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Info, Save, CheckCircle2, X, RotateCcw, Calendar, PlusCircle, Sliders } from "lucide-react";
 import {
   calculateAccommodationAmount,
   calculateMonthlyTax,
@@ -67,11 +68,13 @@ interface Props {
 type OtherDeductionInput = {
   label: string;
   amount: string;
+  tax_treatment: "post_tax" | "pre_tax";
 };
 
 type AdditionInput = {
   label: string;
   amount: string;
+  tax_treatment: "post_tax" | "pre_tax";
 };
 
 function money(amount: number) {
@@ -91,12 +94,13 @@ function normalizeOtherDeductions(entry: PayrollEntry): OtherDeductionInput[] {
     return list.map((item) => ({
       label: String(item?.label ?? ""),
       amount: String(item?.amount ?? 0),
+      tax_treatment: item?.tax_treatment === "pre_tax" ? "pre_tax" : "post_tax",
     }));
   }
 
   const fallback = Number(entry.other_deductions_amount ?? 0);
   if (fallback > 0) {
-    return [{ label: "Other Deduction", amount: String(fallback) }];
+    return [{ label: "Other Deduction", amount: String(fallback), tax_treatment: "post_tax" }];
   }
 
   return [];
@@ -109,12 +113,13 @@ function normalizeAdditions(entry: PayrollEntry): AdditionInput[] {
     return list.map((item) => ({
       label: String(item?.label ?? ""),
       amount: String(item?.amount ?? 0),
+      tax_treatment: item?.tax_treatment === "pre_tax" ? "pre_tax" : "post_tax",
     }));
   }
 
   const fallback = Number(entry.additions_amount ?? 0);
   if (fallback > 0) {
-    return [{ label: "Addition", amount: String(fallback) }];
+    return [{ label: "Addition", amount: String(fallback), tax_treatment: "post_tax" }];
   }
 
   return [];
@@ -279,44 +284,38 @@ export function PayrollEntrySheet({
 
   const updateOtherDeduction = (
     index: number,
-    key: "label" | "amount",
+    key: "label" | "amount" | "tax_treatment",
     value: string,
   ) => {
     setOtherDeductions((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
-    setCustomDailyRate("");
-    setCustomNetAmount("");
   };
 
   const addOtherDeduction = () => {
-    setOtherDeductions((prev) => [...prev, { label: "", amount: "" }]);
+    setOtherDeductions((prev) => [...prev, { label: "", amount: "", tax_treatment: "post_tax" }]);
   };
 
   const removeOtherDeduction = (index: number) => {
     setOtherDeductions((prev) => prev.filter((_, i) => i !== index));
-    setCustomDailyRate("");
-    setCustomNetAmount("");
   };
 
   const updateAddition = (
     index: number,
-    key: "label" | "amount",
+    key: "label" | "amount" | "tax_treatment",
     value: string,
   ) => {
     setAdditions((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
-    setCustomNetAmount("");
   };
 
   const addAddition = () => {
-    setAdditions((prev) => [...prev, { label: "", amount: "" }]);
+    setAdditions((prev) => [...prev, { label: "", amount: "", tax_treatment: "post_tax" }]);
   };
 
   const removeAddition = (index: number) => {
     setAdditions((prev) => prev.filter((_, i) => i !== index));
-    setCustomNetAmount("");
   };
 
   const monthStr = payrollMonth || entry.run?.payroll_month;
@@ -405,6 +404,7 @@ export function PayrollEntrySheet({
       .map((item) => ({
         label: item.label.trim(),
         amount: parse(item.amount),
+        tax_treatment: item.tax_treatment,
       }))
       .filter((item) => item.label.length > 0 && item.amount > 0);
 
@@ -412,6 +412,7 @@ export function PayrollEntrySheet({
       .map((item) => ({
         label: item.label.trim(),
         amount: parse(item.amount),
+        tax_treatment: item.tax_treatment,
       }))
       .filter((item) => item.label.length > 0 && item.amount > 0);
 
@@ -459,6 +460,10 @@ export function PayrollEntrySheet({
     accommodationAmount,
     otherDeductions,
     additions,
+    customActualGross,
+    customTaxAmount,
+    customDailyRate,
+    customNetAmount,
     monthStr,
     entry.gross_salary,
     entry.is_intern,
@@ -480,25 +485,17 @@ export function PayrollEntrySheet({
         .map((item) => ({
           label: item.label.trim(),
           amount: parse(item.amount),
+          tax_treatment: item.tax_treatment,
         }))
         .filter((item) => item.label.length > 0 && item.amount > 0);
-
-      const otherAmountTotal = otherDeductionsPayload.reduce(
-        (sum, item) => sum + item.amount,
-        0,
-      );
 
       const additionsPayload = additions
         .map((item) => ({
           label: item.label.trim(),
           amount: parse(item.amount),
+          tax_treatment: item.tax_treatment,
         }))
         .filter((item) => item.label.length > 0 && item.amount > 0);
-
-      const additionsAmountTotal = additionsPayload.reduce(
-        (sum, item) => sum + item.amount,
-        0,
-      );
 
       await onSave({
         attendance_days: parse(attendanceDays),
@@ -514,7 +511,7 @@ export function PayrollEntrySheet({
         final_deduction_days: computed.fullOutput.final_deduction_days,
         
         gross_salary: computed.actualGross,
-        taxable_gross: computed.actualGross,
+        taxable_gross: computed.fullOutput.taxable_gross,
         daily_rate: computed.dailyRate,
         tax_amount: computed.taxAmount,
         net_amount: computed.netAmount,
@@ -581,61 +578,51 @@ export function PayrollEntrySheet({
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-          {/* Left Column (Inputs) */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Salary Overview */}
-            <div className="grid grid-cols-3 gap-3">
-              <Card className="bg-muted/30 border-none shadow-none">
-                <CardHeader className="pb-1.5 p-3">
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
-                    Salary
-                  </CardDescription>
-                  <CardTitle className="text-sm font-bold text-slate-800 truncate">
-                    {money(computed.baseSalary)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="bg-muted/30 border-none shadow-none">
-                <CardHeader className="pb-1.5 p-3">
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
-                    Actual Gross
-                  </CardDescription>
-                  <CardTitle className="text-sm font-bold text-slate-800 truncate">
-                    {money(computed.actualGross)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="bg-muted/30 border-none shadow-none">
-                <CardHeader className="pb-1.5 p-3">
-                  <CardDescription className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
-                    Daily Rate
-                  </CardDescription>
-                  <CardTitle className="text-sm font-bold text-slate-800 truncate">
-                    {money(computed.dailyRate)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+          {/* Left Column (Tabbed Inputs) */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Sleek 1-Line Salary Overview Banner */}
+            <div className="grid grid-cols-3 gap-3 p-3 bg-muted/40 border rounded-xl shadow-2xs">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Contract Salary</p>
+                <p className="text-sm font-bold text-slate-800">{money(computed.baseSalary)}</p>
+              </div>
+              <div className="space-y-0.5 border-l pl-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Actual Gross</p>
+                <p className="text-sm font-bold text-slate-800">{money(computed.actualGross)}</p>
+              </div>
+              <div className="space-y-0.5 border-l pl-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Daily Rate</p>
+                <p className="text-sm font-bold text-slate-800">{money(computed.dailyRate)}</p>
+              </div>
             </div>
 
-            {/* Deductions Breakdown Inputs */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Deductions & Adjustments
-                </h3>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Suggested values are calculated from system logs.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+            {/* 3 Input Tabs */}
+            <Tabs defaultValue="attendance" className="w-full">
+              <TabsList className="grid grid-cols-3 w-full h-10 bg-muted/70 p-1 rounded-xl">
+                <TabsTrigger value="attendance" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Attendance</span>
+                </TabsTrigger>
+                <TabsTrigger value="items" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  <span>Additions & Deductions</span>
+                  {(otherDeductions.length > 0 || additions.length > 0) && (
+                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 min-w-4 justify-center">
+                      {otherDeductions.length + additions.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="overrides" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                  <Sliders className="h-3.5 w-3.5" />
+                  <span>Overrides & Notes</span>
+                  {(customActualGross !== "" || customTaxAmount !== "" || customDailyRate !== "" || customNetAmount !== "" || note.trim() !== "") && (
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
-              <div className="grid gap-4">
+              {/* TAB 1: ATTENDANCE & PRORATION */}
+              <TabsContent value="attendance" className="space-y-4 pt-2 animate-in fade-in duration-200">
                 {/* Proration Adjustment (Resumption / Resignation) */}
                 <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
                   <div className="space-y-2">
@@ -852,7 +839,7 @@ export function PayrollEntrySheet({
                   )}
                 </div>
 
-                {/* Accommodation */}
+                {/* Accommodation Fee */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
                     <Label
@@ -895,7 +882,7 @@ export function PayrollEntrySheet({
                   </div>
                 </div>
 
-                {/* Attendance */}
+                {/* Absent Days */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
                     <Label
@@ -940,7 +927,7 @@ export function PayrollEntrySheet({
                   </div>
                 </div>
 
-                {/* Suspensions */}
+                {/* Suspension Period */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
                     <Label
@@ -956,12 +943,12 @@ export function PayrollEntrySheet({
                         step="0.01"
                         value={suspensionDays}
                         onChange={(e) => {
-                        setSuspensionDays(e.target.value);
-                        setCustomActualGross("");
-                        setCustomTaxAmount("");
-                        setCustomDailyRate("");
-                        setCustomNetAmount("");
-                      }}
+                          setSuspensionDays(e.target.value);
+                          setCustomActualGross("");
+                          setCustomTaxAmount("");
+                          setCustomDailyRate("");
+                          setCustomNetAmount("");
+                        }}
                         className="pr-16 bg-background text-xs h-9"
                       />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
@@ -983,336 +970,416 @@ export function PayrollEntrySheet({
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
 
-            {/* Advanced Overrides Collapsible */}
-            <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
-              <button
-                type="button"
-                className="flex items-center justify-between w-full text-left font-bold text-xs uppercase tracking-wider text-slate-700 focus:outline-none cursor-pointer"
-                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-              >
-                <span>Manual Calculation Overrides (Advanced)</span>
-                <span className="text-muted-foreground font-semibold">{isAdvancedOpen ? "Hide" : "Show"}</span>
-              </button>
-              
-              {isAdvancedOpen && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
-                  {/* Actual Gross Override */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="custom-gross" className="text-xs font-semibold text-slate-600">
-                        Actual Gross Pay
+              {/* TAB 2: ADDITIONS & DEDUCTIONS */}
+              <TabsContent value="items" className="space-y-4 pt-2 animate-in fade-in duration-200">
+                {/* Other Deductions */}
+                <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Other Deductions
                       </Label>
-                      {customActualGross !== "" && (
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
-                          onClick={() => setCustomActualGross("")}
-                        >
-                          Revert to Auto
-                        </button>
-                      )}
+                      <p className="text-[10px] text-muted-foreground">Toggle between Pre-Tax (Tax Deductible) and Post-Tax (After Tax)</p>
                     </div>
-                    <div className="relative">
-                      <Input
-                        id="custom-gross"
-                        type="number"
-                        step="0.01"
-                        value={customActualGross !== "" ? customActualGross : computed.fullOutput.gross_salary}
-                        onChange={(e) => setCustomActualGross(e.target.value)}
-                        onFocus={() => {
-                          if (customActualGross === "") {
-                            setCustomActualGross(String(computed.fullOutput.gross_salary));
-                          }
-                        }}
-                        className={cn(
-                          "pr-12 bg-background text-xs h-9",
-                          customActualGross !== "" && "border-amber-500 focus-visible:ring-amber-500"
-                        )}
-                      />
-                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                        NGN
-                      </div>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addOtherDeduction}
+                      className="h-7 text-[11px] font-semibold"
+                    >
+                      Add Item
+                    </Button>
                   </div>
-
-                  {/* PAYE Tax Override */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="custom-tax" className="text-xs font-semibold text-slate-600">
-                        PAYE Tax
-                      </Label>
-                      {customTaxAmount !== "" && (
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
-                          onClick={() => setCustomTaxAmount("")}
+                  {otherDeductions.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground italic">
+                      No other deductions added.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {otherDeductions.map((item, index) => (
+                        <div
+                          key={index}
+                          className="space-y-1 p-2 rounded-lg border bg-background/60 shadow-2xs"
                         >
-                          Revert to Auto
-                        </button>
-                      )}
+                          <div className="grid grid-cols-[1fr_130px_100px_auto] items-center gap-2">
+                            <Input
+                              type="text"
+                              placeholder="Deduction Label (e.g. Loan Repayment / Voluntary Pension)"
+                              value={item.label}
+                              onChange={(e) =>
+                                updateOtherDeduction(index, "label", e.target.value)
+                              }
+                              className="h-8 text-xs bg-background"
+                            />
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={item.amount}
+                                onChange={(e) =>
+                                  updateOtherDeduction(
+                                    index,
+                                    "amount",
+                                    e.target.value,
+                                  )
+                                }
+                                className="pl-7 h-8 text-xs bg-background"
+                              />
+                              <div className="absolute inset-y-0 left-2.5 flex items-center text-xs text-muted-foreground pointer-events-none">
+                                ₦
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "h-8 text-[10px] font-bold tracking-tight px-2 cursor-pointer transition-colors border",
+                                item.tax_treatment === "pre_tax"
+                                  ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
+                                  : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                              )}
+                              onClick={() =>
+                                updateOtherDeduction(
+                                  index,
+                                  "tax_treatment",
+                                  item.tax_treatment === "pre_tax" ? "post_tax" : "pre_tax"
+                                )
+                              }
+                              title={item.tax_treatment === "pre_tax" ? "Deducted BEFORE tax (reduces taxable income)" : "Deducted AFTER tax"}
+                            >
+                              {item.tax_treatment === "pre_tax" ? "⚡ Pre-Tax" : "Post-Tax"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeOtherDeduction(index)}
+                              className="text-muted-foreground hover:text-foreground h-8 w-8"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          {item.tax_treatment === "pre_tax" && (
+                            <p className="text-[10px] text-amber-700 font-medium italic px-1">
+                              ⚡ Deducted from Gross Salary BEFORE PAYE tax calculation.
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div className="relative">
-                      <Input
-                        id="custom-tax"
-                        type="number"
-                        step="0.01"
-                        value={customTaxAmount !== "" ? customTaxAmount : computed.fullOutput.tax_amount}
-                        onChange={(e) => setCustomTaxAmount(e.target.value)}
-                        onFocus={() => {
-                          if (customTaxAmount === "") {
-                            setCustomTaxAmount(String(computed.fullOutput.tax_amount));
-                          }
-                        }}
-                        className={cn(
-                          "pr-12 bg-background text-xs h-9",
-                          customTaxAmount !== "" && "border-amber-500 focus-visible:ring-amber-500"
-                        )}
-                      />
-                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                        NGN
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Daily Rate Override */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="custom-daily-rate" className="text-xs font-semibold text-slate-600">
-                        Daily Rate
-                      </Label>
-                      {customDailyRate !== "" && (
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
-                          onClick={() => setCustomDailyRate("")}
-                        >
-                          Revert to Auto
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <Input
-                        id="custom-daily-rate"
-                        type="number"
-                        step="0.01"
-                        value={customDailyRate !== "" ? customDailyRate : computed.fullOutput.daily_rate}
-                        onChange={(e) => setCustomDailyRate(e.target.value)}
-                        onFocus={() => {
-                          if (customDailyRate === "") {
-                            setCustomDailyRate(String(computed.fullOutput.daily_rate));
-                          }
-                        }}
-                        className={cn(
-                          "pr-12 bg-background text-xs h-9",
-                          customDailyRate !== "" && "border-amber-500 focus-visible:ring-amber-500"
-                        )}
-                      />
-                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                        NGN
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Net Pay Override */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="custom-net" className="text-xs font-semibold text-slate-600">
-                        Net Pay
-                      </Label>
-                      {customNetAmount !== "" && (
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
-                          onClick={() => setCustomNetAmount("")}
-                        >
-                          Revert to Auto
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <Input
-                        id="custom-net"
-                        type="number"
-                        step="0.01"
-                        value={customNetAmount !== "" ? customNetAmount : computed.fullOutput.net_amount}
-                        onChange={(e) => setCustomNetAmount(e.target.value)}
-                        onFocus={() => {
-                          if (customNetAmount === "") {
-                            setCustomNetAmount(String(computed.fullOutput.net_amount));
-                          }
-                        }}
-                        className={cn(
-                          "pr-12 bg-background text-xs h-9",
-                          customNetAmount !== "" && "border-amber-500 focus-visible:ring-amber-500"
-                        )}
-                      />
-                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                        NGN
-                      </div>
-                    </div>
+                  )}
+                  <div className="flex justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
+                    Total Deductions:{" "}
+                    <span className="ml-2 font-bold text-red-600">
+                      {money(computed.othAmount)}
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Other Deductions */}
-            <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Other Deductions
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addOtherDeduction}
-                  className="h-7 text-[11px] font-semibold"
-                >
-                  Add Item
-                </Button>
-              </div>
-              {otherDeductions.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground italic">
-                  No other deductions added.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {otherDeductions.map((item, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-[1fr_140px_auto] items-center gap-2"
+                {/* Additions */}
+                <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Additions
+                      </Label>
+                      <p className="text-[10px] text-muted-foreground">Toggle between Pre-Tax (Taxable) and Post-Tax (Non-Taxable)</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addAddition}
+                      className="h-7 text-[11px] font-semibold"
                     >
-                      <Input
-                        type="text"
-                        placeholder="Label"
-                        value={item.label}
-                        onChange={(e) =>
-                          updateOtherDeduction(index, "label", e.target.value)
-                        }
-                        className="h-9 text-xs bg-background"
-                      />
+                      Add Item
+                    </Button>
+                  </div>
+                  {additions.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground italic">
+                      No additions added.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {additions.map((item, index) => (
+                        <div
+                          key={index}
+                          className="space-y-1 p-2 rounded-lg border bg-background/60 shadow-2xs"
+                        >
+                          <div className="grid grid-cols-[1fr_130px_100px_auto] items-center gap-2">
+                            <Input
+                              type="text"
+                              placeholder="Addition Label (e.g. Overtime Bonus / Expense Refund)"
+                              value={item.label}
+                              onChange={(e) =>
+                                updateAddition(index, "label", e.target.value)
+                              }
+                              className="h-8 text-xs bg-background"
+                            />
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={item.amount}
+                                onChange={(e) =>
+                                  updateAddition(index, "amount", e.target.value)
+                                }
+                                className="pl-7 h-8 text-xs bg-background"
+                              />
+                              <div className="absolute inset-y-0 left-2.5 flex items-center text-xs text-muted-foreground pointer-events-none">
+                                ₦
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "h-8 text-[10px] font-bold tracking-tight px-2 cursor-pointer transition-colors border",
+                                item.tax_treatment === "pre_tax"
+                                  ? "bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100"
+                                  : "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                              )}
+                              onClick={() =>
+                                updateAddition(
+                                  index,
+                                  "tax_treatment",
+                                  item.tax_treatment === "pre_tax" ? "post_tax" : "pre_tax"
+                                )
+                              }
+                              title={item.tax_treatment === "pre_tax" ? "Added BEFORE tax (taxable addition)" : "Added AFTER tax (non-taxable reimbursement)"}
+                            >
+                              {item.tax_treatment === "pre_tax" ? "⚡ Taxable (Pre)" : "Non-Taxable"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeAddition(index)}
+                              className="text-muted-foreground hover:text-foreground h-8 w-8"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          {item.tax_treatment === "pre_tax" && (
+                            <p className="text-[10px] text-blue-700 font-medium italic px-1">
+                              ⚡ Added to Gross Salary BEFORE PAYE tax calculation.
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
+                    Total Additions:{" "}
+                    <span className="ml-2 font-bold text-emerald-600">
+                      {money(computed.addAmount)}
+                    </span>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* TAB 3: ADVANCED OVERRIDES & NOTES */}
+              <TabsContent value="overrides" className="space-y-4 pt-2 animate-in fade-in duration-200">
+                <div className="border rounded-xl p-4 bg-muted/5 space-y-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                    Manual Calculation Overrides
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Actual Gross Override */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="custom-gross" className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                          <span>Actual Gross Pay</span>
+                          {customActualGross !== "" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-300">Overridden</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-50 text-slate-500 border-slate-200">Auto</Badge>
+                          )}
+                        </Label>
+                        {customActualGross !== "" && (
+                          <button
+                            type="button"
+                            className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                            onClick={() => setCustomActualGross("")}
+                          >
+                            Revert to Auto
+                          </button>
+                        )}
+                      </div>
                       <div className="relative">
                         <Input
+                          id="custom-gross"
                           type="number"
                           step="0.01"
-                          value={item.amount}
-                          onChange={(e) =>
-                            updateOtherDeduction(
-                              index,
-                              "amount",
-                              e.target.value,
-                            )
-                          }
-                          className="pl-10 h-9 text-xs bg-background"
+                          placeholder={String(computed.fullOutput.gross_salary)}
+                          value={customActualGross}
+                          onChange={(e) => setCustomActualGross(e.target.value)}
+                          className={cn(
+                            "pr-12 bg-background text-xs h-9",
+                            customActualGross !== "" && "border-amber-500 focus-visible:ring-amber-500 font-semibold"
+                          )}
                         />
-                        <div className="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground pointer-events-none">
-                          ₦
+                        <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                          NGN
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeOtherDeduction(index)}
-                        className="text-muted-foreground hover:text-foreground h-9 w-9"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
-                Total:{" "}
-                <span className="ml-2 font-bold text-red-600">
-                  {money(computed.othAmount)}
-                </span>
-              </div>
-            </div>
 
-            {/* Additions */}
-            <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Additions
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addAddition}
-                  className="h-7 text-[11px] font-semibold"
-                >
-                  Add Item
-                </Button>
-              </div>
-              {additions.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground italic">
-                  No additions added.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {additions.map((item, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-[1fr_140px_auto] items-center gap-2"
-                    >
-                      <Input
-                        type="text"
-                        placeholder="Label"
-                        value={item.label}
-                        onChange={(e) =>
-                          updateAddition(index, "label", e.target.value)
-                        }
-                        className="h-9 text-xs bg-background"
-                      />
+                    {/* PAYE Tax Override */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="custom-tax" className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                          <span>PAYE Tax</span>
+                          {customTaxAmount !== "" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-300">Overridden</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-50 text-slate-500 border-slate-200">Auto</Badge>
+                          )}
+                        </Label>
+                        {customTaxAmount !== "" && (
+                          <button
+                            type="button"
+                            className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                            onClick={() => setCustomTaxAmount("")}
+                          >
+                            Revert to Auto
+                          </button>
+                        )}
+                      </div>
                       <div className="relative">
                         <Input
+                          id="custom-tax"
                           type="number"
                           step="0.01"
-                          value={item.amount}
-                          onChange={(e) =>
-                            updateAddition(index, "amount", e.target.value)
-                          }
-                          className="pl-10 h-9 text-xs bg-background"
+                          placeholder={String(computed.fullOutput.tax_amount)}
+                          value={customTaxAmount}
+                          onChange={(e) => setCustomTaxAmount(e.target.value)}
+                          className={cn(
+                            "pr-12 bg-background text-xs h-9",
+                            customTaxAmount !== "" && "border-amber-500 focus-visible:ring-amber-500 font-semibold"
+                          )}
                         />
-                        <div className="absolute inset-y-0 left-3 flex items-center text-xs text-muted-foreground pointer-events-none">
-                          ₦
+                        <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                          NGN
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeAddition(index)}
-                        className="text-muted-foreground hover:text-foreground h-9 w-9"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
                     </div>
-                  ))}
+
+                    {/* Daily Rate Override */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="custom-daily-rate" className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                          <span>Daily Rate</span>
+                          {customDailyRate !== "" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-300">Overridden</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-50 text-slate-500 border-slate-200">Auto</Badge>
+                          )}
+                        </Label>
+                        {customDailyRate !== "" && (
+                          <button
+                            type="button"
+                            className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                            onClick={() => setCustomDailyRate("")}
+                          >
+                            Revert to Auto
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="custom-daily-rate"
+                          type="number"
+                          step="0.01"
+                          placeholder={String(computed.fullOutput.daily_rate)}
+                          value={customDailyRate}
+                          onChange={(e) => setCustomDailyRate(e.target.value)}
+                          className={cn(
+                            "pr-12 bg-background text-xs h-9",
+                            customDailyRate !== "" && "border-amber-500 focus-visible:ring-amber-500 font-semibold"
+                          )}
+                        />
+                        <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                          NGN
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Net Pay Override */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="custom-net" className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                          <span>Net Pay</span>
+                          {customNetAmount !== "" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-300">Overridden</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-50 text-slate-500 border-slate-200">Auto</Badge>
+                          )}
+                        </Label>
+                        {customNetAmount !== "" && (
+                          <button
+                            type="button"
+                            className="text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                            onClick={() => setCustomNetAmount("")}
+                          >
+                            Revert to Auto
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="custom-net"
+                          type="number"
+                          step="0.01"
+                          placeholder={String(computed.fullOutput.net_amount)}
+                          value={customNetAmount}
+                          onChange={(e) => setCustomNetAmount(e.target.value)}
+                          className={cn(
+                            "pr-12 bg-background text-xs h-9",
+                            customNetAmount !== "" && "border-amber-500 focus-visible:ring-amber-500 font-semibold"
+                          )}
+                        />
+                        <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
+                          NGN
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="flex justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
-                Total:{" "}
-                <span className="ml-2 font-bold text-emerald-600">
-                  {money(computed.addAmount)}
-                </span>
-              </div>
-            </div>
+
+                {/* Internal Notes */}
+                <div className="space-y-2 border rounded-xl p-4 bg-muted/5">
+                  <Label
+                    htmlFor="override-note"
+                    className="text-xs uppercase tracking-wider text-muted-foreground font-bold"
+                  >
+                    Internal Note / Reason for Overrides
+                  </Label>
+                  <Input
+                    id="override-note"
+                    placeholder="Enter reason for overrides or internal remarks..."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="bg-background text-xs h-9"
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
-          {/* Right Column (Computation & Summary) */}
+          {/* Right Column (Net Computation Preview) */}
           <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-0">
             {/* Calculation Summary */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Net Computation
               </h3>
-              <div className="grid gap-3 rounded-xl border p-4 bg-card shadow-sm text-xs">
+              <div className="grid gap-3 rounded-xl border p-4 bg-card shadow-xs text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Monthly Contract Salary</span>
                   <span className="font-semibold">
@@ -1335,6 +1402,32 @@ export function PayrollEntrySheet({
                   <span>Actual Gross Salary:</span>
                   <span>{money(computed.actualGross)}</span>
                 </div>
+
+                {(Number(computed.fullOutput.calculation_snapshot?.pre_tax_additions ?? 0) > 0 ||
+                  Number(computed.fullOutput.calculation_snapshot?.pre_tax_deductions ?? 0) > 0) && (
+                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-lg p-2.5 space-y-1.5">
+                    {additions
+                      .filter((a) => a.tax_treatment === "pre_tax" && Number(a.amount || 0) > 0)
+                      .map((item, idx) => (
+                        <div key={`pre-add-${idx}`} className="flex justify-between text-blue-700 font-medium">
+                          <span>(+) {item.label.trim() || `Taxable Addition ${idx + 1}`} (Pre-Tax)</span>
+                          <span>+{money(Number(item.amount))}</span>
+                        </div>
+                      ))}
+                    {otherDeductions
+                      .filter((d) => d.tax_treatment === "pre_tax" && Number(d.amount || 0) > 0)
+                      .map((item, idx) => (
+                        <div key={`pre-ded-${idx}`} className="flex justify-between text-amber-800 font-medium">
+                          <span>(-) {item.label.trim() || `Pre-Tax Deduction ${idx + 1}`}</span>
+                          <span>-{money(Number(item.amount))}</span>
+                        </div>
+                      ))}
+                    <div className="flex justify-between text-slate-900 font-bold border-t border-amber-200 pt-1">
+                      <span>Taxable Gross Income:</span>
+                      <span>{money(computed.fullOutput.taxable_gross)}</span>
+                    </div>
+                  </div>
+                )}
 
                 <Separator />
 
@@ -1359,7 +1452,9 @@ export function PayrollEntrySheet({
                   </span>
                   <span className="font-black text-slate-900">
                     {money(
-                      computed.actualGross -
+                      computed.actualGross +
+                        Number(computed.fullOutput.calculation_snapshot?.pre_tax_additions ?? 0) -
+                        Number(computed.fullOutput.calculation_snapshot?.pre_tax_deductions ?? 0) -
                         computed.taxAmount -
                         computed.accommodation,
                     )}
@@ -1388,22 +1483,26 @@ export function PayrollEntrySheet({
                     </span>
                   </div>
                 )}
-                {computed.othAmount > 0 && (
-                  <div className="flex justify-between text-red-600">
-                    <span>Other Deductions</span>
-                    <span className="font-semibold">
-                      -{money(computed.othAmount)}
-                    </span>
-                  </div>
-                )}
-                {computed.addAmount > 0 && (
-                  <div className="flex justify-between text-emerald-700">
-                    <span>Additions</span>
-                    <span className="font-semibold">
-                      +{money(computed.addAmount)}
-                    </span>
-                  </div>
-                )}
+                {otherDeductions
+                  .filter((d) => d.tax_treatment !== "pre_tax" && Number(d.amount || 0) > 0)
+                  .map((item, idx) => (
+                    <div key={`post-ded-${idx}`} className="flex justify-between text-red-600 font-medium">
+                      <span>{item.label.trim() || `Deduction ${idx + 1}`}</span>
+                      <span className="font-semibold">
+                        -{money(Number(item.amount))}
+                      </span>
+                    </div>
+                  ))}
+                {additions
+                  .filter((a) => a.tax_treatment !== "pre_tax" && Number(a.amount || 0) > 0)
+                  .map((item, idx) => (
+                    <div key={`post-add-${idx}`} className="flex justify-between text-emerald-700 font-medium">
+                      <span>{item.label.trim() || `Addition ${idx + 1}`}</span>
+                      <span className="font-semibold">
+                        +{money(Number(item.amount))}
+                      </span>
+                    </div>
+                  ))}
                 <Separator className="border-dashed" />
                 <div className="flex justify-between items-center pt-1">
                   <span className="font-bold text-slate-800 text-sm">
@@ -1414,23 +1513,6 @@ export function PayrollEntrySheet({
                   </span>
                 </div>
               </div>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2 border rounded-xl p-4 bg-muted/5">
-              <Label
-                htmlFor="override-note"
-                className="text-xs uppercase tracking-wider text-muted-foreground font-bold"
-              >
-                Internal Note
-              </Label>
-              <Input
-                id="override-note"
-                placeholder="Reason for overrides..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="bg-background text-xs h-9"
-              />
             </div>
           </div>
         </div>

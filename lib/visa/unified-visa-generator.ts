@@ -237,8 +237,8 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
         pronoun_subject_cap: pronounSubjectCap,
         pronoun_possessive: pronounPossessive,
         pronoun_object: pronounObject,
-        signatory_name: profile.self_signatory_name || "Authorized Representative",
-        signatory_designation: profile.self_signatory_designation,
+        signatory_name: profile.self_signatory_name || "KEMI ADEBAYO",
+        signatory_designation: profile.self_signatory_designation || "Company Secretary",
         signatory_contact_info: [
           formattedSelfSignatoryAddress,
           profile.self_signatory_phone,

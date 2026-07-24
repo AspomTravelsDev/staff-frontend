@@ -8,6 +8,7 @@ export type PayrollEntryStatus = "pending" | "approved";
 export interface PayrollOtherDeduction {
   label: string;
   amount: number;
+  tax_treatment?: "post_tax" | "pre_tax";
 }
 
 export interface PayrollEntryUser {
@@ -153,6 +154,10 @@ export async function closePayrollRun(runId: string): Promise<ApiResponse<{ data
 
 export async function reopenPayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/reopen`);
+}
+
+export async function deletePayrollRun(runId: string): Promise<ApiResponse<{ message: string }>> {
+  return api.delete<{ message: string }>(`/api/hr/payroll/runs/${runId}`);
 }
 
 export async function getMyPayroll(month?: string): Promise<ApiResponse<{ data: MyPayrollResponse }>> {

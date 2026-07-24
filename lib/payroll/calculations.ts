@@ -91,6 +91,12 @@ export const SALARY_PERCENTAGES = {
   passages: 0.1146,
 };
 
+export interface PayrollItemInput {
+  label: string;
+  amount: number;
+  tax_treatment?: "post_tax" | "pre_tax"; // "post_tax" (default) or "pre_tax"
+}
+
 export interface PayrollEntryInput {
   baseSalary: number;
   contractType?: string | null;
@@ -101,8 +107,8 @@ export interface PayrollEntryInput {
   accommodationAmount?: number | null;
   attendanceDays: number;
   suspensionDays: number;
-  otherDeductions: { label: string; amount: number }[];
-  additions: { label: string; amount: number }[];
+  otherDeductions: PayrollItemInput[];
+  additions: PayrollItemInput[];
   customGross?: number | null;
   customTax?: number | null;
   customDailyRate?: number | null;
@@ -150,15 +156,36 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     ? customGross
     : round2(baseSalary * factor);
 
-  // progressive tax calculated on actual gross salary
+  // Split deductions into Pre-Tax (Tax Deductible) and Post-Tax (After Tax)
+  const preTaxDeductions = otherDeductions
+    .filter((d) => d.tax_treatment === "pre_tax")
+    .reduce((sum, d) => sum + Number(d.amount), 0);
+  const postTaxDeductions = otherDeductions
+    .filter((d) => d.tax_treatment !== "pre_tax")
+    .reduce((sum, d) => sum + Number(d.amount), 0);
+  const otherDeductionsAmount = round2(preTaxDeductions + postTaxDeductions);
+
+  // Split additions into Pre-Tax (Taxable Addition) and Post-Tax (Non-Taxable Addition)
+  const preTaxAdditions = additions
+    .filter((a) => a.tax_treatment === "pre_tax")
+    .reduce((sum, a) => sum + Number(a.amount), 0);
+  const postTaxAdditions = additions
+    .filter((a) => a.tax_treatment !== "pre_tax")
+    .reduce((sum, a) => sum + Number(a.amount), 0);
+  const additionsAmount = round2(preTaxAdditions + postTaxAdditions);
+
+  // Taxable Gross Salary
+  const taxableGross = round2(Math.max(0, actualGross + preTaxAdditions - preTaxDeductions));
+
+  // Progressive tax calculated on Taxable Gross Salary
   const taxAmount = isIntern ? 0 : (
     (customTax !== undefined && customTax !== null)
       ? customTax
-      : calculateMonthlyTax(actualGross)
+      : calculateMonthlyTax(taxableGross)
   );
 
-  // prorated net pay
-  const proratedNet = round2(Math.max(0, actualGross - taxAmount));
+  // Prorated After-Tax Salary
+  const afterTaxSalary = round2(Math.max(0, actualGross + preTaxAdditions - preTaxDeductions - taxAmount));
 
   // Calendar proration for accommodation
   let calendarProratedDays = 0;
@@ -176,14 +203,8 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     ? accommodationAmount
     : defaultAccommodationAmount;
 
-  // Other Deductions
-  const otherDeductionsAmount = otherDeductions.reduce((sum, d) => sum + Number(d.amount), 0);
-
-  // Additions
-  const additionsAmount = additions.reduce((sum, a) => sum + Number(a.amount), 0);
-
   // Daily rate base
-  const dailyRateBase = Math.max(0, actualGross - taxAmount - finalAccommodationAmount - otherDeductionsAmount);
+  const dailyRateBase = Math.max(0, actualGross + preTaxAdditions - preTaxDeductions - taxAmount - finalAccommodationAmount - postTaxDeductions);
   const defaultDailyRate = workingDaysInMonth > 0 ? round2(dailyRateBase / workingDaysInMonth) : 0;
   const dailyRate = (customDailyRate !== undefined && customDailyRate !== null)
     ? customDailyRate
@@ -196,7 +217,13 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
 
   const finalDeductionDays = round2(attendanceDays + suspensionDays);
 
-  const defaultNet = Math.max(0, proratedNet - finalAccommodationAmount - otherDeductionsAmount - deductionAmount + additionsAmount);
+  // Default Net Salary calculation
+  const defaultNet = round2(
+    Math.max(
+      0,
+      actualGross + preTaxAdditions - preTaxDeductions - taxAmount - finalAccommodationAmount - postTaxDeductions - deductionAmount + postTaxAdditions
+    )
+  );
   const netAmount = (customNet !== undefined && customNet !== null)
     ? customNet
     : defaultNet;
@@ -211,6 +238,11 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     ...breakdown,
     base_monthly_salary: baseSalary,
     gross_salary: actualGross,
+    taxable_gross: taxableGross,
+    pre_tax_deductions: preTaxDeductions,
+    post_tax_deductions: postTaxDeductions,
+    pre_tax_additions: preTaxAdditions,
+    post_tax_additions: postTaxAdditions,
     tax_amount: taxAmount,
     accommodation_rate: accommodationRate,
     accommodation_amount: finalAccommodationAmount,

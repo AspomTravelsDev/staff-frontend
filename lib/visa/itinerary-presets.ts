@@ -196,15 +196,15 @@ export const ITINERARY_PRESETS: Record<string, CountryPreset> = {
       ],
     },
   },
-  canada: {
-    countryKey: "canada",
-    countryName: "Canada",
+  canada_winter: {
+    countryKey: "canada_winter",
+    countryName: "Canada (Winter / Festive)",
     defaultCity: "Toronto",
     defaultAccommodationName: "DOUBLETREE BY HILTON HOTEL TORONTO DOWNTOWN",
     defaultAccommodationAddress:
       "108 Chestnut Street, Toronto, Ontario, M5G1R3, Canada",
     activitiesHighlights:
-      "exploring iconic Tourist attractions such as the CN Tower, Ripley’s Aquarium of Canada, Canada wonderland and the Toronto Islands, Distillery Winter Village.",
+      "exploring iconic Tourist attractions such as the CN Tower, Ripley’s Aquarium of Canada, Canada wonderland and the Toronto Islands, Distillery Winter Village which offer spectacular seasonal activities.",
     presets: {
       14: [
         {
@@ -233,132 +233,519 @@ export const ITINERARY_PRESETS: Record<string, CountryPreset> = {
         },
         {
           dayNumber: 4,
-          title: "Distillery Winter Village",
+          title: "Distillery Winter Village (Christmas Eve)",
           morning:
-            "Visit Toronto Christmas Market / Distillery Winter Village.",
-          afternoon: "Ice skating at Distillery District rink.",
-          evening: "Return to hotel and enjoy a relaxing dinner.",
+            "Morning visit to the Toronto Christmas Market / Distillery Winter Village and explore charming holiday lights, boutique shops & festive snacks.",
+          afternoon:
+            "Ice skating at the Distillery District rink and enjoy a holiday concert or local art gallery nearby.",
+          evening: "Return to our hotel and enjoy a relaxing and nice dinner.",
         },
         {
           dayNumber: 5,
-          title: "Casa Loma & Castle Tour",
-          morning: "Visit Casa Loma for Holiday Lights Tour.",
+          title: "Casa Loma & Castle Tour (Christmas Day)",
+          morning:
+            "Leisure morning Christmas breakfast at the hotel with my family and gift opening. Visit Casa Loma’s for Holiday Lights Tour.",
           afternoon: "Stroll through Christmas at the Castle displays.",
-          evening: "Drive around neighborhood to admire holiday lights.",
+          evening:
+            "Drive around the neighborhood to admire Christmas lights displays and have a nice dinner with my family.",
         },
         {
           dayNumber: 6,
-          title: "Chinguacousy Park Day Trip",
+          title: "Boxing Day / Chinguacousy Park",
           morning: "Breakfast at a nice cafe.",
           afternoon: "Family day trip to Chinguacousy park.",
-          evening: "End the night with hot chocolate at a cafe.",
+          evening:
+            "End the night with hot chocolate at a cafe, and wind down with my family.",
         },
         {
           dayNumber: 7,
-          title: "Ontario Science Center",
-          morning: "Visit Ontario Science Centre with hands-on exhibits.",
-          afternoon: "Snow art and sledding at local parks.",
+          title: "Ice Exploring & Ontario Science Center",
+          morning:
+            "Visit to the Ontario Science Centre, great for kids with hands-on exhibits.",
+          afternoon:
+            "Ice-bowling, snow art, sledding at local parks – fun and free.",
           evening: "Dinner in a nice restaurant as a family.",
         },
         {
           dayNumber: 8,
           title: "Toronto Islands & Museums",
           morning:
-            "Take ferry to Toronto Islands for winter stroll and skyline views.",
-          afternoon: "Visit Museum of Illusions.",
-          evening: "Relaxing evening together as a family.",
+            "Take ferry with my family to Toronto Islands for a winter stroll and skyline views.",
+          afternoon: "Move to Ontario Science Centre or Museum of Illusions.",
+          evening: "Return and have a relaxing evening together as a family.",
         },
         {
           dayNumber: 9,
-          title: "Leisure & Shopping",
+          title: "Relaxation and Leisure Tour",
           morning: "Spend the morning at leisure.",
-          afternoon: "Relaxing afternoon at Toronto Eaton Centre.",
-          evening: "Dinner at a rooftop city view restaurant.",
+          afternoon: "Enjoy a relaxing afternoon at a local café or park.",
+          evening:
+            "Have dinner with my family at a restaurant with a view of the city.",
         },
         {
           dayNumber: 10,
           title: "Day Trip to Niagara Falls",
           morning: "Day trip to Niagara Falls with my family.",
-          afternoon: "Explore Clifton Hill and visit Niagara SkyWheel.",
-          evening: "Return to hotel for a nice dinner.",
+          afternoon:
+            "Explore Clifton Hill and visit the Niagara SkyWheel for more views of the falls.",
+          evening: "Return to our hotel and enjoy a relaxing and nice dinner.",
         },
         {
           dayNumber: 11,
-          title: "Royal Ontario Museum",
-          morning: "Visit Royal Ontario Museum.",
-          afternoon: "Lunch at Yorkville cafes and Toronto Botanical Garden.",
-          evening: "Attend evening festivities and live music.",
+          title: "Royal Ontario Museum (New Year's Eve)",
+          morning: "Visit the Royal Ontario Museum together with my family.",
+          afternoon:
+            "Lunch at Yorkville cafes and visit the Toronto Botanical Garden’s holiday lights.",
+          evening:
+            "Attend New Year’s Eve party at Nathan Phillips Square with live music & fireworks, then return to hotel for dinner.",
         },
         {
           dayNumber: 12,
-          title: "Community Event & Leisure",
-          morning: "Leisurely family brunch.",
-          afternoon: "Visit local community winter event.",
-          evening: "Cozy family movie night.",
+          title: "New Year's Day",
+          morning: "New Year’s Day brunch at home with my family.",
+          afternoon:
+            "Leisurely activities or a visit to a local community event.",
+          evening:
+            "Dinner with family followed by a cozy family movie night or games.",
         },
         {
           dayNumber: 13,
-          title: "Toronto Zoo",
-          morning: "Visit Toronto Zoo for Tundra Trek and wildlife.",
-          afternoon: "Sledding at Riverdale Park.",
-          evening: "Return to hotel for dinner.",
+          title: "Toronto Zoo & Snow Fun",
+          morning:
+            "At Toronto Zoo to see polar bears, arctic wolves, festive decorations, and Tundra Trek.",
+          afternoon:
+            "Sledding or snow-fun in nearby parks like Riverdale Park with my family.",
+          evening:
+            "Return to the hotel for a relaxing evening and see a nice family movie.",
         },
         {
           dayNumber: 14,
-          title: "Departure",
-          morning: "Pack luggage and check out of hotel.",
-          afternoon:
-            "Transfer to Pearson International Airport for return flight to Nigeria.",
+          title: "Canada's Wonderland & Departure Prep",
+          morning: "Spend the day at Canada’s Wonderland with my family.",
+          afternoon: "Shopping for souvenirs at a local shop.",
+          evening:
+            "Have a delicious farewell dinner with my family in a nice restaurant.",
         },
       ],
       7: [
         {
           dayNumber: 1,
           title: "Arrival in Toronto",
-          afternoon: "Arrival at Toronto Pearson Airport, check in to hotel.",
-          evening: "Dinner in downtown Toronto.",
+          afternoon: "Arrival in Toronto. Settle into the hotel.",
+          evening: "Family dinner and relaxation.",
         },
         {
           dayNumber: 2,
-          title: "CN Tower & Ripley's Aquarium",
-          morning: "Guided tour of CN Tower.",
-          afternoon: "Visit Ripley's Aquarium of Canada.",
-          evening: "Dinner at Harbourfront.",
+          title: "Evergreen Brick Works & Ripley's Aquarium",
+          morning: "Ice skate at Evergreen Brick Works Winter Village.",
+          afternoon:
+            "Visit Ripley’s Aquarium featuring holiday dive shows.",
+          evening: "Sumptuous family dinner.",
         },
         {
           dayNumber: 3,
-          title: "Day Trip to Niagara Falls",
-          morning: "Travel to Niagara Falls.",
-          afternoon: "Boat cruise and Clifton Hill sightseeing.",
-          evening: "Return to Toronto.",
+          title: "Distillery Winter Village",
+          morning: "Visit Toronto Christmas Market / Distillery Winter Village.",
+          afternoon: "Ice skating at Distillery District rink.",
+          evening: "Stroll through holiday lights displays.",
         },
         {
           dayNumber: 4,
-          title: "Royal Ontario Museum & Shopping",
-          morning: "Explore Royal Ontario Museum.",
-          afternoon: "Shopping at Eaton Centre.",
-          evening: "Dinner in Yorkville.",
+          title: "Day Trip to Niagara Falls",
+          morning: "Day trip to Niagara Falls.",
+          afternoon: "Explore Clifton Hill and Niagara SkyWheel.",
+          evening: "Return to Toronto for dinner.",
         },
         {
           dayNumber: 5,
-          title: "Casa Loma & Distillery District",
-          morning: "Tour Casa Loma castle.",
-          afternoon: "Explore historic Distillery District.",
-          evening: "Dinner at local bistro.",
+          title: "Casa Loma & Castle Tour",
+          morning: "Visit Casa Loma for Holiday Lights Tour.",
+          afternoon: "Explore Kensington Market and St. Lawrence Market.",
+          evening: "Dinner at a cozy local restaurant.",
         },
         {
           dayNumber: 6,
-          title: "Toronto Islands & Souvenirs",
-          morning: "Ferry trip to Toronto Islands for skyline views.",
-          afternoon: "Souvenir shopping and city stroll.",
-          evening: "Farewell dinner.",
+          title: "Toronto Zoo Tundra Trek",
+          morning: "Visit Toronto Zoo for Tundra Trek (polar bears & arctic wolves).",
+          afternoon: "Sledding or snow-fun at Riverdale Park.",
+          evening: "Farewell dinner at a fine restaurant.",
         },
         {
           dayNumber: 7,
           title: "Departure",
-          morning: "Check out of hotel.",
+          morning: "Pack luggage and check out of hotel.",
           afternoon:
-            "Transfer to Toronto Pearson Airport for departure to Nigeria.",
+            "Transfer to Pearson International Airport for return flight to Nigeria.",
+        },
+      ],
+    },
+  },
+  canada_summer: {
+    countryKey: "canada_summer",
+    countryName: "Canada (Summer Season)",
+    defaultCity: "Toronto",
+    defaultAccommodationName: "DOUBLETREE BY HILTON HOTEL TORONTO DOWNTOWN",
+    defaultAccommodationAddress:
+      "108 Chestnut Street, Toronto, Ontario, M5G1R3, Canada",
+    activitiesHighlights:
+      "exploring iconic cultural landmarks such as the Niagara Falls, CN Tower, Royal Ontario Museum, Ripley's Aquarium of Canada, Canada wonderland, historic Distillery District, and St. Lawrence Market.",
+    presets: {
+      14: [
+        {
+          dayNumber: 1,
+          title: "Arrival In Canada",
+          afternoon: "Arrival in Toronto, check into hotel.",
+          evening:
+            "Have dinner at Cluny Bistro, head back to hotel to unwind and recharge for the exciting adventure ahead.",
+        },
+        {
+          dayNumber: 2,
+          title: "Downtown Toronto",
+          morning:
+            "Visit the CN Tower. Enjoy the observation deck and glass floor for stunning city views.",
+          afternoon:
+            "Explore Ripley's Aquarium of Canada. Wander through the Shark Tunnel and other exhibits.",
+          evening:
+            "Stroll around the waterfront and dine at a restaurant at Lake Ontario.",
+        },
+        {
+          dayNumber: 3,
+          title: "Royal Ontario Museum & Kensington Market",
+          morning: "Enjoy a cozy brunch at the hotel.",
+          afternoon: "Take a walk through Riverdale Park and Edwards Gardens.",
+          evening:
+            "Movie night at Cineplex VIP, have dinner at a fancy restaurant nearby.",
+        },
+        {
+          dayNumber: 4,
+          title: "Go Shopping",
+          morning: "Head to Eaton Centre, Yorkdale Mall, or Queen West.",
+          afternoon:
+            "Keep shopping, relax at a café, visit Bata Shoe Museum or Spadina Museum.",
+          evening:
+            "Have dinner in Chinatown, take a late-night stroll through Nathan Phillips Square.",
+        },
+        {
+          dayNumber: 5,
+          title: "Day Trip to Niagara Falls",
+          morning:
+            "Take a day trip to Niagara Falls, visit the Falls, Skylon Tower, and Clifton Hill.",
+          afternoon:
+            "Explore Clifton Hill, visit Niagara SkyWheel, and have lunch at Niagara Brewing Company.",
+          evening: "Return to Toronto, have a light dinner and rest.",
+        },
+        {
+          dayNumber: 6,
+          title: "Toronto Islands or Indoor Day",
+          morning: "Take Ferry to Toronto Islands.",
+          afternoon:
+            "Have lunch at The Chase Fish & Oyster, visit Ripley’s Aquarium of Canada.",
+          evening:
+            "Have dinner in Entertainment District, check out TIFF Lightbox for film screenings.",
+        },
+        {
+          dayNumber: 7,
+          title: "Art Gallery of Ontario & Queen Street West",
+          morning:
+            "Visit the Art Gallery of Ontario and explore its extensive art collections.",
+          afternoon:
+            "Have lunch at The Queen’s Pasta Café, walk through Yorkville luxury shops, galleries, and sculptures.",
+          evening: "Enjoy dinner in the vibrant King Street West area.",
+        },
+        {
+          dayNumber: 8,
+          title: "Casa Loma & Yorkville",
+          morning:
+            "Visit Casa Loma, Toronto’s historic castle. Explore its rooms and gardens.",
+          afternoon:
+            "Stroll through Yorkville, known for its upscale shopping and dining. Have lunch at a chic bistro.",
+          evening: "Have dinner at Bar Isabel.",
+        },
+        {
+          dayNumber: 9,
+          title: "Chinguacousy Park & Brampton",
+          morning:
+            "Take a train to Chinguacousy Park in Brampton. Enjoy the Splash Pad and other park amenities.",
+          afternoon:
+            "Explore Brampton’s downtown area and have lunch at a local restaurant.",
+          evening: "Return to Toronto and have a relaxing dinner.",
+        },
+        {
+          dayNumber: 10,
+          title: "Toronto Zoo",
+          morning:
+            "Spend the day at the Toronto Zoo. Explore the various animal exhibits and attractions.",
+          afternoon:
+            "Continue enjoying the zoo and have lunch at one of its food locations.",
+          evening: "Return to the city for dinner and relaxation.",
+        },
+        {
+          dayNumber: 11,
+          title: "Harbourfront & St. Lawrence Market",
+          morning:
+            "Explore the Harbourfront area. Visit the Toronto Music Garden or take a boat tour of the harbor.",
+          afternoon:
+            "Head to St. Lawrence Market for lunch and explore its diverse food vendors.",
+          evening:
+            "Enjoy a leisurely dinner and explore a nearby attraction together.",
+        },
+        {
+          dayNumber: 12,
+          title: "Ripley’s Aquarium of Canada",
+          morning:
+            "Spend the day at Ripley’s Aquarium of Canada. Explore its stunning aquatic exhibits, including the Shark Tunnel and Jellyfish Gallery.",
+          afternoon:
+            "Continue exploring the aquarium and take part in any scheduled feeding shows or interactive activities.",
+          evening: "Relax with a dinner in the Entertainment District.",
+        },
+        {
+          dayNumber: 13,
+          title: "Relaxation & Leisure",
+          morning:
+            "Spend the morning at leisure. Revisit favorite spots or explore any missed attractions.",
+          afternoon: "Enjoy a relaxing afternoon at a local café or park.",
+          evening:
+            "Have a farewell dinner at a restaurant with a view of the city or waterfront.",
+        },
+        {
+          dayNumber: 14,
+          title: "Departure",
+          morning: "Pack up and check out of hotel.",
+          afternoon: "Transfer to the airport for departure.",
+        },
+      ],
+      7: [
+        {
+          dayNumber: 1,
+          title: "Arrival in Toronto",
+          afternoon: "Arrival in Toronto, check into hotel.",
+          evening: "Dinner at Cluny Bistro in downtown Toronto.",
+        },
+        {
+          dayNumber: 2,
+          title: "CN Tower & Ripley's Aquarium",
+          morning: "Visit CN Tower observation deck & glass floor.",
+          afternoon: "Explore Ripley's Aquarium of Canada Shark Tunnel.",
+          evening: "Waterfront stroll & dinner at Lake Ontario.",
+        },
+        {
+          dayNumber: 3,
+          title: "Day Trip to Niagara Falls",
+          morning: "Day trip to Niagara Falls & Skylon Tower.",
+          afternoon: "Explore Clifton Hill & Niagara SkyWheel.",
+          evening: "Return to Toronto for dinner.",
+        },
+        {
+          dayNumber: 4,
+          title: "Art Gallery of Ontario & Yorkville",
+          morning: "Visit Art Gallery of Ontario (AGO).",
+          afternoon: "Shopping in Yorkville and Eaton Centre.",
+          evening: "Dinner in King Street West area.",
+        },
+        {
+          dayNumber: 5,
+          title: "Casa Loma & Toronto Islands",
+          morning: "Visit Casa Loma historic castle & gardens.",
+          afternoon: "Take ferry to Toronto Islands for skyline views.",
+          evening: "Dinner at Bar Isabel.",
+        },
+        {
+          dayNumber: 6,
+          title: "Harbourfront & St. Lawrence Market",
+          morning: "Explore Harbourfront & Toronto Music Garden boat tour.",
+          afternoon: "Lunch & market tour at St. Lawrence Market.",
+          evening: "Farewell dinner at a waterfront restaurant.",
+        },
+        {
+          dayNumber: 7,
+          title: "Departure",
+          morning: "Pack up and check out of hotel.",
+          afternoon: "Transfer to Pearson Airport for return flight to Nigeria.",
+        },
+      ],
+    },
+  },
+  canada: {
+    countryKey: "canada",
+    countryName: "Canada",
+    defaultCity: "Toronto",
+    defaultAccommodationName: "DOUBLETREE BY HILTON HOTEL TORONTO DOWNTOWN",
+    defaultAccommodationAddress:
+      "108 Chestnut Street, Toronto, Ontario, M5G1R3, Canada",
+    activitiesHighlights:
+      "exploring iconic cultural landmarks such as the Niagara Falls, CN Tower, Royal Ontario Museum, Ripley's Aquarium of Canada, Canada wonderland, historic Distillery District, and St. Lawrence Market.",
+    presets: {
+      14: [
+        {
+          dayNumber: 1,
+          title: "Arrival In Canada",
+          afternoon: "Arrival in Toronto, check into hotel.",
+          evening:
+            "Have dinner at Cluny Bistro, head back to hotel to unwind and recharge for the exciting adventure ahead.",
+        },
+        {
+          dayNumber: 2,
+          title: "Downtown Toronto",
+          morning:
+            "Visit the CN Tower. Enjoy the observation deck and glass floor for stunning city views.",
+          afternoon:
+            "Explore Ripley's Aquarium of Canada. Wander through the Shark Tunnel and other exhibits.",
+          evening:
+            "Stroll around the waterfront and dine at a restaurant at Lake Ontario.",
+        },
+        {
+          dayNumber: 3,
+          title: "Royal Ontario Museum & Kensington Market",
+          morning: "Enjoy a cozy brunch at the hotel.",
+          afternoon: "Take a walk through Riverdale Park and Edwards Gardens.",
+          evening:
+            "Movie night at Cineplex VIP, have dinner at a fancy restaurant nearby.",
+        },
+        {
+          dayNumber: 4,
+          title: "Go Shopping",
+          morning: "Head to Eaton Centre, Yorkdale Mall, or Queen West.",
+          afternoon:
+            "Keep shopping, relax at a café, visit Bata Shoe Museum or Spadina Museum.",
+          evening:
+            "Have dinner in Chinatown, take a late-night stroll through Nathan Phillips Square.",
+        },
+        {
+          dayNumber: 5,
+          title: "Day Trip to Niagara Falls",
+          morning:
+            "Take a day trip to Niagara Falls, visit the Falls, Skylon Tower, and Clifton Hill.",
+          afternoon:
+            "Explore Clifton Hill, visit Niagara SkyWheel, and have lunch at Niagara Brewing Company.",
+          evening: "Return to Toronto, have a light dinner and rest.",
+        },
+        {
+          dayNumber: 6,
+          title: "Toronto Islands or Indoor Day",
+          morning: "Take Ferry to Toronto Islands.",
+          afternoon:
+            "Have lunch at The Chase Fish & Oyster, visit Ripley’s Aquarium of Canada.",
+          evening:
+            "Have dinner in Entertainment District, check out TIFF Lightbox for film screenings.",
+        },
+        {
+          dayNumber: 7,
+          title: "Art Gallery of Ontario & Queen Street West",
+          morning:
+            "Visit the Art Gallery of Ontario and explore its extensive art collections.",
+          afternoon:
+            "Have lunch at The Queen’s Pasta Café, walk through Yorkville luxury shops, galleries, and sculptures.",
+          evening: "Enjoy dinner in the vibrant King Street West area.",
+        },
+        {
+          dayNumber: 8,
+          title: "Casa Loma & Yorkville",
+          morning:
+            "Visit Casa Loma, Toronto’s historic castle. Explore its rooms and gardens.",
+          afternoon:
+            "Stroll through Yorkville, known for its upscale shopping and dining. Have lunch at a chic bistro.",
+          evening: "Have dinner at Bar Isabel.",
+        },
+        {
+          dayNumber: 9,
+          title: "Chinguacousy Park & Brampton",
+          morning:
+            "Take a train to Chinguacousy Park in Brampton. Enjoy the Splash Pad and other park amenities.",
+          afternoon:
+            "Explore Brampton’s downtown area and have lunch at a local restaurant.",
+          evening: "Return to Toronto and have a relaxing dinner.",
+        },
+        {
+          dayNumber: 10,
+          title: "Toronto Zoo",
+          morning:
+            "Spend the day at the Toronto Zoo. Explore the various animal exhibits and attractions.",
+          afternoon:
+            "Continue enjoying the zoo and have lunch at one of its food locations.",
+          evening: "Return to the city for dinner and relaxation.",
+        },
+        {
+          dayNumber: 11,
+          title: "Harbourfront & St. Lawrence Market",
+          morning:
+            "Explore the Harbourfront area. Visit the Toronto Music Garden or take a boat tour of the harbor.",
+          afternoon:
+            "Head to St. Lawrence Market for lunch and explore its diverse food vendors.",
+          evening:
+            "Enjoy a leisurely dinner and explore a nearby attraction together.",
+        },
+        {
+          dayNumber: 12,
+          title: "Ripley’s Aquarium of Canada",
+          morning:
+            "Spend the day at Ripley’s Aquarium of Canada. Explore its stunning aquatic exhibits, including the Shark Tunnel and Jellyfish Gallery.",
+          afternoon:
+            "Continue exploring the aquarium and take part in any scheduled feeding shows or interactive activities.",
+          evening: "Relax with a dinner in the Entertainment District.",
+        },
+        {
+          dayNumber: 13,
+          title: "Relaxation & Leisure",
+          morning:
+            "Spend the morning at leisure. Revisit favorite spots or explore any missed attractions.",
+          afternoon: "Enjoy a relaxing afternoon at a local café or park.",
+          evening:
+            "Have a farewell dinner at a restaurant with a view of the city or waterfront.",
+        },
+        {
+          dayNumber: 14,
+          title: "Departure",
+          morning: "Pack up and check out of hotel.",
+          afternoon: "Transfer to the airport for departure.",
+        },
+      ],
+      7: [
+        {
+          dayNumber: 1,
+          title: "Arrival in Toronto",
+          afternoon: "Arrival in Toronto, check into hotel.",
+          evening: "Dinner at Cluny Bistro in downtown Toronto.",
+        },
+        {
+          dayNumber: 2,
+          title: "CN Tower & Ripley's Aquarium",
+          morning: "Visit CN Tower observation deck & glass floor.",
+          afternoon: "Explore Ripley's Aquarium of Canada Shark Tunnel.",
+          evening: "Waterfront stroll & dinner at Lake Ontario.",
+        },
+        {
+          dayNumber: 3,
+          title: "Day Trip to Niagara Falls",
+          morning: "Day trip to Niagara Falls & Skylon Tower.",
+          afternoon: "Explore Clifton Hill & Niagara SkyWheel.",
+          evening: "Return to Toronto for dinner.",
+        },
+        {
+          dayNumber: 4,
+          title: "Art Gallery of Ontario & Yorkville",
+          morning: "Visit Art Gallery of Ontario (AGO).",
+          afternoon: "Shopping in Yorkville and Eaton Centre.",
+          evening: "Dinner in King Street West area.",
+        },
+        {
+          dayNumber: 5,
+          title: "Casa Loma & Toronto Islands",
+          morning: "Visit Casa Loma historic castle & gardens.",
+          afternoon: "Take ferry to Toronto Islands for skyline views.",
+          evening: "Dinner at Bar Isabel.",
+        },
+        {
+          dayNumber: 6,
+          title: "Harbourfront & St. Lawrence Market",
+          morning: "Explore Harbourfront & Toronto Music Garden boat tour.",
+          afternoon: "Lunch & market tour at St. Lawrence Market.",
+          evening: "Farewell dinner at a waterfront restaurant.",
+        },
+        {
+          dayNumber: 7,
+          title: "Departure",
+          morning: "Pack up and check out of hotel.",
+          afternoon: "Transfer to Pearson Airport for return flight to Nigeria.",
         },
       ],
     },

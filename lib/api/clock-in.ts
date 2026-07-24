@@ -200,3 +200,19 @@ export async function getAllClockInStats(
 
     return api.get<StandardResponse<ClockInSummary>>(`/api/admin/attendance/stats?${params.toString()}`);
 }
+
+/**
+ * PATCH /api/admin/attendance/{id}/mark-late
+ * Mark a clock-in record as late (default 09:06 AM)
+ */
+export async function markClockInAsLate(
+    recordId: number,
+    time?: string
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    revalidatePath("/attendance");
+    revalidatePath("/my/attendance");
+    return api.patch<StandardResponse<ClockInRecord>>(`/api/admin/attendance/${recordId}/mark-late`, {
+        time: time || "09:06",
+    });
+}
+

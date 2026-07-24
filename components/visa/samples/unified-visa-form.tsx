@@ -143,11 +143,18 @@ export function UnifiedVisaForm() {
     duration: 7 | 14,
     start: Date
   ) => {
-    const presetData = ITINERARY_PRESETS[countryKey] || ITINERARY_PRESETS["brazil"];
+    let effectiveKey = countryKey;
+    if (countryKey === "canada") {
+      const month = start.getMonth(); // 0-indexed (11 = Dec, 0 = Jan, 1 = Feb, 10 = Nov)
+      const isWinter = [10, 11, 0, 1, 2].includes(month);
+      effectiveKey = isWinter ? "canada_winter" : "canada_summer";
+    }
+
+    const presetData = ITINERARY_PRESETS[effectiveKey] || ITINERARY_PRESETS[countryKey] || ITINERARY_PRESETS["brazil"];
     const daysList = presetData.presets[duration] || presetData.presets[14];
 
     const endDateCalculated = addDays(start, duration - 1);
-    const consularFormatted = countryKey in CONSULAR_ADDRESSES ? getConsularAddressFormatted(countryKey) : profile.consular_address;
+    const consularFormatted = effectiveKey in CONSULAR_ADDRESSES ? getConsularAddressFormatted(effectiveKey) : (countryKey in CONSULAR_ADDRESSES ? getConsularAddressFormatted(countryKey) : profile.consular_address);
 
     const computedDays = daysList.map((d, index) => {
       const dayDate = addDays(start, index);
@@ -163,9 +170,9 @@ export function UnifiedVisaForm() {
     setProfile((prev) => ({
       ...prev,
       selected_country_key: countryKey,
-      destination_country: presetData.countryName,
-      embassy_name: CONSULAR_ADDRESSES[countryKey]?.embassyName || `Embassy of ${presetData.countryName}`,
-      embassy_address: CONSULAR_ADDRESSES[countryKey]?.addressLines ? CONSULAR_ADDRESSES[countryKey].addressLines.slice(-2).join(", ") : "Lagos, Nigeria",
+      destination_country: "Canada",
+      embassy_name: CONSULAR_ADDRESSES[effectiveKey]?.embassyName || CONSULAR_ADDRESSES[countryKey]?.embassyName || `Embassy of ${presetData.countryName}`,
+      embassy_address: CONSULAR_ADDRESSES[effectiveKey]?.addressLines ? CONSULAR_ADDRESSES[effectiveKey].addressLines.slice(-2).join(", ") : "Lagos, Nigeria",
       consular_address: consularFormatted,
       arrival_city: presetData.defaultCity,
       travel_start_date: start,
@@ -577,9 +584,29 @@ export function UnifiedVisaForm() {
                         <Label htmlFor="business_name" className="text-xs font-medium">Registered Business Name</Label>
                         <Input id="business_name" name="business_name" value={profile.business_name || profile.company_name} onChange={handleInputChange} placeholder="e.g. Apex Skincare & Beauty Ltd" className="h-9 text-xs" />
                       </div>
-                      <div className="space-y-1.5 sm:col-span-2">
+                      <div className="space-y-1.5">
                         <Label htmlFor="business_nature" className="text-xs font-medium">Nature of Business / Industry</Label>
                         <Input id="business_nature" name="business_nature" value={profile.business_nature} onChange={handleInputChange} placeholder="e.g. premium skincare cosmetics and retail" className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="registration_number" className="text-xs font-medium">RC / Registration Number (Optional)</Label>
+                        <Input id="registration_number" name="registration_number" value={profile.registration_number} onChange={handleInputChange} placeholder="e.g. RC 123456" className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="self_signatory_name" className="text-xs font-medium">Representative Signatory Name</Label>
+                        <Input id="self_signatory_name" name="self_signatory_name" value={profile.self_signatory_name} onChange={handleInputChange} placeholder="e.g. KEMI ADEBAYO" className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="self_signatory_designation" className="text-xs font-medium">Signatory Designation</Label>
+                        <Input id="self_signatory_designation" name="self_signatory_designation" value={profile.self_signatory_designation} onChange={handleInputChange} placeholder="e.g. Company Secretary / Personal Assistant" className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="self_signatory_phone" className="text-xs font-medium">Representative Phone Number</Label>
+                        <Input id="self_signatory_phone" name="self_signatory_phone" value={profile.self_signatory_phone} onChange={handleInputChange} placeholder="e.g. +234 802 345 6789" className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <Label htmlFor="self_signatory_email" className="text-xs font-medium">Representative Email Address</Label>
+                        <Input id="self_signatory_email" name="self_signatory_email" type="email" value={profile.self_signatory_email} onChange={handleInputChange} placeholder="e.g. secretary@company.com" className="h-9 text-xs" />
                       </div>
                     </>
                   )}

@@ -20,6 +20,32 @@ export const CONSULAR_ADDRESSES: Record<string, ConsularAddress> = {
       "Lagos State.",
     ],
   },
+  canada_summer: {
+    countryCode: "canada_summer",
+    countryName: "Canada (Summer Season)",
+    consularTitle: "The Consular",
+    embassyName: "Canadian Deputy High Commission",
+    addressLines: [
+      "The Consular,",
+      "Canadian Deputy High Commission,",
+      "4 Anifowose Street,",
+      "Victoria Island,",
+      "Lagos State.",
+    ],
+  },
+  canada_winter: {
+    countryCode: "canada_winter",
+    countryName: "Canada (Winter / Festive)",
+    consularTitle: "The Consular",
+    embassyName: "Canadian Deputy High Commission",
+    addressLines: [
+      "The Consular,",
+      "Canadian Deputy High Commission,",
+      "4 Anifowose Street,",
+      "Victoria Island,",
+      "Lagos State.",
+    ],
+  },
   uk: {
     countryCode: "uk",
     countryName: "United Kingdom",
