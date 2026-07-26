@@ -66,6 +66,12 @@ export const departmentNav: NavItem[] = [
         allowedRoles: ["account"],
     },
     {
+        title: "Invoice Generator",
+        url: "/accounts/invoices",
+        icon: FileText,
+        allowedRoles: ["account"],
+    },
+    {
         title: "Expenses Management",
         url: "/accounts/expenses",
         icon: Receipt,

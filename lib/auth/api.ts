@@ -50,9 +50,20 @@ export async function login(
     email: string,
     password: string,
     location?: LocationData,
-    client_ip?: string
+    client_ip?: string,
+    deviceData?: {
+        device_uuid?: string;
+        device_fingerprint?: string;
+        device_name?: string;
+    }
 ): Promise<ApiResponse<AuthResponse>> {
-    return api.post<AuthResponse>("/api/login", { email, password, location, client_ip });
+    return api.post<AuthResponse>("/api/login", {
+        email,
+        password,
+        location,
+        client_ip,
+        ...(deviceData || {})
+    });
 }
 
 /**

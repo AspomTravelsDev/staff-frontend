@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getDeviceSignature } from "@/lib/utils/device-fingerprint";
 
 export function LoginForm({ redirect }: { redirect?: string }) {
   const [state, formAction, isPending] = useActionState<LoginState, FormData>(
@@ -107,6 +108,16 @@ export function LoginForm({ redirect }: { redirect?: string }) {
           if (clientIpRef.current) {
             formData.set("client_ip", clientIpRef.current);
           }
+          
+          try {
+            const deviceData = getDeviceSignature();
+            formData.set("device_uuid", deviceData.device_uuid);
+            formData.set("device_fingerprint", deviceData.device_fingerprint);
+            formData.set("device_name", deviceData.device_name);
+          } catch (e) {
+            console.error("Failed to append device signature to login request:", e);
+          }
+
           formAction(formData);
         }}
         className="mt-8 space-y-6"

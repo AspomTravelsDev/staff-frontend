@@ -37,6 +37,11 @@ export async function loginAction(
             ? JSON.parse(formData.get("location") as string)
             : undefined,
         client_ip: clientIpFromFormData || xForwardedFor || undefined,
+        deviceData: {
+            device_uuid: (formData.get("device_uuid") as string) || undefined,
+            device_fingerprint: (formData.get("device_fingerprint") as string) || undefined,
+            device_name: (formData.get("device_name") as string) || undefined,
+        }
     };
 
     const validatedFields = loginSchema.safeParse({ email: rawData.email, password: rawData.password });
@@ -51,7 +56,7 @@ export async function loginAction(
 
     // console.log(rawData.location, rawData.client_ip)
     // Call API
-    const result = await login(email, password, rawData.location, rawData.client_ip);
+    const result = await login(email, password, rawData.location, rawData.client_ip, rawData.deviceData);
 
     if (!result.success) {
         const errorCode = result.error.code;
