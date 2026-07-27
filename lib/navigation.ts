@@ -64,6 +64,7 @@ export const departmentNav: NavItem[] = [
         url: "/accounts/confirmation",
         icon: CreditCard,
         allowedRoles: ["account"],
+        badgeKey: "pendingPayments",
     },
     {
         title: "Invoice Generator",
@@ -400,7 +401,14 @@ export const personalNav: NavItem[] = [
         icon: CreditCard,
         items: [
             {
-                title: "Payment Confirmation", url: "/my/payment"
+                title: "Payment Confirmation", url: "/my/payment",
+                badgeKey: "myPaymentUpdates",
+                badgeLabel: "New status updates",
+            },
+            {
+                title: "Assigned Deals", url: "/my/assigned-deals",
+                badgeKey: "myAssignedDeals",
+                badgeLabel: "Deals needing attention",
             },
             {
                 title: "Expenses", url: "/my/expenses", disabled: true,

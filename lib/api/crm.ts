@@ -27,6 +27,7 @@ export async function getClients(
     if (filters.source) queryParams.set("source", filters.source);
     if (filters.myClients) queryParams.set("my_clients", "true");
     if (filters.assignedTo) queryParams.set("assignedTo", filters.assignedTo);
+    if (filters.lookup) queryParams.set("lookup", "true");
 
     const response = await api.get<PaginatedResponse<Client>>(
         `/api/crm/clients?${queryParams.toString()}`

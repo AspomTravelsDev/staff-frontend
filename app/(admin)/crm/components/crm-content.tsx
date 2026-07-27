@@ -15,6 +15,7 @@ interface CRMContentProps {
   pagination: PaginationMeta;
   stats: CRMStats;
   currentUserId?: string;
+  currentUserRole?: string;
 }
 
 export function CRMContent({
@@ -22,6 +23,7 @@ export function CRMContent({
   pagination,
   stats,
   currentUserId,
+  currentUserRole,
 }: CRMContentProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -49,7 +51,7 @@ export function CRMContent({
 
       <CRMStatsCards stats={stats} />
 
-      <CRMTable clients={clients} pagination={pagination} />
+      <CRMTable clients={clients} pagination={pagination} currentUserRole={currentUserRole} />
 
       <AddClientDialog
         open={addOpen}

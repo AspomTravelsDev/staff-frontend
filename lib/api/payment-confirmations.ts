@@ -77,6 +77,7 @@ export interface PaymentConfirmationFilters {
     page?: number;
     limit?: number;
     status?: 'pending' | 'approved' | 'rejected';
+    assigned?: boolean;
 }
 
 interface PaymentConfirmationsResponse {
@@ -96,6 +97,9 @@ export async function getPaymentConfirmations(
     if (filters.page) queryParams.set("page", filters.page.toString());
     if (filters.limit) queryParams.set("limit", filters.limit.toString());
     if (filters.status) queryParams.set("status", filters.status);
+    if (filters.assigned !== undefined) {
+        queryParams.set("assigned", filters.assigned ? "1" : "0");
+    }
 
     const response = await api.get<ListResponse<PaymentConfirmation>>(
         `/api/payment-confirmations?${queryParams.toString()}`
@@ -178,4 +182,14 @@ export async function getOutstandingPayments(
 
     console.error("Failed to fetch outstanding payments:", response.error);
     return { data: [], pagination: { page: 1, limit: 50, total: 0, total_pages: 0 } };
+}
+
+export async function markPaymentNotificationsAsRead(): Promise<boolean> {
+    const response = await api.post<any>("/api/payment-confirmations/notifications/mark-viewed");
+    return response.success;
+}
+
+export async function markAssignedDealsNotificationsAsRead(): Promise<boolean> {
+    const response = await api.post<any>("/api/payment-confirmations/notifications/mark-assigned-viewed");
+    return response.success;
 }

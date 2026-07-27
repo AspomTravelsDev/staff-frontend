@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Plus, User, UserPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -82,21 +82,38 @@ export function PaymentConfirmationDialog({
   const [datapageRawFile, setDatapageRawFile] = useState<File | null>(null);
   const [proofRawFile, setProofRawFile] = useState<File | null>(null);
 
-  const searchClients = useCallback(async (query: string) => {
-    if (!query.trim()) {
+  // Trigger search when input changes, with debounce and race-condition safety
+  useEffect(() => {
+    if (!clientSearch.trim()) {
       setSearchResults([]);
       return;
     }
-    setIsSearching(true);
-    try {
-      const resp = await getClients({ search: query, limit: 10 });
-      setSearchResults(resp.items ?? []);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
+
+    let active = true;
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const resp = await getClients({ search: clientSearch, limit: 10, lookup: true });
+        if (active) {
+          setSearchResults(resp.items ?? []);
+        }
+      } catch (err) {
+        if (active) {
+          setSearchResults([]);
+        }
+      } finally {
+        if (active) {
+          setIsSearching(false);
+        }
+      }
+    }, 350); // 350ms debounce delay
+
+    return () => {
+      active = false;
+      clearTimeout(delayDebounceFn);
+    };
+  }, [clientSearch]);
 
   const getClientDob = (client: Client): string => {
     const clientWithAltDob = client as Client & {
@@ -116,7 +133,6 @@ export function PaymentConfirmationDialog({
     setClientSearch(val);
     setSelectedClient(null);
     setShowDropdown(true);
-    searchClients(val);
   };
 
   const handleSelectClient = (client: Client) => {
@@ -199,8 +215,21 @@ export function PaymentConfirmationDialog({
       toast.error("Please select or search for an existing client.");
       return;
     }
-    if (!datapageRawFile) {
+
+    const expected = Number(amountExpected);
+    const disc = Number(discount || 0);
+    if (disc > expected) {
+      toast.error("Discount cannot be greater than the amount expected.");
+      return;
+    }
+
+    if (!outstandingPaymentId && !datapageRawFile) {
       toast.error("Please upload the client's DataPage.");
+      return;
+    }
+
+    if (!proofRawFile) {
+      toast.error("Please upload the Proof of Payment.");
       return;
     }
 
@@ -233,8 +262,12 @@ export function PaymentConfirmationDialog({
         formData.append("outstanding_payment_id", outstandingPaymentId);
 
       // Append files
-      formData.append("datapage", datapageRawFile);
-      if (proofRawFile) formData.append("proof_of_payment", proofRawFile);
+      if (datapageRawFile) {
+        formData.append("datapage", datapageRawFile);
+      }
+      if (proofRawFile) {
+        formData.append("proof_of_payment", proofRawFile);
+      }
 
       const { createPaymentConfirmationAction } =
         await import("@/lib/actions/payment-confirmations");
@@ -618,7 +651,7 @@ export function PaymentConfirmationDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Attachment (DataPage) *</Label>
+              <Label>Attachment (DataPage){!outstandingPaymentId && " *"}</Label>
               <FileUpload
                 value={datapageFiles}
                 accept=".pdf,.jpg,.jpeg,.png"
@@ -637,7 +670,7 @@ export function PaymentConfirmationDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Attachment (Proof of Payment)</Label>
+              <Label>Attachment (Proof of Payment) *</Label>
               <FileUpload
                 value={proofFiles}
                 accept=".pdf,.jpg,.jpeg,.png"

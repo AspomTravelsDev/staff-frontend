@@ -69,6 +69,7 @@ interface CRMTableProps {
     total: number;
     total_pages: number;
   };
+  currentUserRole?: string;
 }
 
 const STATUS_STYLES: Record<CRMStatus, string> = {
@@ -98,7 +99,7 @@ const EXPORT_COLUMNS: ExportColumn<Client>[] = [
   { header: "Notes", key: "notes" },
 ];
 
-export function CRMTable({ clients, pagination }: CRMTableProps) {
+export function CRMTable({ clients, pagination, currentUserRole }: CRMTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -108,6 +109,23 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
   const [assignedToFilter, setAssignedToFilter] = useState<string | "all">(
     "all",
   );
+
+  const isAccountUser =
+    currentUserRole === "account" ||
+    currentUserRole === "super" ||
+    currentUserRole === "mp" ||
+    currentUserRole === "md";
+
+  const columnsToExport = useMemo(() => {
+    const cols = [...EXPORT_COLUMNS];
+    if (isAccountUser) {
+      cols.splice(5, 0, {
+        header: "Total Spent",
+        key: (c) => `₦${Number(c.totalSpent || 0).toLocaleString()}`,
+      });
+    }
+    return cols;
+  }, [isAccountUser]);
 
   const { data: employeesData } = useEmployees({
     limit: 1000,
@@ -339,7 +357,7 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
           </p>
           <TableExportButton
             data={sorted}
-            columns={EXPORT_COLUMNS}
+            columns={columnsToExport}
             filename="crm_export"
             selectedIndices={selectedRows}
             keyExtractor={(item) => item.id}
@@ -432,6 +450,17 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
                   <SortIcon columnKey="status" />
                 </div>
               </TableHead>
+              {isAccountUser && (
+                <TableHead
+                  className="cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort("totalSpent")}
+                >
+                  <div className="flex items-center">
+                    Total Spent
+                    <SortIcon columnKey="totalSpent" />
+                  </div>
+                </TableHead>
+              )}
               <TableHead
                 className="hidden md:table-cell cursor-pointer hover:text-foreground transition-colors group"
                 onClick={() => handleSort("service")}
@@ -475,7 +504,7 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
             {sorted.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={isAccountUser ? 10 : 9}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {hasFilters
@@ -522,6 +551,11 @@ export function CRMTable({ clients, pagination }: CRMTableProps) {
                         {client.status}
                       </Badge>
                     </TableCell>
+                    {isAccountUser && (
+                      <TableCell className="text-sm font-semibold text-green-600">
+                        ₦{Number(client.totalSpent || 0).toLocaleString()}
+                      </TableCell>
+                    )}
                     <TableCell className="hidden md:table-cell text-sm">
                       {client.service || "—"}
                     </TableCell>

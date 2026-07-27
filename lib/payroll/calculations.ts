@@ -52,6 +52,18 @@ export function getWorkingDaysInMonth(year: number, month: number) {
     return countWeekdaysBetween(start, end);
 }
 
+/**
+ * Returns true for contract types that are exempt from PAYE tax.
+ * Covers: intern, nysc, and contract staff.
+ */
+export function isTaxExempt(contractType?: string | null): boolean {
+    return (
+        contractType === "intern" ||
+        contractType === "nysc" ||
+        contractType === "contract"
+    );
+}
+
 export function getAccommodationRate(contractType?: string, tenureMonths?: number) {
     if (contractType === "intern" || contractType === "nysc") return 5000;
     if ((tenureMonths ?? 0) >= 6) return 0;
@@ -178,7 +190,9 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
   const taxableGross = round2(Math.max(0, actualGross + preTaxAdditions - preTaxDeductions));
 
   // Progressive tax calculated on Taxable Gross Salary
-  const taxAmount = isIntern ? 0 : (
+  // Exempt: interns, NYSC, and contract staff
+  const taxExempt = isIntern || isTaxExempt(contractType);
+  const taxAmount = taxExempt ? 0 : (
     (customTax !== undefined && customTax !== null)
       ? customTax
       : calculateMonthlyTax(taxableGross)

@@ -45,6 +45,7 @@ export default async function CRMPage({
       pagination={clientsData.pagination}
       stats={stats}
       currentUserId={user.id}
+      currentUserRole={user.role}
     />
   );
 }

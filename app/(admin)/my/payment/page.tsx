@@ -6,6 +6,7 @@ import { PaymentConfirmationsTable } from "@/components/payment/payment-confirma
 import {
   getPaymentConfirmations,
   getOutstandingPayments,
+  markPaymentNotificationsAsRead,
   type PaymentConfirmationFilters,
 } from "@/lib/api/payment-confirmations";
 import { TableFilter } from "@/components/payment/table-filter";
@@ -29,6 +30,13 @@ export default async function MyPaymentConfirmationsPage({
     (candidate) => candidate === sp.status,
   ) as PaymentConfirmationFilters["status"] | undefined;
   const page = parseInt(sp.page || "1");
+
+  // Mark payment notifications viewed since the user is loading their confirmations dashboard
+  try {
+    await markPaymentNotificationsAsRead();
+  } catch (err) {
+    // Ignore error
+  }
 
   const [confirmationsData, outstandingData] = await Promise.all([
     getPaymentConfirmations({

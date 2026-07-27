@@ -55,6 +55,7 @@ export interface Client {
     createdAt: string;
     createdBy: string;
     createdById: string;
+    totalSpent?: number;
 }
 
 export interface CreateClientRequest {
@@ -100,4 +101,5 @@ export interface CRMFilters {
     source?: string;
     myClients?: boolean;
     assignedTo?: string;
+    lookup?: boolean;
 }

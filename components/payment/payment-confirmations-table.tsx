@@ -10,9 +10,18 @@ import {
   AlertCircle,
   ExternalLink,
   Download,
+  Search,
+  X,
+  TrendingUp,
+  Coins,
+  Clock,
+  BarChart3,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableFilter } from "./table-filter";
 import {
   Table,
   TableBody,
@@ -74,7 +83,9 @@ interface PaymentConfirmationsTableProps {
     total_pages: number;
   };
   mode: "staff" | "accounts";
-  staffList?: { id: string; name: string }[];
+  staffList?: { id: string; name: string; department?: string }[];
+  currentStatus?: string;
+  showSubmittedBy?: boolean;
 }
 
 interface DealRow {
@@ -152,6 +163,8 @@ export function PaymentConfirmationsTable({
   pagination,
   mode,
   staffList = [],
+  currentStatus,
+  showSubmittedBy = mode === "accounts",
 }: PaymentConfirmationsTableProps) {
   const [selectedDeal, setSelectedDeal] = useState<DealRow | null>(null);
   const [rejectDialog, setRejectDialog] = useState<PaymentConfirmation | null>(
@@ -163,9 +176,91 @@ export function PaymentConfirmationsTable({
   );
   const [assignedTo, setAssignedTo] = useState("");
 
+  // Filters State
+  const [search, setSearch] = useState("");
+  const [submitterFilter, setSubmitterFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [datePreset, setDatePreset] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   const [isPending, startTransition] = useTransition();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // Extract unique departments dynamically from staffList
+  const departments = useMemo(() => {
+    const depts = new Set<string>();
+    for (const staff of staffList) {
+      if (staff.department) {
+        depts.add(staff.department);
+      }
+    }
+    return Array.from(depts).sort();
+  }, [staffList]);
+
+  // Date Presets Checker
+  const matchesDate = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return (paymentDateStr: string) => {
+      if (datePreset === "all") return true;
+
+      const pDate = new Date(paymentDateStr);
+      pDate.setHours(0, 0, 0, 0);
+
+      if (datePreset === "7days") {
+        const boundary = new Date(today);
+        boundary.setDate(today.getDate() - 7);
+        return pDate >= boundary;
+      }
+      if (datePreset === "30days") {
+        const boundary = new Date(today);
+        boundary.setDate(today.getDate() - 30);
+        return pDate >= boundary;
+      }
+      if (datePreset === "thisMonth") {
+        return (
+          pDate.getMonth() === today.getMonth() &&
+          pDate.getFullYear() === today.getFullYear()
+        );
+      }
+      if (datePreset === "lastMonth") {
+        const lastMonth = new Date(today);
+        lastMonth.setMonth(today.getMonth() - 1);
+        return (
+          pDate.getMonth() === lastMonth.getMonth() &&
+          pDate.getFullYear() === lastMonth.getFullYear()
+        );
+      }
+      if (datePreset === "custom") {
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (pDate < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (pDate > end) return false;
+        }
+        return true;
+      }
+      return true;
+    };
+  }, [datePreset, startDate, endDate]);
+
+  const allFiles = useMemo(() => {
+    if (!selectedDeal) return [];
+    return selectedDeal.confirmations.flatMap((c) =>
+      (c.files || []).map((f) => ({
+        ...f,
+        confirmationAmount: c.amount_paid,
+        confirmationDate: c.payment_date,
+      }))
+    );
+  }, [selectedDeal]);
 
   const dealRows = useMemo<DealRow[]>(() => {
     const grouped = new Map<string, PaymentConfirmation[]>();
@@ -225,6 +320,84 @@ export function PaymentConfirmationsTable({
         parseTime(a.latestConfirmation.created_at),
     );
   }, [confirmations]);
+
+  const filteredDeals = useMemo(() => {
+    // If not in accounts mode, don't apply these filters
+    if (mode !== "accounts") return dealRows;
+
+    return dealRows.filter((deal) => {
+      const matchesSearch =
+        !search ||
+        deal.clientName.toLowerCase().includes(search.toLowerCase()) ||
+        deal.payerName.toLowerCase().includes(search.toLowerCase()) ||
+        deal.product.toLowerCase().includes(search.toLowerCase()) ||
+        deal.submittedByName.toLowerCase().includes(search.toLowerCase());
+
+      const submitterId =
+        deal.actionConfirmation.user_id ||
+        getUserId(deal.actionConfirmation.user);
+      const matchesSubmitter =
+        submitterFilter === "all" || submitterId === submitterFilter;
+
+      const employee = staffList.find((e) => e.id === submitterId);
+      const submitterDept = employee?.department || "Other";
+      const matchesDept =
+        deptFilter === "all" ||
+        submitterDept.toLowerCase() === deptFilter.toLowerCase();
+
+      const matchesDateRange = matchesDate(deal.paymentDate);
+
+      return matchesSearch && matchesSubmitter && matchesDept && matchesDateRange;
+    });
+  }, [dealRows, mode, search, submitterFilter, deptFilter, staffList, matchesDate]);
+
+  const dynamicStats = useMemo(() => {
+    const totalDeals = filteredDeals.length;
+
+    let totalClosedValue = 0;
+    let biggestDealClosed = 0;
+    let closedDealsCount = 0;
+
+    for (const deal of filteredDeals) {
+      const approvedVal = deal.confirmations
+        .filter((c) => c.status === "approved")
+        .reduce((sum, c) => sum + Number(c.amount_paid || 0), 0);
+      
+      if (approvedVal > 0) {
+        closedDealsCount++;
+        totalClosedValue += approvedVal;
+      }
+      if (approvedVal > biggestDealClosed) {
+        biggestDealClosed = approvedVal;
+      }
+    }
+
+    const approvalRate =
+      totalDeals > 0 ? Math.round((closedDealsCount / totalDeals) * 100) : 0;
+
+    return [
+      {
+        title: "Total Deals",
+        value: String(totalDeals),
+        description: "Unique deal records",
+      },
+      {
+        title: "Total Closed Value",
+        value: formatCurrency(totalClosedValue),
+        description: "Approved amount paid",
+      },
+      {
+        title: "Biggest Deal Closed",
+        value: formatCurrency(biggestDealClosed),
+        description: "Highest approved payment",
+      },
+      {
+        title: "Approval Rate",
+        value: `${approvalRate}%`,
+        description: `${closedDealsCount} approved deals`,
+      },
+    ];
+  }, [filteredDeals]);
 
   async function handleApprove(id: string) {
     startTransition(async () => {
@@ -295,6 +468,8 @@ export function PaymentConfirmationsTable({
     return `${pathname}?${params.toString()}`;
   };
 
+  const colCount = (showSubmittedBy ? 1 : 0) + 7 + (mode === "accounts" ? 1 : 0);
+
   if (!dealRows.length) {
     return (
       <div className="rounded-lg border bg-card py-16 text-center">
@@ -307,12 +482,135 @@ export function PaymentConfirmationsTable({
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      {mode === "accounts" && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {dynamicStats.map((card) => (
+            <Card key={card.title}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {card.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold tracking-tight">{card.value}</p>
+                <p className="text-xs text-muted-foreground">
+                  {card.description}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {mode === "accounts" && (
+        <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex flex-wrap gap-3 items-center flex-1">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search client, payer, product..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-9 text-sm"
+              />
+            </div>
+
+            <Select value={submitterFilter} onValueChange={setSubmitterFilter}>
+              <SelectTrigger className="w-40 h-9 text-sm">
+                <SelectValue placeholder="All Closers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Closers</SelectItem>
+                {staffList.map((staff) => (
+                  <SelectItem key={staff.id} value={staff.id}>
+                    {staff.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={deptFilter} onValueChange={setDeptFilter}>
+              <SelectTrigger className="w-40 h-9 text-sm">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept.toLowerCase()}>
+                    {dept}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={datePreset} onValueChange={setDatePreset}>
+              <SelectTrigger className="w-40 h-9 text-sm">
+                <SelectValue placeholder="All Time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="7days">Last 7 Days</SelectItem>
+                <SelectItem value="30days">Last 30 Days</SelectItem>
+                <SelectItem value="thisMonth">This Month</SelectItem>
+                <SelectItem value="lastMonth">Last Month</SelectItem>
+                <SelectItem value="custom">Custom Date Range</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {datePreset === "custom" && (
+              <div className="flex gap-2 items-center animate-in fade-in slide-in-from-top-2 duration-150">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="h-9 text-xs w-32"
+                />
+                <span className="text-muted-foreground text-xs">to</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="h-9 text-xs w-32"
+                />
+              </div>
+            )}
+
+            {(search ||
+              submitterFilter !== "all" ||
+              deptFilter !== "all" ||
+              datePreset !== "all" ||
+              startDate ||
+              endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setSubmitterFilter("all");
+                  setDeptFilter("all");
+                  setDatePreset("all");
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                className="h-9 gap-1.5"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          <div className="flex-shrink-0">
+            <TableFilter currentStatus={currentStatus || "all"} />
+          </div>
+        </div>
+      )}
       <div className="rounded-md border bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
-              {mode === "accounts" && <TableHead>Submitted By</TableHead>}
+              {showSubmittedBy && <TableHead>Submitted By</TableHead>}
               <TableHead>Client</TableHead>
               <TableHead>Payer</TableHead>
               <TableHead>Product</TableHead>
@@ -326,13 +624,23 @@ export function PaymentConfirmationsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {dealRows.map((deal) => (
+            {filteredDeals.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={colCount}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No payment confirmations match your filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredDeals.map((deal) => (
               <TableRow
                 key={deal.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => setSelectedDeal(deal)}
               >
-                {mode === "accounts" && (
+                {showSubmittedBy && (
                   <TableCell className="text-sm font-medium whitespace-nowrap">
                     {deal.submittedByName}
                   </TableCell>
@@ -416,7 +724,7 @@ export function PaymentConfirmationsTable({
                   </TableCell>
                 )}
               </TableRow>
-            ))}
+            )))}
           </TableBody>
         </Table>
       </div>
@@ -478,7 +786,7 @@ export function PaymentConfirmationsTable({
         open={!!selectedDeal}
         onOpenChange={(o) => !o && setSelectedDeal(null)}
       >
-        <SheetContent className="sm:max-w-lg overflow-y-auto">
+        <SheetContent className="sm:max-w-lg overflow-y-auto p-4 px-6">
           <SheetHeader>
             <SheetTitle>Payment Confirmation Details</SheetTitle>
             <SheetDescription>
@@ -601,59 +909,65 @@ export function PaymentConfirmationsTable({
                 )}
               </div>
 
-              {Array.isArray(selectedDeal.latestConfirmation.files) &&
-                selectedDeal.latestConfirmation.files.length > 0 && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-2">
-                      Attachments
-                    </p>
-                    <div className="space-y-2">
-                      {selectedDeal.latestConfirmation.files.map((file) => {
-                        const fileName =
-                          file.original_name ||
-                          file.filename ||
-                          "Attached file";
-                        const fileUrl = `/api/proxy/image/api/files/download/${file.id}`;
+              {allFiles.length > 0 && (
+                <div>
+                  <p className="text-muted-foreground text-xs mb-2">
+                    Attachments (All Installments)
+                  </p>
+                  <div className="space-y-2">
+                    {allFiles.map((file) => {
+                      const fileName =
+                        file.original_name ||
+                        file.filename ||
+                        "Attached file";
+                      const fileUrl = `/api/proxy/image/api/files/download/${file.id}`;
 
-                        return (
-                          <div
-                            key={file.id}
-                            className="flex items-center justify-between rounded-md border p-2"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">
-                                {fileName}
-                              </p>
-                              {file.file_type && (
-                                <p className="text-xs text-muted-foreground capitalize">
-                                  {file.file_type.replace(/_/g, " ")}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Button asChild size="sm" variant="outline">
-                                <a
-                                  href={fileUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <ExternalLink className="mr-1 h-3.5 w-3.5" />
-                                  Open
-                                </a>
-                              </Button>
-                              <Button asChild size="sm" variant="outline">
-                                <a href={fileUrl} download={fileName}>
-                                  <Download className="mr-1 h-3.5 w-3.5" />
-                                  Download
-                                </a>
-                              </Button>
-                            </div>
+                      // Identify type and add detail context
+                      const isDataPage = file.filename?.startsWith("datapage/");
+                      const label = isDataPage
+                        ? "Client DataPage"
+                        : `Receipt (₦${Number(file.confirmationAmount).toLocaleString()} · ${format(
+                            new Date(file.confirmationDate),
+                            "dd MMM yyyy",
+                          )})`;
+
+                      return (
+                        <div
+                          key={file.id}
+                          className="flex items-center justify-between rounded-md border p-2"
+                        >
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="truncate text-sm font-medium">
+                              {fileName}
+                            </p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {label}
+                            </p>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <Button asChild size="sm" variant="outline">
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                                Open
+                              </a>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                              <a href={fileUrl} download={fileName}>
+                                <Download className="mr-1 h-3.5 w-3.5" />
+                                Download
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+              )}
 
               {selectedDeal.latestConfirmation.service_description && (
                 <div>
@@ -838,6 +1152,6 @@ export function PaymentConfirmationsTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
