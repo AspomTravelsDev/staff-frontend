@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { RequestsTable } from "./components/requests-table";
+import { RequestsFilters } from "./components/requests-filters";
 import { StatsCards } from "./components/stats-cards";
 import {
   Card,
@@ -16,6 +17,10 @@ import { getRequests, getRequestStats } from "@/lib/api/requests";
 type RequestSearchParams = {
   page?: string | string[];
   limit?: string | string[];
+  search?: string | string[];
+  status?: string | string[];
+  category?: string | string[];
+  priority?: string | string[];
 };
 
 const DEFAULT_LIMIT = 50;
@@ -47,16 +52,24 @@ export default async function RequestsPage({
 
   const page = parsePositiveInt(params.page, 1);
   const limit = Math.min(parsePositiveInt(params.limit, DEFAULT_LIMIT), 100);
+  const search = typeof params.search === "string" ? params.search : undefined;
+  const status = typeof params.status === "string" ? params.status : undefined;
+  const category = typeof params.category === "string" ? params.category : undefined;
+  const priority = typeof params.priority === "string" ? params.priority : undefined;
 
   const buildHref = (nextPage: number, nextLimit: number = limit) => {
     const query = new URLSearchParams();
     query.set("page", String(nextPage));
     query.set("limit", String(nextLimit));
+    if (search) query.set("search", search);
+    if (status) query.set("status", status);
+    if (category) query.set("category", category);
+    if (priority) query.set("priority", priority);
     return `/admin/requests?${query.toString()}`;
   };
 
   const [requestsData, stats] = await Promise.all([
-    getRequests({ page, limit }),
+    getRequests({ page, limit, search, status, category, priority }),
     getRequestStats(),
   ]);
 
@@ -83,6 +96,9 @@ export default async function RequestsPage({
       {/* Stats Cards */}
       <StatsCards stats={stats} />
 
+      {/* Requests Filters */}
+      <RequestsFilters />
+
       {/* Requests Table */}
       <Card>
         <CardHeader>
@@ -91,10 +107,8 @@ export default async function RequestsPage({
             Showing {requests.length} of {pagination.total} requests
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <RequestsTable requests={requests} />
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
             <p className="text-sm text-muted-foreground">
               Page {currentPage} of {totalPages}
             </p>
@@ -141,6 +155,8 @@ export default async function RequestsPage({
               </Button>
             </div>
           </div>
+
+          <RequestsTable requests={requests} />
         </CardContent>
       </Card>
     </div>

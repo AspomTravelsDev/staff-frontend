@@ -45,6 +45,7 @@ export interface RequestFilters {
     limit?: number;
     status?: string;
     category?: string;
+    priority?: string;
     search?: string;
     requester_id?: string;
 }
@@ -121,6 +122,7 @@ export async function getRequests(
     if (filters.limit) params.append("limit", filters.limit.toString());
     if (filters.status) params.append("status", filters.status);
     if (filters.category) params.append("category", filters.category);
+    if (filters.priority) params.append("priority", filters.priority);
     if (filters.search) params.append("search", filters.search);
     if (filters.requester_id) params.append("requester_id", filters.requester_id);
 

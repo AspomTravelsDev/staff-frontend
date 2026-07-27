@@ -229,3 +229,30 @@ export async function markClockInAsLate(
     });
 }
 
+/**
+ * PATCH /api/admin/attendance/{id}/flag-proxy
+ * Flag a clock-in record as proxy with a reason note
+ */
+export async function flagClockInAsProxy(
+    recordId: number,
+    reason: string
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    revalidatePath("/attendance");
+    revalidatePath("/my/attendance");
+    return api.patch<StandardResponse<ClockInRecord>>(`/api/admin/attendance/${recordId}/flag-proxy`, {
+        reason,
+    });
+}
+
+/**
+ * PATCH /api/admin/attendance/{id}/remove-proxy-flag
+ * Remove the proxy flag from a clock-in record
+ */
+export async function removeClockInProxyFlag(
+    recordId: number
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    revalidatePath("/attendance");
+    revalidatePath("/my/attendance");
+    return api.patch<StandardResponse<ClockInRecord>>(`/api/admin/attendance/${recordId}/remove-proxy-flag`);
+}
+

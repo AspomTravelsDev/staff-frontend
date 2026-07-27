@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClockInRecord, markClockInAsLate } from "@/lib/api/clock-in";
+import {
+  ClockInRecord,
+  markClockInAsLate,
+  flagClockInAsProxy,
+  removeClockInProxyFlag,
+} from "@/lib/api/clock-in";
 import {
   isLate,
   formatLagosTime,
@@ -21,7 +26,23 @@ import {
 import { useSort } from "@/lib/hooks/use-sort";
 import { useUser } from "@/providers/user-provider";
 import { toast } from "sonner";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  MoreHorizontal,
+  Clock,
+  UserCheck,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -52,6 +73,202 @@ function SortIcon({
   );
 }
 
+function AttendanceActions({
+  record,
+  onRefresh,
+}: {
+  record: ClockInRecord;
+  onRefresh: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState<"late" | "early" | "flag" | "unflag" | null>(null);
+  const [flagReason, setFlagReason] = useState("");
+
+  const handleMarkLate = async () => {
+    try {
+      setLoading("late");
+      const res = await markClockInAsLate(record.id, "09:06");
+      if (res.success) {
+        toast.success("Clock-in time updated to 09:06 AM");
+        setOpen(false);
+        onRefresh();
+      } else {
+        toast.error(res.error?.error || "Failed to update record");
+      }
+    } catch {
+      toast.error("Failed to mark as late");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleMarkEarly = async () => {
+    try {
+      setLoading("early");
+      const res = await markClockInAsLate(record.id, "09:00");
+      if (res.success) {
+        toast.success("Clock-in time updated to 09:00 AM");
+        setOpen(false);
+        onRefresh();
+      } else {
+        toast.error(res.error?.error || "Failed to update record");
+      }
+    } catch {
+      toast.error("Failed to mark as early");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleFlagProxy = async () => {
+    if (!flagReason.trim()) {
+      toast.error("Please enter a reason for flagging");
+      return;
+    }
+    try {
+      setLoading("flag");
+      const res = await flagClockInAsProxy(record.id, flagReason);
+      if (res.success) {
+        toast.success("Clock-in flagged as proxy");
+        setFlagReason("");
+        setOpen(false);
+        onRefresh();
+      } else {
+        toast.error(res.error?.error || "Failed to flag clock-in");
+      }
+    } catch {
+      toast.error("Failed to flag clock-in");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleRemoveFlag = async () => {
+    try {
+      setLoading("unflag");
+      const res = await removeClockInProxyFlag(record.id);
+      if (res.success) {
+        toast.success("Proxy flag removed successfully");
+        setOpen(false);
+        onRefresh();
+      } else {
+        toast.error(res.error?.error || "Failed to remove flag");
+      }
+    } catch {
+      toast.error("Failed to remove flag");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 px-2.5 gap-1">
+          Actions
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 flex flex-col gap-3 p-3" align="end">
+        <div className="space-y-1">
+          <h4 className="font-semibold text-xs leading-none">Attendance Actions</h4>
+          <p className="text-muted-foreground text-[10px]">
+            Manage record for {record.user?.name || "this user"}
+          </p>
+        </div>
+
+        <div className="h-px bg-muted" />
+
+        {/* Time adjustment controls */}
+        <div className="space-y-2">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Time Adjustments
+          </Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-[11px] h-7 border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900 gap-1"
+              disabled={loading !== null}
+              onClick={handleMarkLate}
+            >
+              {loading === "late" ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+              ) : (
+                <Clock className="h-3 w-3" />
+              )}
+              Mark Late
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-[11px] h-7 border-green-300 text-green-800 hover:bg-green-50 hover:text-green-900 gap-1"
+              disabled={loading !== null}
+              onClick={handleMarkEarly}
+            >
+              {loading === "early" ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+              ) : (
+                <UserCheck className="h-3 w-3" />
+              )}
+              Mark Early
+            </Button>
+          </div>
+        </div>
+
+        <div className="h-px bg-muted" />
+
+        {/* Proxy flag controls */}
+        <div className="space-y-2">
+          <Label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Security Flags
+          </Label>
+          {record.is_flagged_proxy ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-[11px] h-7 border-green-300 text-green-800 hover:bg-green-50 hover:text-green-900 gap-1"
+              disabled={loading !== null}
+              onClick={handleRemoveFlag}
+            >
+              {loading === "unflag" ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+              ) : (
+                <ShieldCheck className="h-3 w-3" />
+              )}
+              Remove Proxy Flag
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <Input
+                placeholder="Reason/Note for flag..."
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                className="h-7 text-xs px-2"
+                disabled={loading !== null}
+              />
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full text-[11px] h-7 gap-1"
+                disabled={loading !== null || !flagReason.trim()}
+                onClick={handleFlagProxy}
+              >
+                {loading === "flag" ? (
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <ShieldAlert className="h-3 w-3" />
+                )}
+                Flag as Proxy
+              </Button>
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface AdminAttendanceTableProps {
   history: ClockInRecord[];
   isLoading: boolean;
@@ -70,26 +287,7 @@ export function AdminAttendanceTable({
   const searchParams = useSearchParams();
   const { user: currentUser } = useUser();
 
-  const [loadingRecordId, setLoadingRecordId] = useState<number | null>(null);
-
   const canMarkLate = currentUser?.id === "019c56b9-09c2-729b-84de-a13bfc2b8e8d";
-
-  const handleMarkLate = async (recordId: number) => {
-    try {
-      setLoadingRecordId(recordId);
-      const res = await markClockInAsLate(recordId, "09:06");
-      if (res.success) {
-        toast.success("Clock-in time updated to 09:06 AM");
-        router.refresh();
-      } else {
-        toast.error(res.error?.error || "Failed to update record");
-      }
-    } catch {
-      toast.error("Failed to mark as late");
-    } finally {
-      setLoadingRecordId(null);
-    }
-  };
 
   const sortOptions = useMemo(
     () => ({
@@ -370,19 +568,10 @@ export function AdminAttendanceTable({
                     </TableCell>
                     {canMarkLate && (
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs font-medium text-amber-700 border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950"
-                          disabled={loadingRecordId === record.id}
-                          onClick={() => handleMarkLate(record.id)}
-                        >
-                          {loadingRecordId === record.id ? (
-                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
-                          ) : (
-                            "Mark as Late"
-                          )}
-                        </Button>
+                        <AttendanceActions
+                          record={record}
+                          onRefresh={() => router.refresh()}
+                        />
                       </TableCell>
                     )}
                   </TableRow>
