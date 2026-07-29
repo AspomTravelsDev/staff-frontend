@@ -315,7 +315,7 @@ export function Step6Media({
       const signatureStoragePath = signatureResult.url || "";
       const signatureFileId = signatureResult.fileId;
 
-      // Handle optional document uploads
+      // Handle required document uploads
       const validIdFile = formData.get("validId") as File | null;
       const oLevelFile = formData.get("oLevelResults") as File | null;
       const nyscFile = formData.get("nyscCertificate") as File | null;
@@ -329,6 +329,43 @@ export function Step6Media({
       const hasNewUni = !!(uniFile && uniFile.size > 0 && uniFile.name);
       const hasNewBirthCert = !!(birthCertFile && birthCertFile.size > 0 && birthCertFile.name);
       const hasNewResume = !!(resumeFile && resumeFile.size > 0 && resumeFile.name);
+
+      if (!hasNewValidId && !initialData?.validId?.storagePath) {
+        return {
+          error: "Valid Means of ID is required.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (!hasNewOLevel && !initialData?.oLevelResults?.storagePath) {
+        return {
+          error: "O Level Results document is required.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (!hasNewNysc && !initialData?.nyscCertificate?.storagePath) {
+        return {
+          error: "NYSC Certificate is required.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (!hasNewUni && !initialData?.universityCertificate?.storagePath) {
+        return {
+          error: "University Certificate / Proof of Completion is required.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (!hasNewBirthCert && !initialData?.birthCertificate?.storagePath) {
+        return {
+          error: "Birth Certificate / Age Declaration is required.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (!hasNewResume && !initialData?.resumeCv?.storagePath) {
+        return {
+          error: "Resume / CV is required.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
 
       let validIdData = initialData?.validId;
       if (hasNewValidId) {
@@ -664,20 +701,20 @@ export function Step6Media({
         </div>
       </div>
 
-      {/* Supporting Documents (Optional) */}
+      {/* Supporting Documents (Required) */}
       <Separator />
       <div className="space-y-4">
         <div>
-          <h4 className="font-semibold text-base mb-1">Supporting Documents (Optional)</h4>
+          <h4 className="font-semibold text-base mb-1">Supporting Documents *</h4>
           <p className="text-sm text-muted-foreground">
-            Please upload clear copies of your credentials and identification. Accepted formats are PDF, PNG, and JPEG up to 2MB each.
+            Please upload clear copies of all required credentials and identification. Accepted formats are PDF, PNG, and JPEG up to 2MB each.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Valid ID */}
           <div className="space-y-2 rounded-lg border p-4">
-            <Label htmlFor="validId" className="text-sm font-medium">Valid Means of ID (Passport, National ID, Voter Card, or Driver License)</Label>
+            <Label htmlFor="validId" className="text-sm font-medium">Valid Means of ID (Passport, National ID, Voter Card, or Driver License) *</Label>
             <input
               type="file"
               id="validId"
@@ -697,7 +734,7 @@ export function Step6Media({
 
           {/* O Level Results */}
           <div className="space-y-2 rounded-lg border p-4">
-            <Label htmlFor="oLevelResults" className="text-sm font-medium">O Level Results</Label>
+            <Label htmlFor="oLevelResults" className="text-sm font-medium">O Level Results *</Label>
             <input
               type="file"
               id="oLevelResults"
@@ -717,7 +754,7 @@ export function Step6Media({
 
           {/* NYSC Certificate */}
           <div className="space-y-2 rounded-lg border p-4">
-            <Label htmlFor="nyscCertificate" className="text-sm font-medium">NYSC Certificate</Label>
+            <Label htmlFor="nyscCertificate" className="text-sm font-medium">NYSC Certificate *</Label>
             <input
               type="file"
               id="nyscCertificate"
@@ -737,7 +774,7 @@ export function Step6Media({
 
           {/* University Certificate */}
           <div className="space-y-2 rounded-lg border p-4">
-            <Label htmlFor="universityCertificate" className="text-sm font-medium">University Certificate / Proof of Completion</Label>
+            <Label htmlFor="universityCertificate" className="text-sm font-medium">University Certificate / Proof of Completion *</Label>
             <input
               type="file"
               id="universityCertificate"
@@ -757,7 +794,7 @@ export function Step6Media({
 
           {/* Birth Certificate */}
           <div className="space-y-2 rounded-lg border p-4">
-            <Label htmlFor="birthCertificate" className="text-sm font-medium">Birth Certificate / Age Declaration</Label>
+            <Label htmlFor="birthCertificate" className="text-sm font-medium">Birth Certificate / Age Declaration *</Label>
             <input
               type="file"
               id="birthCertificate"
@@ -777,7 +814,7 @@ export function Step6Media({
 
           {/* Resume/CV */}
           <div className="space-y-2 rounded-lg border p-4">
-            <Label htmlFor="resumeCv" className="text-sm font-medium">Resume / CV</Label>
+            <Label htmlFor="resumeCv" className="text-sm font-medium">Resume / CV *</Label>
             <input
               type="file"
               id="resumeCv"

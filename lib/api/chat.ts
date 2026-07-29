@@ -44,10 +44,13 @@ export async function getMessages(
     return result.data;
 }
 
-export async function sendMessage(
-    conversationId: string,
-    formData: FormData
-): Promise<Message> {
+export async function sendMessage(formData: FormData): Promise<Message> {
+    const conversationId = formData.get("conversation_id") as string;
+    if (!conversationId) {
+        throw new Error("Conversation ID is required");
+    }
+    formData.delete("conversation_id");
+
     const result = await api.post<{ message: string; data: Message }>(
         `/api/conversations/${conversationId}/messages`,
         formData

@@ -237,6 +237,7 @@ export function ChatWindow({ conversation, currentUserId, onMessageSent, onBack 
         setSending(true);
         try {
             const formData = new FormData();
+            formData.append("conversation_id", conversation.id);
             if (text) {
                 formData.append("body", text);
             }
@@ -244,7 +245,7 @@ export function ChatWindow({ conversation, currentUserId, onMessageSent, onBack 
                 formData.append("attachments[]", file);
             });
 
-            const realMsg = await sendMessage(conversation.id, formData);
+            const realMsg = await sendMessage(formData);
 
             setMessages((prev) => {
                 const alreadyExists = prev.some((m) => m.id === realMsg.id);
