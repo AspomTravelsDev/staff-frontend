@@ -21,6 +21,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { NavItem } from "@/lib/navigation";
+import type { NotificationCountValue } from "@/lib/api/notifications";
 
 export function NavMain({
   items,
@@ -29,7 +30,7 @@ export function NavMain({
 }: {
   items: NavItem[];
   label?: string;
-  badges?: Record<string, number | { count: number; latest_id: string | null }>;
+  badges?: Record<string, NotificationCountValue>;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();

@@ -170,7 +170,7 @@ export function UnifiedVisaForm() {
     setProfile((prev) => ({
       ...prev,
       selected_country_key: countryKey,
-      destination_country: "Canada",
+      destination_country: presetData.countryName,
       embassy_name: CONSULAR_ADDRESSES[effectiveKey]?.embassyName || CONSULAR_ADDRESSES[countryKey]?.embassyName || `Embassy of ${presetData.countryName}`,
       embassy_address: CONSULAR_ADDRESSES[effectiveKey]?.addressLines ? CONSULAR_ADDRESSES[effectiveKey].addressLines.slice(-2).join(", ") : "Lagos, Nigeria",
       consular_address: consularFormatted,
@@ -180,6 +180,7 @@ export function UnifiedVisaForm() {
       duration_days: duration,
       accommodation_name: presetData.defaultAccommodationName,
       accommodation_address: presetData.defaultAccommodationAddress,
+      purpose_of_visit: `a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to ${presetData.defaultCity}, ${presetData.countryName}`,
       activities_highlights: presetData.activitiesHighlights,
       days: computedDays,
     }));

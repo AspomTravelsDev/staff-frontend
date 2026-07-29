@@ -145,6 +145,7 @@ export function TravelItineraryForm() {
       accommodation_name: presetData.defaultAccommodationName,
       accommodation_address: presetData.defaultAccommodationAddress,
       activities_highlights: presetData.activitiesHighlights,
+      purpose_of_visit: `a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to ${presetData.defaultCity}, ${presetData.countryName}`,
     }));
 
     // Update consular address in background

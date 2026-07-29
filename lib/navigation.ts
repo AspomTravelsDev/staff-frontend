@@ -490,8 +490,8 @@ export const personalNav: NavItem[] = [
         title: "Chat",
         url: "/chat",
         icon: MessageCircle,
-        disabled: true,
-
+        badgeKey: "chatMessages",
+        badgeLabel: "Unread chat messages",
     },
 
 ];

@@ -2,7 +2,15 @@
 
 import { api } from "./client";
 
-export async function getNotifications(): Promise<Record<string, number | { count: number; latest_id: string | null }>> {
+export type NotificationCountValue =
+    | number
+    | {
+          count: number;
+          latest_id?: string | null;
+          items?: { conversation_id: string; sender_name: string; count: number }[];
+      };
+
+export async function getNotifications(): Promise<Record<string, NotificationCountValue>> {
 
     const result = await api.get<Record<string, any>>("/api/notifications");
 

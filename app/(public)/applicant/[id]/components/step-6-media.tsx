@@ -48,6 +48,7 @@ export function Step6Media({
     resolvePreviewUrl(initialData?.signature?.storagePath),
   );
   const [isDrawing, setIsDrawing] = useState(false);
+  const shouldClearCanvas = useRef(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -220,12 +221,15 @@ export function Step6Media({
 
   const clearSignature = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      // Canvas is currently in the DOM (drawing mode) — clear it directly
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else {
+      // Canvas is not in the DOM yet (preview mode) — flag it to be cleared
+      // once the canvas mounts back after signaturePreview is set to null
+      shouldClearCanvas.current = true;
+    }
     setSignaturePreview(null);
     setSignatureError(null);
   };
@@ -496,6 +500,15 @@ export function Step6Media({
     handleSubmitAction,
     null,
   );
+
+  // Clear the canvas after it mounts back into the DOM (when coming from preview mode)
+  useEffect(() => {
+    if (signaturePreview === null && shouldClearCanvas.current && canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      shouldClearCanvas.current = false;
+    }
+  }, [signaturePreview]);
 
   useEffect(() => {
     if (!state?.error || !state.submittedData || !formRef.current) return;

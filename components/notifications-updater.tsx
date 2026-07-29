@@ -2,14 +2,12 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { NotificationCountValue } from "@/lib/api/notifications";
 
 export function NotificationsUpdater({
   notifications,
 }: {
-  notifications: Record<
-    string,
-    number | { count: number; latest_id: string | null }
-  >;
+  notifications: Record<string, NotificationCountValue>;
 }) {
   const queryClient = useQueryClient();
 

@@ -81,9 +81,13 @@ export const SiteHeader = () => {
 
         let targetUrl = navItem.url || "#";
         let displayCount = 0;
+        let chatItems: { conversation_id: string; sender_name: string; count: number }[] | undefined = undefined;
 
         if (typeof count === "object" && count !== null) {
           displayCount = count.count;
+          if (key === "chatMessages" && count.items) {
+            chatItems = count.items;
+          }
           // Dynamic routing for announcements
           if (key === "unreadAnnouncements") {
             if (displayCount === 1 && count.latest_id) {
@@ -108,11 +112,12 @@ export const SiteHeader = () => {
           count: displayCount,
           label,
           url: targetUrl,
+          items: chatItems,
         };
       }
       return acc;
     },
-    {} as Record<string, { count: number; label: string; url: string }>,
+    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[] }>,
   );
 
   const totalNotifications =
@@ -203,6 +208,25 @@ export const SiteHeader = () => {
                       ) : (
                         Object.entries(visibleNotifications).map(
                           ([key, data]) => {
+                            if (key === "chatMessages" && data.items && data.items.length > 0) {
+                              return data.items.map((chatItem) => (
+                                <Link
+                                  key={`chat-${chatItem.conversation_id}`}
+                                  href={`/chat?conversationId=${chatItem.conversation_id}`}
+                                  className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b last:border-0 transition-colors"
+                                >
+                                  <div className="flex flex-col min-w-0 pr-2">
+                                    <span className="text-sm font-medium truncate">
+                                      You have {chatItem.count} unread message{chatItem.count > 1 ? "s" : ""} from {chatItem.sender_name}
+                                    </span>
+                                  </div>
+                                  <span className="flex h-5 items-center justify-center rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600 shrink-0">
+                                    {chatItem.count}
+                                  </span>
+                                </Link>
+                              ));
+                            }
+
                             return (
                               <Link
                                 key={key}

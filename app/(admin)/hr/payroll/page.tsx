@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayrollManager } from "./components/payroll-manager";
 import { SalarySettings } from "./components/salary-settings";
-import { getAllEmployees } from "../employees/queries";
+import { getEmployees } from "@/lib/api/employees";
 
 export default async function HRPayrollPage() {
-  const employees = await getAllEmployees();
+  const employeesData = await getEmployees({ status: "Active", limit: 1000 });
+  const employees = employeesData.items;
 
   return (
     <div className="flex flex-col gap-6 p-4">
