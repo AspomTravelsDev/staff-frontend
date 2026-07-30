@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { MediaData } from "@/lib/types/form-data";
 import { toast } from "sonner";
 
+import { AlertCircle } from "lucide-react";
+
 type FormState = {
   error?: string;
   success?: boolean;
@@ -330,39 +332,29 @@ export function Step6Media({
       const hasNewBirthCert = !!(birthCertFile && birthCertFile.size > 0 && birthCertFile.name);
       const hasNewResume = !!(resumeFile && resumeFile.size > 0 && resumeFile.name);
 
+      const missingItems: string[] = [];
       if (!hasNewValidId && !initialData?.validId?.storagePath) {
-        return {
-          error: "Valid Means of ID is required.",
-          submittedData: toSubmittedData(formData),
-        };
+        missingItems.push("Valid Means of ID");
       }
       if (!hasNewOLevel && !initialData?.oLevelResults?.storagePath) {
-        return {
-          error: "O Level Results document is required.",
-          submittedData: toSubmittedData(formData),
-        };
+        missingItems.push("O Level Results");
       }
       if (!hasNewNysc && !initialData?.nyscCertificate?.storagePath) {
-        return {
-          error: "NYSC Certificate is required.",
-          submittedData: toSubmittedData(formData),
-        };
+        missingItems.push("NYSC Certificate");
       }
       if (!hasNewUni && !initialData?.universityCertificate?.storagePath) {
-        return {
-          error: "University Certificate / Proof of Completion is required.",
-          submittedData: toSubmittedData(formData),
-        };
+        missingItems.push("University Certificate");
       }
       if (!hasNewBirthCert && !initialData?.birthCertificate?.storagePath) {
-        return {
-          error: "Birth Certificate / Age Declaration is required.",
-          submittedData: toSubmittedData(formData),
-        };
+        missingItems.push("Birth Certificate / Age Declaration");
       }
       if (!hasNewResume && !initialData?.resumeCv?.storagePath) {
+        missingItems.push("Resume / CV");
+      }
+
+      if (missingItems.length > 0) {
         return {
-          error: "Resume / CV is required.",
+          error: `Missing required document(s): ${missingItems.join(", ")}. Please upload them before continuing.`,
           submittedData: toSubmittedData(formData),
         };
       }
@@ -569,6 +561,13 @@ export function Step6Media({
     }
   }, [state]);
 
+  useEffect(() => {
+    if (state?.error) {
+      toast.error(state.error);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [state?.error]);
+
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
       <div>
@@ -578,6 +577,16 @@ export function Step6Media({
           signature
         </p>
       </div>
+
+      {state?.error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm">Upload Action Required</p>
+            <p className="text-sm mt-0.5">{state.error}</p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Passport Photo Upload */}
@@ -724,10 +733,15 @@ export function Step6Media({
               className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
             {validIdError && <p className="text-xs font-medium text-destructive">{validIdError}</p>}
-            {validIdName && (
+            {validIdName ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.validId?.fileName === validIdName ? "Stored:" : "Selected:"} {validIdName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
               </div>
             )}
           </div>
@@ -744,10 +758,15 @@ export function Step6Media({
               className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
             {oLevelError && <p className="text-xs font-medium text-destructive">{oLevelError}</p>}
-            {oLevelName && (
+            {oLevelName ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.oLevelResults?.fileName === oLevelName ? "Stored:" : "Selected:"} {oLevelName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
               </div>
             )}
           </div>
@@ -764,10 +783,15 @@ export function Step6Media({
               className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
             {nyscError && <p className="text-xs font-medium text-destructive">{nyscError}</p>}
-            {nyscName && (
+            {nyscName ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.nyscCertificate?.fileName === nyscName ? "Stored:" : "Selected:"} {nyscName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
               </div>
             )}
           </div>
@@ -784,10 +808,15 @@ export function Step6Media({
               className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
             {uniError && <p className="text-xs font-medium text-destructive">{uniError}</p>}
-            {uniName && (
+            {uniName ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.universityCertificate?.fileName === uniName ? "Stored:" : "Selected:"} {uniName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
               </div>
             )}
           </div>
@@ -804,10 +833,15 @@ export function Step6Media({
               className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
             {birthCertError && <p className="text-xs font-medium text-destructive">{birthCertError}</p>}
-            {birthCertName && (
+            {birthCertName ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.birthCertificate?.fileName === birthCertName ? "Stored:" : "Selected:"} {birthCertName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
               </div>
             )}
           </div>
@@ -824,10 +858,15 @@ export function Step6Media({
               className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
             {resumeError && <p className="text-xs font-medium text-destructive">{resumeError}</p>}
-            {resumeName && (
+            {resumeName ? (
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.resumeCv?.fileName === resumeName ? "Stored:" : "Selected:"} {resumeName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
               </div>
             )}
           </div>

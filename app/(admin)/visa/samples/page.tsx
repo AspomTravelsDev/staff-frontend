@@ -13,7 +13,7 @@ export default function VisaSamplesPage() {
           Visa Document Generator
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Fill applicant profile & trip details once to generate and download all 4 embassy-formatted Word (.docx) documents.
+          Fill applicant profile & trip details once to generate and download all 6 embassy-formatted Word (.docx) documents.
         </p>
       </div>
 

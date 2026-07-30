@@ -241,7 +241,7 @@ export function UnifiedVisaForm() {
   };
 
   // Export handlers
-  const handleExportSingle = async (docType: "itinerary" | "intro" | "explanation" | "sponsorship") => {
+  const handleExportSingle = async (docType: "itinerary" | "intro" | "explanation" | "sponsorship" | "leave_approval" | "self_intro") => {
     if (!validateCore()) return;
     setIsGenerating(docType);
     try {
@@ -834,6 +834,50 @@ export function UnifiedVisaForm() {
               </Button>
             </div>
 
+            {/* 5. Leave Approval Letter */}
+            <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileText className="size-4 text-primary shrink-0" />
+                <div className="truncate">
+                  <p className="text-xs font-medium truncate">Leave Approval Letter</p>
+                  <p className="text-[11px] text-muted-foreground">{profile.company_name || "Leave NOC"}</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={!!isGenerating}
+                onClick={() => handleExportSingle("leave_approval")}
+                className="h-7 text-xs gap-1 shrink-0"
+              >
+                {isGenerating === "leave_approval" ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3 text-primary" />}
+                docx
+              </Button>
+            </div>
+
+            {/* 6. Self Introductory Letter */}
+            <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <User className="size-4 text-primary shrink-0" />
+                <div className="truncate">
+                  <p className="text-xs font-medium truncate">Self Introductory Letter</p>
+                  <p className="text-[11px] text-muted-foreground">Personal Cover Letter</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={!!isGenerating}
+                onClick={() => handleExportSingle("self_intro")}
+                className="h-7 text-xs gap-1 shrink-0"
+              >
+                {isGenerating === "self_intro" ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3 text-primary" />}
+                docx
+              </Button>
+            </div>
+
             {/* PRIMARY BATCH DOWNLOAD ZIP BUTTON */}
             <div className="pt-3 border-t space-y-2">
               <Button
@@ -848,7 +892,7 @@ export function UnifiedVisaForm() {
                 Download Full Visa Package (.zip)
               </Button>
               <p className="text-[11px] text-center text-muted-foreground">
-                Exports all 4 .docx files in a single zip archive.
+                Exports all 6 .docx files in a single zip archive.
               </p>
             </div>
           </CardContent>
