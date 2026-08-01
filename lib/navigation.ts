@@ -209,6 +209,12 @@ export const departmentNav: NavItem[] = [
         icon: FileText,
         allowedRoles: ["visa", "super"],
     },
+    {
+        title: "Staff Profile Generator",
+        url: "/social-media/profile-generator",
+        icon: Megaphone,
+        allowedRoles: ["social-media", "super"],
+    },
     // {
     //     title: "IT Service Desk",
     //     url: "/it/service-desk",

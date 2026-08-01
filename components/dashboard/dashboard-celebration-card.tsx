@@ -4,11 +4,28 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Crown, Cake, Sparkles, Gift, Heart, Stars, Trophy, PartyPopper, ChevronLeft, ChevronRight } from "lucide-react";
+import { parseISO, differenceInYears, differenceInMonths } from "date-fns";
 import { Employee } from "@/lib/api/employees";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+function getAnniversarySubtitle(joinDateStr: string | null | undefined): string {
+  if (!joinDateStr) return "Celebrating a career milestone!";
+  const joinDate = parseISO(joinDateStr);
+  const now = new Date();
+  const years = differenceInYears(now, joinDate);
+  if (years >= 1) {
+    return `Celebrating ${years} year${years > 1 ? "s" : ""} at ASPOM!`;
+  }
+  const months = differenceInMonths(now, joinDate);
+  if (months === 1) return "Celebrating 1 month milestone!";
+  if (months === 3) return "Celebrating 3 months milestone!";
+  if (months === 6) return "Celebrating 6 months milestone!";
+  if (months > 0) return `Celebrating ${months} months milestone!`;
+  return "Celebrating a career milestone!";
+}
 
 interface DashboardCelebrationCardProps {
   monthlyAwards?: {
@@ -67,6 +84,7 @@ export function DashboardCelebrationCard({
   if (todayAnniversaries.length > 0) {
     const primaryAnniversary = todayAnniversaries[0];
     const anniversaryNames = todayAnniversaries.map((e) => e.firstName).join(" & ");
+    const subtitle = getAnniversarySubtitle(primaryAnniversary.joinDate);
     slides.push({
       type: "anniversary",
       content: (
@@ -86,7 +104,7 @@ export function DashboardCelebrationCard({
           <Badge className="mb-2 bg-amber-500">WORK ANNIVERSARY! 🏆</Badge>
           <CardTitle className="text-center mb-1">Congratulations!</CardTitle>
           <h3 className="font-bold text-xl text-amber-700 mb-1">{anniversaryNames}</h3>
-          <p className="text-sm text-muted-foreground">Celebrating a career milestone!</p>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
       ),
       borderColor: "border-amber-200",

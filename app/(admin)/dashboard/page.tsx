@@ -84,10 +84,12 @@ export default async function Page() {
 
   let totalAttendance = 0;
   let attendanceStatuses: AttendanceStatus[] = [];
+  let hasFlaggedProxy = false;
 
   if (clockInResponse.success) {
     const history = clockInResponse.data.data;
     totalAttendance = history.length;
+    hasFlaggedProxy = history.some((r) => r.is_flagged_proxy);
     const workingDaysThisMonth: Date[] = [];
     const currentDate = new Date(now);
 
@@ -110,6 +112,10 @@ export default async function Page() {
 
       if (!record) {
         return "absent" as AttendanceStatus;
+      }
+
+      if (record.is_flagged_proxy) {
+        return "flagged" as AttendanceStatus;
       }
 
       if (isLate(record.clock_in_at)) {
@@ -148,9 +154,9 @@ export default async function Page() {
               new Date(now.getFullYear(), now.getMonth(), i + 1).getDay(),
             ).filter((day) => day !== 0 && day !== 6).length
           }`}
-          footer={<AttendanceStatusBlocks statuses={attendanceStatuses} />}
+          footer={<AttendanceStatusBlocks statuses={attendanceStatuses} showLegend />}
           variant="dashboard"
-          cardColor="blue"
+          cardColor={hasFlaggedProxy ? "red" : "blue"}
         />
         <StatsCard
           title={mockDashboardStats.leaveDays.title}

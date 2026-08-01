@@ -8,7 +8,7 @@ import {
   getTodayAnniversaries,
   Employee,
 } from "@/lib/api/employees";
-import { format, parseISO, differenceInYears } from "date-fns";
+import { format, parseISO, differenceInYears, differenceInMonths } from "date-fns";
 import { parseCalendarDate } from "@/lib/utils/date-utils";
 import { Cake, Gift, Calendar, Trophy, Stars, PartyPopper } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +20,37 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // --- Types ---
 type CelebrationType = "birthday" | "anniversary";
+
+// --- Helper Functions ---
+function getAnniversaryMilestone(joinDateStr: string | null | undefined): { heroText: string; badgeText: string } | null {
+  if (!joinDateStr) return null;
+  const joinDate = parseISO(joinDateStr);
+  const now = new Date();
+
+  const years = differenceInYears(now, joinDate);
+  if (years >= 1) {
+    return {
+      heroText: `${years} Year${years > 1 ? "s" : ""} Excellence`,
+      badgeText: `${years}Y`,
+    };
+  }
+
+  const months = differenceInMonths(now, joinDate);
+  if (months === 1) {
+    return { heroText: "1 Month Milestone", badgeText: "1M" };
+  }
+  if (months === 3) {
+    return { heroText: "3 Months Milestone", badgeText: "3M" };
+  }
+  if (months === 6) {
+    return { heroText: "6 Months Milestone", badgeText: "6M" };
+  }
+  if (months > 0) {
+    return { heroText: `${months} Months Milestone`, badgeText: `${months}M` };
+  }
+
+  return null;
+}
 
 // --- Sub-components ---
 
@@ -60,9 +91,9 @@ function CelebrationHero({
           </h2>
           <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
             {todayItems.map((employee) => {
-                const years = !isBirthday && employee.joinDate 
-                    ? differenceInYears(new Date(), parseISO(employee.joinDate)) 
-                    : 0;
+                const milestone = !isBirthday && employee.joinDate 
+                    ? getAnniversaryMilestone(employee.joinDate) 
+                    : null;
                 
                 return (
                     <div
@@ -83,9 +114,9 @@ function CelebrationHero({
                             <span className="font-bold text-lg">
                             {employee.firstName} {employee.lastName}
                             </span>
-                            {!isBirthday && years > 0 && (
+                            {!isBirthday && milestone && (
                                 <span className="text-[10px] opacity-80 uppercase font-bold tracking-wider">
-                                    {years} Year{years > 1 ? 's' : ''} Excellence
+                                    {milestone.heroText}
                                 </span>
                             )}
                         </div>
@@ -126,27 +157,48 @@ function MonthCelebrationCard({
   if (employees.length === 0 && !isCurrentMonth) return null;
 
   const isBirthday = type === "birthday";
-  const activeColor = isBirthday ? "pink" : "amber";
   const Icon = isBirthday ? Cake : Trophy;
+
+  const theme = isBirthday
+    ? {
+        ring: "ring-2 ring-pink-500/20 dark:ring-pink-500/30",
+        headerBg: "bg-pink-50 dark:bg-pink-950/30 text-pink-900 dark:text-pink-200 border-b border-pink-100 dark:border-pink-900/30",
+        iconColor: "text-pink-600 dark:text-pink-400",
+        badgeBg: "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800/50",
+        itemTodayBg: "bg-pink-50/30 dark:bg-pink-900/10",
+        avatarBorder: "border-pink-300 dark:border-pink-800 ring-2 ring-pink-100 dark:ring-pink-900/30",
+        nameTodayText: "text-pink-700 dark:text-pink-300",
+        todaySpan: "text-pink-600 dark:text-pink-400",
+      }
+    : {
+        ring: "ring-2 ring-amber-500/20 dark:ring-amber-500/30",
+        headerBg: "bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 border-b border-amber-100 dark:border-amber-900/30",
+        iconColor: "text-amber-600 dark:text-amber-400",
+        badgeBg: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50",
+        itemTodayBg: "bg-amber-50/30 dark:bg-amber-900/10",
+        avatarBorder: "border-amber-300 dark:border-amber-800 ring-2 ring-amber-100 dark:ring-amber-900/30",
+        nameTodayText: "text-amber-700 dark:text-amber-300",
+        todaySpan: "text-amber-600 dark:text-amber-400",
+      };
 
   return (
     <Card
-      className={`overflow-hidden transition-all duration-300 hover:shadow-md ${isCurrentMonth ? `ring-2 ring-${activeColor}-500/20 dark:ring-${activeColor}-500/30` : ""}`}
+      className={`overflow-hidden transition-all duration-300 hover:shadow-md ${isCurrentMonth ? theme.ring : ""}`}
     >
       <CardHeader
-        className={`pb-3 ${isCurrentMonth ? `bg-${activeColor}-50 dark:bg-${activeColor}-950/30 text-${activeColor}-900 dark:text-${activeColor}-200 border-b border-${activeColor}-100 dark:border-${activeColor}-900/30` : "bg-muted/30 border-b"}`}
+        className={`pb-3 ${isCurrentMonth ? theme.headerBg : "bg-muted/30 border-b"}`}
       >
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <Calendar
-              className={`h-5 w-5 ${isCurrentMonth ? `text-${activeColor}-600 dark:text-${activeColor}-400` : "text-muted-foreground"}`}
+              className={`h-5 w-5 ${isCurrentMonth ? theme.iconColor : "text-muted-foreground"}`}
             />
             {monthName}
           </CardTitle>
           {isCurrentMonth && (
             <Badge
               variant="outline"
-              className={`bg-${activeColor}-100 dark:bg-${activeColor}-900/40 text-${activeColor}-700 dark:text-${activeColor}-300 border-${activeColor}-200 dark:border-${activeColor}-800/50 uppercase text-[10px] font-bold`}
+              className={`${theme.badgeBg} uppercase text-[10px] font-bold`}
             >
               Current Month
             </Badge>
@@ -165,18 +217,17 @@ function MonthCelebrationCard({
               const date = dateStr ? parseISO(dateStr) : null;
               const isToday = isCurrentMonth && date?.getDate() === todayDay;
 
-              // Calculate years for anniversary
-              const years = !isBirthday && employee.joinDate 
-                ? differenceInYears(new Date(), parseISO(employee.joinDate)) 
-                : 0;
+              const milestone = !isBirthday && employee.joinDate 
+                ? getAnniversaryMilestone(employee.joinDate) 
+                : null;
 
               return (
                 <div
                   key={employee.id}
-                  className={`flex items-center gap-4 p-4 transition-colors group relative ${isToday ? `bg-${activeColor}-50/30 dark:bg-${activeColor}-900/10` : "hover:bg-muted/20"}`}
+                  className={`flex items-center gap-4 p-4 transition-colors group relative ${isToday ? theme.itemTodayBg : "hover:bg-muted/20"}`}
                 >
                   <Avatar
-                    className={`h-12 w-12 border-2 transition-all group-hover:scale-105 ${isToday ? `border-${activeColor}-300 dark:border-${activeColor}-800 ring-2 ring-${activeColor}-100 dark:ring-${activeColor}-900/30` : "border-transparent"}`}
+                    className={`h-12 w-12 border-2 transition-all group-hover:scale-105 ${isToday ? theme.avatarBorder : "border-transparent"}`}
                   >
                     <AvatarImage
                       src={toProxiedImageUrl(employee.image_url)}
@@ -190,13 +241,13 @@ function MonthCelebrationCard({
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`font-semibold text-sm leading-none truncate ${isToday ? `text-${activeColor}-700 dark:text-${activeColor}-300` : ""}`}
+                      className={`font-semibold text-sm leading-none truncate ${isToday ? theme.nameTodayText : ""}`}
                     >
                       {employee.firstName} {employee.lastName}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
                       {isToday ? (
-                        <span className={`text-${activeColor}-600 dark:text-${activeColor}-400 font-bold animate-pulse inline-flex items-center gap-1`}>
+                        <span className={`${theme.todaySpan} font-bold animate-pulse inline-flex items-center gap-1`}>
                           Today! <Icon className="h-3 w-3" />
                         </span>
                       ) : (
@@ -207,9 +258,9 @@ function MonthCelebrationCard({
                           <span className="dark:text-muted-foreground/80">{format(date!, "MMMM")}</span>
                         </>
                       )}
-                      {!isBirthday && years > 0 && (
+                      {!isBirthday && milestone && (
                         <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-none">
-                            {years}Y
+                            {milestone.badgeText}
                         </Badge>
                       )}
                     </p>

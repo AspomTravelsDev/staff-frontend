@@ -124,15 +124,13 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
                   <TableCell>
                     <Badge
                       variant={
-                        record.is_flagged_proxy
-                          ? "outline"
-                          : late
-                            ? "destructive"
-                            : "default"
+                        record.is_flagged_proxy || late
+                          ? "destructive"
+                          : "default"
                       }
                       className={
                         record.is_flagged_proxy
-                          ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold"
+                          ? "bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold"
                           : !late
                             ? "bg-green-600 hover:bg-green-700 text-[10px]"
                             : "text-[10px]"

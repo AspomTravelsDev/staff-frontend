@@ -533,15 +533,13 @@ export function AdminAttendanceTable({
                       <div className="flex flex-col gap-1">
                         <Badge
                           variant={
-                            record.is_flagged_proxy
-                              ? "outline"
-                              : late
-                                ? "destructive"
-                                : "default"
+                            record.is_flagged_proxy || late
+                              ? "destructive"
+                              : "default"
                           }
                           className={
                             record.is_flagged_proxy
-                              ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold"
+                              ? "bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold"
                               : !late
                                 ? "bg-green-600 text-[10px] hover:bg-green-700"
                                 : "text-[10px]"
@@ -560,7 +558,7 @@ export function AdminAttendanceTable({
                               : "On Time"}
                         </Badge>
                         {record.is_flagged_proxy && record.proxy_matched_user?.name && (
-                          <span className="text-[9px] italic text-amber-700 dark:text-amber-400 font-medium">
+                          <span className="text-[9px] italic text-red-700 dark:text-red-400 font-medium">
                             Shared with {record.proxy_matched_user.name}
                           </span>
                         )}
