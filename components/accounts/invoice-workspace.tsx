@@ -42,6 +42,19 @@ import { toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
 
 // Preset Configurations for the Subsidiaries
+const INVOICE_ITEM_PRESETS = [
+  "Flight Reservation",
+  "Hotel Booking",
+  "Visa Processing Fee",
+  "Visa Embassy Fee",
+  "Vacation Package",
+  "Birth Services Package",
+  "Passport Processing",
+  "Travel Insurance",
+  "Airport Transfer",
+  "Consultation Fee",
+];
+
 const PRESETS = {
   aspom: {
     company_name: "Aspom Travel Agency LTD",
@@ -261,8 +274,10 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     const bal = sum - Number(deposit);
     setBalanceDue(bal);
 
-    if (bal <= 0 && sum > 0) {
+    if (sum > 0 && bal <= 0) {
       setStatus("paid");
+    } else if (Number(deposit) > 0 && bal > 0) {
+      setStatus("partially_paid");
     }
   }, [items, deposit]);
 
@@ -707,11 +722,19 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-600">Payment Method</Label>
-              <Input
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                placeholder="e.g. BANK TRANSFER"
-              />
+              <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val)}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BANK TRANSFER">Bank Transfer</SelectItem>
+                  <SelectItem value="CREDIT / DEBIT CARD">Credit / Debit Card</SelectItem>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="CHEQUE">Cheque</SelectItem>
+                  <SelectItem value="POS / CARD TERMINAL">POS / Card Terminal</SelectItem>
+                  <SelectItem value="ONLINE PAYMENT">Online Payment</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-600">Issue Date</Label>
@@ -852,11 +875,33 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
                     />
                   </div>
                   <div className="col-span-4 space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-slate-500">Description</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[9px] uppercase font-bold text-slate-500">Description</Label>
+                      <Select
+                        value={INVOICE_ITEM_PRESETS.includes(item.description) ? item.description : "custom"}
+                        onValueChange={(val) => {
+                          if (val !== "custom") {
+                            handleUpdateItem(index, "description", val);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-4 text-[9px] px-1.5 py-0 border-none bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold gap-1">
+                          <SelectValue placeholder="Presets" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="custom" className="text-xs italic font-medium">-- Select Preset or Type Custom --</SelectItem>
+                          {INVOICE_ITEM_PRESETS.map((preset) => (
+                            <SelectItem key={preset} value={preset} className="text-xs font-semibold">
+                              {preset}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Input
                       value={item.description}
                       onChange={(e) => handleUpdateItem(index, "description", e.target.value)}
-                      placeholder="e.g. Flight Booking"
+                      placeholder="e.g. Flight Reservation"
                       className="text-xs h-9"
                     />
                   </div>
@@ -919,10 +964,11 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-200">
               <div className="space-y-1 md:col-span-3">
                 <Label className="text-xs font-bold text-slate-600">Welcome Text</Label>
-                <Input
+                <Textarea
                   value={membershipWelcomeText}
                   onChange={(e) => setMembershipWelcomeText(e.target.value)}
                   placeholder="e.g. WELCOME TO THE TRAVELATAL CLUB!"
+                  className="h-16 min-h-16 text-xs"
                 />
               </div>
               <div className="space-y-1">

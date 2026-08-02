@@ -284,8 +284,9 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
               </TableHeader>
               <TableBody>
                 {invoices.map((invoice) => {
+                  const subtotal = Number(invoice.subtotal);
                   const balance = Number(invoice.balance_due);
-                  const isPaid = invoice.status === "paid" || balance <= 0;
+                  const isPaid = invoice.status === "paid" || (subtotal > 0 && balance <= 0 && invoice.status !== "unpaid" && invoice.status !== "partially_paid");
 
                   return (
                     <TableRow key={invoice.id}>

@@ -89,8 +89,9 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     };
 
     const hasItems = Array.isArray(invoice.items) && invoice.items.length > 0;
+    const subtotal = Number(invoice.subtotal);
     const balance = Number(invoice.balance_due);
-    const isPaid = invoice.status === "paid" || balance <= 0;
+    const isPaid = invoice.status === "paid" || (subtotal > 0 && balance <= 0 && invoice.status !== "unpaid" && invoice.status !== "partially_paid");
 
     return (
       <div className="w-full overflow-x-auto p-2 bg-slate-100 rounded-xl border flex justify-center">
@@ -238,7 +239,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                 {(invoice.membership_welcome_text || invoice.membership_number || invoice.membership_points) && (
                   <>
                     {invoice.membership_welcome_text && (
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider animate-in fade-in">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider animate-in fade-in whitespace-pre-line">
                         {invoice.membership_welcome_text}
                       </p>
                     )}
