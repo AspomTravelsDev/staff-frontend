@@ -100,6 +100,7 @@ export default async function ApplicantStepPage({
           <Step8UploadSigned
             applicationId={id}
             initialData={formData.signedDocuments}
+            initialMediaData={formData.media}
             requiredAssetDocuments={requiredAssetDocuments}
           />
         )}

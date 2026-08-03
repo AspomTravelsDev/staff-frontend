@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { RequiredSignedAssetDocument } from "@/lib/types/hr";
+import { MediaData } from "@/lib/types/form-data";
 
 type FormState = {
   error?: string;
@@ -36,6 +37,59 @@ interface RequiredUploadDocument {
   label: string;
   description: string;
 }
+
+interface SupportingUploadDocument {
+  key: keyof MediaData;
+  inputName: string;
+  uploadFieldPrefix: string;
+  label: string;
+  description: string;
+}
+
+const SUPPORTING_DOCUMENTS: SupportingUploadDocument[] = [
+  {
+    key: "validId",
+    inputName: "validId",
+    uploadFieldPrefix: "applicant_id",
+    label: "Valid Means of ID (Passport, National ID, Voter Card, or Driver License) *",
+    description: "Upload a clear PDF, PNG, or JPEG copy of your valid ID",
+  },
+  {
+    key: "oLevelResults",
+    inputName: "oLevelResults",
+    uploadFieldPrefix: "applicant_olevel",
+    label: "O Level Results *",
+    description: "Upload a clear PDF, PNG, or JPEG copy of your O Level results",
+  },
+  {
+    key: "nyscCertificate",
+    inputName: "nyscCertificate",
+    uploadFieldPrefix: "applicant_nysc",
+    label: "NYSC Certificate *",
+    description: "Upload a clear PDF, PNG, or JPEG copy of your NYSC discharge / exemption certificate",
+  },
+  {
+    key: "universityCertificate",
+    inputName: "universityCertificate",
+    uploadFieldPrefix: "applicant_uni",
+    label: "University Certificate / Proof of Completion *",
+    description: "Upload a clear PDF, PNG, or JPEG copy of your degree or diploma certificate",
+  },
+  {
+    key: "birthCertificate",
+    inputName: "birthCertificate",
+    uploadFieldPrefix: "applicant_birth_cert",
+    label: "Birth Certificate / Age Declaration *",
+    description: "Upload a clear PDF, PNG, or JPEG copy of your birth certificate or age declaration",
+  },
+  {
+    key: "resumeCv",
+    inputName: "resumeCv",
+    uploadFieldPrefix: "applicant_resume",
+    label: "Resume / CV *",
+    description: "Upload a clear PDF, PNG, or JPEG copy of your Resume / CV",
+  },
+];
 
 const BASE_REQUIRED_DOCUMENTS: RequiredUploadDocument[] = [
   {
@@ -73,10 +127,12 @@ const MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
 export function Step8UploadSigned({
   applicationId,
   initialData,
+  initialMediaData,
   requiredAssetDocuments = [],
 }: {
   applicationId: string;
   initialData?: SignedDocumentsData;
+  initialMediaData?: MediaData;
   requiredAssetDocuments?: RequiredSignedAssetDocument[];
 }) {
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
@@ -91,6 +147,10 @@ export function Step8UploadSigned({
     [key: string]: string | null;
   }>({});
 
+  const missingSupportingDocuments = SUPPORTING_DOCUMENTS.filter(
+    (doc) => !initialMediaData?.[doc.key]?.storagePath
+  );
+
   const extraRequiredDocuments: RequiredUploadDocument[] =
     requiredAssetDocuments.map((document) => ({
       key: document.key,
@@ -104,6 +164,48 @@ export function Step8UploadSigned({
     ...BASE_REQUIRED_DOCUMENTS,
     ...extraRequiredDocuments,
   ];
+
+  const handleSupportingFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: string
+  ) => {
+    const file = e.target.files?.[0];
+    setFileErrors((prev) => ({ ...prev, [fieldName]: null }));
+
+    if (file) {
+      const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        setFileErrors((prev) => ({
+          ...prev,
+          [fieldName]: "Please upload a PDF, PNG, or JPEG. WebP is not supported.",
+        }));
+        setPreviews((prev) => ({ ...prev, [fieldName]: null }));
+        e.target.value = "";
+        return;
+      }
+
+      if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+        const message = "Document exceeds 2MB. Please compress and re-upload.";
+        setFileErrors((prev) => ({
+          ...prev,
+          [fieldName]: message,
+        }));
+        toast.error(message);
+        setPreviews((prev) => ({ ...prev, [fieldName]: null }));
+        e.target.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviews((prev) => ({
+          ...prev,
+          [fieldName]: event.target?.result as string,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleFilePreview = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -160,6 +262,19 @@ export function Step8UploadSigned({
     setUploadError(null);
 
     try {
+      const unattachedSupportingDocs = missingSupportingDocuments.filter((document) => {
+        const file = formData.get(document.inputName) as File | null;
+        return !(file && file.size > 0 && file.name);
+      });
+
+      if (unattachedSupportingDocs.length > 0) {
+        setIsUploading(false);
+        const missingLabels = unattachedSupportingDocs.map((doc) => doc.label.replace(" *", ""));
+        return {
+          error: `Please upload the following required supporting document(s): ${missingLabels.join(", ")}`,
+        };
+      }
+
       const missingDocuments = requiredDocuments.filter((document) => {
         const file = formData.get(document.inputName) as File | null;
         return !(
@@ -174,6 +289,33 @@ export function Step8UploadSigned({
         return {
           error: `Please upload the following required signed documents: ${missingLabels.join(", ")}`,
         };
+      }
+
+      const updatedMediaData: Record<string, any> = { ...(initialMediaData || {}) };
+
+      for (const document of missingSupportingDocuments) {
+        const file = formData.get(document.inputName) as File | null;
+        if (!file || file.size === 0) continue;
+
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            file,
+            `${document.uploadFieldPrefix}_${applicationId}`
+          );
+
+          updatedMediaData[document.key] = {
+            fileName: file.name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          setIsUploading(false);
+          return {
+            error: `${document.label.replace(" *", "")} upload failed: ${error.message}`,
+          };
+        }
       }
 
       const uploadedSignedDocuments: SignedDocumentsData = {};
@@ -211,10 +353,15 @@ export function Step8UploadSigned({
 
       setPersistedSignedDocuments(finalSignedDocuments);
 
-      // Submit the application with the collected signed documents data
-      const result = await submitApplication(applicationId, {
+      const stepDataToSubmit: Record<string, any> = {
         signedDocuments: finalSignedDocuments,
-      });
+      };
+      if (missingSupportingDocuments.length > 0) {
+        stepDataToSubmit.media = updatedMediaData;
+      }
+
+      // Submit the application with the collected signed documents data
+      const result = await submitApplication(applicationId, stepDataToSubmit);
 
       setIsUploading(false);
       return result;
@@ -244,11 +391,15 @@ export function Step8UploadSigned({
     null,
   );
 
-  const isReadyToSubmit = requiredDocuments.every(
-    (document) =>
-      !!persistedSignedDocuments[document.key]?.storagePath ||
-      !!previews[document.key],
-  );
+  const isReadyToSubmit =
+    requiredDocuments.every(
+      (document) =>
+        !!persistedSignedDocuments[document.key]?.storagePath ||
+        !!previews[document.key],
+    ) &&
+    missingSupportingDocuments.every(
+      (document) => !!previews[document.key],
+    );
 
   return (
     <form action={formAction} className="space-y-6">
@@ -268,7 +419,7 @@ export function Step8UploadSigned({
           <li>
             • <strong>Upload the entire document:</strong> Do not upload only the signature page or a cropped photo of the signature. You must upload the <strong>complete multi-page PDF document</strong>.
           </li>
-          <li>• <strong>Accepted format:</strong> PDF only (max 2MB each). Image uploads (PNG, JPEG, WebP) are not accepted.</li>
+          <li>• <strong>Accepted format:</strong> PDF only (max 2MB each) for signed forms. Image uploads (PNG, JPEG, WebP) are not accepted for signed forms.</li>
           <li>
             • <strong>Signing Digitally:</strong> You can sign without printing. Windows users can download the free{" "}
             <a
@@ -285,6 +436,65 @@ export function Step8UploadSigned({
           <li>• Incomplete or unsigned documents will be returned for correction.</li>
         </ul>
       </div>
+
+      {missingSupportingDocuments.length > 0 && (
+        <div className="space-y-4 rounded-lg border border-amber-300 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 p-4">
+          <div>
+            <h4 className="text-base font-semibold text-amber-900 dark:text-amber-300">
+              Required Supporting Documents (Pending Upload)
+            </h4>
+            <p className="text-sm text-amber-800 dark:text-amber-400 mt-1">
+              Your application is missing the following mandatory supporting credentials. Accepted formats are PDF, PNG, and JPEG up to 2MB each.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {missingSupportingDocuments.map((document) => {
+              const hasPreview = !!previews[document.key];
+
+              return (
+                <div className="rounded-lg border bg-card p-4" key={document.key}>
+                  <Label htmlFor={document.inputName} className="text-sm font-medium">
+                    {document.label.endsWith(" *") ? (
+                      <>
+                        {document.label.slice(0, -2)}
+                        <span className="text-destructive font-semibold ml-1">*</span>
+                      </>
+                    ) : (
+                      document.label
+                    )}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2 mt-0.5">
+                    {document.description}
+                  </p>
+
+                  <input
+                    type="file"
+                    id={document.inputName}
+                    name={document.inputName}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleSupportingFileChange(e, document.key)}
+                    className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  />
+
+                  {fileErrors[document.key] && (
+                    <p className="text-xs font-medium text-destructive mt-1.5">
+                      {fileErrors[document.key]}
+                    </p>
+                  )}
+
+                  {hasPreview && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                      <span>✓</span>
+                      <span>Selected for upload</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {requiredDocuments.map((document) => {
@@ -374,3 +584,4 @@ export function Step8UploadSigned({
     </form>
   );
 }
+

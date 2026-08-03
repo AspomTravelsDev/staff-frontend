@@ -57,6 +57,7 @@ export async function sendOnboardingReminder(
 export type OnboardingCorrectionReason =
     | "unsigned_documents"
     | "missing_required_pages"
+    | "missing_supporting_documents"
     | "invalid_document_quality"
     | "mismatched_information"
     | "other";

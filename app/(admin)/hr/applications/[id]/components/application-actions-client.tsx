@@ -61,6 +61,7 @@ export function ApplicationActionsClient({
   const [correctionReason, setCorrectionReason] = useState<
     | "unsigned_documents"
     | "missing_required_pages"
+    | "missing_supporting_documents"
     | "invalid_document_quality"
     | "mismatched_information"
     | "other"
@@ -76,6 +77,10 @@ export function ApplicationActionsClient({
     {
       value: "missing_required_pages" as const,
       label: "Missing required pages/documents",
+    },
+    {
+      value: "missing_supporting_documents" as const,
+      label: "Missing required supporting credentials (ID, NYSC, etc.)",
     },
     {
       value: "invalid_document_quality" as const,
