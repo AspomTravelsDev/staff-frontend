@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getNotifications } from "@/lib/api/notifications";
 import { NotificationsUpdater } from "@/components/notifications-updater";
+import { GlobalChatNotifications } from "@/components/chat/global-chat-notifications";
 import { CheatsheetFloatingWidget } from "@/components/cheatsheet-floating-widget";
 
 export default async function AdminLayout({
@@ -26,6 +27,7 @@ export default async function AdminLayout({
     <QueryProvider>
       <UserProvider user={user}>
         <NotificationsUpdater notifications={initialNotifications} />
+        <GlobalChatNotifications />
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>

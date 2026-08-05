@@ -8,12 +8,12 @@ if (typeof window !== "undefined") {
 
 let echoInstance: Echo<"reverb"> | null = null;
 
-export function getEchoInstance(token?: string): Echo<"reverb"> | null {
+export function getEchoInstance(): Echo<"reverb"> | null {
     if (typeof window === "undefined") {
         return null; // Server-side rendering guard
     }
 
-    if (echoInstance && !token) {
+    if (echoInstance) {
         return echoInstance;
     }
 
@@ -21,7 +21,6 @@ export function getEchoInstance(token?: string): Echo<"reverb"> | null {
     const host = process.env.NEXT_PUBLIC_REVERB_HOST || "127.0.0.1";
     const port = Number(process.env.NEXT_PUBLIC_REVERB_PORT || 8080);
     const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || "http";
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     echoInstance = new Echo({
         broadcaster: "reverb",
@@ -31,12 +30,12 @@ export function getEchoInstance(token?: string): Echo<"reverb"> | null {
         wssPort: port,
         forceTLS: scheme === "https",
         enabledTransports: ["ws", "wss"],
-        authEndpoint: `${apiUrl}/api/broadcasting/auth`,
+        authEndpoint: "/api/broadcasting/auth",
         auth: {
             headers: {
                 Accept: "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
+            withCredentials: true,
         },
     });
 

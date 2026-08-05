@@ -55,11 +55,11 @@ export function Step4Guarantors({
   const [guarantor2Preview, setGuarantor2Preview] = useState<string | null>(
     null,
   );
-  const [guarantor1PhotoUrl, setGuarantor1PhotoUrl] = useState<string | null>(
-    resolvePreviewUrl(initialData?.guarantors?.[0]?.passportPhoto?.storagePath),
+  const [g1StoredPhoto, setG1StoredPhoto] = useState(
+    initialData?.guarantors?.[0]?.passportPhoto
   );
-  const [guarantor2PhotoUrl, setGuarantor2PhotoUrl] = useState<string | null>(
-    resolvePreviewUrl(initialData?.guarantors?.[1]?.passportPhoto?.storagePath),
+  const [g2StoredPhoto, setG2StoredPhoto] = useState(
+    initialData?.guarantors?.[1]?.passportPhoto
   );
   const [isUploadingG1, setIsUploadingG1] = useState(false);
   const [isUploadingG2, setIsUploadingG2] = useState(false);
@@ -176,21 +176,25 @@ export function Step4Guarantors({
         };
       }
 
-      // Upload guarantor 1 photo
+      // Upload guarantor 1 photo if provided
       const g1PhotoFile = formData.get("guarantor1_photo") as File | null;
-      let g1PhotoUrl: string | null = null;
-      let g1PhotoFileId: string | undefined;
+      const hasNewG1Photo = !!(g1PhotoFile && g1PhotoFile.size > 0 && g1PhotoFile.name);
+      let g1PhotoData = g1StoredPhoto || initialData?.guarantors?.[0]?.passportPhoto;
 
-      if (g1PhotoFile && g1PhotoFile.size > 0 && g1PhotoFile.name) {
+      if (hasNewG1Photo) {
         try {
           const g1Result = await uploadPublicFile(
             applicationId,
-            g1PhotoFile,
+            g1PhotoFile as File,
             `guarantor1_pass_${applicationId}`,
           );
-          g1PhotoUrl = g1Result.storagePath;
-          setGuarantor1PhotoUrl(resolvePreviewUrl(g1Result.storagePath));
-          g1PhotoFileId = g1Result.fileId;
+          g1PhotoData = {
+            fileName: (g1PhotoFile as File).name,
+            uploadedAt: new Date().toISOString(),
+            storagePath: g1Result.storagePath,
+            fileId: g1Result.fileId,
+          };
+          setG1StoredPhoto(g1PhotoData);
         } catch (g1Error: any) {
           return {
             error: `Guarantor 1 photo upload failed: ${g1Error.message}`,
@@ -199,21 +203,25 @@ export function Step4Guarantors({
         }
       }
 
-      // Upload guarantor 2 photo
+      // Upload guarantor 2 photo if provided
       const g2PhotoFile = formData.get("guarantor2_photo") as File | null;
-      let g2PhotoUrl: string | null = null;
-      let g2PhotoFileId: string | undefined;
+      const hasNewG2Photo = !!(g2PhotoFile && g2PhotoFile.size > 0 && g2PhotoFile.name);
+      let g2PhotoData = g2StoredPhoto || initialData?.guarantors?.[1]?.passportPhoto;
 
-      if (g2PhotoFile && g2PhotoFile.size > 0 && g2PhotoFile.name) {
+      if (hasNewG2Photo) {
         try {
           const g2Result = await uploadPublicFile(
             applicationId,
-            g2PhotoFile,
+            g2PhotoFile as File,
             `guarantor2_pass_${applicationId}`,
           );
-          g2PhotoUrl = g2Result.storagePath;
-          setGuarantor2PhotoUrl(resolvePreviewUrl(g2Result.storagePath));
-          g2PhotoFileId = g2Result.fileId;
+          g2PhotoData = {
+            fileName: (g2PhotoFile as File).name,
+            uploadedAt: new Date().toISOString(),
+            storagePath: g2Result.storagePath,
+            fileId: g2Result.fileId,
+          };
+          setG2StoredPhoto(g2PhotoData);
         } catch (g2Error: any) {
           return {
             error: `Guarantor 2 photo upload failed: ${g2Error.message}`,
@@ -255,14 +263,7 @@ export function Step4Guarantors({
         liabilityAccepted:
           formData.get("guarantor1_liabilityAccepted") === "on",
         liabilityAcceptedAt: new Date().toISOString(),
-        passportPhoto: g1PhotoUrl
-          ? {
-              fileName: g1PhotoFile?.name || "passport_photo.jpg",
-              uploadedAt: new Date().toISOString(),
-              storagePath: g1PhotoUrl,
-              fileId: g1PhotoFileId,
-            }
-          : initialData?.guarantors?.[0]?.passportPhoto,
+        passportPhoto: g1PhotoData,
       };
 
       // Extract guarantor 2 data
@@ -298,14 +299,7 @@ export function Step4Guarantors({
         liabilityAccepted:
           formData.get("guarantor2_liabilityAccepted") === "on",
         liabilityAcceptedAt: new Date().toISOString(),
-        passportPhoto: g2PhotoUrl
-          ? {
-              fileName: g2PhotoFile?.name || "passport_photo.jpg",
-              uploadedAt: new Date().toISOString(),
-              storagePath: g2PhotoUrl,
-              fileId: g2PhotoFileId,
-            }
-          : initialData?.guarantors?.[1]?.passportPhoto,
+        passportPhoto: g2PhotoData,
       };
 
       const data = {
@@ -353,6 +347,13 @@ export function Step4Guarantors({
     }
   }, [state]);
 
+  useEffect(() => {
+    if (state?.error) {
+      toast.error(state.error);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [state?.error]);
+
   const renderGuarantorSection = (
     index: number,
     title: string,
@@ -361,8 +362,8 @@ export function Step4Guarantors({
     data?: any,
   ) => {
     const prefix = `guarantor${index + 1}_`;
-    const existingStoredUrl =
-      index === 0 ? guarantor1PhotoUrl : guarantor2PhotoUrl;
+    const storedPhoto = index === 0 ? g1StoredPhoto : g2StoredPhoto;
+    const existingStoredUrl = resolvePreviewUrl(storedPhoto?.storagePath);
 
     return (
       <div key={index} className="space-y-4">

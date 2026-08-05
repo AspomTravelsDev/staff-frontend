@@ -64,8 +64,8 @@ export function Step5Referee({
   const [refereePhotoPreview, setRefereePhotoPreview] = useState<string | null>(
     null,
   );
-  const [refereePhotoUrl, setRefereePhotoUrl] = useState<string | null>(
-    resolvePreviewUrl(initialData?.referee?.passportPhoto?.storagePath),
+  const [refereeStoredPhoto, setRefereeStoredPhoto] = useState(
+    initialData?.referee?.passportPhoto
   );
   const [relationshipType, setRelationshipType] = useState<string>(() => {
     const currentValue = normalizeText(initialData?.referee?.relationshipType);
@@ -217,25 +217,29 @@ export function Step5Referee({
         };
       }
 
-      // Upload referee photo
+      // Upload referee photo if provided
       const refereePhotoFile = formData.get("referee_photo") as File | null;
-      let uploadedPhotoUrl: string | null = null;
-      let uploadedPhotoFileId: string | undefined;
-
-      if (
+      const hasNewRefereePhoto = !!(
         refereePhotoFile &&
         refereePhotoFile.size > 0 &&
         refereePhotoFile.name
-      ) {
+      );
+      let refereePhotoData = refereeStoredPhoto || initialData?.referee?.passportPhoto;
+
+      if (hasNewRefereePhoto) {
         try {
           const photoResult = await uploadPublicFile(
             applicationId,
-            refereePhotoFile,
+            refereePhotoFile as File,
             `referee_pass_${applicationId}`,
           );
-          uploadedPhotoUrl = photoResult.storagePath;
-          setRefereePhotoUrl(resolvePreviewUrl(photoResult.storagePath));
-          uploadedPhotoFileId = photoResult.fileId;
+          refereePhotoData = {
+            fileName: (refereePhotoFile as File).name,
+            uploadedAt: new Date().toISOString(),
+            storagePath: photoResult.storagePath,
+            fileId: photoResult.fileId,
+          };
+          setRefereeStoredPhoto(refereePhotoData);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (uploadError: any) {
           return {
@@ -311,14 +315,7 @@ export function Step5Referee({
                 "assessment_recommendForPosition",
               ) as string | null,
             },
-            passportPhoto: uploadedPhotoUrl
-              ? {
-                  fileName: refereePhotoFile?.name || "referee_photo.jpg",
-                  uploadedAt: new Date().toISOString(),
-                  storagePath: uploadedPhotoUrl,
-                  fileId: uploadedPhotoFileId,
-                }
-              : initialData?.referee?.passportPhoto,
+            passportPhoto: refereePhotoData,
           },
         },
       };
@@ -548,13 +545,13 @@ export function Step5Referee({
             </div>
           )}
 
-          {!refereePhotoPreview && refereePhotoUrl && (
+          {!refereePhotoPreview && refereeStoredPhoto?.storagePath && (
             <div className="mt-4 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={refereePhotoUrl}
-                  alt="Current referee passport"
-                  className="h-20 w-16 rounded border object-cover"
+                  src={resolvePreviewUrl(refereeStoredPhoto.storagePath) || ""}
+                  alt="Referee current passport"
+                  className="h-16 w-12 rounded border object-cover"
                 />
                 <div>
                   <p className="text-sm font-medium text-green-700 dark:text-green-400">

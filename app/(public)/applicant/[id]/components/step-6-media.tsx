@@ -277,9 +277,8 @@ export function Step6Media({
         };
       }
 
-      // Upload photo to Laravel API
-      let photoPublicUrl = photoUrl;
-      let photoFileId = initialData?.passportPhoto?.fileId;
+      // Upload photo to Laravel API if provided
+      let photoData = initialData?.passportPhoto;
 
       if (hasNewPhoto) {
         try {
@@ -288,9 +287,12 @@ export function Step6Media({
             photoFile as File,
             `applicant_pass_${applicationId}`,
           );
-          photoPublicUrl = photoResult.storagePath;
-          setPhotoUrl(resolvePreviewUrl(photoResult.storagePath));
-          photoFileId = photoResult.fileId;
+          photoData = {
+            fileName: (photoFile as File).name,
+            uploadedAt: new Date().toISOString(),
+            storagePath: photoResult.storagePath,
+            fileId: photoResult.fileId,
+          };
         } catch (error: any) {
           return {
             error: `Photo upload failed: ${error.message}`,
@@ -493,14 +495,7 @@ export function Step6Media({
 
       const data = {
         media: {
-          passportPhoto: {
-            fileName: hasNewPhoto
-              ? (photoFile as File).name
-              : initialData?.passportPhoto?.fileName || "passport_photo.jpg",
-            uploadedAt: new Date().toISOString(),
-            storagePath: photoPublicUrl || "",
-            fileId: photoFileId,
-          },
+          passportPhoto: photoData,
           signature: {
             fileName: "signature.png",
             uploadedAt: new Date().toISOString(),
@@ -622,11 +617,11 @@ export function Step6Media({
             </div>
           )}
 
-          {!photoPreview && photoUrl && (
+          {!photoPreview && initialData?.passportPhoto?.storagePath && (
             <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={photoUrl}
+                  src={resolvePreviewUrl(initialData.passportPhoto.storagePath) || ""}
                   alt="Current passport"
                   className="h-20 w-16 rounded border object-cover"
                 />

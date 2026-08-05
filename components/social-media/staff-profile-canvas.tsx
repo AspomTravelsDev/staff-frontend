@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Copy, RefreshCw, ZoomIn, Move, Plus, Minus } from "lucide-react";
+import {
+  Download,
+  Copy,
+  RefreshCw,
+  ZoomIn,
+  Move,
+  Plus,
+  Minus,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface StaffProfileCanvasProps {
@@ -42,13 +50,14 @@ export function StaffProfileCanvas({
 
     // Load ASPOM Logo
     const logoImg = new Image();
-    logoImg.crossOrigin = "anonymous";
     logoImg.src = "/aspom-logo.png";
 
     // Load Staff Photo
     const photoImg = new Image();
-    photoImg.crossOrigin = "anonymous";
     if (imageUrl) {
+      if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+        photoImg.crossOrigin = "anonymous";
+      }
       photoImg.src = imageUrl;
     }
 
@@ -67,24 +76,70 @@ export function StaffProfileCanvas({
       ctx.fillStyle = "#EEF3F8";
       ctx.fillRect(36, 36, CANVAS_SIZE - 72, topHeight - 36);
 
-      // 3b. Subtle Globe/Watermark Pattern
+      // 3b. Passport Stamp & Booklet Graphic Watermark (Top Left)
       ctx.save();
-      ctx.strokeStyle = "rgba(11, 58, 148, 0.08)";
-      ctx.lineWidth = 4;
-      // Draw concentric globe/passport watermark lines
-      ctx.beginPath();
-      ctx.arc(200, 240, 140, 0, Math.PI * 2);
-      ctx.arc(200, 240, 100, 0, Math.PI * 2);
-      ctx.moveTo(60, 240); ctx.lineTo(340, 240);
-      ctx.moveTo(200, 100); ctx.lineTo(200, 380);
-      ctx.stroke();
+      ctx.translate(65, 55);
+      ctx.scale(2.5, 2.5);
+      ctx.fillStyle = "rgba(11, 58, 148, 0.12)";
+      const passportPathStr =
+        "m72.008 25.48c1.9141 1.2266 4.2266 1.2773 6.1953 0.14062l15.316-8.8438c2.8125-1.4727 1.5664-5.7578-1.207-6.4023-2.0703-0.82812-6.0625 2.5195-7.875 3.3281-1.6211-0.77734-6.043-3.957-7.7969-3.8711-1.8086-0.082031-4.2969 1.4688-3.3867 3.5508 0.18359 0.77734 4.0781 3.5156 4.6484 4.0938l-2.9141 1.6836c-1.0508-0.12109-3.3359-0.80078-4.2461-0.67578-1.7109 0.30078-4.1289 1.8867-3.0234 3.9258 0.29688 0.82422 3.6328 2.5312 4.2891 3.0703zm-2.8359-4.418c0.38672-0.39453 1.3242-0.87109 1.7617-0.95703 0.64062-0.023438 3.2852 0.60938 4.0508 0.71094 0.26562 0.29297 4.4531-2.4297 4.7578-2.5234 0.5-0.27344 0.54297-1.0195 0.085937-1.3555l-4.9023-3.9727c-0.875-0.89844 1.0547-1.5352 1.6641-1.5039 1.293-0.042969 6.1875 3.3242 7.4375 3.8867 0.25781 0.14844 0.56641 0.14062 0.8125 0l5.5469-3.2031c1.1133-0.65234 2.4492-0.023437 2.9258 1.1172 0.40625 0.71875 0.15625 1.6602-0.55859 2.0742l-15.371 8.875c-2.6914 1.8711-5.8047-1.0352-8.0195-2.3516-0.27344-0.16016-0.33984-0.53516-0.19141-0.79688zm-40.473 0.71094c-0.52344-1.957-2.5625-3.1328-4.5195-2.6094l-10.578 2.832c-0.97656 0.26172-1.7617 0.90234-2.2383 1.7188-0.47266 0.82031-0.63672 1.8203-0.375 2.7969l3.7031 13.805c0.44531 1.6602 1.9805 2.6836 3.6289 2.6641 0.15625 0.019531 0.30859 0.070312 0.46484 0.035156 0.10156-0.027344 0.23828-0.054687 0.34375-0.082031 0.027344-0.007813 0.054688 0.003906 0.082032-0.003906l0.46094-0.125c3.0312-0.73047 7.0625-1.5547 9.8906-2.6523l0.22656-0.058594c0.070313-0.019531 0.11719-0.070312 0.1875-0.09375 0.19141-0.078125 0.44141-0.14844 0.61719-0.23047 0.054688-0.03125 0.66406-0.09375 0.11328-0.13281 1.3672-0.82812 2.125-2.4453 1.6953-4.0625zm-9.6289 19.508c-0.039062-1.3203-0.13672-3.125 1.1914-3.5977l1.3984-0.375c0.4375-0.11719 0.69531-0.5625 0.57812-1-0.16016-0.51172-0.22266-1.4531-0.9375-1.4883-2.668-0.21875-3.3438-2.8945-3.8203-5.082-0.53125-1.9883 0.64844-4.0469 2.6406-4.582 1.9883-0.53125 4.0469 0.65625 4.5781 2.6445 0.66797 2.1133 1.4336 4.7617-0.73438 6.2891-0.63281 0.35547-0.23438 1.25-0.10156 1.7812 0.11719 0.4375 0.5625 0.69531 1 0.57812l1.3984-0.375c1.3828-0.25391 2.2109 1.3633 2.8359 2.5195zm11.402-3.5547c-0.96094-1.8906-2.3672-3.7383-4.5898-3.2422 1.7852-1.9609 1.1445-4.8203 0.39453-7.1055-0.76172-2.8555-3.7266-4.5625-6.582-3.8008-2.8516 0.76562-4.5625 3.7305-3.8008 6.582 0.48828 2.3555 1.3672 5.1523 3.8945 5.957-2.1719 0.67578-2.4648 2.9883-2.3516 5.1016-0.066406-0.03125-0.14453-0.035156-0.20703-0.070312-0.45312-0.26172-0.8125-0.69922-0.95703-1.2461l-3.7031-13.805c-0.29297-1.0938 0.35547-2.2266 1.4531-2.5195l10.578-2.832c1.0938-0.29297 2.2266 0.35547 2.5195 1.4531l3.7031 13.805c0.16406 0.62109 0 1.2344-0.35156 1.7227zm-13.656-22.656 20.445-5.4766c1.0156-0.28516 1.4531 1.3203 0.42188 1.5781l-20.445 5.4766c-1.0156 0.28906-1.4531-1.3164-0.42188-1.5781zm43.238 68.613c0.98437 0.375 0.375 1.918-0.60156 1.5156l-6.4844-2.5898c-0.98438-0.375-0.37891-1.918 0.60156-1.5156zm-12.535-65.789-12.766 3.4219c-1.0156 0.28516-1.4531-1.3203-0.42188-1.5781l12.766-3.4219c1.0195-0.28516 1.4531 1.3203 0.42188 1.5781zm18.809 29.281c-0.003906-0.003906-0.007813-0.007812-0.015625-0.011719h-0.007812c-0.015626-0.007812-0.03125-0.015624-0.046876-0.023437-9.9258-3.2227-15.238 3.8125-15.035 11.191-0.13281 0.26562-0.10547 0.54688 0.058594 0.79688 0.38281 4.707 3.0312 9.3516 8.1914 11.488 0.070313 0.039062 0.12109 0.11328 0.19531 0.14453 0.074219 0.019531 0.14453 0 0.21875 0.011719 0.41406 0.15625 0.78516 0.35156 1.2305 0.47656 5.5742 1.2031 9.4805-0.84375 11.656-4.1797 0.007812-0.015624 0.023437-0.023437 0.027343-0.039062 1.3711-2.1211 2.0391-4.7461 1.957-7.4375 0.12891-0.25781 0.10547-0.53906-0.050781-0.78125-0.39453-4.7969-3.1016-9.5742-8.3789-11.637zm5.6055 7.3594c0.5625 1.1875 0.88281 2.3164 1.1055 3.4141l-4.1289-1.6484c0.20312-2.2305 0.09375-4.3203-0.375-5.9727 1.2656 1.0312 2.4375 2.3945 3.3984 4.207zm-4.625-2.1016c0.10938 0.94922 0.089844 2.0586-0.003906 3.2227l-6.2461-2.4961c0.625-1.3086 1.3555-2.4727 2.1797-3.3672 2.3945-2.5938 3.7539-0.62891 4.0703 2.6406zm-0.19922 4.8984c-0.29297 1.9805-0.81641 4.0352-1.5547 5.9297l-6.6797-2.668c0.29297-1.9805 0.81641-4.0352 1.5547-5.9297zm-4.2305-9.3203c-1.2969 0.95312-2.4414 2.5586-3.375 4.5273l-4.168-1.668c1.9414-1.9961 4.6992-3.0625 7.543-2.8594zm-8.6016 4.1914 4.5938 1.8359c-0.72266 1.8633-1.2617 3.8984-1.5742 5.9219l-4.6016-1.8398c-0.10547-2.293 0.50391-4.2969 1.582-5.918zm-0.22656 11.191c-0.5625-1.1875-0.88281-2.3164-1.1055-3.4141l4.1289 1.6484c-0.20703 2.2305-0.09375 4.3203 0.375 5.9727-1.2656-1.0352-2.4336-2.3984-3.3984-4.207zm4.6289 2.0977c-0.10938-0.95313-0.089844-2.0586 0-3.2227l6.2422 2.4961c-0.625 1.3086-1.3555 2.4766-2.1797 3.3672-2.3906 2.5938-3.7461 0.625-4.0625-2.6406zm4.4258 4.4219c1.2969-0.95312 2.4453-2.5586 3.375-4.5273l4.168 1.6641c-1.9414 2-4.6953 3.0664-7.543 2.8633zm8.6055-4.1914-4.5938-1.8359c0.72266-1.8633 1.2617-3.8984 1.5742-5.9219l4.6016 1.8398c0.10156 2.293-0.50391 4.2969-1.582 5.918zm25.477-23.773-36.727-9.8398-7.7227-28.801c-0.30469-1.1445-1.0586-2.0664-2.0156-2.6211-0.95703-0.55469-2.1289-0.74219-3.2773-0.4375l-44.188 11.84c-2.2422 0.62891-3.5938 2.9609-3.0195 5.2188l12.863 47.98c-4.8242 2.9492-6.0469 10.113-1.5781 14.586 1.8125 2.3438 3.4883 4.5742 0.60547 9.6328h-4.7891c-2.8516 0-5.1914 2.3359-5.1914 5.1914v2.9023c0 1.2656 1.0273 2.2891 2.293 2.2891h26.945c2.8398-0.074219 2.2539-3.2812 2.2891-5.1953 0-2.4258-1.7188-4.3789-3.9727-4.9453l9.9648-2.6719c9.918 4.1289 22.98 10.141 31.898 12.688 1.6562 0.44141 3.3125-0.39844 3.9453-1.9922 0.19141-0.55469 0.375-1.1602 0.5625-1.7266l6.1719 1.6562c1.9375 0.51953 3.957-0.64844 4.4766-2.5859l13.051-48.699c0.51562-1.9297-0.64844-3.9531-2.5859-4.4688zm-95.355-25.004c-0.37891-1.418 0.45703-2.8906 1.875-3.2812l44.164-11.836c1.4297-0.38281 2.9062 0.47266 3.2891 1.8984l7.4766 27.891-6.9805-1.8711c-1.9375-0.51562-3.957 0.64062-4.4766 2.5859l-2.7461 10.254-33.332 8.9336zm8.4844 56.223c-0.23047-6.6133 8.5273-10.121 12.961-5.3672 3.2422 2.9609 2.5742 8.2578-0.27344 11.078-2.0625 2.6641-4.0117 5.1875-1.1953 10.633h-7.7969c4.6016-8.6094-3.207-9.4219-3.6953-16.344zm21.719 21.535v2.9023c0 0.35938-0.29297 0.65234-0.65234 0.65234h-26.945c-0.35938 0-0.65234-0.29297-0.65625-0.65234v-2.9023c0.003906-1.9531 1.5938-3.5547 3.5547-3.5547h21.145c1.9531 0 3.5547 1.6016 3.5547 3.5547zm-7.7266-5.1914h-0.62109c-2.8828-5.0586-1.2109-7.293 0.60156-9.6328 5.7227-5.6133 2.0938-15.945-6.3828-15.938-1.2109 0.011719-2.3125 0.24219-3.3086 0.61719l-3.0742-11.461 32.422-8.6875-9.8125 36.625c-0.12109 0.44531-0.14844 0.93359-0.097656 1.3867 0 0.003906 0.003906 0.007813 0.007813 0.011719 0.16016 1.457 1.1016 2.8164 2.5 3.3711 0.19922 0.078124 0.42969 0.17578 0.63281 0.25781zm50.539 5.043c-0.074218 0.089843-0.17578 0.15234-0.20703 0.27344-0.023437 0.09375 0.027344 0.17188 0.035156 0.26172-0.22656 0.69141-0.44922 1.4219-0.67969 2.0938-0.32812 0.82422-1.1484 1.2422-2.0117 1.0156-7.0586-1.6953-22.402-8.6992-31.762-12.637-0.042968-0.035156-0.09375-0.035156-0.14453-0.058594-1.0547-0.44531-2.0547-0.85938-2.9336-1.2109-1.082-0.42969-1.7266-1.75-1.4219-2.8711l0.45312-1.6914 12.125-45.242 0.45312-1.6875c0.023438-0.097656 0.082032-0.17188 0.12109-0.26172 0.054688-0.13672 0.11328-0.26953 0.19141-0.38672 0.40234-0.52734 1.0742-0.78906 1.7695-0.59766 7.8984 1.8945 26.188 10.449 34.84 13.906 1.0781 0.43359 1.7227 1.75 1.4219 2.875-3.8359 14.305-7.6641 32.109-12.25 46.219zm13.828-45.805c0.51562-1.9258-0.54688-4.0664-2.3984-4.8086l-24.48-9.7852 28.352 7.5977c1.0117 0.26953 1.8242 0.93359 2.3086 1.7773 0.48828 0.84375 0.65234 1.875 0.38281 2.8906l-12.125 45.242c-0.48828 1.8672-2.2852 2.8945-4.1055 2.7227 4.5156-14.02 8.293-31.543 12.066-45.637zm9.5156-2.7461-13.051 48.699c-0.28906 1.0742-1.4023 1.7148-2.4766 1.4297l-2.8945-0.77734c1.1992-0.69531 2.1484-1.8203 2.5273-3.2695l12.125-45.242c0.38281-1.4297 0.14844-2.8867-0.53516-4.0859l2.875 0.76953c1.0781 0.28906 1.7188 1.4023 1.4297 2.4766zm-29.18 35.113c0.98047 0.375 0.37891 1.918-0.60156 1.5156l-21.418-8.5625c-0.98047-0.375-0.37891-1.918 0.60156-1.5156zm-19.777-56.82-12.766 3.4219c-1.0156 0.28516-1.4531-1.3203-0.42188-1.5781l12.766-3.4219c1.0195-0.28906 1.4531 1.3164 0.42188 1.5781z";
+      ctx.fill(new Path2D(passportPathStr));
       ctx.restore();
 
-      // 4. ASPOM Logo (Top Right)
+      // 4. ASPOM Logo (Top Right - with white background keyed out)
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        const logoWidth = 240;
-        const logoHeight = (logoImg.naturalHeight / logoImg.naturalWidth) * logoWidth;
-        ctx.drawImage(logoImg, CANVAS_SIZE - logoWidth - 65, 65, logoWidth, logoHeight);
+        const logoWidth = 300;
+        const logoHeight =
+          (logoImg.naturalHeight / logoImg.naturalWidth) * logoWidth;
+
+        // Draw onto offscreen canvas to filter out solid white background
+        const logoCanvas = document.createElement("canvas");
+        logoCanvas.width = logoImg.naturalWidth;
+        logoCanvas.height = logoImg.naturalHeight;
+        const logoCtx = logoCanvas.getContext("2d");
+
+        if (logoCtx) {
+          logoCtx.drawImage(logoImg, 0, 0);
+          const imgData = logoCtx.getImageData(
+            0,
+            0,
+            logoCanvas.width,
+            logoCanvas.height,
+          );
+          const data = imgData.data;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Key out white/near-white background pixels
+            if (r > 235 && g > 235 && b > 235) {
+              const avg = (r + g + b) / 3;
+              if (avg > 250) {
+                data[i + 3] = 0;
+              } else {
+                const alphaFactor = (250 - avg) / 15;
+                data[i + 3] = Math.floor(data[i + 3] * alphaFactor);
+              }
+            }
+          }
+          logoCtx.putImageData(imgData, 0, 0);
+          ctx.drawImage(
+            logoCanvas,
+            CANVAS_SIZE - logoWidth - 65,
+            65,
+            logoWidth,
+            logoHeight,
+          );
+        } else {
+          ctx.drawImage(
+            logoImg,
+            CANVAS_SIZE - logoWidth - 65,
+            65,
+            logoWidth,
+            logoHeight,
+          );
+        }
       }
 
       // 5. Staff Photo with Circular Crop & Royal Blue Ring
@@ -102,7 +157,7 @@ export function StaffProfileCanvas({
       if (photoImg.complete && photoImg.naturalWidth > 0) {
         const imgAspect = photoImg.naturalWidth / photoImg.naturalHeight;
         let drawW = avatarRadius * 2 * zoom;
-        let drawH = (avatarRadius * 2 / imgAspect) * zoom;
+        let drawH = ((avatarRadius * 2) / imgAspect) * zoom;
 
         if (drawH < avatarRadius * 2 * zoom) {
           drawH = avatarRadius * 2 * zoom;
@@ -116,12 +171,21 @@ export function StaffProfileCanvas({
       } else {
         // Fallback Avatar Background if photo not loaded
         ctx.fillStyle = "#E2E8F0";
-        ctx.fillRect(avatarCenterX - avatarRadius, avatarCenterY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
+        ctx.fillRect(
+          avatarCenterX - avatarRadius,
+          avatarCenterY - avatarRadius,
+          avatarRadius * 2,
+          avatarRadius * 2,
+        );
         ctx.fillStyle = "#64748B";
         ctx.font = "bold 80px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(name.trim() ? name.trim()[0].toUpperCase() : "A", avatarCenterX, avatarCenterY);
+        ctx.fillText(
+          name.trim() ? name.trim()[0].toUpperCase() : "A",
+          avatarCenterX,
+          avatarCenterY,
+        );
       }
       ctx.restore();
 
@@ -134,17 +198,25 @@ export function StaffProfileCanvas({
       ctx.stroke();
       ctx.restore();
 
-      // 6. Outer Border Frame (Royal Blue Top/Left/Right, Slate Blue Bottom)
+      // 6. Outer Border Frame (Navy Blue Top Half, Pale Blue Bottom Half)
       const borderThickness = 36;
-      ctx.fillStyle = "#0B3A94"; // Royal Blue
+
+      // Dark Navy Blue Top Frame (Stops at topHeight where background divides)
+      ctx.fillStyle = "#0B3A94";
       // Top Border
       ctx.fillRect(0, 0, CANVAS_SIZE, borderThickness);
-      // Left Border
-      ctx.fillRect(0, 0, borderThickness, CANVAS_SIZE - borderThickness);
-      // Right Border
-      ctx.fillRect(CANVAS_SIZE - borderThickness, 0, borderThickness, CANVAS_SIZE - borderThickness);
-      // Bottom Accent Border
-      ctx.fillStyle = "#CBD5E1"; // Slate Blue Accent
+      // Left Border (Top Half)
+      ctx.fillRect(0, 0, borderThickness, topHeight);
+      // Right Border (Top Half)
+      ctx.fillRect(CANVAS_SIZE - borderThickness, 0, borderThickness, topHeight);
+
+      // Pale Blue Bottom Frame (Starts at topHeight down to bottom)
+      ctx.fillStyle = "#CBD5E1";
+      // Left Border (Bottom Half)
+      ctx.fillRect(0, topHeight, borderThickness, CANVAS_SIZE - topHeight);
+      // Right Border (Bottom Half)
+      ctx.fillRect(CANVAS_SIZE - borderThickness, topHeight, borderThickness, CANVAS_SIZE - topHeight);
+      // Bottom Border
       ctx.fillRect(0, CANVAS_SIZE - borderThickness, CANVAS_SIZE, borderThickness);
 
       // 7. Typography (Bottom Text Area - Reduced Line Height)
@@ -156,44 +228,60 @@ export function StaffProfileCanvas({
       const displayRole = role.trim();
       const displayPhone = phone.trim();
 
-      const line1Text = displayName ? `Hello! My name is ${displayName} , I am a` : "Hello! My name is [Name] , I am a";
-      const line2Text = displayRole ? `${displayRole} at Aspom Travels.` : "[Role] at Aspom Travels.";
+      // Determine correct indefinite article ("a" vs "an") based on role title
+      const startsWithVowelSound = (str: string) => {
+        if (!str) return false;
+        const lower = str.toLowerCase();
+        return /^[aeiou]/i.test(lower) || /^hr\b/i.test(lower) || /^it\b/i.test(lower);
+      };
+
+      const article = displayRole
+        ? (startsWithVowelSound(displayRole) ? "an" : "a")
+        : "a/an";
+
+      const line1Text = displayName
+        ? `Hello! My name is ${displayName}, I am ${article}`
+        : `Hello! My name is [Name], I am ${article}`;
+      const line2Text = displayRole
+        ? `${displayRole} at Aspom Travels.`
+        : "[Role] at Aspom Travels.";
       const line3Text = "For any assistance, Whatsapp/Call me on";
       const line4Text = displayPhone ? displayPhone : "[Phone Number]";
 
-      // Line 1: Hello! My name is {Name} , I am a
-      ctx.font = "bold 32px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-      ctx.fillText(line1Text, CANVAS_SIZE / 2, 720);
+      // Line 1: Hello! My name is {Name}, I am {article}
+      ctx.font = "bold 36px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      ctx.fillText(line1Text, CANVAS_SIZE / 2, 700);
 
       // Line 2: {Role} at Aspom Travels.
-      ctx.font = "bold 34px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-      ctx.fillText(line2Text, CANVAS_SIZE / 2, 768);
+      ctx.font = "bold 40px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      ctx.fillText(line2Text, CANVAS_SIZE / 2, 760);
 
       // Line 3: For any assistance, Whatsapp/Call me on
-      ctx.font = "bold 32px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-      ctx.fillText(line3Text, CANVAS_SIZE / 2, 816);
+      ctx.font = "bold 36px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      ctx.fillText(line3Text, CANVAS_SIZE / 2, 822);
 
       // Line 4: {Phone}
-      ctx.font = "bold 38px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-      ctx.fillText(line4Text, CANVAS_SIZE / 2, 868);
+      ctx.font = "bold 40px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      ctx.fillText(line4Text, CANVAS_SIZE / 2, 886);
 
       setRendering(false);
     };
 
-    let loadedCount = 0;
-    const checkLoaded = () => {
-      loadedCount++;
-      if (loadedCount >= 2) {
+    const handleImageEvent = () => {
+      if (isMounted) {
         drawCanvas();
       }
     };
 
-    logoImg.onload = checkLoaded;
-    logoImg.onerror = checkLoaded;
-    photoImg.onload = checkLoaded;
-    photoImg.onerror = checkLoaded;
+    logoImg.onload = handleImageEvent;
+    logoImg.onerror = handleImageEvent;
 
-    // Trigger initial draw in case images cached
+    if (imageUrl) {
+      photoImg.onload = handleImageEvent;
+      photoImg.onerror = handleImageEvent;
+    }
+
+    // Trigger initial draw
     drawCanvas();
 
     return () => {
@@ -218,7 +306,7 @@ export function StaffProfileCanvas({
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob })
+          new ClipboardItem({ "image/png": blob }),
         ]);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
@@ -276,16 +364,22 @@ export function StaffProfileCanvas({
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(2))))}
+                onClick={() =>
+                  setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(2))))
+                }
               >
                 <Minus className="h-3.5 w-3.5" />
               </Button>
-              <span className="text-xs font-bold w-12 text-center">{zoom.toFixed(1)}x</span>
+              <span className="text-xs font-bold w-12 text-center">
+                {zoom.toFixed(1)}x
+              </span>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setZoom((z) => Math.min(3.0, Number((z + 0.1).toFixed(2))))}
+                onClick={() =>
+                  setZoom((z) => Math.min(3.0, Number((z + 0.1).toFixed(2))))
+                }
               >
                 <Plus className="h-3.5 w-3.5" />
               </Button>
@@ -304,7 +398,9 @@ export function StaffProfileCanvas({
               >
                 <Minus className="h-3.5 w-3.5" />
               </Button>
-              <span className="text-xs font-bold w-12 text-center">{offsetX > 0 ? `+${offsetX}` : offsetX}</span>
+              <span className="text-xs font-bold w-12 text-center">
+                {offsetX > 0 ? `+${offsetX}` : offsetX}
+              </span>
               <Button
                 variant="outline"
                 size="icon"
@@ -328,7 +424,9 @@ export function StaffProfileCanvas({
               >
                 <Minus className="h-3.5 w-3.5" />
               </Button>
-              <span className="text-xs font-bold w-12 text-center">{offsetY > 0 ? `+${offsetY}` : offsetY}</span>
+              <span className="text-xs font-bold w-12 text-center">
+                {offsetY > 0 ? `+${offsetY}` : offsetY}
+              </span>
               <Button
                 variant="outline"
                 size="icon"
