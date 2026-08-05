@@ -10,34 +10,61 @@ let echoInstance: Echo<"reverb"> | null = null;
 
 export function getEchoInstance(): Echo<"reverb"> | null {
     if (typeof window === "undefined") {
-        return null; // Server-side rendering guard
+        return null;
     }
 
     if (echoInstance) {
         return echoInstance;
     }
 
-    const key = process.env.NEXT_PUBLIC_REVERB_APP_KEY || "evm26g5c8qg6a00h0o24";
-    const host = process.env.NEXT_PUBLIC_REVERB_HOST || "127.0.0.1";
-    const port = Number(process.env.NEXT_PUBLIC_REVERB_PORT || 8080);
+    const key = process.env.NEXT_PUBLIC_REVERB_APP_KEY;
+    const host = process.env.NEXT_PUBLIC_REVERB_HOST;
     const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || "http";
+    const port = Number(process.env.NEXT_PUBLIC_REVERB_PORT || (scheme === "https" ? 443 : 8080));
+    const forceTLS = scheme === "https";
 
-    echoInstance = new Echo({
+    if (!key || !host) {
+        console.warn(
+            "Echo: missing NEXT_PUBLIC_REVERB_APP_KEY or NEXT_PUBLIC_REVERB_HOST — real-time chat disabled",
+        );
+        return null;
+    }
+
+    const config = {
         broadcaster: "reverb",
         key,
         wsHost: host,
         wsPort: port,
         wssPort: port,
-        forceTLS: scheme === "https",
+        forceTLS,
         enabledTransports: ["ws", "wss"],
         authEndpoint: "/api/broadcasting/auth",
         auth: {
             headers: {
                 Accept: "application/json",
             },
-            withCredentials: true,
-        },
-    });
+        } as any,
+        withCredentials: true,
+    } as any;
+
+    console.info("Echo init", { host, port, scheme, forceTLS });
+
+    echoInstance = new Echo(config);
+
+    const connector = (echoInstance as any).connector;
+    const socket = connector?.socket;
+
+    if (socket?.bind) {
+        socket.bind("connecting", () => console.info("Echo socket connecting"));
+        socket.bind("connected", () => console.info("Echo socket connected"));
+        socket.bind("disconnected", () => console.warn("Echo socket disconnected"));
+        socket.bind("error", (error: unknown) => console.error("Echo socket error", error));
+        socket.bind("unavailable", () =>
+            console.error(
+                "Echo socket unavailable — check that Reverb is running and /app is proxied on the server",
+            ),
+        );
+    }
 
     return echoInstance;
 }

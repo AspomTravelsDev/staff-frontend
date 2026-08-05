@@ -99,5 +99,7 @@ export async function getAttachmentDownloadUrl(attachmentId: string): Promise<st
     if (!result.success) {
         throw new Error(result.error.error || "Failed to get attachment download link");
     }
-    return result.data.data.download_url;
+
+    const downloadUrl = result.data.data.download_url;
+    return `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
 }

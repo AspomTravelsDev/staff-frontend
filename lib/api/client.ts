@@ -8,7 +8,9 @@
 
 export { API_CONFIG, shouldMock } from "./config";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Prefer a server-side API_URL when available (for production deployments).
+// Fall back to the public env var for local development and finally to localhost.
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface ErrorResponse {
     error: string;

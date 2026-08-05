@@ -186,6 +186,7 @@ export function ChatWindow({
       if (echo) {
         const channelName = `conversation.${conversation.id}`;
         const channel = echo.private(channelName);
+        console.info("ChatWindow: subscribing to", channelName);
 
         const connector = (echo as any).connector;
         const socket = connector?.socket;
@@ -209,6 +210,7 @@ export function ChatWindow({
         }
 
         channel.listen(".MessageSent", (e: { message: Message }) => {
+          console.info("ChatWindow: received MessageSent", channelName, e);
           setMessages((prev) => {
             if (prev.some((m) => m.id === e.message.id)) {
               return prev;
@@ -221,12 +223,14 @@ export function ChatWindow({
         });
 
         channel.listen(".MessageUpdated", (e: { message: Message }) => {
+          console.info("ChatWindow: received MessageUpdated", channelName, e);
           setMessages((prev) =>
             prev.map((m) => (m.id === e.message.id ? e.message : m)),
           );
         });
 
         channel.listen(".MessageDeleted", (e: { message: Message }) => {
+          console.info("ChatWindow: received MessageDeleted", channelName, e);
           setMessages((prev) =>
             prev.map((m) => (m.id === e.message.id ? e.message : m)),
           );

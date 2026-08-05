@@ -70,7 +70,24 @@ export function GlobalChatNotifications() {
           const channelName = `conversation.${conversation.id}`;
           const channel = echo.private(channelName);
 
+          channel.subscribed(() => {
+            console.info("GlobalChatNotifications: subscribed to", channelName);
+          });
+          channel.error((error: unknown) => {
+            console.warn(
+              "GlobalChatNotifications channel error",
+              channelName,
+              error,
+            );
+          });
+          console.info("GlobalChatNotifications: subscribing to", channelName);
+
           channel.listen(".MessageSent", (event: { message: Message }) => {
+            console.info(
+              "GlobalChatNotifications: received MessageSent",
+              channelName,
+              event,
+            );
             if (!isMounted) return;
             if (!user) return;
             if (event.message.sender?.id === user.id) return;
