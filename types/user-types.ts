@@ -119,6 +119,31 @@ export function getRoleLabel(
     return detail ? detail.label : role;
 }
 
+/**
+ * Helper to get all active roles (primary + secondary) for a user
+ */
+export function getUserActiveRoles(user?: { role?: string; secondary_roles?: string[] | null; roles?: string[] } | null): string[] {
+    if (!user) return [];
+    if (user.roles && user.roles.length > 0) return user.roles;
+    const secondary = user.secondary_roles || [];
+    return Array.from(new Set([user.role, ...secondary].filter(Boolean) as string[]));
+}
+
+/**
+ * Check if a user has a specific role (primary or secondary)
+ */
+export function userHasRole(user: { role?: string; secondary_roles?: string[] | null; roles?: string[] } | null | undefined, targetRole: string): boolean {
+    return getUserActiveRoles(user).includes(targetRole);
+}
+
+/**
+ * Check if a user has any of the specified roles
+ */
+export function userHasAnyRole(user: { role?: string; secondary_roles?: string[] | null; roles?: string[] } | null | undefined, targetRoles: string[]): boolean {
+    const active = getUserActiveRoles(user);
+    return targetRoles.some((role) => active.includes(role));
+}
+
 export interface User {
     id: string;
     staff_id: string;

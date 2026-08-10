@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getActivities } from "@/lib/api/activity";
+import { userHasAnyRole } from "@/types/user-types";
 
 export default async function ActivityPage() {
   const user = await getCurrentUser();
@@ -17,7 +18,7 @@ export default async function ActivityPage() {
     redirect("/login");
   }
 
-  if (!["super", "it"].includes(user.role)) {
+  if (!userHasAnyRole(user, ["super", "it"])) {
     redirect("/dashboard");
   }
 

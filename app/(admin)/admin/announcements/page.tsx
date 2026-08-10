@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { userHasAnyRole } from "@/types/user-types";
 import { getAllAnnouncements } from "./queries";
 import { AdminAnnouncementsContent } from "./components/admin-announcements-content";
 
@@ -10,7 +11,7 @@ export default async function AdminAnnouncementsPage() {
     redirect("/login");
   }
 
-  if (!["admin", "super", "it"].includes(user.role)) {
+  if (!userHasAnyRole(user, ["admin", "super", "it"])) {
     redirect("/dashboard");
   }
 

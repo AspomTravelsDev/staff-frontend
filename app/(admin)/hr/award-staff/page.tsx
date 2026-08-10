@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { userHasAnyRole } from "@/types/user-types";
 import { getAllAwards } from "@/lib/api/awards";
 // import { AwardStatsCards } from "./components/award-stats";
 import { AwardsTable } from "./components/awards-table";
@@ -19,7 +20,7 @@ export default async function AwardStaffPage() {
     redirect("/login");
   }
 
-  if (!["hr", "super", "compliance"].includes(user.role)) {
+  if (!userHasAnyRole(user, ["hr", "super", "compliance"])) {
     redirect("/dashboard");
   }
 

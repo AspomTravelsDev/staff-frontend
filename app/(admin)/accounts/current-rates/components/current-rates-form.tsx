@@ -25,7 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useUser } from "@/providers/user-provider";
-import { USER_ROLES } from "@/types/user-types";
+import { USER_ROLES, userHasAnyRole } from "@/types/user-types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { updateRatesAction } from "../actions";
 import { toast } from "sonner";
@@ -46,9 +46,10 @@ export function CurrentRatesForm({ initialRates }: CurrentRatesFormProps) {
   const { user } = useUser();
   const [isPending, setIsPending] = useState(false);
 
-  const canEdit =
-    user?.role === USER_ROLES.SUPER_ADMIN ||
-    user?.role === USER_ROLES.ACCOUNT_OFFICER;
+  const canEdit = userHasAnyRole(user, [
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ACCOUNT_OFFICER,
+  ]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,

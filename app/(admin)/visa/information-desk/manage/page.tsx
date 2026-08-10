@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { getVisaInformation } from "@/lib/api/visa";
 import { ManageInfoForm } from "./manage-info-form";
 import { getCurrentUser } from "@/lib/auth/session";
+import { userHasAnyRole } from "@/types/user-types";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ export default async function ManageInfoPage(props: ManageInfoPageProps) {
   const user = await getCurrentUser();
 
   // Only Visa Officers and Super Admins can manage information
-  const canManage = user?.role === "visa" || user?.role === "super";
+  const canManage = userHasAnyRole(user, ["visa", "super"]);
 
   if (!canManage) {
     redirect("/visa/information-desk");

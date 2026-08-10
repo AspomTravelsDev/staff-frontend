@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/providers/user-provider";
+import { userHasAnyRole } from "@/types/user-types";
 import { getRequest, addRequestComment } from "@/lib/api/requests";
 import type { RequestItem, RequestComment } from "@/lib/api/requests";
 import { format } from "date-fns";
@@ -126,8 +127,7 @@ export function RequestComments({
           >
             Post comment
           </Button>
-          {user &&
-            ["it", "super", "compliance", "admin"].includes(user.role) &&
+          {userHasAnyRole(user, ["it", "super", "compliance", "admin"]) &&
             !["completed", "approved", "rejected", "cancelled"].includes(
               currentStatus,
             ) && (

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { userHasAnyRole } from "@/types/user-types";
 import { ComplianceStatsCards } from "./components/compliance-stats";
 import { ComplianceTable } from "./components/compliance-table";
 import { AddOccurrenceDialog } from "./components/add-occurrence-dialog";
@@ -41,7 +42,7 @@ export default async function CompliancePage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  if (!["super", "admin", "hr", "compliance"].includes(user.role)) {
+  if (!userHasAnyRole(user, ["super", "admin", "hr", "compliance"])) {
     redirect("/dashboard");
   }
 

@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { ItIssue } from "@/lib/api/it-issues";
-import { getRoleLabel } from "@/types/user-types";
+import { getRoleLabel, userHasAnyRole } from "@/types/user-types";
 import { getItIssue, addItIssueComment } from "@/lib/api/it-issues";
 import { useUser } from "@/providers/user-provider";
 import { Button } from "@/components/ui/button";
@@ -251,8 +251,7 @@ export function ItIssueDetailsSheet({
                 >
                   Post comment
                 </Button>
-                {user &&
-                  ["it", "super", "compliance"].includes(user.role) &&
+                {userHasAnyRole(user, ["it", "super", "compliance"]) &&
                   currentStatus !== "closed" && (
                     <Button
                       variant="destructive"

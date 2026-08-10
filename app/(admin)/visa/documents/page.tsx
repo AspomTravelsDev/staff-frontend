@@ -1,7 +1,7 @@
 import { VisaDocumentsExplorer } from "./components/visa-documents-explorer";
 import { getNestedDocuments, getAllFolders } from "@/lib/api/files";
 import { getCurrentUser } from "@/lib/auth/session";
-import { USER_ROLES } from "@/types/user-types";
+import { USER_ROLES, userHasAnyRole, userHasRole } from "@/types/user-types";
 import { redirect } from "next/navigation";
 
 interface PageProps {
@@ -18,10 +18,7 @@ export default async function VisaDocumentsPage({ searchParams }: PageProps) {
   }
 
   // Restrict to Visa Officers and Super Admins
-  if (
-    user.role !== USER_ROLES.VISA_OFFICER &&
-    user.role !== USER_ROLES.SUPER_ADMIN
-  ) {
+  if (!userHasAnyRole(user, [USER_ROLES.VISA_OFFICER, USER_ROLES.SUPER_ADMIN])) {
     redirect("/dashboard");
   }
 
@@ -44,8 +41,8 @@ export default async function VisaDocumentsPage({ searchParams }: PageProps) {
   const allFolders = allFoldersResult.success && allFoldersResult.data ? allFoldersResult.data : [];
 
   const isSupervisorOrSuper =
-    user.role === USER_ROLES.SUPER_ADMIN ||
-    (user.role === USER_ROLES.VISA_OFFICER && user.is_supervisor);
+    userHasRole(user, USER_ROLES.SUPER_ADMIN) ||
+    (userHasRole(user, USER_ROLES.VISA_OFFICER) && user.is_supervisor);
 
   return (
     <div className="flex flex-col gap-6 p-4">

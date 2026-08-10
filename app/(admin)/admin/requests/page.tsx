@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { userHasAnyRole } from "@/types/user-types";
 import { RequestsTable } from "./components/requests-table";
 import { RequestsFilters } from "./components/requests-filters";
 import { StatsCards } from "./components/stats-cards";
@@ -46,7 +47,7 @@ export default async function RequestsPage({
     redirect("/login");
   }
 
-  if (!["super", "it", "admin", "compliance"].includes(user.role)) {
+  if (!userHasAnyRole(user, ["super", "it", "admin", "compliance"])) {
     redirect("/dashboard");
   }
 
