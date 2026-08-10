@@ -19,6 +19,8 @@ export interface Employee {
     phone: string;
     department: string;
     role: string;
+    secondary_roles?: string[] | null;
+    roles?: string[];
     status: "Active" | "Inactive";
     is_supervisor: boolean;
     joinDate: string | null;
@@ -77,6 +79,8 @@ function mapUserToEmployee(user: User): Employee {
         phone: user.phone || "",
         department: user.department || "",
         role: user.role,
+        secondary_roles: user.secondary_roles,
+        roles: user.roles,
         status: user.is_active ? "Active" : "Inactive",
         is_supervisor: user.is_supervisor,
         joinDate: user.date_joined || "",
@@ -230,6 +234,7 @@ export interface UpdateUserRequest {
     phone?: string | null;
     image_url?: string | null;
     role?: string;
+    secondary_roles?: string[] | null;
     department?: string | null;
     is_supervisor?: boolean;
     gross_pay?: number | null;

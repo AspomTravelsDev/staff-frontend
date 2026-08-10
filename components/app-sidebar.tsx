@@ -21,7 +21,7 @@ import {
   personalNav,
   type NavItem,
 } from "@/lib/navigation";
-import type { UserRole } from "@/types/user-types";
+import { USER_ROLE_DETAILS, type UserRole } from "@/types/user-types";
 import Image from "next/image";
 import Link from "next/link";
 import { TreePalm } from "lucide-react";
@@ -32,17 +32,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
   const { data: notifications } = useRoleNotifications();
 
-  // Filter department nav based on user role
-  const filteredDepartmentNav = user
-    ? filterNavByRole(departmentNav, user.role as UserRole)
+  const activeRoles: UserRole[] = user
+    ? (user.roles && user.roles.length > 0
+        ? (user.roles as UserRole[])
+        : [user.role as UserRole, ...((user.secondary_roles || []) as UserRole[])])
     : [];
 
-  // Group tools by department for super admins
+  // Filter department nav based on user active roles (primary + secondary)
+  const filteredDepartmentNav = user
+    ? filterNavByRole(departmentNav, activeRoles)
+    : [];
+
+  // Group tools by department for super admins or multi-role users
   const getGroupedNav = (items: NavItem[]) => {
-    if (user?.role !== "super") {
+    const isMultiRole = activeRoles.length > 1 || activeRoles.includes("super");
+
+    if (!isMultiRole) {
+      const primaryRoleLabel =
+        (user?.role && USER_ROLE_DETAILS[user.role as UserRole]?.label) ||
+        user?.role?.toUpperCase() ||
+        "Department";
       return [
         {
-          label: user?.role.toLocaleUpperCase() + " Tools",
+          label: `${primaryRoleLabel} Tools`,
           items: items.sort((a, b) => a.title.localeCompare(b.title)),
         },
       ];
@@ -63,17 +75,49 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         groups["Other Tools"].push(item);
         return;
       }
-      if (item.allowedRoles.includes("hr")) groups["HR Tools"].push(item);
-      else if (item.allowedRoles.includes("account"))
-        groups["Account Tools"].push(item);
-      else if (item.allowedRoles.includes("visa"))
-        groups["Visa Tools"].push(item);
-      else if (item.allowedRoles.includes("it")) groups["IT Tools"].push(item);
-      else if (item.allowedRoles.includes("admin"))
+
+      if (item.allowedRoles.includes("hr") && activeRoles.includes("hr")) {
+        groups["HR Tools"].push(item);
+      } else if (
+        item.allowedRoles.includes("admin") &&
+        activeRoles.includes("admin")
+      ) {
         groups["Admin Tools"].push(item);
-      else if (item.allowedRoles.includes("compliance"))
+      } else if (
+        item.allowedRoles.includes("account") &&
+        activeRoles.includes("account")
+      ) {
+        groups["Account Tools"].push(item);
+      } else if (
+        item.allowedRoles.includes("visa") &&
+        activeRoles.includes("visa")
+      ) {
+        groups["Visa Tools"].push(item);
+      } else if (
+        item.allowedRoles.includes("it") &&
+        activeRoles.includes("it")
+      ) {
+        groups["IT Tools"].push(item);
+      } else if (
+        item.allowedRoles.includes("compliance") &&
+        activeRoles.includes("compliance")
+      ) {
         groups["Compliance Tools"].push(item);
-      else groups["Other Tools"].push(item);
+      } else if (item.allowedRoles.includes("hr")) {
+        groups["HR Tools"].push(item);
+      } else if (item.allowedRoles.includes("account")) {
+        groups["Account Tools"].push(item);
+      } else if (item.allowedRoles.includes("visa")) {
+        groups["Visa Tools"].push(item);
+      } else if (item.allowedRoles.includes("it")) {
+        groups["IT Tools"].push(item);
+      } else if (item.allowedRoles.includes("admin")) {
+        groups["Admin Tools"].push(item);
+      } else if (item.allowedRoles.includes("compliance")) {
+        groups["Compliance Tools"].push(item);
+      } else {
+        groups["Other Tools"].push(item);
+      }
     });
 
     return Object.entries(groups)

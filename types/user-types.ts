@@ -128,6 +128,8 @@ export interface User {
     phone: string | null;
     image_url: string | null;
     role: UserRole;
+    secondary_roles?: UserRole[] | null;
+    roles?: UserRole[];
     department: string | null;
     is_active: boolean;
     is_supervisor: boolean;
@@ -148,6 +150,8 @@ export interface LoginUser {
     phone: string | null;
     image_url: string | null;
     role: UserRole;
+    secondary_roles?: UserRole[] | null;
+    roles?: UserRole[];
     is_active: boolean;
     is_supervisor: boolean;
     is_department_account: boolean;

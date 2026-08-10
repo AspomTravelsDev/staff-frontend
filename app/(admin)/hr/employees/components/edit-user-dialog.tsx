@@ -44,6 +44,7 @@ interface EditUserFormData {
   email: string;
   phone: string;
   role: string;
+  secondary_roles: string[];
   department: string;
   is_supervisor: boolean;
   gross_pay: string;
@@ -78,6 +79,7 @@ export function EditUserDialog({
       email: "",
       phone: "",
       role: "",
+      secondary_roles: [],
       department: "",
       is_supervisor: false,
       gross_pay: "",
@@ -98,6 +100,7 @@ export function EditUserDialog({
         email: employee.email,
         phone: employee.phone || "",
         role: employee.role,
+        secondary_roles: employee.secondary_roles || [],
         department: employee.department || "",
         is_supervisor: employee.is_supervisor,
         gross_pay: employee.gross_pay || "",
@@ -130,6 +133,7 @@ export function EditUserDialog({
       email: data.email,
       phone: data.phone || null,
       role: data.role,
+      secondary_roles: data.secondary_roles,
       department: data.department || null,
       is_supervisor: data.is_supervisor,
       gross_pay: data.gross_pay ? parseFloat(data.gross_pay) : null,
@@ -283,6 +287,46 @@ export function EditUserDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Secondary Roles (Additional Access) */}
+            <div className="grid gap-2 rounded-lg border p-3 bg-muted/30">
+              <Label className="text-sm font-semibold">Secondary Roles (Additional Access)</Label>
+              <p className="text-xs text-muted-foreground">
+                Grant extra role permissions (e.g. give an HR Officer additional Admin access).
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {roleOptions
+                  .filter((opt) => opt.value !== watchedRole)
+                  .map((opt) => {
+                    const currentSecondary = watch("secondary_roles") || [];
+                    const isChecked = currentSecondary.includes(opt.value);
+                    return (
+                      <div key={opt.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`sec-role-${opt.value}`}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setValue("secondary_roles", [...currentSecondary, opt.value]);
+                            } else {
+                              setValue(
+                                "secondary_roles",
+                                currentSecondary.filter((r) => r !== opt.value)
+                              );
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`sec-role-${opt.value}`}
+                          className="text-xs cursor-pointer font-normal"
+                        >
+                          {opt.label}
+                        </Label>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 
