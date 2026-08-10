@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthToken } from "@/lib/auth/session";
 
-// Prefer the server-side API URL in production, with fallbacks for development.
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const defaultApiUrl = process.env.NODE_ENV === "production"
+    ? "https://api.aspomportal.com"
+    : "http://localhost:8000";
+
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || defaultApiUrl;
 
 async function proxyAuthRequest(request: NextRequest) {
     const token = await getAuthToken();

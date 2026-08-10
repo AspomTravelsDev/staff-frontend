@@ -8,9 +8,11 @@
 
 export { API_CONFIG, shouldMock } from "./config";
 
-// Prefer a server-side API_URL when available (for production deployments).
-// Fall back to the public env var for local development and finally to localhost.
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const defaultApiUrl = process.env.NODE_ENV === "production"
+    ? "https://api.aspomportal.com"
+    : "http://localhost:8000";
+
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || defaultApiUrl;
 
 export interface ErrorResponse {
     error: string;
