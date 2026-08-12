@@ -18,6 +18,8 @@ export interface ClockInRecord {
     device_name?: string;
     is_flagged_proxy?: boolean;
     proxy_reason?: string;
+    is_late_permitted?: boolean;
+    late_permission_reason?: string;
     proxy_matched_user?: {
         id: string;
         name: string;
@@ -39,6 +41,9 @@ export interface LocationData {
 
 export interface ClockInSummary {
     total_clock_ins: number;
+    on_time?: number;
+    late_arrivals?: number;
+    late_permitted?: number;
     this_week: number;
     this_month: number;
     average_duration_minutes: number;
@@ -46,6 +51,31 @@ export interface ClockInSummary {
     average_clock_in_time?: string;
     earliest_staff_name?: string;
     earliest_staff_time?: string;
+}
+
+export interface LatePermissionRequestItem {
+    id: number;
+    user_id: string;
+    request_date: string;
+    expected_arrival_time: string;
+    reason: string;
+    status: "pending" | "approved" | "rejected";
+    reviewed_by?: string | null;
+    reviewer_note?: string | null;
+    reviewed_at?: string | null;
+    created_at: string;
+    user?: {
+        id: string;
+        name: string;
+        email: string;
+        image_url?: string;
+    };
+    reviewer?: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    clock_in?: ClockInRecord | null;
 }
 
 export interface StandardResponse<T> {
@@ -253,6 +283,64 @@ export async function removeClockInProxyFlag(
 ): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
     revalidatePath("/attendance");
     revalidatePath("/my/attendance");
-    return api.patch<StandardResponse<ClockInRecord>>(`/api/admin/attendance/${recordId}/remove-proxy-flag`);
+    return api.patch<StandardResponse<ClockInRecord>>(`/api/admin/attendance/${recordId}/remove-proxy-flag`, {});
 }
 
+/**
+ * POST /api/late-permission-requests
+ * Submit a request to be late
+ */
+export async function submitLatePermissionRequest(payload: {
+    request_date: string;
+    expected_arrival_time: string;
+    reason: string;
+}): Promise<ApiResponse<StandardResponse<LatePermissionRequestItem>>> {
+    revalidatePath("/my/attendance");
+    revalidatePath("/hr/late-requests");
+    return api.post<StandardResponse<LatePermissionRequestItem>>("/api/late-permission-requests", payload);
+}
+
+/**
+ * GET /api/late-permission-requests/my
+ * Get current staff's late requests
+ */
+export async function getMyLatePermissionRequests(
+    page = 1
+): Promise<ApiResponse<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>> {
+    return api.get<StandardResponse<any>>(`/api/late-permission-requests/my?page=${page}`);
+}
+
+/**
+ * GET /api/late-permission-requests
+ * Get HR review queue for late requests
+ */
+export async function getLatePermissionReviewQueue(filters?: {
+    status?: "pending" | "approved" | "rejected";
+    user_id?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+}): Promise<ApiResponse<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>> {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.user_id && filters.user_id !== "all") params.append("user_id", filters.user_id);
+    if (filters?.from) params.append("from", filters.from);
+    if (filters?.to) params.append("to", filters.to);
+    if (filters?.page) params.append("page", String(filters.page));
+
+    return api.get<StandardResponse<any>>(`/api/late-permission-requests?${params.toString()}`);
+}
+
+/**
+ * PATCH /api/late-permission-requests/{id}/review
+ * Approve or reject a late permission request (HR / Compliance)
+ */
+export async function reviewLatePermissionRequest(
+    requestId: number,
+    payload: { status: "approved" | "rejected"; reviewer_note?: string }
+): Promise<ApiResponse<StandardResponse<LatePermissionRequestItem>>> {
+    revalidatePath("/attendance");
+    revalidatePath("/my/attendance");
+    revalidatePath("/hr/late-requests");
+    return api.patch<StandardResponse<LatePermissionRequestItem>>(`/api/late-permission-requests/${requestId}/review`, payload);
+}

@@ -14,6 +14,7 @@ import {
   isLate,
   formatLagosTime,
   formatLagosDate,
+  getAttendanceStatusInfo,
 } from "@/lib/utils/attendance";
 
 interface AttendanceTableProps {
@@ -122,26 +123,24 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
                       : "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        record.is_flagged_proxy || late
-                          ? "destructive"
-                          : "default"
-                      }
-                      className={
-                        record.is_flagged_proxy
-                          ? "bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold"
-                          : !late
-                            ? "bg-green-600 hover:bg-green-700 text-[10px]"
-                            : "text-[10px]"
-                      }
-                    >
-                      {record.is_flagged_proxy
-                        ? "Flagged"
-                        : late
-                          ? "Late Arrival"
-                          : "On Time"}
-                    </Badge>
+                    {(() => {
+                      const statusInfo = getAttendanceStatusInfo(record);
+                      return (
+                        <div className="flex flex-col gap-0.5">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-bold px-2 py-0.5 border ${statusInfo.badgeClass}`}
+                          >
+                            {statusInfo.label}
+                          </Badge>
+                          {record.late_permission_reason && (
+                            <span className="text-[9px] text-muted-foreground italic max-w-[120px] truncate" title={record.late_permission_reason}>
+                              {record.late_permission_reason}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               );

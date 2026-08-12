@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/clock-in";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { LatePermissionRequestModal } from "@/components/late-permission-request-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -172,18 +173,32 @@ export function ClockInWidget() {
           </span>
         </Badge>
       ) : (
-        <Button
-          disabled={loading}
-          onClick={handleClockIn}
-          variant="outline"
-          size="sm"
-          className="gap-2 h-8 px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
-        >
-          <Clock className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-primary">
-            {loading ? "Clocking In..." : "Clock In Now"}
-          </span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            disabled={loading}
+            onClick={handleClockIn}
+            variant="outline"
+            size="sm"
+            className="gap-2 h-8 px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            <Clock className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">
+              {loading ? "Clocking In..." : "Clock In Now"}
+            </span>
+          </Button>
+          <LatePermissionRequestModal
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground hover:text-foreground text-xs"
+                title="Request permission to be late"
+              >
+                <Clock className="h-3.5 w-3.5 text-indigo-500" />
+              </Button>
+            }
+          />
+        </div>
       )}
     </div>
   );

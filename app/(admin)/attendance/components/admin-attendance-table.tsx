@@ -22,6 +22,7 @@ import {
   isLate,
   formatLagosTime,
   formatLagosDate,
+  getAttendanceStatusInfo,
 } from "@/lib/utils/attendance";
 import { useSort } from "@/lib/hooks/use-sort";
 import { useUser } from "@/providers/user-provider";
@@ -530,39 +531,34 @@ export function AdminAttendanceTable({
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Badge
-                          variant={
-                            record.is_flagged_proxy || late
-                              ? "destructive"
-                              : "default"
-                          }
-                          className={
-                            record.is_flagged_proxy
-                              ? "bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold"
-                              : !late
-                                ? "bg-green-600 text-[10px] hover:bg-green-700"
-                                : "text-[10px]"
-                          }
-                          title={
-                            record.is_flagged_proxy
-                              ? record.proxy_reason ||
-                                `Flagged: Shared device with ${record.proxy_matched_user?.name || "a colleague"}`
-                              : undefined
-                          }
-                        >
-                          {record.is_flagged_proxy
-                            ? "Flagged"
-                            : late
-                              ? "Late Arrival"
-                              : "On Time"}
-                        </Badge>
-                        {record.is_flagged_proxy && record.proxy_matched_user?.name && (
-                          <span className="text-[9px] italic text-red-700 dark:text-red-400 font-medium">
-                            Shared with {record.proxy_matched_user.name}
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const statusInfo = getAttendanceStatusInfo(record);
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-bold px-2 py-0.5 border ${statusInfo.badgeClass}`}
+                              title={
+                                record.is_flagged_proxy
+                                  ? record.proxy_reason || `Flagged: Shared device with ${record.proxy_matched_user?.name || "a colleague"}`
+                                  : record.late_permission_reason || undefined
+                              }
+                            >
+                              {statusInfo.label}
+                            </Badge>
+                            {record.is_flagged_proxy && record.proxy_matched_user?.name && (
+                              <span className="text-[9px] italic text-red-700 dark:text-red-400 font-medium">
+                                Shared with {record.proxy_matched_user.name}
+                              </span>
+                            )}
+                            {record.is_late_permitted && record.late_permission_reason && (
+                              <span className="text-[9px] text-indigo-700 dark:text-indigo-300 italic max-w-[130px] truncate" title={record.late_permission_reason}>
+                                {record.late_permission_reason}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     {canMarkLate && (
                       <TableCell className="text-right">

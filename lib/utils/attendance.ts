@@ -69,3 +69,43 @@ export function formatLagosDateForInput(dateString: string | Date | null | undef
         day: "2-digit",
     }).format(date);
 }
+
+export type AttendanceStatusType = "on-time" | "late" | "late-permitted" | "proxy";
+
+export function getAttendanceStatusInfo(record: {
+    clock_in_at: string;
+    is_late_permitted?: boolean;
+    is_flagged_proxy?: boolean;
+}): { status: AttendanceStatusType; label: string; badgeClass: string } {
+    if (record.is_flagged_proxy) {
+        return {
+            status: "proxy",
+            label: "Flagged Proxy",
+            badgeClass: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800",
+        };
+    }
+
+    const late = isLate(record.clock_in_at);
+
+    if (late) {
+        if (record.is_late_permitted) {
+            return {
+                status: "late-permitted",
+                label: "Late (Permitted)",
+                badgeClass: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800",
+            };
+        }
+        return {
+            status: "late",
+            label: "Late",
+            badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800",
+        };
+    }
+
+    return {
+        status: "on-time",
+        label: "On Time",
+        badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800",
+    };
+}
+

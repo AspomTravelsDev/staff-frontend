@@ -4,6 +4,8 @@ import { Clock, CalendarCheck, AlertTriangle, History } from "lucide-react";
 import { AttendanceTable } from "./components/attendance-table";
 import { isLate } from "@/lib/utils/attendance";
 
+import { LatePermissionRequestModal } from "@/components/late-permission-request-modal";
+
 export default async function MyAttendancePage() {
   const [summaryResponse, historyResponse] = await Promise.all([
     getClockInSummary(),
@@ -25,23 +27,31 @@ export default async function MyAttendancePage() {
     history = historyResponse.data.data;
   }
 
-  // Calculate late days locally as well for now, or trust summary if it had it (it doesn't)
-  const lateDays = history.filter((record: any) =>
-    isLate(record.clock_in_at),
+  const unexcusedLateDays = history.filter(
+    (record: any) => isLate(record.clock_in_at) && !record.is_late_permitted,
   ).length;
 
-  const onTimeDays = history.length - lateDays;
+  const permittedLateDays = history.filter(
+    (record: any) => isLate(record.clock_in_at) && record.is_late_permitted,
+  ).length;
+
+  const onTimeDays = history.filter(
+    (record: any) => !isLate(record.clock_in_at),
+  ).length;
 
   return (
     <div className="flex flex-col gap-6 p-4 pt-0">
-      <div>
-        <h1 className="text-2xl font-bold">My Attendance</h1>
-        <p className="text-sm text-muted-foreground">
-          View your attendance stats and history
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="text-2xl font-bold">My Attendance</h1>
+          <p className="text-sm text-muted-foreground">
+            View your attendance stats and history
+          </p>
+        </div>
+        <LatePermissionRequestModal />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard
           title="Total Clock-Ins"
           icon={Clock}
@@ -59,10 +69,18 @@ export default async function MyAttendancePage() {
           cardColor="green"
         />
         <StatsCard
-          title="Late Arrivals"
+          title="Late (Permitted)"
+          icon={CalendarCheck}
+          value={permittedLateDays.toString()}
+          description="Approved late requests"
+          variant="dashboard"
+          cardColor="purple"
+        />
+        <StatsCard
+          title="Late (Unexcused)"
           icon={AlertTriangle}
-          value={lateDays.toString()}
-          description="Arrivals after 9:05 AM"
+          value={unexcusedLateDays.toString()}
+          description="Arrivals without approval"
           variant="dashboard"
           cardColor="red"
         />

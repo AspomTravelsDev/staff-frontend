@@ -217,6 +217,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["visa", "super"],
   },
   {
+    title: "Travel Info Generator",
+    url: "/visa/info-generator",
+    icon: FileText,
+    allowedRoles: ["visa", "super"],
+  },
+  {
     title: "Staff Profile Generator",
     url: "/social-media/profile-generator",
     icon: Megaphone,
@@ -255,6 +261,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["hr", "super", "compliance"],
     badgeKey: "hrRequests",
     badgeLabel: "Staff requests pending review",
+  },
+  {
+    title: "Late Permission Requests",
+    url: "/hr/late-requests",
+    icon: CalendarCheck,
+    allowedRoles: ["hr", "super", "compliance"],
   },
   {
     title: "Loan Requests Queue",

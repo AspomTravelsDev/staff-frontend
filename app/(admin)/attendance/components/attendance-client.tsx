@@ -136,14 +136,18 @@ export function AttendanceClient({
   ]);
 
   // Create a map of date_userId to track status (using earliest clock-in time)
-  const attendanceMap = new Map<string, { clockInTime: number; status: "Early" | "Late" }>();
+  const attendanceMap = new Map<string, { clockInTime: number; status: "Early" | "Late" | "Late (Permitted)" }>();
   history.forEach((record) => {
     const dateStr = formatLagosDateForInput(record.clock_in_at);
     if (!dateStr) return;
     const userId = record.user_id;
     const key = `${dateStr}_${userId}`;
     const clockInTime = new Date(record.clock_in_at).getTime();
-    const status = isLate(record.clock_in_at) ? "Late" : "Early";
+    
+    let status: "Early" | "Late" | "Late (Permitted)" = isLate(record.clock_in_at) ? "Late" : "Early";
+    if (status === "Late" && record.is_late_permitted) {
+      status = "Late (Permitted)";
+    }
 
     const existing = attendanceMap.get(key);
     if (!existing || clockInTime < existing.clockInTime) {
