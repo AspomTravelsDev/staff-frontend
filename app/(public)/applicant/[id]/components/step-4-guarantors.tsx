@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveFormStep, redirectToPreviousStep } from "../actions";
-import { uploadPublicFile } from "@/lib/api/hr";
+import { uploadPublicFile } from "@/lib/api/public-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

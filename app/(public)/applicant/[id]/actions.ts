@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { savePublicFormStep, submitPublicApplication, uploadPublicFile } from '@/lib/api/hr'
+import { savePublicFormStep, submitPublicApplication } from '@/lib/api/hr'
+import { uploadPublicFile } from '@/lib/api/public-upload'
 import { downloadPdfFormsAction } from './pdf-actions'
 
 /**

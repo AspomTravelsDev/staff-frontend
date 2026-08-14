@@ -115,27 +115,4 @@ export async function submitPublicApplication(
     return response.data.data;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export async function uploadPublicFile(
-    id: string,
-    file: File,
-    fieldName: string
-): Promise<{ fileName: string; storagePath: string; uploadedAt: string; fileId?: string }> {
-    const formData = new FormData();
-    formData.append("file", file, (file as any).name);
-    formData.append("field_name", fieldName);
-
-    const response = await fetch(`${API_URL}/api/public/onboarding-applications/${id}/upload`, {
-        method: "POST",
-        body: formData,
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to upload file");
-    }
-
-    const result = await response.json();
-    return result.data;
-}

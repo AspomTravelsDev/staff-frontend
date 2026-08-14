@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { submitApplication, redirectToPreviousStep } from "../actions";
-import { uploadPublicFile } from "@/lib/api/hr";
+import { uploadPublicFile } from "@/lib/api/public-upload";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
