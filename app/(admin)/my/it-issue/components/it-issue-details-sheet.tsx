@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Sheet,
   SheetContent,
@@ -55,6 +56,7 @@ export function ItIssueDetailsSheet({
 }) {
   const router = useRouter();
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [details, setDetails] = useState<ItIssue | null>(issue);
   const [loading, setLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -98,6 +100,7 @@ export function ItIssueDetailsSheet({
       if (!result.success) throw new Error(result.error.error);
       toast.success("Comment posted");
       setCommentText("");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       const refreshed = await getItIssue(issue.id);
       if (refreshed.success) setDetails(refreshed.data);
       router.refresh();

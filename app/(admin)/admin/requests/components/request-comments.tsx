@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ export function RequestComments({
   initialStatus?: string;
 }) {
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [details, setDetails] = useState<RequestItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -63,6 +65,7 @@ export function RequestComments({
       if (!result.success) throw new Error(result.error.error);
       toast.success("Comment posted");
       setCommentText("");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       const refreshed = await getRequest(requestId);
       if (refreshed.success) setDetails(refreshed.data);
     } catch (e) {
