@@ -68,7 +68,7 @@ export const SiteHeader = () => {
         } else if (key === "myTasks") {
           label = "Submit your to-do list";
         } else if (key === "weeklyQuestionnairePending") {
-          label = "Complete your weekly questionnaire";
+          label = "Active staff survey to complete";
         } else if (key === "compliance") {
           label = "New compliance query issued";
         } else if (key === "complianceReplies") {

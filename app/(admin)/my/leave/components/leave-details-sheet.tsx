@@ -8,7 +8,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Clock, ShieldAlert, FileText, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, Clock, ShieldAlert, FileText, CalendarDays, Paperclip, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 export interface DetailedLeave {
@@ -21,6 +22,8 @@ export interface DetailedLeave {
   status: string;
   employeeName?: string;
   department?: string;
+  attachmentUrl?: string;
+  handoverNoteUrl?: string;
   rejectionReason?: string;
   approvedByName?: string;
   approvedAt?: string;
@@ -145,6 +148,42 @@ export function LeaveDetailsSheet({
                 {leave.reason || "No reason provided."}
               </p>
             </div>
+
+            {/* Optional Attachments Section */}
+            {(leave.handoverNoteUrl || leave.attachmentUrl) && (
+              <div className="border rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Paperclip className="size-3.5" />
+                  Attached Documents
+                </p>
+                <div className="space-y-2 pt-1">
+                  {leave.handoverNoteUrl && (
+                    <div className="flex items-center justify-between bg-muted/40 p-2 rounded text-xs border">
+                      <span className="font-medium flex items-center gap-1.5">
+                        <FileText className="size-3.5 text-blue-500" /> Handover Note
+                      </span>
+                      <Button variant="outline" size="sm" asChild className="h-7 text-xs gap-1">
+                        <a href={leave.handoverNoteUrl} target="_blank" rel="noopener noreferrer">
+                          View File <ExternalLink className="size-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                  {leave.attachmentUrl && (
+                    <div className="flex items-center justify-between bg-muted/40 p-2 rounded text-xs border">
+                      <span className="font-medium flex items-center gap-1.5">
+                        <Paperclip className="size-3.5 text-green-500" /> Supporting Evidence
+                      </span>
+                      <Button variant="outline" size="sm" asChild className="h-7 text-xs gap-1">
+                        <a href={leave.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                          View File <ExternalLink className="size-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Rejection / Decision Box */}

@@ -1,19 +1,18 @@
 import { WeeklyFeedbackAdminClient } from "./components/weekly-feedback-admin-client";
 
 export const metadata = {
-  title: "Weekly Feedback Management | Aspom Portal",
+  title: "Staff Pulse & Surveys Management | Aspom Portal",
   description:
-    "Manage weekly anonymous questionnaire and review basic analytics.",
+    "Manage staff pulse questions, publish open surveys, and review response analytics.",
 };
 
 export default function HRWeeklyFeedbackPage() {
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div className="flex flex-1 flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Weekly Feedback</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Staff Pulse & Surveys</h1>
         <p className="text-muted-foreground">
-          Manage questions and publication, then review response analytics in
-          one place.
+          Manage survey questions, publish questionnaires, and review response analytics in one place.
         </p>
       </div>
 

@@ -62,6 +62,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const groups: Record<string, NavItem[]> = {
       "HR Tools": [],
+      "Social Media Tools": [],
       "Account Tools": [],
       "Visa Tools": [],
       "IT Tools": [],
@@ -76,7 +77,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         return;
       }
 
-      if (item.allowedRoles.includes("hr") && activeRoles.includes("hr")) {
+      if (
+        item.allowedRoles.includes("social-media") &&
+        activeRoles.includes("social-media")
+      ) {
+        groups["Social Media Tools"].push(item);
+      } else if (
+        item.allowedRoles.includes("hr") &&
+        activeRoles.includes("hr")
+      ) {
         groups["HR Tools"].push(item);
       } else if (
         item.allowedRoles.includes("admin") &&
@@ -103,6 +112,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         activeRoles.includes("compliance")
       ) {
         groups["Compliance Tools"].push(item);
+      } else if (item.allowedRoles.includes("social-media")) {
+        groups["Social Media Tools"].push(item);
       } else if (item.allowedRoles.includes("hr")) {
         groups["HR Tools"].push(item);
       } else if (item.allowedRoles.includes("account")) {

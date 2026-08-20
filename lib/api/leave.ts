@@ -9,7 +9,18 @@ import { revalidatePath } from "next/cache";
 // ============================================================================
 
 export type LeaveStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
-export type LeaveType = "Annual Leave" | "Sick Leave" | "Casual Leave" | "Maternity Leave" | "Unpaid Leave" | "Study Leave";
+export type LeaveType =
+    | "Annual"
+    | "Casual"
+    | "Emergency"
+    | "Sick"
+    | "Exam/Study"
+    | "Bereavement"
+    | "Maternity"
+    | "Unpaid"
+    | "Ante-Natal"
+    | "Special"
+    | string;
 
 export interface LeaveRequest {
     id: string;
@@ -22,6 +33,8 @@ export interface LeaveRequest {
     days: number;
     status: LeaveStatus;
     reason: string;
+    attachmentUrl?: string;
+    handoverNoteUrl?: string;
     rejectionReason?: string;
     approvedByName?: string;
     approvedAt?: string;
@@ -32,6 +45,21 @@ export interface LeaveStats {
     approvedThisMonth: number;
     onLeave: number; // Currently on leave
     rejectedThisMonth: number;
+}
+
+export interface MyLeaveStats {
+    totalLeaveDaysLeft: number;
+    allowance: number;
+    casualLeaveDays: number;
+    emergencyLeaveTaken: number;
+    sickLeaveTaken: number;
+    sickInstances: number;
+    unpaidLeaveTaken: number;
+    studyLeaveTaken: number;
+    maternityTaken: boolean;
+    totalDaysAbsent: number;
+    isConfirmed: boolean;
+    tenureMonths: number;
 }
 
 export interface LeaveFilters {
@@ -146,7 +174,7 @@ export async function getLeaveStats(): Promise<LeaveStats> {
         ).length;
 
         const rejectedThisMonth = requests.filter(r =>
-            r.status === "Rejected" && r.startDate.startsWith(currentYearMonth) // Simplified logic: using start date as proxy for decision date
+            r.status === "Rejected" && r.startDate.startsWith(currentYearMonth)
         ).length;
 
         const onLeave = requests.filter(r =>
@@ -189,23 +217,41 @@ export async function getMyLeaveRequests(): Promise<LeaveRequest[]> {
         days: req.days,
         status: req.status as LeaveStatus,
         reason: req.reason,
+        attachmentUrl: req.attachmentUrl,
+        handoverNoteUrl: req.handoverNoteUrl,
         rejectionReason: req.rejectionReason,
         approvedByName: req.approvedByName,
         approvedAt: req.approvedAt,
     }));
 }
 
-export async function getMyLeaveStats(): Promise<any> {
-    const result = await api.get<{ data: any }>("/api/my/leave/stats");
+export async function getMyLeaveStats(): Promise<MyLeaveStats> {
+    const result = await api.get<{ data: MyLeaveStats }>("/api/my/leave/stats");
     if (!result.success) {
         return {
             totalLeaveDaysLeft: 20,
+            allowance: 20,
             casualLeaveDays: 0,
             emergencyLeaveTaken: 0,
+            sickLeaveTaken: 0,
+            sickInstances: 0,
+            unpaidLeaveTaken: 0,
+            studyLeaveTaken: 0,
+            maternityTaken: false,
             totalDaysAbsent: 0,
+            isConfirmed: true,
+            tenureMonths: 12,
         };
     }
     return result.data.data;
+}
+
+export async function uploadLeaveFile(formData: FormData): Promise<string> {
+    formData.append("model_type", "LeaveRequest");
+    formData.append("model_id", "temp");
+    const result = await api.post<{ data: { download_url: string } }>("/api/files/upload/leave_document", formData);
+    if (!result.success) throw new Error(result.error.error || "Failed to upload document");
+    return result.data.data.download_url;
 }
 
 export async function createLeaveRequest(data: {
@@ -213,6 +259,8 @@ export async function createLeaveRequest(data: {
     start_date: string;
     days: number;
     reason: string;
+    attachment_url?: string;
+    handover_note_url?: string;
 }) {
     const result = await api.post<{ message: string; data: any }>("/api/my/leave", data);
     if (!result.success) throw new Error(result.error.error || "Failed to create leave request");

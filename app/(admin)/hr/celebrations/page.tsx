@@ -358,7 +358,7 @@ export default function CelebrationsPage() {
   }
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Staff Celebrations</h1>

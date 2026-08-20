@@ -251,6 +251,8 @@ export function LeaveTable({ requests }: LeaveTableProps) {
           status: selectedLeave.status,
           employeeName: selectedLeave.employeeName,
           department: selectedLeave.department,
+          attachmentUrl: selectedLeave.attachmentUrl,
+          handoverNoteUrl: selectedLeave.handoverNoteUrl,
           rejectionReason: selectedLeave.rejectionReason,
           approvedByName: selectedLeave.approvedByName,
           approvedAt: selectedLeave.approvedAt,

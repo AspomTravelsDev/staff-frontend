@@ -13,7 +13,7 @@ export default async function CheatsheetQuizPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div className="flex flex-1 flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Daily Product Quiz</h1>
         <p className="text-muted-foreground">

@@ -248,22 +248,59 @@ export function StaffProfileCanvas({
         ctx.fillStyle = "#EEF3F8";
         ctx.fillRect(36, 36, CANVAS_SIZE - 72, topHeight - 36);
 
-        // 3. Watermark Pattern (Globe / Passport Lines)
+        // 3. Left-Side Vector Graphics (World Map Dot Matrix & Flying Airplane)
+        const startX = 55;
+        const startY = 55;
+        const dotsCols = 14;
+        const dotsRows = 14;
+        const dotSpacing = 16;
+
+        ctx.fillStyle = "rgba(11, 58, 148, 0.16)";
+        for (let r = 0; r < dotsRows; r++) {
+          for (let c = 0; c < dotsCols; c++) {
+            const distFromCenter = Math.hypot(c - 7, r - 7);
+            if (distFromCenter < 6.8 && (r + c) % 5 !== 0) {
+              const x = startX + c * dotSpacing;
+              const y = startY + r * dotSpacing;
+              ctx.beginPath();
+              ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        // Airplane Trajectory Flight Trail (Dashed curve)
         ctx.save();
-        ctx.strokeStyle = "rgba(11, 58, 148, 0.08)";
-        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(200, 240, 140, 0, Math.PI * 2);
-        ctx.arc(200, 240, 100, 0, Math.PI * 2);
-        ctx.moveTo(60, 240); ctx.lineTo(340, 240);
-        ctx.moveTo(200, 100); ctx.lineTo(200, 380);
+        ctx.setLineDash([6, 8]);
+        ctx.moveTo(70, 360);
+        ctx.bezierCurveTo(110, 220, 160, 150, 240, 135);
+        ctx.strokeStyle = "rgba(11, 58, 148, 0.35)";
+        ctx.lineWidth = 3.5;
         ctx.stroke();
+        ctx.setLineDash([]);
         ctx.restore();
 
-        // 4. ASPOM Logo (Top Right)
-        const logoWidth = 240;
-        const logoX = CANVAS_SIZE - logoWidth - 65;
-        const logoY = 65;
+        // Flying Airplane Vector Icon
+        ctx.save();
+        ctx.translate(245, 135);
+        ctx.rotate(Math.PI * -0.22);
+        ctx.fillStyle = "#0B3A94";
+        ctx.beginPath();
+        ctx.moveTo(0, -18);
+        ctx.lineTo(6, -6); ctx.lineTo(24, 0); ctx.lineTo(24, 6);
+        ctx.lineTo(6, 4); ctx.lineTo(4, 16); ctx.lineTo(10, 22);
+        ctx.lineTo(10, 26); ctx.lineTo(0, 23); ctx.lineTo(-10, 26);
+        ctx.lineTo(-10, 22); ctx.lineTo(-4, 16); ctx.lineTo(-6, 4);
+        ctx.lineTo(-24, 6); ctx.lineTo(-24, 0); ctx.lineTo(-6, -6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // 4. Bigger ASPOM Logo (Top Right)
+        const logoWidth = 285;
+        const logoX = CANVAS_SIZE - logoWidth - 55;
+        const logoY = 60;
 
         if (logoCanvasRef.current) {
           const logoHeight = (logoCanvasRef.current.height / logoCanvasRef.current.width) * logoWidth;

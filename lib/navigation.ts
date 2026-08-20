@@ -186,7 +186,7 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["hr", "compliance"],
   },
   {
-    title: "Weekly Feedback",
+    title: "Staff Surveys",
     url: "/hr/weekly-feedback",
     icon: ClipboardList,
     allowedRoles: ["hr", "super"],
@@ -227,6 +227,12 @@ export const departmentNav: NavItem[] = [
     url: "/social-media/profile-generator",
     icon: Megaphone,
     allowedRoles: ["social-media", "super"],
+  },
+  {
+    title: "Ad Compliance Checker",
+    url: "/social-media/compliance",
+    icon: ShieldCheck,
+    allowedRoles: ["social-media", "super", "compliance", "admin"],
   },
   // {
   //     title: "IT Service Desk",
@@ -397,10 +403,10 @@ export const personalNav: NavItem[] = [
         badgeLabel: "Submit your to-do list",
       },
       {
-        title: "Weekly Questionnaire",
+        title: "Staff Surveys",
         url: "/my/weekly-feedback",
         badgeKey: "weeklyQuestionnairePending",
-        badgeLabel: "Complete your weekly questionnaire",
+        badgeLabel: "Complete active staff survey",
       },
       {
         title: "Attendance",
