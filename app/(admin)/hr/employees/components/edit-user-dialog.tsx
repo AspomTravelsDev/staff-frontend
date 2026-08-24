@@ -43,6 +43,7 @@ interface EditUserFormData {
   name: string;
   email: string;
   phone: string;
+  mobile_phone: string;
   role: string;
   secondary_roles: string[];
   department: string;
@@ -78,6 +79,7 @@ export function EditUserDialog({
       name: "",
       email: "",
       phone: "",
+      mobile_phone: "",
       role: "",
       secondary_roles: [],
       department: "",
@@ -99,6 +101,7 @@ export function EditUserDialog({
         name: `${employee.firstName} ${employee.lastName}`,
         email: employee.email,
         phone: employee.phone || "",
+        mobile_phone: employee.mobile_phone || "",
         role: employee.role,
         secondary_roles: employee.secondary_roles || [],
         department: employee.department || "",
@@ -132,6 +135,7 @@ export function EditUserDialog({
       name: data.name,
       email: data.email,
       phone: data.phone || null,
+      mobile_phone: data.mobile_phone || null,
       role: data.role,
       secondary_roles: data.secondary_roles,
       department: data.department || null,
@@ -224,14 +228,24 @@ export function EditUserDialog({
               )}
             </div>
 
-            {/* Phone */}
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                {...register("phone")}
-                placeholder="+1234567890"
-              />
+            {/* Work Phone + Mobile Phone side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Work Phone</Label>
+                <Input
+                  id="phone"
+                  {...register("phone")}
+                  placeholder="+1234567890"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="mobile_phone">Mobile Phone</Label>
+                <Input
+                  id="mobile_phone"
+                  {...register("mobile_phone")}
+                  placeholder="+1234567890"
+                />
+              </div>
             </div>
 
             {/* Role + Department side by side */}

@@ -17,6 +17,7 @@ export interface Employee {
     lastName: string;
     email: string;
     phone: string;
+    mobile_phone: string;
     department: string;
     role: string;
     secondary_roles?: string[] | null;
@@ -77,6 +78,7 @@ function mapUserToEmployee(user: User): Employee {
         lastName,
         email: user.email,
         phone: user.phone || "",
+        mobile_phone: user.mobile_phone || "",
         department: user.department || "",
         role: user.role,
         secondary_roles: user.secondary_roles,
@@ -232,6 +234,7 @@ export interface UpdateUserRequest {
     name?: string;
     email?: string;
     phone?: string | null;
+    mobile_phone?: string | null;
     image_url?: string | null;
     role?: string;
     secondary_roles?: string[] | null;

@@ -39,7 +39,9 @@ const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   staff_id: z.string().nullable().optional(),
+  tax_id: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  mobile_phone: z.string().nullable().optional(),
   dob: z.string().nullable().optional(),
   date_joined: z.string().nullable().optional(),
   contract_type: z
@@ -84,7 +86,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
       name: user.name,
       email: user.email,
       staff_id: user.staff_id || null,
+      tax_id: user.tax_id || null,
       phone: user.phone || null,
+      mobile_phone: user.mobile_phone || null,
       dob: normalizeDateValue(user.dob),
       date_joined: normalizeDateValue(user.date_joined),
       contract_type: user.contract_type || null,
@@ -106,7 +110,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
         const payload = {
           name: values.name,
           staff_id: values.staff_id || null,
+          tax_id: values.tax_id || null,
           phone: values.phone || null,
+          mobile_phone: values.mobile_phone || null,
           dob: values.dob || null,
           date_joined: values.date_joined || null,
         };
@@ -164,7 +170,25 @@ export function ProfileForm({ user }: ProfileFormProps) {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel>Work Phone Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="+1234567890"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="mobile_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile Phone Number</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="+1234567890"
@@ -245,6 +269,24 @@ export function ProfileForm({ user }: ProfileFormProps) {
                   <FormControl>
                     <Input
                       placeholder="EMP001"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tax_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tax ID / TIN</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="TIN-12345"
                       {...field}
                       value={field.value || ""}
                     />

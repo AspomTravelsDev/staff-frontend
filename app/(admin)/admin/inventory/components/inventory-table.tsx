@@ -59,7 +59,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItem } from "@/lib/api/inventory";
+import { InventoryItem, InventoryAssignment } from "@/lib/api/inventory";
 
 import type { Employee } from "@/lib/api/employees";
 
@@ -101,6 +101,44 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
     } catch (error: any) {
       toast.dismiss("pdf-download");
       toast.error(error?.message || "Failed to fetch assignment details for PDF.");
+    }
+  };
+
+  const handleDownloadStaffAssetsForm = async (item: InventoryItem) => {
+    if (!item.assignedTo) return;
+    const emp = employees.find((e) => e.id === item.assignedTo);
+    const staffName = emp ? `${emp.firstName} ${emp.lastName}` : item.assignedTo;
+
+    // Find all items assigned to this staff member
+    const staffAssignedItems = items.filter(
+      (i) => i.status === "Assigned" && i.assignedTo === item.assignedTo
+    );
+
+    toast.loading(`Gathering asset declaration form for ${staffName}...`, { id: "staff-all-pdf" });
+    try {
+      const assignmentPromises = staffAssignedItems.map(async (i) => {
+        if (i.openAssignment) return i.openAssignment;
+        const itemAssignments = await getInventoryItemAssignments(i.id);
+        return itemAssignments[0] || null;
+      });
+
+      const fetchedAssignments = await Promise.all(assignmentPromises);
+      const validAssignments = fetchedAssignments.filter(
+        (a): a is InventoryAssignment => a !== null
+      );
+
+      toast.dismiss("staff-all-pdf");
+
+      if (validAssignments.length === 0) {
+        toast.error(`No active assignment records found for ${staffName}.`);
+        return;
+      }
+
+      const filename = `Asset_Declaration_${staffName.replace(/\s+/g, "_")}.pdf`;
+      await downloadAssetFormPdf(undefined, validAssignments, filename);
+    } catch (error: any) {
+      toast.dismiss("staff-all-pdf");
+      toast.error(error?.message || "Failed to download staff asset declaration PDF.");
     }
   };
 
@@ -322,8 +360,13 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                         <History className="mr-2 h-4 w-4" /> View History
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDownloadAssetForm(item)}>
-                        <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400" /> Download Asset Form (PDF)
+                        <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400" /> Download Single Device Form
                       </DropdownMenuItem>
+                      {item.status === "Assigned" && item.assignedTo && (
+                        <DropdownMenuItem onClick={() => handleDownloadStaffAssetsForm(item)}>
+                          <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400 font-semibold" /> Download All Assets for Staff
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive font-medium"

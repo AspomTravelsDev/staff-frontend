@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { getTodayBirthdays, getTodayAnniversaries } from "@/lib/api/employees";
+import { getMyLeaveStats } from "@/lib/api/leave";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
@@ -25,8 +26,6 @@ import {
 import { getClockInHistory } from "@/lib/api/clock-in";
 import { QuickLinkButton } from "@/components/dashboard/quick-link-button";
 import { AnonymousCommentDialog } from "@/components/dashboard/anonymous-comment-dialog";
-
-import { mockDashboardStats } from "@/lib/data/mock-dashboard";
 
 import { getAllAwards, getMyAwards } from "@/lib/api/awards";
 import { isLate } from "@/lib/utils/attendance";
@@ -56,6 +55,7 @@ export default async function Page() {
     todayAnniversaries,
     rolesMetadata,
     cheatsheetItems,
+    myLeaveStats,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getAllAwards().catch(() => []),
@@ -72,6 +72,20 @@ export default async function Page() {
     getTodayAnniversaries().catch(() => []),
     getRolesMetadataContract(),
     getRandomCheatsheetItems(2).catch(() => []),
+    getMyLeaveStats().catch(() => ({
+      totalLeaveDaysLeft: 20,
+      allowance: 20,
+      casualLeaveDays: 0,
+      emergencyLeaveTaken: 0,
+      sickLeaveTaken: 0,
+      sickInstances: 0,
+      unpaidLeaveTaken: 0,
+      studyLeaveTaken: 0,
+      maternityTaken: false,
+      totalDaysAbsent: 0,
+      isConfirmed: true,
+      tenureMonths: 12,
+    })),
   ]);
 
   const roleToDepartment = rolesMetadata.role_to_department;
@@ -159,12 +173,12 @@ export default async function Page() {
           cardColor={hasFlaggedProxy ? "red" : "blue"}
         />
         <StatsCard
-          title={mockDashboardStats.leaveDays.title}
+          title="Leave Days Remaining"
           icon={Calendar}
-          value={mockDashboardStats.leaveDays.value}
-          description={mockDashboardStats.leaveDays.description}
+          value={`${myLeaveStats.totalLeaveDaysLeft} Days`}
+          description={`Out of ${myLeaveStats.allowance || 20} annual days allowance`}
           variant="dashboard"
-          cardColor={mockDashboardStats.leaveDays.color}
+          cardColor={myLeaveStats.totalLeaveDaysLeft <= 5 ? "red" : "green"}
         />
         <StatsCard
           title="My Awards"

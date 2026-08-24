@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X } from "lucide-react";
+import { Search, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { InventoryItem } from "@/lib/api/inventory";
@@ -28,6 +28,7 @@ interface InventoryFiltersProps {
   onClear: () => void;
   items?: InventoryItem[];
   employees?: Employee[];
+  onExportStaffFormClick?: () => void;
 }
 
 export function InventoryFilters({
@@ -42,6 +43,7 @@ export function InventoryFilters({
   onClear,
   items = [],
   employees = [],
+  onExportStaffFormClick,
 }: InventoryFiltersProps) {
   const [localSearch, setLocalSearch] = useState(search);
 
@@ -168,6 +170,18 @@ export function InventoryFilters({
           </Button>
         )}
 
+        {onExportStaffFormClick && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportStaffFormClick}
+            className="h-9 gap-1.5"
+          >
+            <FileText className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+            <span>Export Staff Form</span>
+          </Button>
+        )}
+
         {items.length > 0 && (
           <TableExportButton
             data={items}
@@ -179,3 +193,4 @@ export function InventoryFilters({
     </div>
   );
 }
+

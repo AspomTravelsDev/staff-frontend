@@ -77,7 +77,9 @@ export interface ProfileFormValues {
     name: string;
     email?: string;
     staff_id: string | null;
+    tax_id?: string | null;
     phone: string | null;
+    mobile_phone?: string | null;
     dob: string | null;
     date_joined: string | null;
     contract_type?: string | null;
@@ -94,7 +96,9 @@ export async function updateProfile(data: ProfileFormValues) {
         const updateRes = await api.patch(`/api/users/${user.id}`, {
             name: data.name,
             staff_id: data.staff_id,
+            tax_id: data.tax_id,
             phone: data.phone,
+            mobile_phone: data.mobile_phone,
             dob: data.dob,
             date_joined: data.date_joined,
         });

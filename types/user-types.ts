@@ -151,6 +151,7 @@ export interface User {
     name: string;
     email: string;
     phone: string | null;
+    mobile_phone: string | null;
     image_url: string | null;
     role: UserRole;
     secondary_roles?: UserRole[] | null;
@@ -173,6 +174,7 @@ export interface LoginUser {
     name: string;
     email: string;
     phone: string | null;
+    mobile_phone: string | null;
     image_url: string | null;
     role: UserRole;
     secondary_roles?: UserRole[] | null;
