@@ -50,16 +50,6 @@ const formSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
-    if (
-      data.status === "Assigned" &&
-      (!data.assignedTo || data.assignedTo.trim() === "")
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Staff assignee is required when Assigned",
-        path: ["assignedTo"],
-      });
-    }
     if (data.status === "Repairs") {
       if (
         !data.technicianDetails?.name ||
@@ -173,9 +163,7 @@ export function ManageInventoryDialog({
         conditionDetails: values.conditionDetails,
         notes: values.notes,
       };
-      if (values.status === "Assigned") {
-        cleanPayload.assignedTo = values.assignedTo;
-      } else if (values.status === "Repairs") {
+      if (values.status === "Repairs") {
         cleanPayload.technicianDetails = {
           name: values.technicianDetails?.name || "",
           phone: values.technicianDetails?.phone || "",
@@ -286,9 +274,11 @@ export function ManageInventoryDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Storage">In Storage</SelectItem>
-                        <SelectItem value="Assigned">
-                          Assigned to Staff
-                        </SelectItem>
+                        {isEditing && initialData?.status === "Assigned" && (
+                          <SelectItem value="Assigned">
+                            Assigned to Staff
+                          </SelectItem>
+                        )}
                         <SelectItem value="Repairs">Out for Repairs</SelectItem>
                       </SelectContent>
                     </Select>
@@ -360,42 +350,13 @@ export function ManageInventoryDialog({
               )}
             />
 
-            {selectedStatus === "Assigned" && (
-              <FormField
-                control={form.control}
-                name="assignedTo"
-                render={({ field }) => (
-                  <FormItem className="bg-muted/30 border border-muted p-3 rounded-md">
-                    <FormLabel>Staff Assignee</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isLoadingEmployees || employees.length === 0}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select staff" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isLoadingEmployees ? (
-                          <div className="flex items-center justify-center p-2 text-muted-foreground">
-                            Loading...
-                          </div>
-                        ) : (
-                          employees.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.firstName} {employee.lastName} (
-                              {employee.department})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {selectedStatus === "Assigned" && isEditing && (
+              <p className="text-sm text-muted-foreground bg-muted/30 border border-muted p-3 rounded-md">
+                Custody is managed via the assignment acknowledgement flow. Use
+                &quot;Assign to Staff&quot; from the inventory actions menu to
+                start a new assignment, or move this device to Storage / Repairs
+                here.
+              </p>
             )}
 
             {selectedStatus === "Repairs" && (

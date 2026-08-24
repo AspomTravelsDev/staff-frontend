@@ -7,11 +7,15 @@ import { toast } from "sonner";
 import {
   updateInventoryItem,
   deleteInventoryItem,
+  getInventoryItemAssignments,
   InventoryItemPayload,
 } from "@/lib/api/inventory";
+import { downloadAssetFormPdf } from "@/components/inventory/asset-form-pdf-button";
+import { formatAssignmentStatus } from "@/lib/utils";
 import { ManageInventoryDialog } from "./inventory-dialog";
 import { InventoryHistoryDialog } from "./inventory-history-dialog";
 import { LogInspectionDialog } from "./log-inspection-dialog";
+import { InitiateAssignmentDialog } from "./initiate-assignment-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +53,7 @@ import {
   Phone,
   History,
   ClipboardCheck,
+  FileText,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -71,9 +76,33 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
   const [itemToInspect, setItemToInspect] = useState<InventoryItem | null>(
     null,
   );
+  const [itemToAssign, setItemToAssign] = useState<InventoryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { sortedData: sorted, sortConfig, handleSort } = useSort(items);
+
+  const handleDownloadAssetForm = async (item: InventoryItem) => {
+    try {
+      if (item.openAssignment) {
+        await downloadAssetFormPdf(item.openAssignment);
+        return;
+      }
+
+      toast.loading(`Fetching asset form for ${item.name}...`, { id: "pdf-download" });
+      const assignments = await getInventoryItemAssignments(item.id);
+      toast.dismiss("pdf-download");
+
+      if (assignments.length === 0) {
+        toast.error(`No assignment records found for ${item.name} yet.`);
+        return;
+      }
+
+      await downloadAssetFormPdf(assignments[0]);
+    } catch (error: any) {
+      toast.dismiss("pdf-download");
+      toast.error(error?.message || "Failed to fetch assignment details for PDF.");
+    }
+  };
 
   const SortIcon = ({ columnKey }: { columnKey: keyof InventoryItem }) => {
     if (sortConfig?.key !== columnKey)
@@ -209,9 +238,19 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusVariant(item.status)}>
-                    {item.status}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={getStatusVariant(item.status)}>
+                      {item.status}
+                    </Badge>
+                    {item.openAssignment && (
+                      <Badge variant="outline" className="w-fit text-xs">
+                        {formatAssignmentStatus(item.openAssignment.status)}
+                        {item.openAssignment.assignee?.name
+                          ? ` → ${item.openAssignment.assignee.name}`
+                          : ""}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {item.status === "Assigned" && item.assignedTo && (
@@ -244,9 +283,15 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                       </span>
                     </div>
                   )}
-                  {item.status === "Storage" && (
+                  {item.status === "Storage" && !item.openAssignment && (
                     <span className="text-xs text-muted-foreground italic">
                       In Storage
+                    </span>
+                  )}
+                  {item.status === "Storage" && item.openAssignment && (
+                    <span className="text-xs text-muted-foreground">
+                      Awaiting acknowledgement from{" "}
+                      {item.openAssignment.assignee?.name || "staff"}
                     </span>
                   )}
                 </TableCell>
@@ -263,9 +308,11 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                       <DropdownMenuItem onClick={() => setItemToEdit(item)}>
                         <Edit className="mr-2 h-4 w-4" /> Update Status
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setItemToEdit(item)}>
-                        <Replace className="mr-2 h-4 w-4" /> Reassign Device
-                      </DropdownMenuItem>
+                      {item.status === "Storage" && !item.openAssignment && (
+                        <DropdownMenuItem onClick={() => setItemToAssign(item)}>
+                          <Replace className="mr-2 h-4 w-4" /> Assign to Staff
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setItemToInspect(item)}>
                         <ClipboardCheck className="mr-2 h-4 w-4" /> Log
@@ -273,6 +320,9 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setItemHistory(item)}>
                         <History className="mr-2 h-4 w-4" /> View History
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownloadAssetForm(item)}>
+                        <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400" /> Download Asset Form (PDF)
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -308,6 +358,13 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         open={!!itemToInspect}
         onOpenChange={(open) => !open && setItemToInspect(null)}
         item={itemToInspect}
+      />
+
+      <InitiateAssignmentDialog
+        open={!!itemToAssign}
+        onOpenChange={(open) => !open && setItemToAssign(null)}
+        item={itemToAssign}
+        employees={employees}
       />
 
       <AlertDialog

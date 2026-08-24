@@ -319,10 +319,12 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "General requests pending review",
   },
   {
-    title: "Inventory",
+    title: "Company Inventory",
     url: "/admin/inventory",
     icon: ClipboardList,
     allowedRoles: ["admin", "it", "super", "compliance"],
+    badgeKey: "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance",
+    badgeLabel: "Pending asset assignment approvals",
   },
   // {
   //     title: "Visa Client List",
@@ -424,7 +426,7 @@ export const personalNav: NavItem[] = [
     url: "",
     icon: Settings2,
     items: [
-      { title: "My IT Assets", url: "/my/inventory" },
+      { title: "My IT Assets", url: "/my/inventory", badgeKey: "inventoryAssignmentsStaff", badgeLabel: "Devices awaiting your acknowledgement" },
       { title: "Report Issue", url: "/my/it-issue" },
       // { title: "Request Gadget", url: "/my/gadget-request" },
     ],

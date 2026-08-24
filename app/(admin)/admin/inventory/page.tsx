@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import {
   getInventory,
   getInventoryStats,
+  getInventoryOfficerQueue,
+  getInventoryComplianceQueue,
   InventoryStatus,
   InventoryConditionRating,
 } from "@/lib/api/inventory";
@@ -16,6 +18,7 @@ interface InventoryPageProps {
     category?: string;
     status?: string;
     condition_rating?: string;
+    tab?: string;
   }>;
 }
 
@@ -24,35 +27,47 @@ export default async function InventoryPage({
 }: InventoryPageProps) {
   const params = await searchParams;
   const user = await getCurrentUser();
-  // Only allow super, admin, or it roles
   if (!user) {
     redirect("/login");
   }
 
-  // Fetch data in parallel (including employees)
-  // Server-side filtering for category, status, and condition
-  const [inventoryData, stats, employees] = await Promise.all([
-    getInventory({
-      limit: 500,
-      category: params.category,
-      status: params.status as InventoryStatus,
-      conditionRating: params.condition_rating as InventoryConditionRating,
-    }),
-    getInventoryStats({
-      category: params.category,
-      status: params.status as InventoryStatus,
-      conditionRating: params.condition_rating as InventoryConditionRating,
-    }),
-    getAllEmployees(),
-  ]);
+  const role = user.role;
+
+  // Conditionally fetch queue data based on permissions
+  const officerQueuePromise = ["admin", "it", "super", "mp", "md"].includes(role)
+    ? getInventoryOfficerQueue()
+    : Promise.resolve([]);
+
+  const complianceQueuePromise = ["compliance", "super", "mp", "md"].includes(role)
+    ? getInventoryComplianceQueue()
+    : Promise.resolve([]);
+
+  // Fetch data in parallel (including employees & queues)
+  const [inventoryData, stats, employees, officerAssignments, complianceAssignments] =
+    await Promise.all([
+      getInventory({
+        limit: 500,
+        category: params.category,
+        status: params.status as InventoryStatus,
+        conditionRating: params.condition_rating as InventoryConditionRating,
+      }),
+      getInventoryStats({
+        category: params.category,
+        status: params.status as InventoryStatus,
+        conditionRating: params.condition_rating as InventoryConditionRating,
+      }),
+      getAllEmployees(),
+      officerQueuePromise,
+      complianceQueuePromise,
+    ]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Company Inventory</h1>
+          <h1 className="text-2xl font-bold">Company Inventory & Approvals</h1>
           <p className="text-sm text-muted-foreground">
-            Track company assets and equipment
+            Track company assets and process gadget assignment approvals
           </p>
         </div>
         <InventoryAddButton employees={employees} />
@@ -61,8 +76,12 @@ export default async function InventoryPage({
       <InventoryStatsCards stats={stats} />
 
       <InventoryClientManager
+        userRole={role}
         initialItems={inventoryData.items}
         employees={employees}
+        officerAssignments={officerAssignments}
+        complianceAssignments={complianceAssignments}
+        initialTab={params.tab || "inventory"}
         serverFilters={{
           category: params.category || "all",
           status: params.status || "all",
@@ -72,3 +91,4 @@ export default async function InventoryPage({
     </div>
   );
 }
+

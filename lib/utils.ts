@@ -52,3 +52,20 @@ export function getProxiedImageUrl(
 
   return `/api/proxy-file?url=${encodeURIComponent(url)}`;
 }
+
+export function formatAssignmentStatus(status?: string | null): string {
+  switch (status) {
+    case "pending_staff":
+      return "Awaiting staff";
+    case "pending_officer":
+      return "Awaiting officer";
+    case "pending_compliance":
+      return "Awaiting compliance";
+    case "completed":
+      return "Completed";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return status || "—";
+  }
+}

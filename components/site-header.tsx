@@ -77,9 +77,19 @@ export const SiteHeader = () => {
           label = "Pending leave requests";
         } else if (key === "myLeaveUpdates") {
           label = "Leave request updates";
+        } else if (key === "inventoryAssignmentsOfficer") {
+          label = "Asset assignment awaiting officer review";
+        } else if (key === "inventoryAssignmentsCompliance") {
+          label = "Asset assignment awaiting compliance audit";
         }
 
         let targetUrl = navItem.url || "#";
+        if (
+          key === "inventoryAssignmentsOfficer" ||
+          key === "inventoryAssignmentsCompliance"
+        ) {
+          targetUrl = "/admin/inventory?tab=pending-approvals";
+        }
         let displayCount = 0;
         let chatItems: { conversation_id: string; sender_name: string; count: number }[] | undefined = undefined;
 

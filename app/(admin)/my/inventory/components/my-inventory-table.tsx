@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { InventoryItem, getMyInventoryHistory } from "@/lib/api/inventory";
+import { InventoryItem, InventoryAssignment, getMyInventoryHistory } from "@/lib/api/inventory";
+import { formatAssignmentStatus } from "@/lib/utils";
+import { AssetFormPdfButton } from "@/components/inventory/asset-form-pdf-button";
 import { ReportIssueDialog } from "./report-issue-dialog";
 import { InventoryHistoryDialog } from "../../../admin/inventory/components/inventory-history-dialog";
 import { TableExportButton } from "@/components/ui/table-export-button";
@@ -36,9 +38,10 @@ import {
 
 interface MyInventoryTableProps {
   items: InventoryItem[];
+  assignments?: InventoryAssignment[];
 }
 
-export function MyInventoryTable({ items }: MyInventoryTableProps) {
+export function MyInventoryTable({ items, assignments = [] }: MyInventoryTableProps) {
   const [selectedIssueItem, setSelectedIssueItem] =
     useState<InventoryItem | null>(null);
   const [itemHistory, setItemHistory] = useState<InventoryItem | null>(null);
@@ -136,13 +139,22 @@ export function MyInventoryTable({ items }: MyInventoryTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      item.status === "Repairs" ? "destructive" : "default"
-                    }
-                  >
-                    {item.status}
-                  </Badge>
+                  <div className="flex flex-col gap-1 items-start">
+                    <Badge
+                      variant={
+                        item.status === "Repairs" ? "destructive" : "default"
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                    {item.openAssignment &&
+                      item.openAssignment.status !== "completed" && (
+                        <Badge variant="outline" className="text-xs">
+                          Form:{" "}
+                          {formatAssignmentStatus(item.openAssignment.status)}
+                        </Badge>
+                      )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -158,6 +170,23 @@ export function MyInventoryTable({ items }: MyInventoryTableProps) {
                       <DropdownMenuItem onClick={() => setItemHistory(item)}>
                         <History className="mr-2 h-4 w-4" /> View History
                       </DropdownMenuItem>
+
+                      {(() => {
+                        const matchedAssignment =
+                          item.openAssignment ||
+                          assignments.find((a) => a.inventoryItemId === item.id);
+                        if (!matchedAssignment) return null;
+                        return (
+                          <div className="px-1 py-1">
+                            <AssetFormPdfButton
+                              assignment={matchedAssignment}
+                              label="Download Asset PDF"
+                              variant="ghost"
+                              className="w-full justify-start text-xs h-8 px-2 font-normal"
+                            />
+                          </div>
+                        );
+                      })()}
 
                       <DropdownMenuSeparator />
 
