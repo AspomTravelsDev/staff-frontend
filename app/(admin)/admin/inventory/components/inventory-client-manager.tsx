@@ -7,10 +7,13 @@ import { Employee } from "@/lib/api/employees";
 import { InventoryFilters } from "./inventory-filters";
 import { InventoryTable } from "./inventory-table";
 import { InventoryPendingApprovals } from "./inventory-pending-approvals";
+import { ClearanceQueueTable } from "./clearance-queue-table";
+import { InitiateFullClearanceDialog } from "./initiate-full-clearance-dialog";
 import { ExportStaffAssetDialog } from "./export-staff-asset-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Package, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, Clock, RotateCcw, ShieldAlert } from "lucide-react";
 
 interface InventoryClientManagerProps {
   userRole: string;
@@ -18,6 +21,8 @@ interface InventoryClientManagerProps {
   employees: Employee[];
   officerAssignments: InventoryAssignment[];
   complianceAssignments: InventoryAssignment[];
+  clearanceOfficerQueue?: InventoryAssignment[];
+  clearanceComplianceQueue?: InventoryAssignment[];
   initialTab?: string;
   serverFilters: {
     category: string;
@@ -32,6 +37,8 @@ export function InventoryClientManager({
   employees,
   officerAssignments,
   complianceAssignments,
+  clearanceOfficerQueue = [],
+  clearanceComplianceQueue = [],
   initialTab = "inventory",
   serverFilters,
 }: InventoryClientManagerProps) {
@@ -40,6 +47,7 @@ export function InventoryClientManager({
   const searchParams = useSearchParams();
 
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isFullClearanceDialogOpen, setIsFullClearanceDialogOpen] = useState(false);
 
   const isSuper = ["super", "mp", "md"].includes(userRole);
   const isOfficer = isSuper || ["admin", "it"].includes(userRole);
@@ -51,7 +59,13 @@ export function InventoryClientManager({
     ? officerAssignments.length + complianceAssignments.length
     : pendingOfficerCount + pendingComplianceCount;
 
-  // Default to pending-approvals if user has pending approval action items and no explicit tab param
+  const activeClearanceQueue = isCompliance
+    ? clearanceComplianceQueue
+    : clearanceOfficerQueue;
+  const totalClearanceCount = isSuper
+    ? clearanceOfficerQueue.length + clearanceComplianceQueue.length
+    : activeClearanceQueue.length;
+
   const urlTab = searchParams.get("tab");
   const activeTab = urlTab || (totalPendingCount > 0 ? "pending-approvals" : initialTab || "inventory");
 
@@ -98,7 +112,7 @@ export function InventoryClientManager({
   return (
     <>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             <span>Inventory Assets</span>
@@ -113,6 +127,20 @@ export function InventoryClientManager({
             {totalPendingCount > 0 ? (
               <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
                 {totalPendingCount}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                0
+              </Badge>
+            )}
+          </TabsTrigger>
+
+          <TabsTrigger value="clearance" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4 text-blue-500" />
+            <span>Gadget Clearance</span>
+            {totalClearanceCount > 0 ? (
+              <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                {totalClearanceCount}
               </Badge>
             ) : (
               <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
@@ -149,6 +177,33 @@ export function InventoryClientManager({
             complianceAssignments={complianceAssignments}
           />
         </TabsContent>
+
+        <TabsContent value="clearance" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Gadget Clearance & Returns</h3>
+              <p className="text-sm text-muted-foreground">
+                Inspect returned devices and audit staff offboarding clearance
+              </p>
+            </div>
+            {isOfficer && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsFullClearanceDialogOpen(true)}
+              >
+                <ShieldAlert className="mr-2 h-4 w-4" /> Initiate Full Offboarding Clearance
+              </Button>
+            )}
+          </div>
+
+          <ClearanceQueueTable
+            assignments={
+              isCompliance ? clearanceComplianceQueue : clearanceOfficerQueue
+            }
+            mode={isCompliance ? "compliance" : "officer"}
+          />
+        </TabsContent>
       </Tabs>
 
       <ExportStaffAssetDialog
@@ -156,6 +211,12 @@ export function InventoryClientManager({
         onOpenChange={setIsExportDialogOpen}
         employees={employees}
         items={initialItems}
+      />
+
+      <InitiateFullClearanceDialog
+        open={isFullClearanceDialogOpen}
+        onOpenChange={setIsFullClearanceDialogOpen}
+        employees={employees}
       />
     </>
   );

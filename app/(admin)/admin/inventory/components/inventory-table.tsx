@@ -16,6 +16,8 @@ import { ManageInventoryDialog } from "./inventory-dialog";
 import { InventoryHistoryDialog } from "./inventory-history-dialog";
 import { LogInspectionDialog } from "./log-inspection-dialog";
 import { InitiateAssignmentDialog } from "./initiate-assignment-dialog";
+import { InitiateFullClearanceDialog } from "./initiate-full-clearance-dialog";
+import { ReturnDeviceDialog } from "@/app/(admin)/my/inventory/components/return-device-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +56,8 @@ import {
   History,
   ClipboardCheck,
   FileText,
+  RotateCcw,
+  ShieldAlert,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -77,6 +81,8 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
     null,
   );
   const [itemToAssign, setItemToAssign] = useState<InventoryItem | null>(null);
+  const [itemToClear, setItemToClear] = useState<InventoryItem | null>(null);
+  const [fullClearanceEmployeeId, setFullClearanceEmployeeId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { sortedData: sorted, sortConfig, handleSort } = useSort(items);
@@ -351,6 +357,20 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                           <Replace className="mr-2 h-4 w-4" /> Assign to Staff
                         </DropdownMenuItem>
                       )}
+                      {item.status === "Assigned" && (
+                        <>
+                          <DropdownMenuItem onClick={() => setItemToClear(item)}>
+                            <RotateCcw className="mr-2 h-4 w-4 text-blue-500" /> Initiate Device Clearance
+                          </DropdownMenuItem>
+                          {item.assignedTo && (
+                            <DropdownMenuItem
+                              onClick={() => setFullClearanceEmployeeId(item.assignedTo!)}
+                            >
+                              <ShieldAlert className="mr-2 h-4 w-4 text-amber-500" /> Initiate Full Staff Clearance
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setItemToInspect(item)}>
                         <ClipboardCheck className="mr-2 h-4 w-4" /> Log
@@ -408,6 +428,19 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         onOpenChange={(open) => !open && setItemToAssign(null)}
         item={itemToAssign}
         employees={employees}
+      />
+
+      <ReturnDeviceDialog
+        open={!!itemToClear}
+        onOpenChange={(open) => !open && setItemToClear(null)}
+        item={itemToClear}
+      />
+
+      <InitiateFullClearanceDialog
+        open={!!fullClearanceEmployeeId}
+        onOpenChange={(open) => !open && setFullClearanceEmployeeId(null)}
+        employees={employees}
+        initialStaffId={fullClearanceEmployeeId || undefined}
       />
 
       <AlertDialog

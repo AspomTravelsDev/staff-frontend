@@ -381,13 +381,13 @@ export function StaffProfileCanvas({
         const line3Text = "For any assistance, Whatsapp/Call me on";
         const line4Text = displayPhone ? displayPhone : "[Phone Number]";
 
-        ctx.font = "bold 36px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        ctx.font = "bold 42px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
         ctx.fillText(line1Text, CENTER, 700);
 
-        ctx.font = "bold 40px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        ctx.font = "bold 42px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
         ctx.fillText(line2Text, CENTER, 760);
 
-        ctx.font = "bold 36px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        ctx.font = "bold 42px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
         ctx.fillText(line3Text, CENTER, 822);
 
         ctx.font = "bold 40px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";

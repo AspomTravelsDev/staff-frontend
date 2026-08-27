@@ -5,6 +5,8 @@ import {
   getInventoryStats,
   getInventoryOfficerQueue,
   getInventoryComplianceQueue,
+  getClearanceOfficerQueue,
+  getClearanceComplianceQueue,
   InventoryStatus,
   InventoryConditionRating,
 } from "@/lib/api/inventory";
@@ -42,24 +44,41 @@ export default async function InventoryPage({
     ? getInventoryComplianceQueue()
     : Promise.resolve([]);
 
+  const clearanceOfficerPromise = ["admin", "it", "super", "mp", "md"].includes(role)
+    ? getClearanceOfficerQueue()
+    : Promise.resolve([]);
+
+  const clearanceCompliancePromise = ["compliance", "super", "mp", "md"].includes(role)
+    ? getClearanceComplianceQueue()
+    : Promise.resolve([]);
+
   // Fetch data in parallel (including employees & queues)
-  const [inventoryData, stats, employees, officerAssignments, complianceAssignments] =
-    await Promise.all([
-      getInventory({
-        limit: 500,
-        category: params.category,
-        status: params.status as InventoryStatus,
-        conditionRating: params.condition_rating as InventoryConditionRating,
-      }),
-      getInventoryStats({
-        category: params.category,
-        status: params.status as InventoryStatus,
-        conditionRating: params.condition_rating as InventoryConditionRating,
-      }),
-      getAllEmployees(),
-      officerQueuePromise,
-      complianceQueuePromise,
-    ]);
+  const [
+    inventoryData,
+    stats,
+    employees,
+    officerAssignments,
+    complianceAssignments,
+    clearanceOfficerQueue,
+    clearanceComplianceQueue,
+  ] = await Promise.all([
+    getInventory({
+      limit: 500,
+      category: params.category,
+      status: params.status as InventoryStatus,
+      conditionRating: params.condition_rating as InventoryConditionRating,
+    }),
+    getInventoryStats({
+      category: params.category,
+      status: params.status as InventoryStatus,
+      conditionRating: params.condition_rating as InventoryConditionRating,
+    }),
+    getAllEmployees(),
+    officerQueuePromise,
+    complianceQueuePromise,
+    clearanceOfficerPromise,
+    clearanceCompliancePromise,
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
@@ -67,7 +86,7 @@ export default async function InventoryPage({
         <div>
           <h1 className="text-2xl font-bold">Company Inventory & Approvals</h1>
           <p className="text-sm text-muted-foreground">
-            Track company assets and process gadget assignment approvals
+            Track company assets, process gadget assignments, and manage offboarding clearance
           </p>
         </div>
         <InventoryAddButton employees={employees} />
@@ -81,6 +100,8 @@ export default async function InventoryPage({
         employees={employees}
         officerAssignments={officerAssignments}
         complianceAssignments={complianceAssignments}
+        clearanceOfficerQueue={clearanceOfficerQueue}
+        clearanceComplianceQueue={clearanceComplianceQueue}
         initialTab={params.tab || "inventory"}
         serverFilters={{
           category: params.category || "all",

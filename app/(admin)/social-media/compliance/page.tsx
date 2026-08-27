@@ -117,7 +117,7 @@ export default function AdvertisingCompliancePage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">AI Advertising & Graphic Compliance Checker</h1>
         <p className="text-muted-foreground">
-          Audit promotional graphics, flyers, and ad captions for misleading claims, false promises, copywriting improvements, and typos.
+          Audit promotional graphics, flyers, and ad captions for regulatory compliance, misleading/unclear claims, misinformation, false guarantees, and missing disclaimers.
         </p>
       </div>
 
@@ -204,7 +204,7 @@ export default function AdvertisingCompliancePage() {
               </div>
               <h3 className="text-base font-semibold">Ready for Compliance Audit</h3>
               <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                Upload a marketing graphic or enter ad copy on the left to scan for absolute guarantees, false claims, copywriting enhancements, and legibility ratings.
+                Upload a marketing graphic or enter ad copy on the left to scan for regulatory compliance, unclear claims, misinformation, absolute guarantees, and missing disclaimers.
               </p>
             </Card>
           )}
@@ -214,7 +214,7 @@ export default function AdvertisingCompliancePage() {
               <Loader2 className="size-10 text-primary animate-spin mb-4" />
               <h3 className="text-base font-semibold">Scanning Marketing Graphic & Text...</h3>
               <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                Gemini Vision AI is extracting text, checking advertising regulations, evaluating brand claims, and generating compliant rewordings.
+                Gemini Vision AI is extracting text, checking advertising regulations, catching unclear claims, detecting misinformation, and generating compliant rewordings.
               </p>
             </Card>
           )}
@@ -274,10 +274,10 @@ export default function AdvertisingCompliancePage() {
                     <Card className="p-6 text-center">
                       <CheckCircle2 className="size-8 text-emerald-500 mx-auto mb-2" />
                       <h4 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                        No Misleading or Absolute Claims Detected!
+                        No Misleading or Non-Compliant Claims Detected!
                       </h4>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Your ad copy and graphic statements comply with travel advertising guidelines.
+                        Your ad copy and graphic statements comply with travel advertising and legal guidelines.
                       </p>
                     </Card>
                   ) : (
@@ -285,9 +285,16 @@ export default function AdvertisingCompliancePage() {
                       <Card key={idx} className="border-l-4 border-l-red-500 overflow-hidden">
                         <CardHeader className="p-3 bg-red-500/5 border-b pb-2">
                           <div className="flex items-center justify-between">
-                            <Badge variant="destructive" className="text-[10px]">
-                              {claim.risk_level} RISK CLAIM
-                            </Badge>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge variant="destructive" className="text-[10px]">
+                                {claim.risk_level} RISK
+                              </Badge>
+                              {claim.category && (
+                                <Badge variant="outline" className="text-[10px] bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300 font-mono">
+                                  {claim.category.replace(/_/g, " ")}
+                                </Badge>
+                              )}
+                            </div>
                             <span className="text-[11px] text-muted-foreground font-medium">Issue #{idx + 1}</span>
                           </div>
                         </CardHeader>

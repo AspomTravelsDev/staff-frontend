@@ -5,6 +5,7 @@ import { InventoryItem, InventoryAssignment, getMyInventoryHistory } from "@/lib
 import { formatAssignmentStatus } from "@/lib/utils";
 import { AssetFormPdfButton } from "@/components/inventory/asset-form-pdf-button";
 import { ReportIssueDialog } from "./report-issue-dialog";
+import { ReturnDeviceDialog } from "./return-device-dialog";
 import { InventoryHistoryDialog } from "../../../admin/inventory/components/inventory-history-dialog";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { format } from "date-fns";
@@ -30,6 +31,7 @@ import {
   MoreHorizontal,
   History,
   Wrench,
+  RotateCcw,
   Server,
   Smartphone,
   Laptop,
@@ -43,6 +45,8 @@ interface MyInventoryTableProps {
 
 export function MyInventoryTable({ items, assignments = [] }: MyInventoryTableProps) {
   const [selectedIssueItem, setSelectedIssueItem] =
+    useState<InventoryItem | null>(null);
+  const [selectedReturnItem, setSelectedReturnItem] =
     useState<InventoryItem | null>(null);
   const [itemHistory, setItemHistory] = useState<InventoryItem | null>(null);
 
@@ -196,6 +200,12 @@ export function MyInventoryTable({ items, assignments = [] }: MyInventoryTablePr
                         <Wrench className="mr-2 h-4 w-4 text-amber-500" /> Log
                         Observation
                       </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onClick={() => setSelectedReturnItem(item)}
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4 text-blue-500" /> Return Device (Clearance)
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -209,6 +219,12 @@ export function MyInventoryTable({ items, assignments = [] }: MyInventoryTablePr
         open={!!selectedIssueItem}
         onOpenChange={(open: boolean) => !open && setSelectedIssueItem(null)}
         item={selectedIssueItem}
+      />
+
+      <ReturnDeviceDialog
+        open={!!selectedReturnItem}
+        onOpenChange={(open: boolean) => !open && setSelectedReturnItem(null)}
+        item={selectedReturnItem}
       />
 
       <InventoryHistoryDialog

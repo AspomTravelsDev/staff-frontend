@@ -69,8 +69,13 @@ export type InventoryAssignmentStatus =
     | "pending_staff"
     | "pending_officer"
     | "pending_compliance"
+    | "return_pending_inspection"
+    | "return_pending_compliance"
     | "completed"
+    | "cleared"
     | "cancelled";
+
+export type InventoryAssignmentType = "assignment" | "single_return" | "full_clearance";
 
 export type InventoryAssignmentDecision = "approved" | "rejected";
 
@@ -84,6 +89,8 @@ export interface InventoryAssignmentUser {
 export interface InventoryAssignment {
     id: string;
     inventoryItemId: string;
+    type?: InventoryAssignmentType;
+    clearanceBatchId?: string;
     status: InventoryAssignmentStatus;
     initiateNotes?: string;
     staffConditionRating?: InventoryConditionRating;
@@ -91,6 +98,9 @@ export interface InventoryAssignment {
     staffNotes?: string;
     staffDecision?: InventoryAssignmentDecision;
     staffDecidedAt?: string;
+    returnConditionRating?: InventoryConditionRating | "Broken" | "Lost";
+    returnConditionDetails?: string;
+    damageAssessmentFee?: number;
     officerNotes?: string;
     officerDecision?: InventoryAssignmentDecision;
     officerDecidedAt?: string;
@@ -432,6 +442,8 @@ function mapAssignment(a: any): InventoryAssignment {
     return {
         id: a.id.toString(),
         inventoryItemId: a.inventory_item_id?.toString(),
+        type: a.type ?? "assignment",
+        clearanceBatchId: a.clearance_batch_id ?? undefined,
         status: a.status,
         initiateNotes: a.initiate_notes ?? undefined,
         staffConditionRating: a.staff_condition_rating ?? undefined,
@@ -439,6 +451,9 @@ function mapAssignment(a: any): InventoryAssignment {
         staffNotes: a.staff_notes ?? undefined,
         staffDecision: a.staff_decision ?? undefined,
         staffDecidedAt: a.staff_decided_at ?? undefined,
+        returnConditionRating: a.return_condition_rating ?? undefined,
+        returnConditionDetails: a.return_condition_details ?? undefined,
+        damageAssessmentFee: a.damage_assessment_fee ? parseFloat(a.damage_assessment_fee) : 0,
         officerNotes: a.officer_notes ?? undefined,
         officerDecision: a.officer_decision ?? undefined,
         officerDecidedAt: a.officer_decided_at ?? undefined,
@@ -585,5 +600,91 @@ export async function getInventoryItemAssignments(itemId: string): Promise<Inven
         console.error("Error fetching item assignments", error);
         return [];
     }
+}
+
+export async function initiateSingleReturn(
+    itemId: string,
+    notes?: string
+): Promise<InventoryAssignment> {
+    const response = await api.post<any>(`/api/my-inventory/assignments/${itemId}/return`, {
+        notes,
+    });
+    if (!response.success) {
+        throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate device return");
+    }
+    return mapAssignment(response.data.data);
+}
+
+export async function initiateFullClearance(
+    assigneeId: string,
+    notes?: string
+): Promise<InventoryAssignment[]> {
+    const response = await api.post<any>("/api/admin/inventory/clearance/full", {
+        assignee_id: assigneeId,
+        notes,
+    });
+    if (!response.success) {
+        throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate full clearance");
+    }
+    return (response.data.data || []).map(mapAssignment);
+}
+
+export async function getClearanceOfficerQueue(): Promise<InventoryAssignment[]> {
+    try {
+        const response = await api.get<any>("/api/admin/inventory/clearance/officer-queue");
+        if (!response.success) throw new Error("Failed to fetch clearance officer queue");
+        return (response.data.data || []).map(mapAssignment);
+    } catch (error) {
+        console.error("Error fetching clearance officer queue", error);
+        return [];
+    }
+}
+
+export async function inspectClearanceReturn(
+    id: string,
+    payload: {
+        decision: InventoryAssignmentDecision;
+        returnConditionRating: string;
+        returnConditionDetails?: string;
+        damageAssessmentFee?: number;
+        notes?: string;
+    }
+): Promise<InventoryAssignment> {
+    const response = await api.patch<any>(`/api/admin/inventory/clearance/${id}/inspect`, {
+        decision: payload.decision,
+        return_condition_rating: payload.returnConditionRating,
+        return_condition_details: payload.returnConditionDetails,
+        damage_assessment_fee: payload.damageAssessmentFee ?? 0,
+        notes: payload.notes,
+    });
+    if (!response.success) {
+        throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit clearance inspection");
+    }
+    return mapAssignment(response.data.data);
+}
+
+export async function getClearanceComplianceQueue(): Promise<InventoryAssignment[]> {
+    try {
+        const response = await api.get<any>("/api/admin/inventory/clearance/compliance-queue");
+        if (!response.success) throw new Error("Failed to fetch clearance compliance queue");
+        return (response.data.data || []).map(mapAssignment);
+    } catch (error) {
+        console.error("Error fetching clearance compliance queue", error);
+        return [];
+    }
+}
+
+export async function approveClearanceCompliance(
+    id: string,
+    payload: { decision: InventoryAssignmentDecision; notes?: string }
+): Promise<InventoryAssignment> {
+    const response = await api.patch<any>(`/api/admin/inventory/clearance/${id}/compliance-decision`, {
+        decision: payload.decision,
+        notes: payload.notes,
+    });
+    if (!response.success) {
+        throw new Error((response.error as any)?.message || response.error?.error || "Failed to approve clearance compliance");
+    }
+    return mapAssignment(response.data.data);
 }
 

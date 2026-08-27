@@ -4,6 +4,7 @@ import { api } from "./client";
 
 export interface FlaggedClaim {
   original_text: string;
+  category?: string;
   risk_level: "HIGH" | "MEDIUM" | "LOW";
   reason: string;
   suggested_rewording: string;
