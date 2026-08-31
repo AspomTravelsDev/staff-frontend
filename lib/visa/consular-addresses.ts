@@ -22,7 +22,7 @@ export const CONSULAR_ADDRESSES: Record<string, ConsularAddress> = {
   },
   canada_summer: {
     countryCode: "canada_summer",
-    countryName: "Canada (Summer Season)",
+    countryName: "Canada",
     consularTitle: "The Consular",
     embassyName: "Canadian Deputy High Commission",
     addressLines: [
@@ -35,7 +35,7 @@ export const CONSULAR_ADDRESSES: Record<string, ConsularAddress> = {
   },
   canada_winter: {
     countryCode: "canada_winter",
-    countryName: "Canada (Winter / Festive)",
+    countryName: "Canada",
     consularTitle: "The Consular",
     embassyName: "Canadian Deputy High Commission",
     addressLines: [

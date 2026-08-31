@@ -80,6 +80,21 @@ export interface UnifiedVisaProfileData {
   sponsor_phone: string;
   sponsor_email: string;
   relationship_to_applicant: string;
+
+  // 8. Travel Budget Details
+  home_currency?: string;
+  dest_currency?: string;
+  exchange_rate?: number;
+  budget_items?: TravelBudgetItem[];
+  funding_sources?: string[];
+}
+
+export interface TravelBudgetItem {
+  id: string;
+  category: string;
+  amount_home: number | string;
+  amount_dest: number | string;
+  is_free?: boolean;
 }
 
 // Helper to format ordinal dates
@@ -148,6 +163,11 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
   const sponsorAddressHeader = formatAddressWithLineBreaks(rawSponsorAddress);
   const sponsorAddressInline = rawSponsorAddress.replace(/[\r\n]+/g, ", ").replace(/,\s*,/g, ", ").trim();
 
+  const cleanDestinationCountry = (profile.destination_country || "Canada")
+    .replace(/\s*\([^)]*\)/g, "")
+    .trim();
+  const cleanDestinationCountryUpper = cleanDestinationCountry.toUpperCase();
+
   // 1. Travel Itinerary Payload
   const familyNarrative = profile.familyMembers.length > 0
     ? ` together with my family: ${profile.familyMembers.map((m) => `${m.relationship ? m.relationship.toLowerCase() + " " : ""}${m.name} (${m.passport_number})`).join(" and ")}`
@@ -157,8 +177,8 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     applicant_address: formattedApplicantAddress,
     letter_date: formattedLetterDate,
     consular_address: profile.consular_address,
-    destination_country_upper: profile.destination_country.toUpperCase(),
-    destination_country: profile.destination_country,
+    destination_country_upper: cleanDestinationCountryUpper,
+    destination_country: cleanDestinationCountry,
     applicant_name: profile.applicant_name,
     applicant_name_upper: applicantNameUpper,
     applicant_passport: profile.applicant_passport,
@@ -208,7 +228,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
         company_name: profile.company_name,
         job_title: profile.job_title,
         employment_start_date: formatDateWithOrdinal(profile.employment_start_date),
-        destination_country: profile.destination_country,
+        destination_country: cleanDestinationCountry,
         travel_start_date: formattedArrivalDate,
         travel_end_date: formattedDepartureDate,
         pronoun_subject: pronounSubject,
@@ -230,7 +250,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
         business_nature: profile.business_nature,
         registration_number: profile.registration_number,
         registration_phrase: profile.registration_number && profile.registration_number.trim() ? `, registered in Nigeria under ${profile.registration_number.trim()}.` : `, registered in Nigeria.`,
-        destination_country: profile.destination_country,
+        destination_country: cleanDestinationCountry,
         travel_start_date: formattedArrivalDate,
         travel_end_date: formattedDepartureDate,
         pronoun_subject: pronounSubject,
@@ -252,18 +272,72 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
       };
 
   // 3. Explanation Letter Payload
+  const spouseMember = profile.familyMembers?.find(
+    (m) => m.relationship.toLowerCase().includes("spouse") || m.relationship.toLowerCase().includes("husband") || m.relationship.toLowerCase().includes("wife")
+  );
+  const companionNarrative = spouseMember
+    ? ` alongside my ${spouseMember.relationship.toLowerCase()}, ${spouseMember.name}, holder of ${profile.nationality || "Nigerian"} passport number ${spouseMember.passport_number}`
+    : profile.familyMembers && profile.familyMembers.length > 0
+    ? ` alongside my family members`
+    : "";
+
+  const companionShortRef = spouseMember
+    ? ` together with my ${spouseMember.relationship.toLowerCase()}`
+    : profile.familyMembers && profile.familyMembers.length > 0
+    ? ` together with my family`
+    : "";
+
+  const businessBackgroundNarrative = profile.employment_type === "self_employed"
+    ? `I am the ${profile.signatory_designation || "Managing Director"} of ${profile.business_name || profile.company_name || "my business"}. ${profile.business_name || "My company"} is a ${profile.business_nature || "commercial enterprise"} based in Nigeria, dedicated to providing high-quality services to a diverse clientele. With a strong focus on quality, style, and customer satisfaction, our business continues to build its reputation as a trusted brand.`
+    : `I am currently employed as ${profile.job_title || "a professional"} at ${profile.company_name || "my organization"}. My company operates in ${profile.business_nature || "commercial services"}, providing high-quality solutions to client organizations.`;
+
+  const jobDutiesNarrative = profile.additional_notes || (
+    profile.employment_type === "self_employed"
+      ? `As the ${profile.signatory_designation || "Managing Director"}, I am responsible for overseeing the overall management and day-to-day operations of the business, ensuring that all aspects run efficiently and consistently meet high standards. I provide strategic direction, supervise staff and service delivery, monitor business performance, and ensure that our clients receive a professional experience. I am also actively involved in business development, brand positioning, marketing initiatives, and identifying opportunities for expansion.`
+      : `In my role as ${profile.job_title || "Staff"}, I direct operational activities and process optimization initiatives. I manage core business deliverables, monitor resource allocation, and ensure seamless alignment between daily team execution and organizational objectives.`
+  );
+
+  const attractionsList = profile.activities_highlights || `major cultural, historical, shopping, and recreational locations in ${cleanDestinationCountry}`;
+
+  const isSelfSponsored = !profile.sponsor_name || profile.sponsor_name === profile.applicant_name;
+  const financialSponsorshipNarrative = isSelfSponsored
+    ? `I will fully self-sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. My financial resources are held at ${profile.bank_name || "my financial institution"} (Account ending ${profile.account_number_ending || "XXXX"}), with an available closing balance of ${profile.closing_balance || "adequate funds"}. Source of funds: ${profile.source_of_funds || "business operations and earnings"}. Enclosed herewith is my personal bank statement as evidence of financial capacity.`
+    : `My ${profile.relationship_to_applicant || "sponsor"}, ${profile.sponsor_name}, holder of ID/Passport number ${profile.sponsor_id_number || "N/A"}, is the ${profile.sponsor_designation || "Executive"} of ${profile.sponsor_business_name || "their organization"}. ${profile.sponsor_name} will fully sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. To demonstrate our financial capacity to undertake this trip, we have enclosed their bank statement, together with relevant supporting business documents, as evidence of ability to fully finance all expenses.`;
+
+  const travelHistoryNarrative = `I have travelled internationally in the past, during which I complied fully with all immigration laws and regulations. All previous travel was conducted with complete respect for visa validity and departure timelines.`;
+
   const explanationPayload = {
+    applicant_address: formattedApplicantAddress,
+    letter_date: formattedLetterDate,
+    consular_address: profile.consular_address,
     document_date: formattedLetterDate,
     embassy_title: `The Visa Officer, ${profile.embassy_name}`,
+    destination_country_upper: cleanDestinationCountryUpper,
+    destination_country: cleanDestinationCountry,
+    home_country: profile.nationality || "Nigeria",
+    nationality: profile.nationality || "Nigerian",
     applicant_name: profile.applicant_name,
     applicant_name_upper: applicantNameUpper,
+    applicant_passport: profile.applicant_passport,
     passport_number: profile.applicant_passport,
+    companion_narrative: companionNarrative,
+    companion_short_ref: companionShortRef,
+    purpose_of_visit: profile.purpose_of_visit || "tourism, leisure, and vacation",
+    travel_start_date: formattedArrivalDate,
+    travel_end_date: formattedDepartureDate,
+    business_background_narrative: businessBackgroundNarrative,
+    job_duties_narrative: jobDutiesNarrative,
+    attractions_list: attractionsList,
+    accommodation_name: profile.accommodation_name,
+    accommodation_address: profile.accommodation_address,
+    financial_sponsorship_narrative: financialSponsorshipNarrative,
+    travel_history_narrative: travelHistoryNarrative,
     sponsor_name: profile.sponsor_name ? profile.sponsor_name : `${profile.applicant_name} (Self-Sponsored)`,
     bank_name: profile.bank_name,
     account_number_ending: profile.account_number_ending,
     closing_balance: profile.closing_balance,
     source_of_funds: profile.source_of_funds,
-    home_ties_summary: profile.home_ties_summary,
+    home_ties_summary: profile.home_ties_summary || "I run an established and operational business in my home country, and my family structure is firmly rooted here.",
     additional_notes: profile.additional_notes,
   };
 
@@ -290,7 +364,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     sponsor_email: profile.sponsor_email || "",
     relationship_to_applicant: profile.relationship_to_applicant,
     home_country: profile.nationality,
-    destination_country: profile.destination_country,
+    destination_country: cleanDestinationCountry,
     travel_start_date: formattedArrivalDate,
     travel_end_date: formattedDepartureDate,
   };
@@ -323,12 +397,76 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     applicant_name: profile.applicant_name,
     nationality: profile.nationality || "Nigeria",
     applicant_passport: profile.applicant_passport,
-    destination_country: profile.destination_country,
+    destination_country: cleanDestinationCountry,
     employment_narrative: employmentNarrative,
     purpose_of_visit: profile.purpose_of_visit,
     travel_start_date: formattedArrivalDate,
     travel_end_date: formattedDepartureDate,
     accommodation_full: `${profile.accommodation_name}, ${profile.accommodation_address}`,
+  };
+
+  // 7. Travel Budget Payload
+  const homeCurrency = profile.home_currency || "NGN";
+  const destCurrency = profile.dest_currency || "CAD";
+  const exchangeRate = profile.exchange_rate || 963.93;
+
+  const rawBudgetItems = profile.budget_items || [];
+
+  let totalHomeSum = 0;
+  let totalDestSum = 0;
+
+  const formattedExpenses = rawBudgetItems.map((item) => {
+    const isFree = item.is_free || String(item.amount_home).toUpperCase() === "FREE" || String(item.amount_dest).toUpperCase() === "FREE";
+    if (isFree) {
+      return {
+        category: item.category,
+        amount_home: "FREE",
+        amount_dest: "FREE",
+      };
+    }
+
+    const numHome = typeof item.amount_home === "number" ? item.amount_home : parseFloat(String(item.amount_home).replace(/,/g, "")) || 0;
+    const numDest = typeof item.amount_dest === "number" ? item.amount_dest : parseFloat(String(item.amount_dest).replace(/,/g, "")) || 0;
+
+    totalHomeSum += numHome;
+    totalDestSum += numDest;
+
+    return {
+      category: item.category,
+      amount_home: numHome.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      amount_dest: numDest.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    };
+  });
+
+  const totalHomeFormatted = totalHomeSum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalDestFormatted = totalDestSum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const categoriesList = rawBudgetItems.map((i) => i.category.toLowerCase().replace(/\s*\(.*?\)/g, ""));
+  const expenseItemsSummaryList = categoriesList.length > 1
+    ? `${categoriesList.slice(0, -1).join(", ")}, and ${categoriesList[categoriesList.length - 1]}`
+    : categoriesList[0] || "travel expenses";
+
+  const fundingSourcesText = profile.funding_sources && profile.funding_sources.length > 0
+    ? profile.funding_sources.join(" and ")
+    : "personal account and business account";
+
+  const travelBudgetPayload = {
+    applicant_address: formattedApplicantAddress,
+    letter_date: formattedLetterDate,
+    consular_address: profile.consular_address,
+    destination_country_upper: profile.destination_country.toUpperCase(),
+    destination_country: profile.destination_country,
+    applicant_name: profile.applicant_name,
+    applicant_name_upper: applicantNameUpper,
+    applicant_passport: profile.applicant_passport,
+    home_currency: homeCurrency,
+    dest_currency: destCurrency,
+    exchange_rate: exchangeRate.toFixed(2),
+    expense_items_summary_list: expenseItemsSummaryList,
+    expenses: formattedExpenses,
+    total_home: totalHomeFormatted,
+    total_dest: totalDestFormatted,
+    funding_sources_text: fundingSourcesText,
   };
 
   return {
@@ -339,12 +477,13 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     sponsorshipPayload,
     leaveApprovalPayload,
     selfIntroPayload,
+    travelBudgetPayload,
     cleanName: profile.applicant_name.replace(/\s+/g, "_") || "Applicant",
   };
 }
 
 export async function generateSingleDocument(
-  docType: "itinerary" | "intro" | "explanation" | "sponsorship" | "leave_approval" | "self_intro",
+  docType: "itinerary" | "intro" | "explanation" | "sponsorship" | "leave_approval" | "self_intro" | "travel_budget",
   profile: UnifiedVisaProfileData
 ): Promise<void> {
   const {
@@ -355,6 +494,7 @@ export async function generateSingleDocument(
     sponsorshipPayload,
     leaveApprovalPayload,
     selfIntroPayload,
+    travelBudgetPayload,
     cleanName,
   } = buildPayloads(profile);
 
@@ -391,7 +531,12 @@ export async function generateSingleDocument(
     case "self_intro":
       templateUrl = "/templates/visa/self-introductory-letter-template.docx";
       payload = selfIntroPayload;
-      filename = `Self_Introductory_Letter_${cleanName}.docx`;
+      filename = `Self_Introduction_Letter_${cleanName}.docx`;
+      break;
+    case "travel_budget":
+      templateUrl = "/templates/visa/travel-budget-template.docx";
+      payload = travelBudgetPayload;
+      filename = `Travel_Budget_${cleanName}.docx`;
       break;
   }
 
@@ -411,16 +556,18 @@ export async function generateVisaPackageZip(profile: UnifiedVisaProfileData): P
     sponsorshipPayload,
     leaveApprovalPayload,
     selfIntroPayload,
+    travelBudgetPayload,
     cleanName,
   } = buildPayloads(profile);
 
-  const [itineraryBuf, introBuf, explanationBuf, sponsorshipBuf, leaveApprovalBuf, selfIntroBuf] = await Promise.all([
+  const [itineraryBuf, introBuf, explanationBuf, sponsorshipBuf, leaveApprovalBuf, selfIntroBuf, travelBudgetBuf] = await Promise.all([
     renderDocxBuffer("/templates/visa/travel-itinerary-template.docx", itineraryPayload),
     renderDocxBuffer(introTemplateUrl, introPayload),
     renderDocxBuffer("/templates/visa/explanation-letter-template.docx", explanationPayload),
     renderDocxBuffer("/templates/visa/sponsorship-letter-template.docx", sponsorshipPayload),
     renderDocxBuffer("/templates/visa/leave-approval-letter-template.docx", leaveApprovalPayload),
     renderDocxBuffer("/templates/visa/self-introductory-letter-template.docx", selfIntroPayload),
+    renderDocxBuffer("/templates/visa/travel-budget-template.docx", travelBudgetPayload),
   ]);
 
   const zip = new JSZip();
@@ -429,7 +576,8 @@ export async function generateVisaPackageZip(profile: UnifiedVisaProfileData): P
   zip.file(`3_Explanation_Letter_${cleanName}.docx`, explanationBuf);
   zip.file(`4_Sponsorship_Letter_${cleanName}.docx`, sponsorshipBuf);
   zip.file(`5_Leave_Approval_Letter_${cleanName}.docx`, leaveApprovalBuf);
-  zip.file(`6_Self_Introductory_Letter_${cleanName}.docx`, selfIntroBuf);
+  zip.file(`6_Self_Introduction_Letter_${cleanName}.docx`, selfIntroBuf);
+  zip.file(`7_Travel_Budget_${cleanName}.docx`, travelBudgetBuf);
 
   const zipBlob = await zip.generateAsync({ type: "blob" });
   saveAs(zipBlob, `Visa_Application_Package_${cleanName}.zip`);

@@ -198,7 +198,7 @@ export const ITINERARY_PRESETS: Record<string, CountryPreset> = {
   },
   canada_winter: {
     countryKey: "canada_winter",
-    countryName: "Canada (Winter / Festive)",
+    countryName: "Canada",
     defaultCity: "Toronto",
     defaultAccommodationName: "DOUBLETREE BY HILTON HOTEL TORONTO DOWNTOWN",
     defaultAccommodationAddress:
@@ -382,7 +382,7 @@ export const ITINERARY_PRESETS: Record<string, CountryPreset> = {
   },
   canada_summer: {
     countryKey: "canada_summer",
-    countryName: "Canada (Summer Season)",
+    countryName: "Canada",
     defaultCity: "Toronto",
     defaultAccommodationName: "DOUBLETREE BY HILTON HOTEL TORONTO DOWNTOWN",
     defaultAccommodationAddress:
