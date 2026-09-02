@@ -2,8 +2,29 @@
 
 import { api, type ApiResponse } from "@/lib/api/client";
 
-export type PayrollRunStatus = "draft" | "processing" | "closed";
+export type PayrollRunStatus =
+  | "draft"
+  | "hr_draft"
+  | "account_review"
+  | "compliance_review"
+  | "mp_review"
+  | "md_approval"
+  | "closed"
+  | "processing";
+
 export type PayrollEntryStatus = "pending" | "approved";
+
+export interface PayrollApprovalHistoryItem {
+  from_status: string;
+  to_status: string;
+  action: "advance" | "reject";
+  actor_id: string;
+  actor_name: string;
+  actor_email?: string;
+  actor_role: string;
+  note?: string | null;
+  created_at: string;
+}
 
 export interface PayrollOtherDeduction {
   label: string;
@@ -62,6 +83,7 @@ export interface PayrollRun {
   id: string;
   payroll_month: string;
   status: PayrollRunStatus;
+  approval_history?: PayrollApprovalHistoryItem[];
   generated_at?: string | null;
   closed_at?: string | null;
   created_at?: string | null;
@@ -150,6 +172,17 @@ export async function recalculatePayrollEntry(entryId: string): Promise<ApiRespo
 
 export async function closePayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/close`);
+}
+
+export async function transitionPayrollRun(
+  runId: string,
+  action: "advance" | "reject",
+  note?: string,
+): Promise<ApiResponse<{ data: PayrollRun; message?: string }>> {
+  return api.post<{ data: PayrollRun; message?: string }>(`/api/hr/payroll/runs/${runId}/transition`, {
+    action,
+    note,
+  });
 }
 
 export async function reopenPayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {

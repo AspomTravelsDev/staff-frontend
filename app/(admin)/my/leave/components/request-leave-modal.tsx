@@ -72,6 +72,8 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
     return leaveTypes.find((lt) => lt.value === type);
   }, [type]);
 
+  const charCount = reason.length;
+
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -79,6 +81,10 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
     e.preventDefault();
     if (!startDate) {
       toast.error("Please pick a proposed start date.");
+      return;
+    }
+    if (charCount > 1000) {
+      toast.error("The reason must not exceed 1000 characters.");
       return;
     }
 
@@ -220,16 +226,27 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
 
           {/* Reason Section */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider">Reason / Details</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wider">Reason / Details</Label>
+              <span className={`text-[11px] ${charCount > 1000 ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+                {charCount} / 1000 chars
+              </span>
+            </div>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Provide context for your leave request..."
               name="reason"
               required
-              rows={3}
-              className="resize-none text-xs"
+              maxLength={1000}
+              rows={4}
+              className="resize-y text-xs"
             />
+            {charCount > 1000 && (
+              <p className="text-[11px] text-red-500 font-medium">
+                Reason exceeds the maximum limit of 1000 characters. Please shorten your explanation.
+              </p>
+            )}
           </div>
 
           {/* Optional Attachments Section */}

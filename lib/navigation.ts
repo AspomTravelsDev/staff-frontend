@@ -177,7 +177,7 @@ export const departmentNav: NavItem[] = [
     title: "Payroll",
     url: "/hr/payroll",
     icon: CreditCard,
-    allowedRoles: ["hr", "super", "account"],
+    allowedRoles: ["hr", "super", "account", "compliance", "mp", "md"],
   },
   {
     title: "General Tasks & Reports",

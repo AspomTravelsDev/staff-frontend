@@ -18,6 +18,7 @@ import {
   type PayrollRun,
 } from "@/lib/api/payroll";
 import { BulkExportButton } from "./bulk-export-button";
+import { PayrollWorkflowBar } from "./payroll-workflow-bar";
 import PayrollEntrySheet from "./payroll-entry-sheet";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -722,6 +723,15 @@ export function PayrollManager() {
           cardColor="orange"
         />
       </div>
+
+      {/* Approval Pipeline Stepper & Actions */}
+      {currentRun && (
+        <PayrollWorkflowBar
+          currentRun={currentRun}
+          onRefresh={loadMonthRun}
+          isBusy={isBusy}
+        />
+      )}
 
       {/* Controls Bar */}
       <div className="bg-card border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">

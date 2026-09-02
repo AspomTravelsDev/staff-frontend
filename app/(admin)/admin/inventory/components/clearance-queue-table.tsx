@@ -83,7 +83,9 @@ export function ClearanceQueueTable({
         });
         toast.success(
           decision === "approved"
-            ? "IT inspection complete. Sent to Compliance for final audit."
+            ? (selected.status === "return_pending_inspection"
+                ? "IT inspection complete. Sent to Compliance for final audit."
+                : "Return inspection updated successfully.")
             : "Return inspection rejected/cancelled."
         );
       } else {
@@ -124,29 +126,27 @@ export function ClearanceQueueTable({
           <TableBody>
             {assignments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                  No gadget clearance items pending in this queue.
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  No device returns found in queue.
                 </TableCell>
               </TableRow>
             ) : (
               assignments.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">
-                    <div className="font-semibold text-foreground">
-                      {item.inventoryItem?.name || "Device"}
-                    </div>
-                    <div className="font-mono text-xs text-muted-foreground">
-                      {item.inventoryItem?.serialNumber}
+                  <TableCell>
+                    <div className="font-semibold">{item.inventoryItem?.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      S/N: {item.inventoryItem?.serialNumber}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{item.assignee?.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {item.assignee?.department || "General"}
+                      {item.assignee?.department || "Staff"}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={item.type === "full_clearance" ? "destructive" : "secondary"}>
+                    <Badge variant="secondary" className="capitalize">
                       {item.type === "full_clearance" ? "Offboarding Clearance" : "Single Return"}
                     </Badge>
                   </TableCell>
@@ -167,15 +167,16 @@ export function ClearanceQueueTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {item.status !== "cleared" && (
+                      {(mode === "officer" || item.status !== "cleared") && (
                         <Button
                           size="sm"
-                          variant={mode === "officer" ? "default" : "secondary"}
+                          variant={mode === "officer" ? (item.status === "return_pending_inspection" ? "default" : "outline") : "secondary"}
                           onClick={() => openInspectionModal(item)}
                         >
                           {mode === "officer" ? (
                             <>
-                              <UserCheck className="mr-1 h-3.5 w-3.5" /> Inspect Return
+                              <UserCheck className="mr-1 h-3.5 w-3.5" />{" "}
+                              {item.status === "return_pending_inspection" ? "Inspect Return" : "Edit Inspection"}
                             </>
                           ) : (
                             <>
@@ -185,8 +186,16 @@ export function ClearanceQueueTable({
                         </Button>
                       )}
 
-                      {item.status === "cleared" && (
-                        <AssetClearancePdfButton assignment={item} size="sm" />
+                      {item.status === "cleared" && mode !== "officer" && (
+                        <AssetClearancePdfButton
+                          assignment={item}
+                          allAssignments={
+                            item.clearanceBatchId
+                              ? assignments.filter((a) => a.clearanceBatchId === item.clearanceBatchId)
+                              : assignments.filter((a) => a.assignee?.id && item.assignee?.id ? a.assignee.id === item.assignee.id : true)
+                          }
+                          size="sm"
+                        />
                       )}
                     </div>
                   </TableCell>

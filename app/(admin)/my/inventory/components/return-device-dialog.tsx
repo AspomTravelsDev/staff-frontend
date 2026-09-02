@@ -28,6 +28,7 @@ export function ReturnDeviceDialog({
   onOpenChange,
   item,
 }: ReturnDeviceDialogProps) {
+  const [conditionRating, setConditionRating] = useState<string>("Good");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -39,7 +40,8 @@ export function ReturnDeviceDialog({
     setLoading(true);
 
     try {
-      await initiateSingleReturn(item.id, notes);
+      const fullNotes = conditionRating ? `Condition: ${conditionRating}${notes ? ` — ${notes}` : ""}` : notes;
+      await initiateSingleReturn(item.id, fullNotes);
       toast.success(`Return initiated for ${item.name}. IT will inspect the device.`);
       onOpenChange(false);
       setNotes("");
@@ -65,10 +67,26 @@ export function ReturnDeviceDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="notes">Reason / Return Notes</Label>
+            <Label htmlFor="conditionRating">Device Condition Rating</Label>
+            <select
+              id="conditionRating"
+              className="w-full h-10 px-3 py-2 border rounded-md text-sm bg-background"
+              value={conditionRating}
+              onChange={(e) => setConditionRating(e.target.value)}
+            >
+              <option value="Excellent">Excellent</option>
+              <option value="Good">Good (Working fine)</option>
+              <option value="Fair">Fair (Minor wear/scratches)</option>
+              <option value="Poor">Poor (Battery/hardware issue)</option>
+              <option value="Broken">Broken / Damaged</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Staff Condition Notes / Comments</Label>
             <Textarea
               id="notes"
-              placeholder="e.g. Device upgrade requested, unneeded secondary laptop, or exiting company..."
+              placeholder="Provide specific notes on the physical/functional state of the device..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}

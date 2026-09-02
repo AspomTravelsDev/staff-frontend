@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
   page: {
     padding: "12mm 16mm",
     fontFamily: "Times-Roman",
-    fontSize: 10,
-    lineHeight: 1.35,
+    fontSize: 11,
+    lineHeight: 1.4,
     color: "#0f172a",
   },
   headerContainer: {
@@ -33,19 +33,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   logo: {
-    width: 110,
-    height: 42,
+    width: 115,
+    height: 44,
     objectFit: "contain",
     marginBottom: 6,
   },
   docTitle: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: "Times-Bold",
     textAlign: "center",
     letterSpacing: 0.3,
   },
   docSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Times-Bold",
     textAlign: "center",
     marginTop: 2,
@@ -60,12 +60,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   fieldLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Times-Bold",
     marginRight: 6,
   },
   fieldValue: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Times-Roman",
     borderBottomWidth: 0.8,
     borderBottomColor: "#64748b",
@@ -83,26 +83,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
     borderBottomWidth: 0.8,
     borderBottomColor: "#475569",
-    padding: "4 6",
+    padding: "5 6",
   },
-  colAssetHeader: { width: "32%", fontFamily: "Times-Bold", fontSize: 9.5 },
-  colStaffHeader: { width: "16%", fontFamily: "Times-Bold", fontSize: 9.5, textAlign: "center" },
-  colOfficerHeader: { width: "18%", fontFamily: "Times-Bold", fontSize: 9.5, textAlign: "center" },
-  colCommentsHeader: { width: "34%", fontFamily: "Times-Bold", fontSize: 9.5 },
+  colAssetHeader: { width: "30%", fontFamily: "Times-Bold", fontSize: 10.5 },
+  colStaffHeader: { width: "16%", fontFamily: "Times-Bold", fontSize: 10.5, textAlign: "center" },
+  colOfficerHeader: { width: "18%", fontFamily: "Times-Bold", fontSize: 10.5, textAlign: "center" },
+  colCommentsHeader: { width: "36%", fontFamily: "Times-Bold", fontSize: 10.5 },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: "#cbd5e1",
-    padding: "4 6",
-    minHeight: 20,
+    padding: "5 6",
+    minHeight: 22,
     alignItems: "center",
   },
-  colAssetCell: { width: "32%", fontSize: 9.5, fontFamily: "Times-Bold" },
-  colStaffCell: { width: "16%", fontSize: 10, textAlign: "center", fontFamily: "Times-Bold" },
-  colOfficerCell: { width: "18%", fontSize: 10, textAlign: "center", fontFamily: "Times-Bold" },
-  colCommentsCell: { width: "34%", fontSize: 9 },
+  colAssetCell: { width: "30%", fontSize: 10.5, fontFamily: "Times-Bold" },
+  colStaffCell: { width: "16%", fontSize: 11, textAlign: "center", fontFamily: "Times-Bold" },
+  colOfficerCell: { width: "18%", fontSize: 11, textAlign: "center", fontFamily: "Times-Bold" },
+  colCommentsCell: { width: "36%", fontSize: 10 },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Times-Bold",
     marginTop: 10,
     marginBottom: 4,
@@ -117,30 +117,38 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.8,
     borderBottomColor: "#94a3b8",
     borderBottomStyle: "dotted",
-    height: 18,
-    fontSize: 9.5,
+    height: 19,
+    fontSize: 10.5,
     paddingLeft: 2,
   },
   sigGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
-    marginBottom: 14,
+    alignItems: "flex-start",
+    marginTop: 14,
+    marginBottom: 10,
+    width: "100%",
   },
   sigBlock: {
-    width: "44%",
+    width: "46%",
+    alignItems: "center",
   },
   sigDottedLine: {
-    borderBottomWidth: 0.8,
-    borderBottomColor: "#64748b",
-    borderBottomStyle: "dotted",
-    minHeight: 14,
-    marginBottom: 3,
-    fontSize: 9.5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e293b",
+    borderBottomStyle: "solid",
+    width: "100%",
+    minHeight: 22,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 2,
+    marginBottom: 4,
   },
   sigLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontFamily: "Times-Bold",
+    color: "#334155",
+    textAlign: "center",
   },
   clearanceGrid: {
     flexDirection: "row",
@@ -198,43 +206,38 @@ export function AssetClearancePdfDocument({
 
   const isCleared = assignment.status === "cleared" || assignment.complianceDecision === "approved";
 
-  // Build standard checklist items with dynamic verification
-  const defaultChecklist = [
-    { name: "LAPTOP", catMatch: "Laptop" },
-    { name: "PHONE", catMatch: "Phone" },
-    { name: "MOUSE", catMatch: "Gadget" },
-    { name: "SIM CARD", catMatch: "Gadget" },
-    { name: "LAPTOP CHARGER", catMatch: "Laptop" },
-    { name: "PHONE CHARGER", catMatch: "Phone" },
-  ];
+  // Build dynamic checklist items strictly from assigned/returned devices
+  const checklistRows = itemsToDisplay.map((item) => {
+    const itemName = item.inventoryItem?.name || item.inventoryItem?.category || "Device";
+    const serialStr = item.inventoryItem?.serialNumber ? ` (${item.inventoryItem.serialNumber})` : "";
+    const assetDescription = `${itemName}${serialStr}`.toUpperCase();
 
-  const checklistRows = defaultChecklist.map((checkItem) => {
-    // Find matching surrendered item if any
-    const matched = itemsToDisplay.find(
-      (item) =>
-        item.inventoryItem?.category === checkItem.catMatch ||
-        item.inventoryItem?.name?.toUpperCase().includes(checkItem.name)
-    );
-
-    const isStaffChecked = !!assignment.staffDecision || !!assignment.assignee;
-    const isOfficerChecked = !!assignment.officerDecision;
+    const isStaffChecked = !!item.staffDecision || !!item.staffNotes || !!item.staffConditionDetails || !!item.assignee;
+    const isOfficerChecked = !!item.officerDecision || !!item.officerNotes || !!item.returnConditionRating;
 
     let commentText = "";
-    if (matched?.inventoryItem) {
-      commentText = `${matched.inventoryItem.name} (${matched.inventoryItem.serialNumber})`;
-      if (matched.returnConditionRating) {
-        commentText += ` — ${matched.returnConditionRating}`;
-      }
-      if (matched.damageAssessmentFee && matched.damageAssessmentFee > 0) {
-        commentText += ` (Damage Fee: ₦${matched.damageAssessmentFee.toLocaleString()})`;
-      }
+    if (item.returnConditionRating) {
+      commentText += `Condition: ${item.returnConditionRating}`;
+    } else if (item.inventoryItem?.conditionRating) {
+      commentText += `Condition: ${item.inventoryItem.conditionRating}`;
+    }
+
+    if (item.damageAssessmentFee && item.damageAssessmentFee > 0) {
+      if (commentText) commentText += " — ";
+      commentText += `Damage Fee: ₦${item.damageAssessmentFee.toLocaleString()}`;
+    }
+
+    if (item.returnConditionDetails || item.officerNotes) {
+      const notes = item.returnConditionDetails || item.officerNotes;
+      if (commentText) commentText += " — ";
+      commentText += notes;
     }
 
     return {
-      assetDescription: checkItem.name,
+      assetDescription,
       staffCheck: isStaffChecked ? "✓" : "",
       officerCheck: isOfficerChecked ? "✓" : "",
-      comments: commentText,
+      comments: commentText || "Device retrieved and recorded.",
     };
   });
 
@@ -290,13 +293,18 @@ export function AssetClearancePdfDocument({
 
         {/* Employee Comments */}
         <Text style={styles.sectionTitle}>
-          EMPLOYEE'S COMMENT ON THE CONDITION OF THE GADGET WHEN ASSIGNED
+          EMPLOYEE'S COMMENT ON THE CONDITION OF GADGET(S) WHEN ASSIGNED / RETURNED
         </Text>
         <View style={styles.commentBox}>
-          <Text style={styles.commentLine}>
-            {assignment.staffNotes || assignment.initiateNotes || ""}
-          </Text>
-          <Text style={styles.commentLine}></Text>
+          {itemsToDisplay.map((item, idx) => {
+            const devName = item.inventoryItem?.name || "Device";
+            const comment = item.staffConditionDetails || item.staffNotes || item.initiateNotes || "No condition issues reported upon assignment.";
+            return (
+              <Text style={styles.commentLine} key={idx}>
+                {itemsToDisplay.length > 1 ? `${devName}: ` : ""}{comment}
+              </Text>
+            );
+          })}
         </View>
 
         {/* Page 1 Signatures */}
@@ -321,15 +329,19 @@ export function AssetClearancePdfDocument({
       <Page size="A4" style={styles.page}>
         {/* IT Officer Comments */}
         <Text style={styles.sectionTitle}>
-          IT OFFICER'S COMMENT ON THE CONDITION OF THE GADGET WHEN RETRIEVED
+          IT OFFICER'S COMMENT ON THE CONDITION OF GADGET(S) WHEN RETRIEVED
         </Text>
         <View style={styles.commentBox}>
-          <Text style={styles.commentLine}>
-            {assignment.officerNotes || assignment.returnConditionDetails || ""}
-          </Text>
-          <Text style={styles.commentLine}></Text>
-          <Text style={styles.commentLine}></Text>
-          <Text style={styles.commentLine}></Text>
+          {itemsToDisplay.map((item, idx) => {
+            const devName = item.inventoryItem?.name || "Device";
+            const officerComment = item.officerNotes || item.returnConditionDetails || (item.returnConditionRating ? `Condition: ${item.returnConditionRating}` : "Retrieved and physically inspected.");
+            const feeStr = (item.damageAssessmentFee && item.damageAssessmentFee > 0) ? ` (Fee: ₦${item.damageAssessmentFee.toLocaleString()})` : "";
+            return (
+              <Text style={styles.commentLine} key={idx}>
+                {itemsToDisplay.length > 1 ? `${devName}: ` : ""}{officerComment}{feeStr}
+              </Text>
+            );
+          })}
         </View>
 
         {/* Clearance Box */}
@@ -346,37 +358,22 @@ export function AssetClearancePdfDocument({
           </View>
         </View>
 
-        {/* IT Officer Signatures */}
+        {/* IT Officer & Compliance 2-Column Signatures */}
         <View style={styles.sigGrid}>
           <View style={styles.sigBlock}>
             <View style={styles.sigDottedLine}>
-              <Text>{assignment.officer?.name || ""}</Text>
+              <Text style={{ fontFamily: "Times-Bold" }}>{assignment.officer?.name || "IT Officer"}</Text>
             </View>
-            <Text style={styles.sigLabel}>IT OFFICER'S NAME</Text>
+            <Text style={styles.sigLabel}>IT OFFICER NAME & SIGNATURE</Text>
+            <Text style={{ fontSize: 9, color: "#64748b", marginTop: 1 }}>{officerDateStr}</Text>
           </View>
 
           <View style={styles.sigBlock}>
             <View style={styles.sigDottedLine}>
-              <Text>{officerDateStr}</Text>
+              <Text style={{ fontFamily: "Times-Bold" }}>{assignment.complianceOfficer?.name || "Compliance Officer"}</Text>
             </View>
-            <Text style={styles.sigLabel}>SIGNATURE/DATE</Text>
-          </View>
-        </View>
-
-        {/* Compliance Signatures */}
-        <View style={styles.sigGrid}>
-          <View style={styles.sigBlock}>
-            <View style={styles.sigDottedLine}>
-              <Text>{assignment.complianceOfficer?.name || ""}</Text>
-            </View>
-            <Text style={styles.sigLabel}>COMPLIANCE'S NAME</Text>
-          </View>
-
-          <View style={styles.sigBlock}>
-            <View style={styles.sigDottedLine}>
-              <Text>{complianceDateStr}</Text>
-            </View>
-            <Text style={styles.sigLabel}>SIGNATURE/DATE</Text>
+            <Text style={styles.sigLabel}>COMPLIANCE OFFICER NAME & SIGNATURE</Text>
+            <Text style={{ fontSize: 9, color: "#64748b", marginTop: 1 }}>{complianceDateStr}</Text>
           </View>
         </View>
 

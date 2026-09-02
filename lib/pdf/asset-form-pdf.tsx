@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   page: {
     padding: "16mm",
     fontFamily: "Times-Roman",
-    fontSize: 10,
+    fontSize: 10.5,
     lineHeight: 1.4,
     color: "#1e293b",
   },
@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   logo: {
-    width: 90,
-    height: 40,
+    width: 95,
+    height: 42,
     objectFit: "contain",
   },
   headerTitleContainer: {
@@ -48,13 +48,13 @@ const styles = StyleSheet.create({
     paddingRight: 30,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontFamily: "Times-Bold",
     color: "#0f172a",
     letterSpacing: 0.5,
   },
   declarationLine: {
-    fontSize: 10.5,
+    fontSize: 11.5,
     marginTop: 8,
     marginBottom: 12,
     color: "#0f172a",
@@ -71,32 +71,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#f1f5f9",
     borderBottom: "0.8pt solid #64748b",
-    padding: "5 4",
+    padding: "6 4",
     fontFamily: "Times-Bold",
-    fontSize: 9.5,
+    fontSize: 10.5,
     color: "#0f172a",
   },
   tableRow: {
     flexDirection: "row",
     borderBottom: "0.5pt solid #cbd5e1",
-    padding: "5 4",
-    fontSize: 9.5,
+    padding: "6 4",
+    fontSize: 10.5,
     alignItems: "center",
   },
-  colSN: { width: "8%", textAlign: "center" },
-  colAsset: { width: "22%" },
-  colModel: { width: "32%" },
-  colSerial: { width: "23%", fontFamily: "Times-Bold" },
-  colState: { width: "15%", textAlign: "center" },
+  colSN: { width: "6%", textAlign: "center" },
+  colAsset: { width: "20%" },
+  colModel: { width: "26%" },
+  colSerial: { width: "24%", fontFamily: "Times-Bold" },
+  colState: { width: "24%", textAlign: "left" },
   undertakingHeader: {
-    fontSize: 10.5,
+    fontSize: 11.5,
     fontFamily: "Times-Bold",
     color: "#0f172a",
     marginTop: 4,
     marginBottom: 2,
   },
   undertakingSubheader: {
-    fontSize: 9.5,
+    fontSize: 10.5,
     color: "#334155",
     marginBottom: 6,
   },
@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
   termItem: {
     flexDirection: "row",
     marginBottom: 4,
-    fontSize: 9,
+    fontSize: 10,
     color: "#1e293b",
-    lineHeight: 1.35,
+    lineHeight: 1.4,
   },
   termNumber: {
     width: "4%",
@@ -132,47 +132,48 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 14,
   },
-  signaturesGrid: {
+  sigGrid2Col: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 6,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginTop: 14,
+    marginBottom: 8,
+    width: "100%",
   },
-  sigCard: {
-    flex: 1,
-    border: "0.8pt solid #94a3b8",
-    borderRadius: 2,
-    padding: 8,
-    backgroundColor: "#fafafa",
+  sigBlockCenter: {
+    width: "46%",
+    alignItems: "center",
   },
-  sigHeader: {
+  sigUnderline: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e293b",
+    borderBottomStyle: "solid",
+    width: "100%",
+    minHeight: 22,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 2,
+    marginBottom: 4,
+  },
+  sigNameText: {
+    fontSize: 11,
     fontFamily: "Times-Bold",
+    color: "#0f172a",
+    textAlign: "center",
+  },
+  sigTitleText: {
     fontSize: 9.5,
-    color: "#0f172a",
-    borderBottom: "0.5pt solid #cbd5e1",
-    paddingBottom: 4,
-    marginBottom: 6,
-  },
-  sigRow: {
-    flexDirection: "row",
-    marginBottom: 3,
-    fontSize: 8.5,
-  },
-  sigLabel: {
-    width: "35%",
-    color: "#475569",
     fontFamily: "Times-Bold",
+    color: "#334155",
+    textAlign: "center",
+    marginTop: 2,
   },
-  sigVal: {
-    width: "65%",
-    color: "#0f172a",
-  },
-  sigStatusApproved: {
-    color: "#166534",
-    fontFamily: "Times-Bold",
-  },
-  sigStatusPending: {
-    color: "#b45309",
-    fontFamily: "Times-Bold",
+  sigDateText: {
+    fontSize: 9,
+    fontFamily: "Times-Roman",
+    color: "#64748b",
+    textAlign: "center",
+    marginTop: 1,
   },
   footer: {
     position: "absolute",
@@ -259,7 +260,10 @@ export function AssetFormPdfDocument({
                 {item.inventoryItem?.serialNumber || "—"}
               </Text>
               <Text style={styles.colState}>
-                {item.staffConditionRating ||
+                {item.staffConditionDetails ||
+                  item.staffNotes ||
+                  (item.staffConditionRating ? `${item.staffConditionRating}` : "") ||
+                  item.inventoryItem?.conditionDetails ||
                   item.inventoryItem?.conditionRating ||
                   "Good"}
               </Text>
@@ -344,125 +348,45 @@ export function AssetFormPdfDocument({
           to abide by them.
         </Text>
 
-        {/* Signatures & Approvals */}
-        <View style={styles.signaturesGrid}>
-          {/* Employee Signature Card */}
-          <View style={styles.sigCard}>
-            <Text style={styles.sigHeader}>(Employee)</Text>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Name:</Text>
-              <Text style={styles.sigVal}>{assigneeName}</Text>
+        {/* 2-Column Center-Aligned Signatures & Approvals */}
+        <View style={styles.sigGrid2Col}>
+          {/* Left Column: Employee */}
+          <View style={styles.sigBlockCenter}>
+            <View style={styles.sigUnderline}>
+              <Text style={styles.sigNameText}>{assigneeName}</Text>
             </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Designation:</Text>
-              <Text style={styles.sigVal}>
-                {assigneeRole}
-                {assigneeDept && assigneeDept.toLowerCase() !== assigneeRole.toLowerCase()
-                  ? ` (${assigneeDept})`
-                  : ""}
-              </Text>
-            </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Signature:</Text>
-              <Text
-                style={
-                  mainAssignment?.staffDecision === "approved"
-                    ? styles.sigStatusApproved
-                    : styles.sigStatusPending
-                }
-              >
-                {mainAssignment?.staffDecision === "approved"
-                  ? "[ACCEPTED DIGITALLY]"
-                  : "________________________"}
-              </Text>
-            </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Date:</Text>
-              <Text style={styles.sigVal}>
-                {mainAssignment?.staffDecidedAt
-                  ? formatPdfDate(mainAssignment.staffDecidedAt)
-                  : formattedDate}
-              </Text>
-            </View>
+            <Text style={styles.sigTitleText}>EMPLOYEE SIGNATURE</Text>
+            <Text style={styles.sigDateText}>
+              Date: {mainAssignment?.staffDecidedAt ? formatPdfDate(mainAssignment.staffDecidedAt) : formattedDate}
+            </Text>
           </View>
 
-          {/* Admin Officer (In The Presence Of) Signature Card */}
-          <View style={styles.sigCard}>
-            <Text style={styles.sigHeader}>IN THE PRESENCE OF:</Text>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Name:</Text>
-              <Text style={styles.sigVal}>
-                {mainAssignment?.officer?.name ||
-                  mainAssignment?.initiator?.name ||
-                  "Admin Officer"}
+          {/* Right Column: IT / Admin Officer */}
+          <View style={styles.sigBlockCenter}>
+            <View style={styles.sigUnderline}>
+              <Text style={styles.sigNameText}>
+                {mainAssignment?.officer?.name || mainAssignment?.initiator?.name || "Admin Officer"}
               </Text>
             </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Designation:</Text>
-              <Text style={styles.sigVal}>Admin / IT Officer</Text>
-            </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Signature:</Text>
-              <Text
-                style={
-                  mainAssignment?.officerDecision === "approved"
-                    ? styles.sigStatusApproved
-                    : styles.sigStatusPending
-                }
-              >
-                {mainAssignment?.officerDecision === "approved"
-                  ? "[VERIFIED DIGITALLY]"
-                  : "________________________"}
-              </Text>
-            </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Date:</Text>
-              <Text style={styles.sigVal}>
-                {mainAssignment?.officerDecidedAt
-                  ? formatPdfDate(mainAssignment.officerDecidedAt)
-                  : "________________________"}
-              </Text>
-            </View>
+            <Text style={styles.sigTitleText}>IN THE PRESENCE OF (IT / ADMIN OFFICER)</Text>
+            <Text style={styles.sigDateText}>
+              Date: {mainAssignment?.officerDecidedAt ? formatPdfDate(mainAssignment.officerDecidedAt) : formattedDate}
+            </Text>
           </View>
+        </View>
 
-          {/* Compliance Officer Signature Card */}
-          <View style={styles.sigCard}>
-            <Text style={styles.sigHeader}>COMPLIANCE'S NAME:</Text>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Name:</Text>
-              <Text style={styles.sigVal}>
-                {mainAssignment?.complianceOfficer?.name ||
-                  "Compliance Officer"}
+        {/* Compliance Signature Row */}
+        <View style={{ width: "100%", alignItems: "center", marginTop: 8 }}>
+          <View style={[styles.sigBlockCenter, { width: "50%" }]}>
+            <View style={styles.sigUnderline}>
+              <Text style={styles.sigNameText}>
+                {mainAssignment?.complianceOfficer?.name || "Compliance Officer"}
               </Text>
             </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Designation:</Text>
-              <Text style={styles.sigVal}>Compliance Auditor</Text>
-            </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Signature:</Text>
-              <Text
-                style={
-                  mainAssignment?.status === "completed" ||
-                  mainAssignment?.complianceDecision === "approved"
-                    ? styles.sigStatusApproved
-                    : styles.sigStatusPending
-                }
-              >
-                {mainAssignment?.status === "completed" ||
-                mainAssignment?.complianceDecision === "approved"
-                  ? "[AUDITED DIGITALLY]"
-                  : "________________________"}
-              </Text>
-            </View>
-            <View style={styles.sigRow}>
-              <Text style={styles.sigLabel}>Date:</Text>
-              <Text style={styles.sigVal}>
-                {mainAssignment?.complianceDecidedAt
-                  ? formatPdfDate(mainAssignment.complianceDecidedAt)
-                  : "________________________"}
-              </Text>
-            </View>
+            <Text style={styles.sigTitleText}>COMPLIANCE OFFICER VERIFICATION</Text>
+            <Text style={styles.sigDateText}>
+              {mainAssignment?.complianceDecidedAt ? `Date: ${formatPdfDate(mainAssignment.complianceDecidedAt)}` : ""}
+            </Text>
           </View>
         </View>
 

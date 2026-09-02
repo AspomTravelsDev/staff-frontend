@@ -124,11 +124,22 @@ export async function apiClient<T>(
                 };
             }
 
+            let errorMessage = data?.message || data?.error;
+            if (data?.errors && typeof data.errors === "object") {
+                const flatErrors = Object.values(data.errors).flat().filter(Boolean);
+                if (flatErrors.length > 0) {
+                    errorMessage = flatErrors.join(" ");
+                }
+            }
+            if (!errorMessage) {
+                errorMessage = `Request failed with status ${response.status}`;
+            }
+
             return {
                 success: false,
                 error: {
-                    error: data.message || data.error || "An error occurred",
-                    code: data.code || `HTTP_${response.status}`,
+                    error: errorMessage,
+                    code: data?.code || `HTTP_${response.status}`,
                 },
             };
         }

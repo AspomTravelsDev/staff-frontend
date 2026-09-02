@@ -379,9 +379,11 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                       <DropdownMenuItem onClick={() => setItemHistory(item)}>
                         <History className="mr-2 h-4 w-4" /> View History
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDownloadAssetForm(item)}>
-                        <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400" /> Download Single Device Form
-                      </DropdownMenuItem>
+                      {(item.status === "Assigned" || item.openAssignment) && (
+                        <DropdownMenuItem onClick={() => handleDownloadAssetForm(item)}>
+                          <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400" /> Download Single Device Form
+                        </DropdownMenuItem>
+                      )}
                       {item.status === "Assigned" && item.assignedTo && (
                         <DropdownMenuItem onClick={() => handleDownloadStaffAssetsForm(item)}>
                           <FileText className="mr-2 h-4 w-4 text-rose-600 dark:text-rose-400 font-semibold" /> Download All Assets for Staff

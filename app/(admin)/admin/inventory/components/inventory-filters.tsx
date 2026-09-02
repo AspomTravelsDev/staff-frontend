@@ -178,7 +178,7 @@ export function InventoryFilters({
             className="h-9 gap-1.5"
           >
             <FileText className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-            <span>Export Staff Form</span>
+            <span>Download Asset Form</span>
           </Button>
         )}
 

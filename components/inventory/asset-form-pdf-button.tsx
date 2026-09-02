@@ -55,6 +55,7 @@ interface AssetFormPdfButtonProps extends Omit<React.ComponentProps<typeof Butto
   assignments?: InventoryAssignment[];
   filename?: string;
   label?: string;
+  hideIfEmpty?: boolean;
 }
 
 export function AssetFormPdfButton({
@@ -65,11 +66,23 @@ export function AssetFormPdfButton({
   variant = "outline",
   size = "sm",
   className,
+  hideIfEmpty = true,
   ...props
 }: AssetFormPdfButtonProps) {
   const [loading, setLoading] = useState(false);
 
+  const hasData = !!assignment || (Array.isArray(assignments) && assignments.length > 0);
+
+  if (!hasData && hideIfEmpty) {
+    return null;
+  }
+
   const handleDownload = async () => {
+    if (!hasData) {
+      toast.error("No assigned gadget available to generate asset declaration form.");
+      return;
+    }
+
     setLoading(true);
     try {
       await downloadAssetFormPdf(assignment, assignments, filename);
@@ -83,7 +96,8 @@ export function AssetFormPdfButton({
       variant={variant}
       size={size}
       onClick={handleDownload}
-      disabled={loading}
+      disabled={loading || !hasData}
+      title={!hasData ? "No assigned gadget available" : undefined}
       className={className}
       {...props}
     >
