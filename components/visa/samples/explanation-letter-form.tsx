@@ -10,11 +10,40 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateDocx } from "@/lib/docx-generator";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, User, Building, DollarSign, ShieldCheck } from "lucide-react";
+import { Download, FileText, Loader2, User, Building, DollarSign, ShieldCheck, Sparkles } from "lucide-react";
+import { AiTextEnhancerModal } from "@/components/visa/ai-text-enhancer-modal";
 
 export function ExplanationLetterForm() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [letterDate, setLetterDate] = useState<Date | undefined>(new Date());
+
+  const [aiModal, setAiModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    type: "home_ties" | "source_of_funds" | "purpose_narrative" | "sponsorship";
+    targetField: "source_of_funds" | "home_ties_summary";
+    initialText: string;
+  }>({
+    isOpen: false,
+    title: "",
+    type: "source_of_funds",
+    targetField: "source_of_funds",
+    initialText: "",
+  });
+
+  const openAiEnhancer = (
+    title: string,
+    type: "home_ties" | "source_of_funds",
+    targetField: "source_of_funds" | "home_ties_summary"
+  ) => {
+    setAiModal({
+      isOpen: true,
+      title,
+      type,
+      targetField,
+      initialText: formData[targetField] || "",
+    });
+  };
 
   const [formData, setFormData] = useState({
     embassy_title: "The Visa Officer, High Commission of Canada",
@@ -205,14 +234,25 @@ export function ExplanationLetterForm() {
               </div>
 
               <div className="space-y-2 md:col-span-3">
-                <Label htmlFor="source_of_funds" className="text-xs font-medium">Explanation of Source of Funds</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="source_of_funds" className="text-xs font-medium">Explanation of Source of Funds</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openAiEnhancer("Enhance Source of Funds with AI", "source_of_funds", "source_of_funds")}
+                    className="h-6 text-[11px] text-primary gap-1 p-0 hover:bg-transparent hover:underline"
+                  >
+                    <Sparkles className="size-3" /> Enhance with AI
+                  </Button>
+                </div>
                 <Textarea
                   id="source_of_funds"
                   name="source_of_funds"
                   rows={2}
                   value={formData.source_of_funds}
                   onChange={handleChange}
-                  placeholder="Details of regular monthly salary deposits..."
+                  placeholder="Details of regular monthly salary deposits, business turnover, or asset liquidation..."
                   className="text-xs"
                 />
               </div>
@@ -225,7 +265,18 @@ export function ExplanationLetterForm() {
             </h3>
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="home_ties_summary" className="text-xs font-medium">Summary of Home Country Ties</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="home_ties_summary" className="text-xs font-medium">Summary of Home Country Ties</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openAiEnhancer("Enhance Home & Economic Ties with AI", "home_ties", "home_ties_summary")}
+                    className="h-6 text-[11px] text-primary gap-1 p-0 hover:bg-transparent hover:underline"
+                  >
+                    <Sparkles className="size-3" /> Enhance with AI
+                  </Button>
+                </div>
                 <Textarea
                   id="home_ties_summary"
                   name="home_ties_summary"
@@ -269,6 +320,21 @@ export function ExplanationLetterForm() {
           </div>
         </form>
       </CardContent>
+
+      <AiTextEnhancerModal
+        isOpen={aiModal.isOpen}
+        onClose={() => setAiModal((prev) => ({ ...prev, isOpen: false }))}
+        onApply={(text) => {
+          setFormData((prev) => ({ ...prev, [aiModal.targetField]: text }));
+        }}
+        title={aiModal.title}
+        type={aiModal.type}
+        initialText={aiModal.initialText}
+        applicantName={formData.applicant_name}
+        jobTitle=""
+        companyName=""
+        destinationCountry=""
+      />
     </Card>
   );
 }

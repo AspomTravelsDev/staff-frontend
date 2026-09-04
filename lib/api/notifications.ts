@@ -6,6 +6,7 @@ export type NotificationCountValue =
     | number
     | {
           count: number;
+          label?: string;
           latest_id?: string | null;
           items?: { conversation_id: string; sender_name: string; count: number }[];
       };
@@ -25,6 +26,18 @@ export async function getNotifications(): Promise<Record<string, NotificationCou
     // Then `result.data` is that whole object.
     const actualData = (result.data as any).data || result.data;
 
-
     return actualData;
 }
+
+export async function clearAllNotifications(): Promise<Record<string, NotificationCountValue>> {
+    const result = await api.post<Record<string, any>>("/api/notifications/clear-all");
+
+    if (!result.success) {
+        console.error("[Notifications API] Failed to clear all:", result.error);
+        throw new Error(result.error?.error || "Failed to clear notifications");
+    }
+
+    const actualData = (result.data as any)?.data || result.data;
+    return actualData;
+}
+

@@ -178,6 +178,8 @@ export const departmentNav: NavItem[] = [
     url: "/hr/payroll",
     icon: CreditCard,
     allowedRoles: ["hr", "super", "account", "compliance", "mp", "md"],
+    badgeKey: "payrollQueue",
+    badgeLabel: "Payroll runs awaiting review",
   },
   {
     title: "General Tasks & Reports",

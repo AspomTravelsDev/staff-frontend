@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useUser } from "@/providers/user-provider";
 import {
   CheckCircle2,
   Clock,
@@ -40,6 +41,16 @@ interface WorkflowStep {
   roleLabel: string;
   icon: any;
 }
+
+const STAGE_PERMISSIONS: Record<string, string[]> = {
+  draft: ["hr", "super"],
+  hr_draft: ["hr", "super"],
+  processing: ["hr", "super"],
+  account_review: ["account", "super"],
+  compliance_review: ["compliance", "super"],
+  mp_review: ["mp", "super"],
+  md_approval: ["md", "super"],
+};
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
   { key: "draft", label: "HR Draft", roleLabel: "HR Officer", icon: Building2 },
@@ -98,6 +109,14 @@ export function PayrollWorkflowBar({
   onRefresh: () => void;
   isBusy: boolean;
 }) {
+  const { user } = useUser();
+  const userRoles = user?.roles && user.roles.length > 0
+    ? user.roles
+    : [user?.role, ...(user?.secondary_roles || [])].filter(Boolean);
+
+  const allowedRoles = STAGE_PERMISSIONS[currentRun.status] || [];
+  const canActOnCurrentStage = userRoles.some((r: any) => allowedRoles.includes(r));
+
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionNote, setRejectionNote] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -188,31 +207,42 @@ export function PayrollWorkflowBar({
             </Button>
           )}
 
-          {!isClosed && activeIndex > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-medium"
-              disabled={isBusy || isTransitioning}
-              onClick={() => setIsRejectModalOpen(true)}
-            >
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-              Reject / Send Back
-            </Button>
-          )}
-
           {!isClosed && (
-            <Button
-              type="button"
-              size="sm"
-              className="bg-primary text-primary-foreground font-bold shadow-sm"
-              disabled={isBusy || isTransitioning}
-              onClick={handleAdvance}
-            >
-              <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
-              {getAdvanceButtonLabel(currentRun.status)}
-            </Button>
+            canActOnCurrentStage ? (
+              <>
+                {activeIndex > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-medium"
+                    disabled={isBusy || isTransitioning}
+                    onClick={() => setIsRejectModalOpen(true)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                    Reject / Send Back
+                  </Button>
+                )}
+
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-primary text-primary-foreground font-bold shadow-sm"
+                  disabled={isBusy || isTransitioning}
+                  onClick={handleAdvance}
+                >
+                  <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+                  {getAdvanceButtonLabel(currentRun.status)}
+                </Button>
+              </>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-xs py-1 px-3 text-muted-foreground bg-muted/40 border-dashed"
+              >
+                Awaiting {WORKFLOW_STEPS[activeIndex]?.roleLabel} Action
+              </Badge>
+            )
           )}
         </div>
       </div>

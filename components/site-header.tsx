@@ -9,15 +9,34 @@ import { BellIcon, Gift, Trophy } from "lucide-react";
 import { ClockInWidget } from "./clock-in-widget";
 import { useUser } from "@/providers/user-provider";
 import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
+import { clearAllNotifications } from "@/lib/api/notifications";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { getNavigationForUser, NavItem } from "@/lib/navigation";
 import Link from "next/link";
 import { getTodayBirthdays, getTodayAnniversaries, Employee } from "@/lib/api/employees";
 
 export const SiteHeader = () => {
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const { data: notifications } = useRoleNotifications();
   const [todayBirthdays, setTodayBirthdays] = useState<Employee[]>([]);
   const [todayAnniversaries, setTodayAnniversaries] = useState<Employee[]>([]);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearAll = async () => {
+    try {
+      setIsClearing(true);
+      await clearAllNotifications();
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("All update notifications marked as read");
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+      toast.error("Failed to clear notifications");
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -81,6 +100,8 @@ export const SiteHeader = () => {
           label = "Asset assignment awaiting officer review";
         } else if (key === "inventoryAssignmentsCompliance") {
           label = "Asset assignment awaiting compliance audit";
+        } else if (key === "payrollQueue") {
+          label = "Payroll runs awaiting review";
         }
 
         let targetUrl = navItem.url || "#";
@@ -95,6 +116,12 @@ export const SiteHeader = () => {
 
         if (typeof count === "object" && count !== null) {
           displayCount = count.count;
+          if (count.label) {
+            label = count.label;
+          }
+          if (key === "payrollQueue") {
+            targetUrl = "/hr/payroll";
+          }
           if (key === "chatMessages" && count.items) {
             chatItems = count.items;
           }
@@ -166,8 +193,18 @@ export const SiteHeader = () => {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-[320px] p-0">
-                    <div className="flex border-b px-4 py-3 bg-muted/50">
+                    <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/50">
                       <span className="text-sm font-bold">Notifications</span>
+                      {totalNotifications > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleClearAll}
+                          disabled={isClearing}
+                          className="text-[11px] font-medium text-primary hover:underline disabled:opacity-50 cursor-pointer"
+                        >
+                          {isClearing ? "Clearing..." : "Clear all"}
+                        </button>
+                      )}
                     </div>
                     <div className="flex flex-col max-h-100 overflow-y-auto">
                       {/* Birthday Notifications */}

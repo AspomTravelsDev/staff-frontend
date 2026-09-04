@@ -20,6 +20,7 @@ import {
 import { BulkExportButton } from "./bulk-export-button";
 import { PayrollWorkflowBar } from "./payroll-workflow-bar";
 import PayrollEntrySheet from "./payroll-entry-sheet";
+import { useUser } from "@/providers/user-provider";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,6 +131,13 @@ function formatMonthLabel(isoMonth?: string) {
 }
 
 export function PayrollManager() {
+  const { user } = useUser();
+  const userRoles = user?.roles && user.roles.length > 0
+    ? user.roles
+    : [user?.role, ...(user?.secondary_roles || [])].filter(Boolean);
+  const isHr = userRoles.includes("hr") || userRoles.includes("super");
+  const isMd = userRoles.includes("md") || userRoles.includes("super");
+
   const [selectedMonth, setSelectedMonth] = useState("");
   const [currentRun, setCurrentRun] = useState<PayrollRun | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -753,31 +761,33 @@ export function PayrollManager() {
               />
             </div>
           </div>
-          <div className="pt-5 flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 shrink-0"
-              disabled={isBusy}
-              onClick={loadMonthRun}
-              title="Refresh / Re-sync"
-            >
-              <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} />{" "}
-              Refresh
-            </Button>
-            {currentRun && currentRun.status !== "closed" && (
+          {isHr && (
+            <div className="pt-5 flex items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
+                className="h-10 shrink-0"
                 disabled={isBusy}
-                onClick={() => setIsResetDialogOpen(true)}
-                title="Reset / Start Over"
+                onClick={loadMonthRun}
+                title="Refresh / Re-sync"
               >
-                <RotateCcw className="h-4 w-4" /> Reset Payroll
+                <RefreshCcw className={cn("h-4 w-4", isBusy && "animate-spin")} />{" "}
+                Refresh
               </Button>
-            )}
-          </div>
+              {currentRun && currentRun.status !== "closed" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
+                  disabled={isBusy}
+                  onClick={() => setIsResetDialogOpen(true)}
+                  title="Reset / Start Over"
+                >
+                  <RotateCcw className="h-4 w-4" /> Reset Payroll
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 pt-5">
@@ -806,40 +816,47 @@ export function PayrollManager() {
               </Button>
 
               {currentRun.status === "closed" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="font-bold px-6 border-primary text-primary hover:bg-primary/5"
-                  disabled={isBusy}
-                  onClick={handleReopenRun}
-                >
-                  <RefreshCcw
-                    className={cn("mr-2 h-4 w-4", isBusy && "animate-spin")}
-                  />
-                  Re-open for Edits
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2">
+                isHr && (
                   <Button
                     type="button"
                     variant="outline"
-                    className="font-semibold h-10 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    className="font-bold px-6 border-primary text-primary hover:bg-primary/5"
                     disabled={isBusy}
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    title="Delete this unlocked payroll run"
+                    onClick={handleReopenRun}
                   >
-                    <Trash2 className="h-4 w-4 mr-1.5" />
-                    Delete Run
+                    <RefreshCcw
+                      className={cn("mr-2 h-4 w-4", isBusy && "animate-spin")}
+                    />
+                    Re-open for Edits
                   </Button>
-                  <Button
-                    type="button"
-                    variant="default"
-                    className="font-bold px-6"
-                    disabled={isBusy || pendingCount > 0}
-                    onClick={handleCloseRun}
-                  >
-                    Finalize & Close Run
-                  </Button>
+                )
+              ) : (
+                <div className="flex items-center gap-2">
+                  {isHr && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="font-semibold h-10 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      disabled={isBusy}
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      title="Delete this unlocked payroll run"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1.5" />
+                      Delete Run
+                    </Button>
+                  )}
+                  {isMd && (
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="font-bold px-6"
+                      disabled={isBusy || pendingCount > 0}
+                      onClick={handleCloseRun}
+                      title="Finalize and lock this payroll run (MD only)"
+                    >
+                      Finalize & Close Run
+                    </Button>
+                  )}
                 </div>
               )}
             </>
