@@ -51,6 +51,7 @@ import { Search, Tag, Pencil, FolderSymlink } from "lucide-react";
 import { UploadDocumentDialog } from "./upload-document-dialog";
 import { CreateFolderDialog } from "./create-folder-dialog";
 import { MoveDocumentDialog } from "./move-document-dialog";
+import { MoveFolderDialog } from "./move-folder-dialog";
 
 interface DocumentListTableProps {
   folders: DocumentFolder[];
@@ -346,6 +347,16 @@ export function DocumentListTable({
                         </DropdownMenuItem>
                       }
                     />
+                    <MoveFolderDialog
+                      folder={folder}
+                      allFolders={allFolders}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <FolderSymlink className="mr-2 h-3.5 w-3.5" />
+                          Move
+                        </DropdownMenuItem>
+                      }
+                    />
                     {showDelete && (
                       <>
                         <DropdownMenuSeparator />
@@ -604,6 +615,21 @@ export function DocumentListTable({
                             className="text-muted-foreground hover:text-primary"
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+
+                      <MoveFolderDialog
+                        folder={folder}
+                        allFolders={allFolders}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Move Folder"
+                            className="text-muted-foreground hover:text-primary"
+                          >
+                            <FolderSymlink className="h-4 w-4" />
                           </Button>
                         }
                       />

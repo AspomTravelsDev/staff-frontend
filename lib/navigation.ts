@@ -428,7 +428,7 @@ export const personalNav: NavItem[] = [
     url: "",
     icon: Settings2,
     items: [
-      { title: "My IT Assets", url: "/my/inventory", badgeKey: "inventoryAssignmentsStaff", badgeLabel: "Devices awaiting your acknowledgement" },
+      { title: "My IT Assets", url: "/my/inventory", badgeKey: "inventoryAssignmentsStaff", badgeLabel: "Devices awaiting acknowledgement or clearance handover" },
       { title: "Report Issue", url: "/my/it-issue" },
       // { title: "Request Gadget", url: "/my/gadget-request" },
     ],

@@ -97,3 +97,16 @@ export async function moveVisaDocumentAction(documentId: string, folderId: strin
     revalidatePath("/visa/documents");
     return { success: true, data: result.data };
 }
+
+export async function moveVisaFolderAction(folderId: string, targetParentId: string | null) {
+    const result = await updateFolder(folderId, {
+        parent_id: targetParentId || null,
+    });
+
+    if (!result.success) {
+        return { error: result.error?.error || "Failed to move folder" };
+    }
+
+    revalidatePath("/visa/documents");
+    return { success: true, data: result.data };
+}

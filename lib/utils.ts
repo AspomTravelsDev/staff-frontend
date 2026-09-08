@@ -61,11 +61,19 @@ export function formatAssignmentStatus(status?: string | null): string {
       return "Awaiting officer";
     case "pending_compliance":
       return "Awaiting compliance";
+    case "return_pending_staff":
+      return "Awaiting staff handover";
+    case "return_pending_inspection":
+      return "Pending IT inspection";
+    case "return_pending_compliance":
+      return "Pending compliance audit";
+    case "cleared":
+      return "Cleared";
     case "completed":
       return "Completed";
     case "cancelled":
       return "Cancelled";
     default:
-      return status || "—";
+      return status ? status.replace(/_/g, " ") : "—";
   }
 }

@@ -17,7 +17,7 @@ import { InventoryHistoryDialog } from "./inventory-history-dialog";
 import { LogInspectionDialog } from "./log-inspection-dialog";
 import { InitiateAssignmentDialog } from "./initiate-assignment-dialog";
 import { InitiateFullClearanceDialog } from "./initiate-full-clearance-dialog";
-import { ReturnDeviceDialog } from "@/app/(admin)/my/inventory/components/return-device-dialog";
+import { InitiateDeviceClearanceDialog } from "./initiate-device-clearance-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -432,10 +432,11 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         employees={employees}
       />
 
-      <ReturnDeviceDialog
+      <InitiateDeviceClearanceDialog
         open={!!itemToClear}
         onOpenChange={(open) => !open && setItemToClear(null)}
         item={itemToClear}
+        employees={employees}
       />
 
       <InitiateFullClearanceDialog

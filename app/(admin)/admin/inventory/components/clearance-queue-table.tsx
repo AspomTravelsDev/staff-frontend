@@ -161,29 +161,41 @@ export function ClearanceQueueTable({
                       : "₦0"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {item.status.replace(/_/g, " ")}
-                    </Badge>
+                    {item.status === "return_pending_staff" ? (
+                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200">
+                        Awaiting Staff Handover
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="capitalize">
+                        {item.status.replace(/_/g, " ")}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {(mode === "officer" || item.status !== "cleared") && (
-                        <Button
-                          size="sm"
-                          variant={mode === "officer" ? (item.status === "return_pending_inspection" ? "default" : "outline") : "secondary"}
-                          onClick={() => openInspectionModal(item)}
-                        >
-                          {mode === "officer" ? (
-                            <>
-                              <UserCheck className="mr-1 h-3.5 w-3.5" />{" "}
-                              {item.status === "return_pending_inspection" ? "Inspect Return" : "Edit Inspection"}
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck className="mr-1 h-3.5 w-3.5 text-blue-600" /> Audit Clearance
-                            </>
-                          )}
-                        </Button>
+                      {item.status === "return_pending_staff" ? (
+                        <span className="text-xs text-muted-foreground italic px-2 py-1">
+                          Awaiting staff report
+                        </span>
+                      ) : (
+                        (mode === "officer" || item.status !== "cleared") && (
+                          <Button
+                            size="sm"
+                            variant={mode === "officer" ? (item.status === "return_pending_inspection" ? "default" : "outline") : "secondary"}
+                            onClick={() => openInspectionModal(item)}
+                          >
+                            {mode === "officer" ? (
+                              <>
+                                <UserCheck className="mr-1 h-3.5 w-3.5" />{" "}
+                                {item.status === "return_pending_inspection" ? "Inspect Return" : "Edit Inspection"}
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="mr-1 h-3.5 w-3.5 text-blue-600" /> Audit Clearance
+                              </>
+                            )}
+                          </Button>
+                        )
                       )}
 
                       {item.status === "cleared" && mode !== "officer" && (

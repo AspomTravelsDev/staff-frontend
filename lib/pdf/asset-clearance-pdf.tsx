@@ -201,6 +201,7 @@ export function AssetClearancePdfDocument({
   const assigneeName = assignment.assignee?.name || "";
   const assigneeDept = assignment.assignee?.department || "";
   const createdDateStr = formatPdfDate(assignment.createdAt);
+  const staffDateStr = formatPdfDate(assignment.staffDecidedAt || assignment.createdAt);
   const officerDateStr = formatPdfDate(assignment.officerDecidedAt);
   const complianceDateStr = formatPdfDate(assignment.complianceDecidedAt || assignment.updatedAt);
 
@@ -212,7 +213,14 @@ export function AssetClearancePdfDocument({
     const serialStr = item.inventoryItem?.serialNumber ? ` (${item.inventoryItem.serialNumber})` : "";
     const assetDescription = `${itemName}${serialStr}`.toUpperCase();
 
-    const isStaffChecked = !!item.staffDecision || !!item.staffNotes || !!item.staffConditionDetails || !!item.assignee;
+    const isStaffChecked =
+      item.staffDecision === "approved" ||
+      !!item.staffDecidedAt ||
+      !!item.staffNotes ||
+      !!item.staffConditionDetails ||
+      item.status === "cleared" ||
+      item.status === "return_pending_inspection" ||
+      item.status === "return_pending_compliance";
     const isOfficerChecked = !!item.officerDecision || !!item.officerNotes || !!item.returnConditionRating;
 
     let commentText = "";
@@ -298,7 +306,9 @@ export function AssetClearancePdfDocument({
         <View style={styles.commentBox}>
           {itemsToDisplay.map((item, idx) => {
             const devName = item.inventoryItem?.name || "Device";
-            const comment = item.staffConditionDetails || item.staffNotes || item.initiateNotes || "No condition issues reported upon assignment.";
+            const condStr = item.staffConditionRating ? `[Condition: ${item.staffConditionRating}] ` : "";
+            const detailsStr = [item.staffConditionDetails, item.staffNotes].filter(Boolean).join(" — ");
+            const comment = condStr + (detailsStr || item.initiateNotes || "No condition issues reported upon handover.");
             return (
               <Text style={styles.commentLine} key={idx}>
                 {itemsToDisplay.length > 1 ? `${devName}: ` : ""}{comment}
@@ -318,7 +328,7 @@ export function AssetClearancePdfDocument({
 
           <View style={styles.sigBlock}>
             <View style={styles.sigDottedLine}>
-              <Text>{createdDateStr}</Text>
+              <Text>{staffDateStr}</Text>
             </View>
             <Text style={styles.sigLabel}>SIGNATURE/DATE</Text>
           </View>

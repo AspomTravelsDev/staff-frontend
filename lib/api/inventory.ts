@@ -69,6 +69,7 @@ export type InventoryAssignmentStatus =
     | "pending_staff"
     | "pending_officer"
     | "pending_compliance"
+    | "return_pending_staff"
     | "return_pending_inspection"
     | "return_pending_compliance"
     | "completed"
@@ -686,5 +687,49 @@ export async function approveClearanceCompliance(
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to approve clearance compliance");
     }
     return mapAssignment(response.data.data);
+}
+
+export interface ClearanceHandoverItemDeclaration {
+    assignmentId: string;
+    conditionRating: InventoryConditionRating | "Broken";
+    conditionDetails?: string;
+    notes?: string;
+}
+
+export interface SubmitClearanceHandoverPayload {
+    assignmentIds?: string[];
+    assignmentId?: string;
+    declarations?: ClearanceHandoverItemDeclaration[];
+    conditionRating?: InventoryConditionRating | "Broken";
+    conditionDetails?: string;
+    notes?: string;
+    handoverNotes?: string;
+}
+
+export async function submitClearanceHandover(
+    payload: SubmitClearanceHandoverPayload
+): Promise<InventoryAssignment[]> {
+    const response = await api.post<any>("/api/my-inventory/clearance/handover", {
+        assignment_ids: payload.assignmentIds ? payload.assignmentIds.map((id) => Number(id)) : undefined,
+        assignment_id: payload.assignmentId ? Number(payload.assignmentId) : undefined,
+        declarations: payload.declarations?.map((d) => ({
+            assignment_id: Number(d.assignmentId),
+            condition_rating: d.conditionRating,
+            condition_details: d.conditionDetails,
+            notes: d.notes,
+        })),
+        condition_rating: payload.conditionRating,
+        condition_details: payload.conditionDetails,
+        notes: payload.notes,
+        handover_notes: payload.handoverNotes,
+    });
+    if (!response.success) {
+        throw new Error(
+            (response.error as any)?.message ||
+                response.error?.error ||
+                "Failed to submit clearance handover"
+        );
+    }
+    return (response.data.data || []).map(mapAssignment);
 }
 
