@@ -5,9 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationFormData } from "@/lib/types/form-data";
+import { AddressVerificationToggle } from "./address-verification-toggle";
 
 interface BioDataProps {
-  formData: ApplicationFormData;
+  formData: ApplicationFormData & {
+    address_verification?: any;
+    address_verified?: boolean;
+    guarantorReferee?: any;
+  };
+  applicationId?: string;
 }
  const InfoRow = ({
     label,
@@ -23,8 +29,8 @@ interface BioDataProps {
       <span className="text-sm font-medium">{value || "—"}</span>
     </div>
   );
-export function BioData({ formData }: BioDataProps) {
-  const { personal, employmentFinance, legal } = formData;
+export function BioData({ formData, applicationId }: BioDataProps) {
+  const { personal, employmentFinance, legal, guarantorReferee } = formData;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -39,17 +45,60 @@ export function BioData({ formData }: BioDataProps) {
     }
   };
 
- 
+  const addressParts = [
+    personal?.residentialAddress?.street,
+    personal?.residentialAddress?.busStop,
+    personal?.residentialAddress?.city,
+    personal?.residentialAddress?.state,
+    personal?.residentialAddress?.country,
+  ].filter(Boolean);
+  const addressText = addressParts.length > 0 ? addressParts.join(", ") : null;
+
+  const g1 = guarantorReferee?.guarantors?.[0];
+  const g1FullName =
+    g1?.fullName ||
+    [g1?.firstName, g1?.middleName, g1?.lastName].filter(Boolean).join(" ");
+  const g1Address = g1?.address
+    ? [
+        g1.address.street,
+        g1.address.homeAddress,
+        g1.address.city,
+        g1.address.state,
+        g1.address.country,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "—";
+
+  const g2 = guarantorReferee?.guarantors?.[1];
+  const g2FullName =
+    g2?.fullName ||
+    [g2?.firstName, g2?.middleName, g2?.lastName].filter(Boolean).join(" ");
+  const g2Address = g2?.address
+    ? [
+        g2.address.street,
+        g2.address.homeAddress,
+        g2.address.city,
+        g2.address.state,
+        g2.address.country,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "—";
+
+  const ref = guarantorReferee?.referee;
+  const refFullName = ref?.fullName || ref?.nameOfReferee;
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold px-1">Applicant Bio Data</h3>
 
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="personal">Personal Info</TabsTrigger>
           <TabsTrigger value="professional">Professional</TabsTrigger>
           <TabsTrigger value="background">Account & Background</TabsTrigger>
+          <TabsTrigger value="guarantors">Guarantors & Referee</TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal" className="mt-4 space-y-6">
@@ -126,13 +175,29 @@ export function BioData({ formData }: BioDataProps) {
 
               {/* Residential Address */}
               <div>
-                <h4 className="text-sm font-semibold mb-3">
-                  Residential Address
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold">Residential Address</h4>
+                  {applicationId && (
+                    <AddressVerificationToggle
+                      applicationId={applicationId}
+                      addressText={addressText}
+                      landmark={personal?.nearestLandmark}
+                      initialVerified={Boolean(
+                        formData?.address_verification?.verified ||
+                          formData?.address_verified
+                      )}
+                      verifiedAt={formData?.address_verification?.verified_at}
+                      verifiedByName={
+                        formData?.address_verification?.verified_by?.name
+                      }
+                      mode="inline"
+                    />
+                  )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InfoRow
                     label="Address"
-                    value={`${personal?.residentialAddress?.street}, ${personal?.residentialAddress?.city}, ${personal?.residentialAddress?.state}, ${personal?.residentialAddress?.country}`}
+                    value={addressText || "—"}
                   />
                   <InfoRow
                     label="Nearest Landmark"
@@ -403,6 +468,161 @@ export function BioData({ formData }: BioDataProps) {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="guarantors" className="mt-4 space-y-6">
+          {/* Guarantor 1 */}
+          <Card>
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <span>Guarantor 1</span>
+                  {g1?.relationship && (
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {g1.relationship}
+                    </Badge>
+                  )}
+                </h4>
+                {g1?.liabilityAccepted && (
+                  <Badge variant="secondary" className="text-xs">
+                    Liability Accepted
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <InfoRow label="Full Name" value={g1FullName} />
+                <InfoRow label="Phone Number" value={g1?.phoneNumber} />
+                <InfoRow
+                  label="Alternate Phone"
+                  value={g1?.alternatePhoneNumber}
+                />
+                <InfoRow label="Email Address" value={g1?.email} />
+                <InfoRow label="Occupation" value={g1?.occupation} />
+                <InfoRow
+                  label="Years Known"
+                  value={g1?.yearsKnown ? `${g1.yearsKnown} years` : "—"}
+                />
+                <InfoRow label="Employer Name" value={g1?.employerName} />
+                <InfoRow
+                  label="Employer Address"
+                  value={g1?.employerAddress}
+                />
+                <InfoRow label="Residential Address" value={g1Address} />
+              </div>
+
+              {g1?.characterAssessment && (
+                <div>
+                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                    Character Assessment
+                  </h5>
+                  <p className="text-sm bg-muted/30 p-3 rounded border">
+                    {g1.characterAssessment}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Guarantor 2 */}
+          <Card>
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <span>Guarantor 2</span>
+                  {g2?.relationship && (
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {g2.relationship}
+                    </Badge>
+                  )}
+                </h4>
+                {g2?.liabilityAccepted && (
+                  <Badge variant="secondary" className="text-xs">
+                    Liability Accepted
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <InfoRow label="Full Name" value={g2FullName} />
+                <InfoRow label="Phone Number" value={g2?.phoneNumber} />
+                <InfoRow
+                  label="Alternate Phone"
+                  value={g2?.alternatePhoneNumber}
+                />
+                <InfoRow label="Email Address" value={g2?.email} />
+                <InfoRow label="Occupation" value={g2?.occupation} />
+                <InfoRow
+                  label="Years Known"
+                  value={g2?.yearsKnown ? `${g2.yearsKnown} years` : "—"}
+                />
+                <InfoRow label="Employer Name" value={g2?.employerName} />
+                <InfoRow
+                  label="Employer Address"
+                  value={g2?.employerAddress}
+                />
+                <InfoRow label="Residential Address" value={g2Address} />
+              </div>
+
+              {g2?.characterAssessment && (
+                <div>
+                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                    Character Assessment
+                  </h5>
+                  <p className="text-sm bg-muted/30 p-3 rounded border">
+                    {g2.characterAssessment}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Referee */}
+          <Card>
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <span>Referee</span>
+                  {ref?.relationshipType && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-normal capitalize"
+                    >
+                      {ref.relationshipType}
+                    </Badge>
+                  )}
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <InfoRow label="Full Name" value={refFullName} />
+                <InfoRow label="Phone Number" value={ref?.phoneNumber} />
+                <InfoRow
+                  label="Alternate Phone"
+                  value={ref?.phoneNumberAlternate}
+                />
+                <InfoRow label="Email Address" value={ref?.emailAddress} />
+                <InfoRow label="Organization" value={ref?.organization} />
+                <InfoRow
+                  label="Position / Occupation"
+                  value={ref?.position || ref?.occupation}
+                />
+                <InfoRow label="How Long Known" value={ref?.howLongKnown} />
+                <InfoRow label="Address" value={ref?.address} />
+              </div>
+
+              {ref?.professionalAssessment && (
+                <div>
+                  <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                    Professional Assessment
+                  </h5>
+                  <p className="text-sm bg-muted/30 p-3 rounded border">
+                    {ref.professionalAssessment}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

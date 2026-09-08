@@ -8,25 +8,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, UserCheck, Clock } from "lucide-react";
 
 interface InventoryPendingApprovalsProps {
-  userRole: string;
+  userRole?: string;
+  userRoles?: string[];
   officerAssignments: InventoryAssignment[];
   complianceAssignments: InventoryAssignment[];
 }
 
 export function InventoryPendingApprovals({
   userRole,
+  userRoles,
   officerAssignments,
   complianceAssignments,
 }: InventoryPendingApprovalsProps) {
-  const isSuper = ["super", "mp", "md"].includes(userRole);
-  const isOfficer = isSuper || ["admin", "it"].includes(userRole);
-  const isCompliance = isSuper || ["compliance"].includes(userRole);
+  const activeRoles =
+    userRoles && userRoles.length > 0
+      ? userRoles
+      : userRole
+        ? [userRole]
+        : [];
 
-  const [activeQueueFilter, setActiveQueueFilter] = useState<"all" | "officer" | "compliance">("all");
+  const isSuper = ["super", "mp", "md"].some((r) => activeRoles.includes(r));
+  const isOfficer = isSuper || ["admin", "it"].some((r) => activeRoles.includes(r));
+  const isCompliance = isSuper || ["compliance"].some((r) => activeRoles.includes(r));
+  const canFilterMultiple = isSuper || (isOfficer && isCompliance);
+
+  const [activeQueueFilter, setActiveQueueFilter] = useState<
+    "all" | "officer" | "compliance"
+  >(canFilterMultiple ? "all" : isCompliance ? "compliance" : "officer");
 
   const totalOfficer = officerAssignments.length;
   const totalCompliance = complianceAssignments.length;
-  const totalPending = totalOfficer + totalCompliance;
+  const totalPending = isSuper || (isOfficer && isCompliance)
+    ? totalOfficer + totalCompliance
+    : isCompliance
+      ? totalCompliance
+      : totalOfficer;
 
   return (
     <div className="space-y-6">
@@ -58,7 +74,7 @@ export function InventoryPendingApprovals({
           </Card>
         )}
 
-        {isSuper && (
+        {canFilterMultiple && (
           <Card className={`transition-all ${activeQueueFilter === "all" ? "ring-2 ring-primary" : ""}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Pending Approvals</CardTitle>
@@ -73,7 +89,7 @@ export function InventoryPendingApprovals({
       </div>
 
       {/* Sub-toggle Filter for Super Admins / Multi-role Users */}
-      {isSuper && (
+      {canFilterMultiple && (
         <div className="flex items-center gap-2 border-b pb-3">
           <button
             type="button"
@@ -125,7 +141,7 @@ export function InventoryPendingApprovals({
       {/* Render Tables Based on Role and Selected Filter */}
       {isOfficer && (activeQueueFilter === "all" || activeQueueFilter === "officer") && (
         <div className="space-y-3">
-          {isSuper && activeQueueFilter === "all" && (
+          {canFilterMultiple && activeQueueFilter === "all" && (
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <UserCheck className="h-4 w-4 text-orange-600" />
@@ -139,7 +155,7 @@ export function InventoryPendingApprovals({
 
       {isCompliance && (activeQueueFilter === "all" || activeQueueFilter === "compliance") && (
         <div className="space-y-3 pt-4">
-          {isSuper && activeQueueFilter === "all" && (
+          {canFilterMultiple && activeQueueFilter === "all" && (
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-blue-600" />

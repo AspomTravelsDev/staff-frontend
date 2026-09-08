@@ -85,6 +85,8 @@ export interface InventoryAssignmentUser {
     name: string;
     role?: string;
     department?: string;
+    phone?: string | null;
+    mobile_phone?: string | null;
 }
 
 export interface InventoryAssignment {

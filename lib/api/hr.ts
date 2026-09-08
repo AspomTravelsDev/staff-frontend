@@ -75,6 +75,20 @@ export async function requestOnboardingCorrection(
     }
 }
 
+export async function toggleAddressVerification(
+    id: string,
+    verified?: boolean
+): Promise<OnboardingApplication> {
+    const response = await api.patch<{ message: string; data: OnboardingApplication }>(
+        `/api/onboarding-applications/${id}/verify-address`,
+        verified !== undefined ? { verified } : {}
+    );
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to update address verification");
+    }
+    return response.data.data;
+}
+
 // ─── Public endpoints (applicant portal — no auth) ───
 
 export async function getPublicApplication(id: string): Promise<OnboardingApplication> {

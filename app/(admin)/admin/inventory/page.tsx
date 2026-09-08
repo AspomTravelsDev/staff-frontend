@@ -11,6 +11,7 @@ import {
   InventoryConditionRating,
 } from "@/lib/api/inventory";
 import { getAllEmployees } from "@/app/(admin)/hr/employees/queries";
+import { getRoles, userHasAnyRole } from "@/types/user-types";
 import { InventoryStatsCards } from "./components/inventory-stats";
 import { InventoryAddButton } from "./components/inventory-add-button";
 import { InventoryClientManager } from "./components/inventory-client-manager";
@@ -33,22 +34,24 @@ export default async function InventoryPage({
     redirect("/login");
   }
 
-  const role = user.role;
+  const activeRoles = getRoles(user);
+  const isOfficer = userHasAnyRole(user, ["admin", "it", "super", "mp", "md"]);
+  const isCompliance = userHasAnyRole(user, ["compliance", "super", "mp", "md"]);
 
-  // Conditionally fetch queue data based on permissions
-  const officerQueuePromise = ["admin", "it", "super", "mp", "md"].includes(role)
+  // Conditionally fetch queue data based on active permissions (including sub-roles/secondary roles)
+  const officerQueuePromise = isOfficer
     ? getInventoryOfficerQueue()
     : Promise.resolve([]);
 
-  const complianceQueuePromise = ["compliance", "super", "mp", "md"].includes(role)
+  const complianceQueuePromise = isCompliance
     ? getInventoryComplianceQueue()
     : Promise.resolve([]);
 
-  const clearanceOfficerPromise = ["admin", "it", "super", "mp", "md"].includes(role)
+  const clearanceOfficerPromise = isOfficer
     ? getClearanceOfficerQueue()
     : Promise.resolve([]);
 
-  const clearanceCompliancePromise = ["compliance", "super", "mp", "md"].includes(role)
+  const clearanceCompliancePromise = isCompliance
     ? getClearanceComplianceQueue()
     : Promise.resolve([]);
 
@@ -95,7 +98,8 @@ export default async function InventoryPage({
       <InventoryStatsCards stats={stats} />
 
       <InventoryClientManager
-        userRole={role}
+        userRole={user.role}
+        userRoles={activeRoles}
         initialItems={inventoryData.items}
         employees={employees}
         officerAssignments={officerAssignments}

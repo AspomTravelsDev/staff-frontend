@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Package, Clock, RotateCcw, ShieldAlert } from "lucide-react";
 
 interface InventoryClientManagerProps {
-  userRole: string;
+  userRole?: string;
+  userRoles?: string[];
   initialItems: InventoryItem[];
   employees: Employee[];
   officerAssignments: InventoryAssignment[];
@@ -33,6 +34,7 @@ interface InventoryClientManagerProps {
 
 export function InventoryClientManager({
   userRole,
+  userRoles,
   initialItems,
   employees,
   officerAssignments,
@@ -49,20 +51,47 @@ export function InventoryClientManager({
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isFullClearanceDialogOpen, setIsFullClearanceDialogOpen] = useState(false);
 
-  const isSuper = ["super", "mp", "md"].includes(userRole);
-  const isOfficer = isSuper || ["admin", "it"].includes(userRole);
-  const isCompliance = isSuper || ["compliance"].includes(userRole);
+  const activeRoles = useMemo(() => {
+    if (userRoles && userRoles.length > 0) return userRoles;
+    if (userRole) return [userRole];
+    return [];
+  }, [userRoles, userRole]);
+
+  const isSuper = useMemo(
+    () => ["super", "mp", "md"].some((r) => activeRoles.includes(r)),
+    [activeRoles]
+  );
+  const isOfficer = useMemo(
+    () => isSuper || ["admin", "it"].some((r) => activeRoles.includes(r)),
+    [isSuper, activeRoles]
+  );
+  const isCompliance = useMemo(
+    () => isSuper || ["compliance"].some((r) => activeRoles.includes(r)),
+    [isSuper, activeRoles]
+  );
+
+  const canSwitchClearance = isSuper || (isOfficer && isCompliance);
+  const [clearanceView, setClearanceView] = useState<"officer" | "compliance">(
+    isCompliance && !isOfficer ? "compliance" : "officer"
+  );
 
   const pendingOfficerCount = isOfficer ? officerAssignments.length : 0;
   const pendingComplianceCount = isCompliance ? complianceAssignments.length : 0;
-  const totalPendingCount = isSuper
+  const totalPendingCount = isSuper || (isOfficer && isCompliance)
     ? officerAssignments.length + complianceAssignments.length
-    : pendingOfficerCount + pendingComplianceCount;
+    : isCompliance
+      ? pendingComplianceCount
+      : pendingOfficerCount;
 
-  const activeClearanceQueue = isCompliance
-    ? clearanceComplianceQueue
-    : clearanceOfficerQueue;
-  const totalClearanceCount = isSuper
+  const activeClearanceQueue = canSwitchClearance
+    ? clearanceView === "compliance"
+      ? clearanceComplianceQueue
+      : clearanceOfficerQueue
+    : isCompliance
+      ? clearanceComplianceQueue
+      : clearanceOfficerQueue;
+
+  const totalClearanceCount = isSuper || (isOfficer && isCompliance)
     ? clearanceOfficerQueue.length + clearanceComplianceQueue.length
     : activeClearanceQueue.length;
 
@@ -172,7 +201,8 @@ export function InventoryClientManager({
 
         <TabsContent value="pending-approvals" className="space-y-4">
           <InventoryPendingApprovals
-            userRole={userRole}
+            userRole={userRole || activeRoles[0] || ""}
+            userRoles={activeRoles}
             officerAssignments={officerAssignments}
             complianceAssignments={complianceAssignments}
           />
@@ -197,11 +227,49 @@ export function InventoryClientManager({
             )}
           </div>
 
+          {canSwitchClearance && (
+            <div className="flex items-center gap-2 border-b pb-3">
+              <button
+                type="button"
+                onClick={() => setClearanceView("officer")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                  clearanceView === "officer"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                Officer Clearance Queue
+                <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
+                  {clearanceOfficerQueue.length}
+                </Badge>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setClearanceView("compliance")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                  clearanceView === "compliance"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                Compliance Audit Queue
+                <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
+                  {clearanceComplianceQueue.length}
+                </Badge>
+              </button>
+            </div>
+          )}
+
           <ClearanceQueueTable
-            assignments={
-              isCompliance ? clearanceComplianceQueue : clearanceOfficerQueue
+            assignments={activeClearanceQueue}
+            mode={
+              canSwitchClearance
+                ? clearanceView
+                : isCompliance
+                ? "compliance"
+                : "officer"
             }
-            mode={isCompliance ? "compliance" : "officer"}
           />
         </TabsContent>
       </Tabs>

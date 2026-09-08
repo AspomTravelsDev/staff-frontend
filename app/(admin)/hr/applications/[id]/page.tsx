@@ -11,6 +11,7 @@ import { ApplicationActionsClient } from "./components/application-actions-clien
 import { BioData } from "./components/bio-data";
 import { ApplicationExportButton } from "../components/application-export-button";
 import { ApplicationTimeline } from "./components/application-timeline";
+import { AddressVerificationToggle } from "./components/address-verification-toggle";
 
 
 export default async function ApplicationDetailPage({
@@ -67,6 +68,55 @@ export default async function ApplicationDetailPage({
 
   const employmentTerms = application.form_data?.employment_terms;
 
+  const personal = application.form_data?.personal;
+  const addressParts = [
+    personal?.residentialAddress?.street,
+    personal?.residentialAddress?.busStop,
+    personal?.residentialAddress?.city,
+    personal?.residentialAddress?.state,
+    personal?.residentialAddress?.country,
+  ].filter(Boolean);
+  const formattedAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
+
+  const addressVerification = application.form_data?.address_verification;
+  const isAddressVerified = Boolean(
+    addressVerification?.verified || application.form_data?.address_verified
+  );
+
+  const guarantorReferee = application.form_data?.guarantorReferee;
+  const guarantor1 = guarantorReferee?.guarantors?.[0];
+  const guarantor2 = guarantorReferee?.guarantors?.[1];
+  const referee = guarantorReferee?.referee;
+
+  const g1Name =
+    guarantor1?.fullName ||
+    [guarantor1?.firstName, guarantor1?.middleName, guarantor1?.lastName]
+      .filter(Boolean)
+      .join(" ") ||
+    "Not provided yet";
+  const g1Phone =
+    [guarantor1?.phoneNumber, guarantor1?.alternatePhoneNumber]
+      .filter(Boolean)
+      .join(" / ") || "—";
+
+  const g2Name =
+    guarantor2?.fullName ||
+    [guarantor2?.firstName, guarantor2?.middleName, guarantor2?.lastName]
+      .filter(Boolean)
+      .join(" ") ||
+    "Not provided yet";
+  const g2Phone =
+    [guarantor2?.phoneNumber, guarantor2?.alternatePhoneNumber]
+      .filter(Boolean)
+      .join(" / ") || "—";
+
+  const refName =
+    referee?.fullName || referee?.nameOfReferee || "Not provided yet";
+  const refPhone =
+    [referee?.phoneNumber, referee?.phoneNumberAlternate]
+      .filter(Boolean)
+      .join(" / ") || "—";
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Header */}
@@ -94,7 +144,7 @@ export default async function ApplicationDetailPage({
         <CardHeader>
           <CardTitle>Applicant Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Name</p>
@@ -146,6 +196,103 @@ export default async function ApplicationDetailPage({
 
           <Separator />
 
+          {/* Residential Address & Verification */}
+          <AddressVerificationToggle
+            applicationId={application.id}
+            addressText={formattedAddress}
+            landmark={personal?.nearestLandmark}
+            initialVerified={isAddressVerified}
+            verifiedAt={addressVerification?.verified_at}
+            verifiedByName={addressVerification?.verified_by?.name}
+          />
+
+          <Separator />
+
+          {/* Guarantors & Referee Summary */}
+          <div>
+            <h4 className="text-sm font-semibold mb-3">
+              Guarantors &amp; Referee Summary
+            </h4>
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Guarantor 1 */}
+              <div className="p-3.5 rounded-lg border bg-muted/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Guarantor 1
+                  </span>
+                  {guarantor1?.relationship && (
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
+                      {guarantor1.relationship}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-foreground">
+                  {g1Name}
+                </p>
+                <div className="text-xs text-muted-foreground flex flex-col gap-0.5 pt-0.5">
+                  <span className="font-medium text-foreground">{g1Phone}</span>
+                  {guarantor1?.email && (
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      {guarantor1.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Guarantor 2 */}
+              <div className="p-3.5 rounded-lg border bg-muted/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Guarantor 2
+                  </span>
+                  {guarantor2?.relationship && (
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
+                      {guarantor2.relationship}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-foreground">
+                  {g2Name}
+                </p>
+                <div className="text-xs text-muted-foreground flex flex-col gap-0.5 pt-0.5">
+                  <span className="font-medium text-foreground">{g2Phone}</span>
+                  {guarantor2?.email && (
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      {guarantor2.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Referee */}
+              <div className="p-3.5 rounded-lg border bg-muted/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Referee
+                  </span>
+                  {referee?.relationshipType && (
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal capitalize">
+                      {referee.relationshipType}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-foreground">
+                  {refName}
+                </p>
+                <div className="text-xs text-muted-foreground flex flex-col gap-0.5 pt-0.5">
+                  <span className="font-medium text-foreground">{refPhone}</span>
+                  {referee?.organization && (
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      {referee.organization}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           <div>
             <p className="mb-2 text-sm font-medium">Applicant Link</p>
             <div className="flex items-center gap-2">
@@ -163,7 +310,10 @@ export default async function ApplicationDetailPage({
 
       {/* Bio Data */}
       {application.form_data && (
-        <BioData formData={application.form_data as any} />
+        <BioData
+          formData={application.form_data as any}
+          applicationId={application.id}
+        />
       )}
 
       {/* Employment Terms */}

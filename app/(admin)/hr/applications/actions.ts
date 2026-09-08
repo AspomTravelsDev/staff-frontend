@@ -3,6 +3,7 @@
 import { deleteApplication } from "@/lib/api/hr";
 import { requestOnboardingCorrection } from "@/lib/api/hr";
 import { sendOnboardingReminder } from "@/lib/api/hr";
+import { toggleAddressVerification } from "@/lib/api/hr";
 import { revalidatePath } from "next/cache";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 
@@ -41,3 +42,11 @@ export async function sendReminderAction(id: string, note: string) {
     revalidatePath(`/hr/applications/${id}`);
     revalidatePath("/hr/applications");
 }
+
+export async function toggleAddressVerificationAction(id: string, verified?: boolean) {
+    const updated = await toggleAddressVerification(id, verified);
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+    return updated;
+}
+

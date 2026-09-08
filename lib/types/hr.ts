@@ -138,6 +138,7 @@ export interface Referee {
 }
 
 export interface Guarantor {
+    fullName?: string;
     email: string;
     ageDob: string;
     address: {
@@ -216,6 +217,14 @@ export interface OnboardingFormData {
     employmentFinance: EmploymentFinance;
     review?: OnboardingCorrectionEntry;
     reviewHistory?: OnboardingHistoryEntry[];
+    address_verification?: AddressVerification;
+    address_verified?: boolean;
+}
+
+export interface AddressVerification {
+    verified: boolean;
+    verified_at?: string | null;
+    verified_by?: OnboardingReviewUser | null;
 }
 
 export type OnboardingCorrectionReason =

@@ -144,6 +144,13 @@ export function userHasAnyRole(user: { role?: string; secondary_roles?: string[]
     return targetRoles.some((role) => active.includes(role));
 }
 
+/**
+ * Convenient aliases
+ */
+export const getRoles = getUserActiveRoles;
+export const getUserRoles = getUserActiveRoles;
+
+
 export interface User {
     id: string;
     staff_id: string;

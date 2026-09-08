@@ -353,11 +353,15 @@ export function AssetFormPdfDocument({
           {/* Left Column: Employee */}
           <View style={styles.sigBlockCenter}>
             <View style={styles.sigUnderline}>
-              <Text style={styles.sigNameText}>{assigneeName}</Text>
+              <Text style={styles.sigNameText}>
+                {mainAssignment?.staffDecidedAt ? assigneeName : ""}
+              </Text>
             </View>
             <Text style={styles.sigTitleText}>EMPLOYEE SIGNATURE</Text>
             <Text style={styles.sigDateText}>
-              Date: {mainAssignment?.staffDecidedAt ? formatPdfDate(mainAssignment.staffDecidedAt) : formattedDate}
+              {mainAssignment?.staffDecidedAt
+                ? `Date: ${formatPdfDate(mainAssignment.staffDecidedAt)}`
+                : "Date: ________________"}
             </Text>
           </View>
 
@@ -365,12 +369,16 @@ export function AssetFormPdfDocument({
           <View style={styles.sigBlockCenter}>
             <View style={styles.sigUnderline}>
               <Text style={styles.sigNameText}>
-                {mainAssignment?.officer?.name || mainAssignment?.initiator?.name || "Admin Officer"}
+                {mainAssignment?.officerDecidedAt && mainAssignment?.officer?.name
+                  ? mainAssignment.officer.name
+                  : ""}
               </Text>
             </View>
             <Text style={styles.sigTitleText}>IN THE PRESENCE OF (IT / ADMIN OFFICER)</Text>
             <Text style={styles.sigDateText}>
-              Date: {mainAssignment?.officerDecidedAt ? formatPdfDate(mainAssignment.officerDecidedAt) : formattedDate}
+              {mainAssignment?.officerDecidedAt
+                ? `Date: ${formatPdfDate(mainAssignment.officerDecidedAt)}`
+                : "Date: ________________"}
             </Text>
           </View>
         </View>
@@ -380,12 +388,16 @@ export function AssetFormPdfDocument({
           <View style={[styles.sigBlockCenter, { width: "50%" }]}>
             <View style={styles.sigUnderline}>
               <Text style={styles.sigNameText}>
-                {mainAssignment?.complianceOfficer?.name || "Compliance Officer"}
+                {mainAssignment?.complianceDecidedAt && mainAssignment?.complianceOfficer?.name
+                  ? mainAssignment.complianceOfficer.name
+                  : ""}
               </Text>
             </View>
             <Text style={styles.sigTitleText}>COMPLIANCE OFFICER VERIFICATION</Text>
             <Text style={styles.sigDateText}>
-              {mainAssignment?.complianceDecidedAt ? `Date: ${formatPdfDate(mainAssignment.complianceDecidedAt)}` : ""}
+              {mainAssignment?.complianceDecidedAt
+                ? `Date: ${formatPdfDate(mainAssignment.complianceDecidedAt)}`
+                : "Date: ________________"}
             </Text>
           </View>
         </View>

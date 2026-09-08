@@ -76,6 +76,14 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
                 getPath(app.form_data, "personal.residentialAddress.country"),
             ]),
     },
+    {
+        header: "Address Verified",
+        key: (app) =>
+            yesNo(
+                getPath(app.form_data, "address_verification.verified") ||
+                getPath(app.form_data, "address_verified")
+            ),
+    },
     { header: "Nearest Landmark", key: (app) => stringify(getPath(app.form_data, "personal.nearestLandmark")) },
     { header: "Building Description", key: (app) => stringify(getPath(app.form_data, "personal.buildingDescription")) },
     { header: "ID Passport Number", key: (app) => stringify(getPath(app.form_data, "personal.identification.passportNo")) },

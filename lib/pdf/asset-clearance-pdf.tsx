@@ -5,6 +5,8 @@ import {
   Text,
   StyleSheet,
   Image,
+  Svg,
+  Path,
 } from "@react-pdf/renderer";
 import { InventoryAssignment } from "@/lib/api/inventory";
 import { format } from "date-fns";
@@ -20,52 +22,66 @@ const formatPdfDate = (dateStr?: string | Date | null): string => {
 
 const COMPANY_LOGO_URL = "/aspom-logo.png";
 
+// Reusable vector checkmark that renders consistently across all PDF viewers
+const CheckMark = ({ size = 11, color = "#0f172a" }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path
+      d="M20 6L9 17L4 12"
+      stroke={color}
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
+
 const styles = StyleSheet.create({
   page: {
-    padding: "12mm 16mm",
+    padding: "10mm 14mm 14mm 14mm",
     fontFamily: "Times-Roman",
-    fontSize: 11,
-    lineHeight: 1.4,
+    fontSize: 10.5,
+    lineHeight: 1.35,
     color: "#0f172a",
   },
   headerContainer: {
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   logo: {
-    width: 115,
-    height: 44,
+    width: 105,
+    height: 38,
     objectFit: "contain",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   docTitle: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontFamily: "Times-Bold",
     textAlign: "center",
     letterSpacing: 0.3,
   },
   docSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Times-Bold",
     textAlign: "center",
     marginTop: 2,
   },
   detailsBlock: {
-    marginTop: 12,
-    marginBottom: 14,
-    gap: 6,
+    marginTop: 8,
+    marginBottom: 10,
+    gap: 5,
   },
   fieldRow: {
     flexDirection: "row",
     alignItems: "flex-end",
   },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: "Times-Bold",
     marginRight: 6,
   },
   fieldValue: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: "Times-Roman",
     borderBottomWidth: 0.8,
     borderBottomColor: "#64748b",
@@ -74,7 +90,7 @@ const styles = StyleSheet.create({
     paddingBottom: 1,
   },
   table: {
-    marginBottom: 14,
+    marginBottom: 10,
     borderWidth: 0.8,
     borderColor: "#475569",
   },
@@ -83,80 +99,51 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
     borderBottomWidth: 0.8,
     borderBottomColor: "#475569",
-    padding: "5 6",
+    padding: "4 5",
   },
-  colAssetHeader: { width: "30%", fontFamily: "Times-Bold", fontSize: 10.5 },
-  colStaffHeader: { width: "16%", fontFamily: "Times-Bold", fontSize: 10.5, textAlign: "center" },
-  colOfficerHeader: { width: "18%", fontFamily: "Times-Bold", fontSize: 10.5, textAlign: "center" },
-  colCommentsHeader: { width: "36%", fontFamily: "Times-Bold", fontSize: 10.5 },
+  colAssetHeader: { width: "32%", fontFamily: "Times-Bold", fontSize: 10 },
+  colStaffHeader: { width: "15%", fontFamily: "Times-Bold", fontSize: 10, textAlign: "center" },
+  colOfficerHeader: { width: "17%", fontFamily: "Times-Bold", fontSize: 10, textAlign: "center" },
+  colCommentsHeader: { width: "36%", fontFamily: "Times-Bold", fontSize: 10 },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: "#cbd5e1",
-    padding: "5 6",
-    minHeight: 22,
+    padding: "4 5",
+    minHeight: 20,
     alignItems: "center",
   },
-  colAssetCell: { width: "30%", fontSize: 10.5, fontFamily: "Times-Bold" },
-  colStaffCell: { width: "16%", fontSize: 11, textAlign: "center", fontFamily: "Times-Bold" },
-  colOfficerCell: { width: "18%", fontSize: 11, textAlign: "center", fontFamily: "Times-Bold" },
-  colCommentsCell: { width: "36%", fontSize: 10 },
+  colAssetCell: { width: "32%", fontSize: 10, fontFamily: "Times-Bold" },
+  colStaffCell: { width: "15%", alignItems: "center", justifyContent: "center" },
+  colOfficerCell: { width: "17%", alignItems: "center", justifyContent: "center" },
+  colCommentsCell: { width: "36%", fontSize: 9.5 },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: "Times-Bold",
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: 6,
+    marginBottom: 3,
     color: "#0f172a",
   },
   commentBox: {
-    minHeight: 48,
-    marginBottom: 14,
-    paddingTop: 2,
+    minHeight: 24,
+    marginBottom: 8,
   },
   commentLine: {
     borderBottomWidth: 0.8,
     borderBottomColor: "#94a3b8",
     borderBottomStyle: "dotted",
-    height: 19,
-    fontSize: 10.5,
+    minHeight: 17,
+    fontSize: 10,
     paddingLeft: 2,
-  },
-  sigGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginTop: 14,
-    marginBottom: 10,
-    width: "100%",
-  },
-  sigBlock: {
-    width: "46%",
-    alignItems: "center",
-  },
-  sigDottedLine: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
-    borderBottomStyle: "solid",
-    width: "100%",
-    minHeight: 22,
-    alignItems: "center",
-    justifyContent: "flex-end",
     paddingBottom: 2,
-    marginBottom: 4,
-  },
-  sigLabel: {
-    fontSize: 9.5,
-    fontFamily: "Times-Bold",
-    color: "#334155",
-    textAlign: "center",
   },
   clearanceGrid: {
     flexDirection: "row",
     borderWidth: 0.8,
     borderColor: "#475569",
-    marginTop: 12,
-    marginBottom: 16,
-    height: 38,
+    marginTop: 8,
+    marginBottom: 12,
+    height: 32,
   },
   clearanceCol: {
     flex: 1,
@@ -167,21 +154,76 @@ const styles = StyleSheet.create({
     borderRightWidth: 0.8,
     borderRightColor: "#475569",
   },
+  clearanceColCleared: {
+    backgroundColor: "#f0fdf4",
+  },
+  clearanceColNotCleared: {
+    backgroundColor: "#fef2f2",
+  },
   clearanceTitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: "Times-Bold",
+  },
+  emptyCheckbox: {
+    width: 11,
+    height: 11,
+    borderWidth: 0.8,
+    borderColor: "#64748b",
+    borderStyle: "solid",
+  },
+  sigGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginTop: 6,
+    marginBottom: 6,
+    width: "100%",
+  },
+  sigBlock: {
+    width: "31%",
+    alignItems: "center",
+  },
+  sigUnderline: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e293b",
+    borderBottomStyle: "solid",
+    width: "100%",
+    minHeight: 18,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 2,
+    marginBottom: 3,
+  },
+  sigNameText: {
+    fontSize: 10,
+    fontFamily: "Times-Bold",
+    color: "#0f172a",
+    textAlign: "center",
+  },
+  sigLabel: {
+    fontSize: 8.5,
+    fontFamily: "Times-Bold",
+    color: "#334155",
+    textAlign: "center",
+  },
+  sigDateText: {
+    fontSize: 8,
+    fontFamily: "Times-Roman",
+    color: "#64748b",
+    textAlign: "center",
+    marginTop: 2,
   },
   pageFooter: {
     position: "absolute",
-    bottom: "8mm",
-    left: "16mm",
-    right: "16mm",
+    bottom: "6mm",
+    left: "14mm",
+    right: "14mm",
     borderTopWidth: 0.5,
     borderTopColor: "#cbd5e1",
-    paddingTop: 4,
+    paddingTop: 3,
     flexDirection: "row",
     justifyContent: "space-between",
-    fontSize: 8,
+    fontSize: 7.5,
     color: "#64748b",
   },
 });
@@ -200,10 +242,23 @@ export function AssetClearancePdfDocument({
 
   const assigneeName = assignment.assignee?.name || "";
   const assigneeDept = assignment.assignee?.department || "";
-  const createdDateStr = formatPdfDate(assignment.createdAt);
-  const staffDateStr = formatPdfDate(assignment.staffDecidedAt || assignment.createdAt);
-  const officerDateStr = formatPdfDate(assignment.officerDecidedAt);
-  const complianceDateStr = formatPdfDate(assignment.complianceDecidedAt || assignment.updatedAt);
+
+  // Pull staff phone numbers (Office and Personal) or leave blank if none
+  const phoneList: string[] = [];
+  if (assignment.assignee?.phone?.trim()) {
+    phoneList.push(`${assignment.assignee.phone.trim()} (Office)`);
+  }
+  if (
+    assignment.assignee?.mobile_phone?.trim() &&
+    assignment.assignee.mobile_phone.trim() !== assignment.assignee?.phone?.trim()
+  ) {
+    phoneList.push(`${assignment.assignee.mobile_phone.trim()} (Personal)`);
+  }
+  const staffPhoneStr = phoneList.join("  /  ");
+
+  const staffDateStr = assignment.staffDecidedAt ? formatPdfDate(assignment.staffDecidedAt) : "";
+  const officerDateStr = assignment.officerDecidedAt ? formatPdfDate(assignment.officerDecidedAt) : "";
+  const complianceDateStr = assignment.complianceDecidedAt ? formatPdfDate(assignment.complianceDecidedAt) : "";
 
   const isCleared = assignment.status === "cleared" || assignment.complianceDecision === "approved";
 
@@ -213,15 +268,24 @@ export function AssetClearancePdfDocument({
     const serialStr = item.inventoryItem?.serialNumber ? ` (${item.inventoryItem.serialNumber})` : "";
     const assetDescription = `${itemName}${serialStr}`.toUpperCase();
 
+    const isDeviceCleared = item.status === "cleared" || isCleared;
+
+    // Add ticks for staff and IT officer for devices that have been cleared or reviewed
     const isStaffChecked =
+      isDeviceCleared ||
       item.staffDecision === "approved" ||
       !!item.staffDecidedAt ||
       !!item.staffNotes ||
       !!item.staffConditionDetails ||
-      item.status === "cleared" ||
       item.status === "return_pending_inspection" ||
       item.status === "return_pending_compliance";
-    const isOfficerChecked = !!item.officerDecision || !!item.officerNotes || !!item.returnConditionRating;
+
+    const isOfficerChecked =
+      isDeviceCleared ||
+      item.officerDecision === "approved" ||
+      !!item.officerDecidedAt ||
+      !!item.officerNotes ||
+      !!item.returnConditionRating;
 
     let commentText = "";
     if (item.returnConditionRating) {
@@ -243,15 +307,14 @@ export function AssetClearancePdfDocument({
 
     return {
       assetDescription,
-      staffCheck: isStaffChecked ? "✓" : "",
-      officerCheck: isOfficerChecked ? "✓" : "",
+      isStaffChecked,
+      isOfficerChecked,
       comments: commentText || "Device retrieved and recorded.",
     };
   });
 
   return (
     <Document title={`Employee Asset Clearance Checklist - ${assigneeName}`}>
-      {/* Page 1 */}
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.headerContainer}>
@@ -276,7 +339,7 @@ export function AssetClearancePdfDocument({
 
           <View style={styles.fieldRow}>
             <Text style={styles.fieldLabel}>PHONE NOS:</Text>
-            <Text style={styles.fieldValue}></Text>
+            <Text style={styles.fieldValue}>{staffPhoneStr}</Text>
           </View>
         </View>
 
@@ -292,8 +355,12 @@ export function AssetClearancePdfDocument({
           {checklistRows.map((row, idx) => (
             <View style={styles.tableRow} key={idx}>
               <Text style={styles.colAssetCell}>{row.assetDescription}</Text>
-              <Text style={styles.colStaffCell}>{row.staffCheck}</Text>
-              <Text style={styles.colOfficerCell}>{row.officerCheck}</Text>
+              <View style={styles.colStaffCell}>
+                {row.isStaffChecked && <CheckMark size={11} color="#0f172a" />}
+              </View>
+              <View style={styles.colOfficerCell}>
+                {row.isOfficerChecked && <CheckMark size={11} color="#0f172a" />}
+              </View>
               <Text style={styles.colCommentsCell}>{row.comments}</Text>
             </View>
           ))}
@@ -317,35 +384,25 @@ export function AssetClearancePdfDocument({
           })}
         </View>
 
-        {/* Page 1 Signatures */}
-        <View style={styles.sigGrid}>
-          <View style={styles.sigBlock}>
-            <View style={styles.sigDottedLine}>
-              <Text>{assigneeName}</Text>
-            </View>
-            <Text style={styles.sigLabel}>EMPLOYEE NAME</Text>
-          </View>
-
-          <View style={styles.sigBlock}>
-            <View style={styles.sigDottedLine}>
-              <Text>{staffDateStr}</Text>
-            </View>
-            <Text style={styles.sigLabel}>SIGNATURE/DATE</Text>
-          </View>
-        </View>
-      </Page>
-
-      {/* Page 2 */}
-      <Page size="A4" style={styles.page}>
-        {/* IT Officer Comments */}
+        {/* IT Officer Comments - Placed right under the rest instead of a new page */}
         <Text style={styles.sectionTitle}>
           IT OFFICER'S COMMENT ON THE CONDITION OF GADGET(S) WHEN RETRIEVED
         </Text>
         <View style={styles.commentBox}>
           {itemsToDisplay.map((item, idx) => {
             const devName = item.inventoryItem?.name || "Device";
-            const officerComment = item.officerNotes || item.returnConditionDetails || (item.returnConditionRating ? `Condition: ${item.returnConditionRating}` : "Retrieved and physically inspected.");
-            const feeStr = (item.damageAssessmentFee && item.damageAssessmentFee > 0) ? ` (Fee: ₦${item.damageAssessmentFee.toLocaleString()})` : "";
+            const officerComment =
+              item.officerNotes ||
+              item.returnConditionDetails ||
+              (item.returnConditionRating
+                ? `Condition: ${item.returnConditionRating}`
+                : assignment.officerDecidedAt
+                ? "Retrieved and physically inspected."
+                : "Pending IT physical inspection.");
+            const feeStr =
+              item.damageAssessmentFee && item.damageAssessmentFee > 0
+                ? ` (Fee: ₦${item.damageAssessmentFee.toLocaleString()})`
+                : "";
             return (
               <Text style={styles.commentLine} key={idx}>
                 {itemsToDisplay.length > 1 ? `${devName}: ` : ""}{officerComment}{feeStr}
@@ -354,46 +411,108 @@ export function AssetClearancePdfDocument({
           })}
         </View>
 
-        {/* Clearance Box */}
+        {/* Clearance Box with Checkmark if Cleared */}
         <View style={styles.clearanceGrid}>
-          <View style={[styles.clearanceCol, styles.clearanceColLeft]}>
-            <Text style={styles.clearanceTitle}>
-              {isCleared ? "[ ✓ ] CLEARED" : "CLEARED"}
-            </Text>
+          <View
+            style={[
+              styles.clearanceCol,
+              styles.clearanceColLeft,
+              isCleared ? styles.clearanceColCleared : {},
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {isCleared ? (
+                <CheckMark size={13} color="#15803d" />
+              ) : (
+                <View style={styles.emptyCheckbox} />
+              )}
+              <Text
+                style={[
+                  styles.clearanceTitle,
+                  isCleared ? { color: "#15803d" } : {},
+                ]}
+              >
+                CLEARED
+              </Text>
+            </View>
           </View>
-          <View style={styles.clearanceCol}>
-            <Text style={styles.clearanceTitle}>
-              {!isCleared ? "[ ✓ ] NOT CLEARED" : "NOT CLEARED"}
-            </Text>
+
+          <View
+            style={[
+              styles.clearanceCol,
+              !isCleared ? styles.clearanceColNotCleared : {},
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {!isCleared ? (
+                <CheckMark size={13} color="#b91c1c" />
+              ) : (
+                <View style={styles.emptyCheckbox} />
+              )}
+              <Text
+                style={[
+                  styles.clearanceTitle,
+                  !isCleared ? { color: "#b91c1c" } : {},
+                ]}
+              >
+                NOT CLEARED
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* IT Officer & Compliance 2-Column Signatures */}
+        {/* Signatures: Employee, IT Officer, Compliance Officer */}
         <View style={styles.sigGrid}>
+          {/* Employee */}
           <View style={styles.sigBlock}>
-            <View style={styles.sigDottedLine}>
-              <Text style={{ fontFamily: "Times-Bold" }}>{assignment.officer?.name || "IT Officer"}</Text>
+            <View style={styles.sigUnderline}>
+              <Text style={styles.sigNameText}>
+                {assignment.staffDecidedAt ? assigneeName : ""}
+              </Text>
             </View>
-            <Text style={styles.sigLabel}>IT OFFICER NAME & SIGNATURE</Text>
-            <Text style={{ fontSize: 9, color: "#64748b", marginTop: 1 }}>{officerDateStr}</Text>
+            <Text style={styles.sigLabel}>EMPLOYEE SIGNATURE</Text>
+            <Text style={styles.sigDateText}>
+              {staffDateStr ? `Date: ${staffDateStr}` : "Date: ________________"}
+            </Text>
           </View>
 
+          {/* IT Officer */}
           <View style={styles.sigBlock}>
-            <View style={styles.sigDottedLine}>
-              <Text style={{ fontFamily: "Times-Bold" }}>{assignment.complianceOfficer?.name || "Compliance Officer"}</Text>
+            <View style={styles.sigUnderline}>
+              <Text style={styles.sigNameText}>
+                {assignment.officerDecidedAt && assignment.officer?.name
+                  ? assignment.officer.name
+                  : ""}
+              </Text>
             </View>
-            <Text style={styles.sigLabel}>COMPLIANCE OFFICER NAME & SIGNATURE</Text>
-            <Text style={{ fontSize: 9, color: "#64748b", marginTop: 1 }}>{complianceDateStr}</Text>
+            <Text style={styles.sigLabel}>IT OFFICER SIGNATURE</Text>
+            <Text style={styles.sigDateText}>
+              {officerDateStr ? `Date: ${officerDateStr}` : "Date: ________________"}
+            </Text>
+          </View>
+
+          {/* Compliance Officer */}
+          <View style={styles.sigBlock}>
+            <View style={styles.sigUnderline}>
+              <Text style={styles.sigNameText}>
+                {assignment.complianceDecidedAt && assignment.complianceOfficer?.name
+                  ? assignment.complianceOfficer.name
+                  : ""}
+              </Text>
+            </View>
+            <Text style={styles.sigLabel}>COMPLIANCE SIGNATURE</Text>
+            <Text style={styles.sigDateText}>
+              {complianceDateStr ? `Date: ${complianceDateStr}` : "Date: ________________"}
+            </Text>
           </View>
         </View>
 
         {/* Footer */}
         <View style={styles.pageFooter}>
           <Text>ASPOM Travel Agency — Employee Asset (Gadget) Clearance Check-List</Text>
-          <Text>Issued: {complianceDateStr}</Text>
+          <Text>{complianceDateStr ? `Issued: ${complianceDateStr}` : "ASPOM Staff Portal"}</Text>
         </View>
       </Page>
     </Document>
   );
 }
-
