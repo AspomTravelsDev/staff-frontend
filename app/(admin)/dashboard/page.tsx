@@ -140,7 +140,7 @@ export default async function Page() {
     });
   }
 
-  const monthlyAwards = allAwards
+  const spotlightAwards = allAwards
     .filter((a) => {
       const awardType = a.award_type?.toLowerCase().replace(/[-\s]+/g, "_");
       const isStaffOfTheMonthType =
@@ -315,7 +315,7 @@ export default async function Page() {
           })}
         />
         <DashboardCelebrationCard
-          monthlyAwards={monthlyAwards}
+          monthlyAwards={spotlightAwards}
           todayBirthdays={todayBirthdays}
           todayAnniversaries={todayAnniversaries}
         />
