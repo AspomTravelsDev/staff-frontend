@@ -141,7 +141,17 @@ export default async function Page() {
   }
 
   const monthlyAwards = allAwards
-    .filter((a) => a.month === formatMonthKey(previousMonthDate))
+    .filter((a) => {
+      const awardType = a.award_type?.toLowerCase().replace(/[-\s]+/g, "_");
+      const isStaffOfTheMonthType =
+        awardType === "staff_of_the_month" ||
+        awardType === "employee_of_the_month";
+
+      return (
+        isStaffOfTheMonthType &&
+        a.month === formatMonthKey(previousMonthDate)
+      );
+    })
     .map((award) => ({
       id: award.id,
       name: award.user ? award.user.name : "Unknown",
