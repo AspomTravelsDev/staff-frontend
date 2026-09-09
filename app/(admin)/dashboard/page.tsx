@@ -140,8 +140,19 @@ export default async function Page() {
     });
   }
 
-  const monthlyAwards = allAwards
-    .filter((a) => a.month === formatMonthKey(previousMonthDate))
+  const spotlightAwards = allAwards
+    .filter((a) => {
+      const awardType = a.award_type?.toLowerCase().replace(/[-\s]+/g, "_");
+      const isStaffOfTheMonthType =
+        awardType === "staff_of_the_month" ||
+        awardType === "employee_of_the_month";
+
+      if (isStaffOfTheMonthType) {
+        return a.month === formatMonthKey(previousMonthDate);
+      }
+
+      return true;
+    })
     .map((award) => ({
       id: award.id,
       name: award.user ? award.user.name : "Unknown",
@@ -304,7 +315,7 @@ export default async function Page() {
           })}
         />
         <DashboardCelebrationCard
-          monthlyAwards={monthlyAwards}
+          monthlyAwards={spotlightAwards}
           todayBirthdays={todayBirthdays}
           todayAnniversaries={todayAnniversaries}
         />
