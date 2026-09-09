@@ -147,10 +147,11 @@ export default async function Page() {
         awardType === "staff_of_the_month" ||
         awardType === "employee_of_the_month";
 
-      return (
-        isStaffOfTheMonthType &&
-        a.month === formatMonthKey(previousMonthDate)
-      );
+      if (isStaffOfTheMonthType) {
+        return a.month === formatMonthKey(previousMonthDate);
+      }
+
+      return true;
     })
     .map((award) => ({
       id: award.id,
