@@ -153,9 +153,35 @@ export default async function ApplicationDetailPage({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Email</p>
+              <p className="text-sm font-medium text-muted-foreground">Personal Email</p>
               <p className="text-sm">{application.applicant_email}</p>
             </div>
+            {application.corporate_email && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Corporate Work Email</p>
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                  <Badge variant="outline" className="font-mono text-emerald-700 dark:text-emerald-300 border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30">
+                    {application.corporate_email}
+                  </Badge>
+                  {application.portal_status?.status === 'accepted' && (
+                    <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      Portal Active
+                    </Badge>
+                  )}
+                  {application.portal_status?.status === 'pending' && (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] gap-1">
+                      Portal Invite Pending
+                    </Badge>
+                  )}
+                  {application.portal_status?.status === 'expired' && (
+                    <Badge variant="destructive" className="text-[11px]">
+                      Portal Invite Expired
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium text-muted-foreground">
                 Position
@@ -403,6 +429,12 @@ export default async function ApplicationDetailPage({
         applicationId={application.id}
         readableId={application.application_id}
         status={application.status}
+        applicantName={application.applicant_name}
+        applicantEmail={application.applicant_email}
+        positionTitle={application.position_title}
+        corporateEmail={application.corporate_email}
+        corporateEmailProvisionedAt={application.corporate_email_provisioned_at}
+        formData={application.form_data}
       />
     </div>
   );

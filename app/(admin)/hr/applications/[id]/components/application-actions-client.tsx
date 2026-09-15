@@ -38,17 +38,30 @@ import {
   requestCorrectionAction,
   sendReminderAction,
 } from "../../actions";
+import { ProvisionEmailDialog } from "./provision-email-dialog";
 
 interface ApplicationActionsClientProps {
   applicationId: string; // The UUID for API calls
   readableId: string; // The formatted ID (e.g. ASPOM-...)
   status: string | null;
+  applicantName?: string | null;
+  applicantEmail?: string;
+  positionTitle?: string;
+  corporateEmail?: string | null;
+  corporateEmailProvisionedAt?: string | null;
+  formData?: Record<string, unknown> | null;
 }
 
 export function ApplicationActionsClient({
   applicationId,
   readableId,
   status,
+  applicantName,
+  applicantEmail,
+  positionTitle,
+  corporateEmail,
+  corporateEmailProvisionedAt,
+  formData,
 }: ApplicationActionsClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -187,7 +200,19 @@ export function ApplicationActionsClient({
         <CardTitle>Actions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {applicantEmail && (
+            <ProvisionEmailDialog
+              applicationId={applicationId}
+              applicantName={applicantName || null}
+              applicantEmail={applicantEmail}
+              positionTitle={positionTitle || ""}
+              corporateEmail={corporateEmail}
+              corporateEmailProvisionedAt={corporateEmailProvisionedAt}
+              formData={formData}
+            />
+          )}
+
           <Button
             variant="outline"
             onClick={handleGenerateDocuments}

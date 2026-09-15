@@ -260,6 +260,18 @@ export type OnboardingHistoryEntry =
     | OnboardingReminderEntry;
 
 
+export interface PortalStatusInfo {
+    status: 'not_provisioned' | 'not_invited' | 'pending' | 'expired' | 'accepted';
+    label: string;
+    user_id?: string;
+    user_name?: string;
+    user_email?: string;
+    user_role?: string;
+    activated_at?: string;
+    invited_at?: string;
+    expires_at?: string;
+}
+
 export interface OnboardingApplication {
     id: string; // uuid
     application_id: string; // unique reference e.g. ASPOM-IT OFFICER-2026-000001
@@ -290,6 +302,33 @@ export interface OnboardingApplication {
     invited_at: string;
     completed_at?: string | null;
     created_by?: string | null;
+    corporate_email?: string | null;
+    corporate_email_provisioned_at?: string | null;
+    corporate_email_provisioned_by?: string | null;
+    email_provisioner?: {
+        id: string;
+        name: string;
+        role: string;
+    } | null;
+    portal_status?: PortalStatusInfo;
+    portal_user?: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        department?: string;
+        created_at: string;
+        is_active: boolean;
+    } | null;
+    latest_invite?: {
+        id: number;
+        email: string;
+        role: string;
+        department?: string;
+        used: boolean;
+        expires_at: string;
+        created_at: string;
+    } | null;
     created_at?: string;
     updated_at?: string;
     required_signed_assets?: RequiredSignedAssetDocument[];

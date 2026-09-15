@@ -1,9 +1,10 @@
 "use server";
 
 import { deleteApplication } from "@/lib/api/hr";
-import { requestOnboardingCorrection } from "@/lib/api/hr";
+import { requestOnboardingCorrection, type OnboardingCorrectionReason } from "@/lib/api/hr";
 import { sendOnboardingReminder } from "@/lib/api/hr";
 import { toggleAddressVerification } from "@/lib/api/hr";
+import { provisionCorporateEmail, resendPortalInvite, type ProvisionCorporateEmailRequest } from "@/lib/api/hr";
 import { revalidatePath } from "next/cache";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 
@@ -23,14 +24,8 @@ export async function generateDocumentsAction(uuid: string) {
 
 export async function requestCorrectionAction(
     id: string,
-    reason:
-        | "unsigned_documents"
-        | "missing_required_pages"
-        | "missing_supporting_documents"
-        | "invalid_document_quality"
-        | "mismatched_information"
-        | "other",
-    note: string,
+    reason: OnboardingCorrectionReason,
+    note: string
 ) {
     await requestOnboardingCorrection(id, { reason, note });
     revalidatePath(`/hr/applications/${id}`);
@@ -50,3 +45,18 @@ export async function toggleAddressVerificationAction(id: string, verified?: boo
     return updated;
 }
 
+export async function provisionCorporateEmailAction(id: string, payload?: ProvisionCorporateEmailRequest) {
+    const result = await provisionCorporateEmail(id, payload);
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+    revalidatePath("/it/onboarding");
+    return result;
+}
+
+export async function resendPortalInviteAction(id: string) {
+    const result = await resendPortalInvite(id);
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+    revalidatePath("/it/onboarding");
+    return result;
+}

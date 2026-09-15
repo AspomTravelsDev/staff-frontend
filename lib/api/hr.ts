@@ -89,6 +89,65 @@ export async function toggleAddressVerification(
     return response.data.data;
 }
 
+export interface ProvisionCorporateEmailRequest {
+    email_username?: string;
+    password?: string;
+    send_portal_invite?: boolean;
+    send_credentials_email?: boolean;
+    role?: string;
+    department?: string;
+    staff_id?: string;
+    date_joined?: string;
+    is_supervisor?: boolean;
+    is_department_account?: boolean;
+}
+
+export interface ProvisionCorporateEmailResponse {
+    application: OnboardingApplication;
+    corporate_email: string;
+    temporary_password: string;
+    portal_invite_sent: boolean;
+    credentials_email_sent: boolean;
+    invite_url?: string;
+}
+
+export async function provisionCorporateEmail(
+    id: string,
+    payload?: ProvisionCorporateEmailRequest
+): Promise<ProvisionCorporateEmailResponse> {
+    const response = await api.post<{
+        message: string;
+        data: ProvisionCorporateEmailResponse;
+    }>(`/api/onboarding-applications/${id}/provision-email`, payload || {});
+
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to provision corporate email");
+    }
+
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+    revalidatePath("/it/onboarding");
+    return response.data.data;
+}
+
+export async function resendPortalInvite(
+    id: string
+): Promise<{ message: string; invite_url?: string }> {
+    const response = await api.post<{
+        message: string;
+        invite_url?: string;
+    }>(`/api/onboarding-applications/${id}/resend-portal-invite`);
+
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to resend portal invite");
+    }
+
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+    revalidatePath("/it/onboarding");
+    return response.data;
+}
+
 // ─── Public endpoints (applicant portal — no auth) ───
 
 export async function getPublicApplication(id: string): Promise<OnboardingApplication> {

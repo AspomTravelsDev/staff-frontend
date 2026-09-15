@@ -18,6 +18,7 @@ import {
   Coins,
   Megaphone,
   MessageSquare,
+  Mail,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 
@@ -249,6 +250,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["it", "super"],
     badgeKey: "itIssues",
     badgeLabel: "IT issues open or in progress",
+  },
+  {
+    title: "Staff Provisioning",
+    url: "/it/onboarding",
+    icon: Mail,
+    allowedRoles: ["it", "super"],
   },
   {
     title: "Cheatsheet Admin",
