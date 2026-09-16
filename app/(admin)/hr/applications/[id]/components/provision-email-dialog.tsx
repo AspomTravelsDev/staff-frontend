@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,7 +40,10 @@ import {
   UserCheck,
   Building,
 } from "lucide-react";
-import { provisionCorporateEmailAction } from "../../actions";
+import { 
+  provisionCorporateEmailAction,
+  checkCpanelEmailAction 
+} from "../../actions";
 import {
   getRolesForSelect,
   ROLE_TO_DEPARTMENT_FALLBACK,
@@ -54,43 +58,55 @@ interface ProvisionEmailDialogProps {
   corporateEmail?: string | null;
   corporateEmailProvisionedAt?: string | null;
   formData?: Record<string, unknown> | null;
+  compact?: boolean;
 }
 
 function generateRandomPassword(length = 14): string {
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   const lower = "abcdefghjkmnpqrstuvwxyz";
-  const numbers = "23456789";
-  const symbols = "!@#$%*";
-
-  const password = [
+  const nums = "23456789";
+  const syms = "!@#$%*";
+  const chars = [
     upper[Math.floor(Math.random() * upper.length)],
     lower[Math.floor(Math.random() * lower.length)],
-    numbers[Math.floor(Math.random() * numbers.length)],
-    symbols[Math.floor(Math.random() * symbols.length)],
+    nums[Math.floor(Math.random() * nums.length)],
+    syms[Math.floor(Math.random() * syms.length)],
   ];
-
-  const all = upper + lower + numbers + symbols;
+  const all = upper + lower + nums + syms;
   for (let i = 4; i < length; i++) {
-    password.push(all[Math.floor(Math.random() * all.length)]);
+    chars.push(all[Math.floor(Math.random() * all.length)]);
   }
-
-  return password.sort(() => 0.5 - Math.random()).join("");
+  return chars.sort(() => Math.random() - 0.5).join("");
 }
 
-function guessRoleFromPosition(position: string): string {
-  const p = (position || "").toLowerCase();
-  if (p.includes("it") || p.includes("developer") || p.includes("tech") || p.includes("software")) return "it";
-  if (p.includes("visa")) return "visa";
-  if (p.includes("hr") || p.includes("human resource")) return "hr";
-  if (p.includes("account") || p.includes("finance") || p.includes("audit")) return "account";
-  if (p.includes("social") || p.includes("media") || p.includes("content")) return "social-media";
-  if (p.includes("ticket")) return "ticket";
-  if (p.includes("compliance")) return "compliance";
-  if (p.includes("birth")) return "birth-services";
-  if (p.includes("holiday") || p.includes("tour")) return "holidays";
-  if (p.includes("assistant")) return "office-assistant";
-  if (p.includes("managing partner")) return "mp";
-  if (p.includes("managing director")) return "md";
+function guessRoleFromPosition(position: string): UserRole {
+  const pos = position.toLowerCase();
+  if (pos.includes("super") || pos.includes("managing partner")) return "mp";
+  if (pos.includes("director") || pos.includes("executive")) return "md";
+  if (pos.includes("it") || pos.includes("developer") || pos.includes("tech"))
+    return "it";
+  if (
+    pos.includes("account") ||
+    pos.includes("finance") ||
+    pos.includes("audit")
+  )
+    return "account";
+  if (pos.includes("visa") || pos.includes("travel")) return "visa";
+  if (pos.includes("hr") || pos.includes("human resources")) return "hr";
+  if (
+    pos.includes("social") ||
+    pos.includes("media") ||
+    pos.includes("content")
+  )
+    return "social-media";
+  if (pos.includes("compliance") || pos.includes("legal")) return "compliance";
+  if (pos.includes("birth") || pos.includes("maternity"))
+    return "birth-services";
+  if (pos.includes("holiday") || pos.includes("tour")) return "holidays";
+  if (pos.includes("ticket") || pos.includes("booking") || pos.includes("flight"))
+    return "ticket";
+  if (pos.includes("assistant") || pos.includes("office"))
+    return "office-assistant";
   return "admin";
 }
 
@@ -102,21 +118,29 @@ export function ProvisionEmailDialog({
   corporateEmail,
   corporateEmailProvisionedAt,
   formData,
+  compact = false,
 }: ProvisionEmailDialogProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [cpanelPing, setCpanelPing] = useState<{
+    loading: boolean;
+    exists?: boolean;
+    configured?: boolean;
+    tested: boolean;
+    error?: string;
+  }>({ loading: false, tested: false });
 
-  // Compute suggested email username
+  // Suggest initial email username
   const suggestedUsername = useMemo(() => {
-    if (corporateEmail && corporateEmail.includes("@")) {
-      return corporateEmail.split("@")[0].toLowerCase();
+    if (corporateEmail) {
+      return corporateEmail.split("@")[0] || "";
     }
 
-    const personal = (formData?.personal as Record<string, string> | undefined) || {};
-    let first = personal.firstName || "";
-    let last = personal.lastName || "";
+    const personal = formData?.personal as Record<string, string> | undefined;
+    let first = personal?.firstName || "";
+    let last = personal?.lastName || "";
 
     if (!first && applicantName) {
       const parts = applicantName.trim().split(/\s+/);
@@ -136,14 +160,13 @@ export function ProvisionEmailDialog({
     [positionTitle]
   );
 
+  // Map department directly from role instead of reporting_to
   const initialDept = useMemo(() => {
-    const terms = formData?.employment_terms as Record<string, string> | undefined;
     return (
-      terms?.reporting_to ||
       ROLE_TO_DEPARTMENT_FALLBACK[initialGuessedRole as UserRole] ||
       "General"
     );
-  }, [formData, initialGuessedRole]);
+  }, [initialGuessedRole]);
 
   const initialEffectiveDate = useMemo(() => {
     const terms = formData?.employment_terms as Record<string, string> | undefined;
@@ -157,7 +180,7 @@ export function ProvisionEmailDialog({
   // Form State
   const [emailUsername, setEmailUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState(() => generateRandomPassword());
-  const [role, setRole] = useState(initialGuessedRole);
+  const [role, setRole] = useState<UserRole>(initialGuessedRole);
   const [department, setDepartment] = useState(initialDept);
   const [dateJoined, setDateJoined] = useState<Date | undefined>(initialEffectiveDate);
   const [staffId, setStaffId] = useState("");
@@ -167,12 +190,40 @@ export function ProvisionEmailDialog({
 
   const roleOptions = useMemo(() => getRolesForSelect(), []);
 
-  // When role changes, auto-suggest department if current matches old suggestion
+  // When role changes, auto-suggest department based on role
   const handleRoleChange = (newRole: string) => {
-    setRole(newRole);
+    setRole(newRole as UserRole);
     const suggestedDept = ROLE_TO_DEPARTMENT_FALLBACK[newRole as UserRole];
     if (suggestedDept) {
       setDepartment(suggestedDept);
+    }
+  };
+
+  const handlePingCpanel = async () => {
+    setCpanelPing({ loading: true, tested: false });
+    try {
+      const res = await checkCpanelEmailAction(applicationId);
+      setCpanelPing({
+        loading: false,
+        tested: true,
+        exists: res.cpanel_check.exists,
+        configured: res.cpanel_check.configured,
+        error: res.cpanel_check.error,
+      });
+      if (res.cpanel_check.exists) {
+        toast.success(`cPanel Verified: ${res.corporate_email} exists on mail server!`);
+      } else if (res.cpanel_check.configured) {
+        toast.warning(`cPanel Ping: Mailbox ${res.corporate_email} not found.`);
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to ping cPanel";
+      setCpanelPing({
+        loading: false,
+        tested: true,
+        exists: false,
+        error: errorMsg,
+      });
+      toast.error(errorMsg);
     }
   };
 
@@ -222,9 +273,23 @@ export function ProvisionEmailDialog({
         is_supervisor: isSupervisor,
       });
 
-      toast.success(
-        `Corporate email provisioned: ${result.corporate_email}! Welcome guide & portal activation dispatched.`
-      );
+      if (!result.portal_invite_sent && !result.credentials_email_sent) {
+        toast.warning(
+          `Corporate email saved (${result.corporate_email}), but invitation and credentials emails could not be delivered.`
+        );
+      } else if (!result.portal_invite_sent) {
+        toast.warning(
+          `Corporate email saved (${result.corporate_email}) & credentials sent, but portal activation invite failed to dispatch.`
+        );
+      } else if (!result.credentials_email_sent) {
+        toast.warning(
+          `Corporate email saved (${result.corporate_email}) & portal invite sent, but onboarding guide failed to dispatch to personal email.`
+        );
+      } else {
+        toast.success(
+          `Corporate email provisioned: ${result.corporate_email}! Welcome guide & portal activation dispatched.`
+        );
+      }
       setIsOpen(false);
       router.refresh();
     } catch (err: unknown) {
@@ -244,24 +309,34 @@ export function ProvisionEmailDialog({
         {isProvisioned ? (
           <Button
             variant="outline"
-            className="gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+            size={compact ? "sm" : "default"}
+            className={cn(
+              "gap-1.5 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 whitespace-nowrap",
+              compact ? "h-8 px-2.5 text-xs" : "gap-2"
+            )}
           >
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Manage Work Email</span>
-            <Badge
-              variant="secondary"
-              className="font-mono text-xs ml-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300"
-            >
-              {corporateEmail}
-            </Badge>
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Manage Email</span>
+            {!compact && corporateEmail && (
+              <Badge
+                variant="secondary"
+                className="font-mono text-xs ml-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300"
+              >
+                {corporateEmail}
+              </Badge>
+            )}
           </Button>
         ) : (
           <Button
             variant="default"
-            className="gap-2 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white shadow-sm"
+            size={compact ? "sm" : "default"}
+            className={cn(
+              "gap-1.5 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white shadow-sm whitespace-nowrap",
+              compact ? "h-8 px-2.5 text-xs" : "gap-2"
+            )}
           >
-            <Mail className="h-4 w-4" />
-            <span>Provision Work Email</span>
+            <Mail className="h-3.5 w-3.5 shrink-0" />
+            <span>Provision Email</span>
           </Button>
         )}
       </DialogTrigger>
@@ -312,12 +387,45 @@ export function ProvisionEmailDialog({
 
           {/* SECTION 1: Corporate Email & Credentials */}
           <div className="space-y-3.5">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <h3 className="text-xs font-semibold text-foreground/90 uppercase tracking-wide">
-                Company Email & Mailbox
-              </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-xs font-semibold text-foreground/90 uppercase tracking-wide">
+                  Company Email & Mailbox
+                </h3>
+              </div>
+              {isProvisioned && (
+                <button
+                  type="button"
+                  onClick={handlePingCpanel}
+                  disabled={cpanelPing.loading}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium disabled:opacity-50 px-2 py-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                  title="Ping cPanel server to verify if mailbox exists"
+                >
+                  <RefreshCw className={`h-3 w-3 ${cpanelPing.loading ? "animate-spin" : ""}`} />
+                  <span>{cpanelPing.loading ? "Checking..." : "Ping cPanel"}</span>
+                </button>
+              )}
             </div>
+
+            {cpanelPing.tested && (
+              <div className={`text-xs px-2.5 py-1.5 rounded border flex items-center gap-2 ${
+                cpanelPing.exists
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+                  : "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300"
+              }`}>
+                {cpanelPing.exists ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                )}
+                <span>
+                  {cpanelPing.exists
+                    ? "cPanel Mailbox Verified: Account confirmed active on mail server."
+                    : (cpanelPing.error || "Mailbox not found on cPanel. It will be created when saving.")}
+                </span>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="email_username" className="text-xs font-medium">

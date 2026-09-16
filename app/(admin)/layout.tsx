@@ -30,9 +30,9 @@ export default async function AdminLayout({
         <GlobalChatNotifications />
         <SidebarProvider>
           <AppSidebar />
-          <SidebarInset>
+          <SidebarInset className="min-w-0 overflow-x-hidden">
             <SiteHeader />
-            <div className="flex flex-1 flex-col gap-4 p-4 pt-4">
+            <div className="flex flex-1 flex-col gap-4 p-4 pt-4 min-w-0 w-full overflow-x-hidden">
               {children}
             </div>
             {/* <CheatsheetFloatingWidget /> */}

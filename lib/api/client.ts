@@ -125,6 +125,9 @@ export async function apiClient<T>(
             }
 
             let errorMessage = data?.message || data?.error;
+            if (data?.details && typeof data.details === "string" && data.details.trim() && data.details !== errorMessage) {
+                errorMessage = `${errorMessage} (${data.details.trim()})`;
+            }
             if (data?.errors && typeof data.errors === "object") {
                 const flatErrors = Object.values(data.errors).flat().filter(Boolean);
                 if (flatErrors.length > 0) {

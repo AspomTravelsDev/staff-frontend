@@ -130,21 +130,75 @@ export async function provisionCorporateEmail(
     return response.data.data;
 }
 
+export interface ResendOnboardingEmailsRequest {
+    send_portal_invite?: boolean;
+    send_credentials_email?: boolean;
+    password?: string;
+    role?: string;
+    department?: string;
+}
+
+export interface ResendOnboardingEmailsResponse {
+    message: string;
+    invite_url?: string;
+    cpanel_check?: {
+        exists: boolean;
+        configured: boolean;
+        email?: string;
+        auto_created?: boolean;
+    };
+    portal_invite_sent?: boolean;
+    credentials_email_sent?: boolean;
+}
+
 export async function resendPortalInvite(
-    id: string
-): Promise<{ message: string; invite_url?: string }> {
-    const response = await api.post<{
-        message: string;
-        invite_url?: string;
-    }>(`/api/onboarding-applications/${id}/resend-portal-invite`);
+    id: string,
+    payload?: ResendOnboardingEmailsRequest
+): Promise<ResendOnboardingEmailsResponse> {
+    const response = await api.post<ResendOnboardingEmailsResponse>(
+        `/api/onboarding-applications/${id}/resend-portal-invite`,
+        payload || {}
+    );
 
     if (!response.success) {
-        throw new Error(response.error.error || "Failed to resend portal invite");
+        throw new Error(response.error.error || "Failed to resend onboarding emails");
     }
 
     revalidatePath(`/hr/applications/${id}`);
     revalidatePath("/hr/applications");
     revalidatePath("/it/onboarding");
+    return response.data;
+}
+
+export async function checkCpanelEmail(
+    id: string
+): Promise<{
+    corporate_email: string;
+    cpanel_check: {
+        exists: boolean;
+        configured: boolean;
+        email?: string;
+        account?: any;
+        error?: string;
+    };
+    provisioned_at?: string;
+}> {
+    const response = await api.get<{
+        corporate_email: string;
+        cpanel_check: {
+            exists: boolean;
+            configured: boolean;
+            email?: string;
+            account?: any;
+            error?: string;
+        };
+        provisioned_at?: string;
+    }>(`/api/onboarding-applications/${id}/check-cpanel-email`);
+
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to check cPanel email status");
+    }
+
     return response.data;
 }
 

@@ -95,11 +95,14 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
   const handleResendPortalInvite = async (appId: string, email: string) => {
     setResendingId(appId);
     try {
-      const result = await resendPortalInviteAction(appId);
-      toast.success(result.message || `Portal invitation resent to ${email}`);
+      const result = await resendPortalInviteAction(appId, {
+        send_portal_invite: true,
+        send_credentials_email: true,
+      });
+      toast.success(result.message || `Onboarding emails resent successfully`);
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to resend invitation";
+      const msg = err instanceof Error ? err.message : "Failed to resend onboarding emails";
       toast.error(msg);
     } finally {
       setResendingId(null);
@@ -183,15 +186,15 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Staff Provisioning & Portal Access</h1>
               <p className="text-sm text-muted-foreground">
                 Automated cPanel mailbox provisioning and real-time Staff Portal invitation tracking
@@ -267,7 +270,7 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
       </div>
 
       {/* Filter and Search Bar */}
-      <Card>
+      <Card className="w-full min-w-0 overflow-hidden border">
         <CardHeader className="p-4 pb-2">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
@@ -321,17 +324,17 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+        <CardContent className="p-0 overflow-hidden">
+          <div className="overflow-x-auto w-full">
+            <Table className="w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[260px]">Staff Member</TableHead>
-                  <TableHead>Personal Email</TableHead>
-                  <TableHead>Corporate Work Email</TableHead>
-                  <TableHead>Portal Account</TableHead>
-                  <TableHead>Onboarding Form</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="min-w-[170px]">Staff Member</TableHead>
+                  <TableHead className="min-w-[140px]">Personal Email</TableHead>
+                  <TableHead className="min-w-[170px]">Corporate Work Email</TableHead>
+                  <TableHead className="min-w-[130px]">Portal Account</TableHead>
+                  <TableHead className="min-w-[110px]">Onboarding Form</TableHead>
+                  <TableHead className="text-right min-w-[170px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -360,10 +363,10 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
                         {/* Candidate Name & Position */}
                         <TableCell>
                           <div className="space-y-0.5">
-                            <div className="font-medium text-foreground">
+                            <div className="font-medium text-foreground leading-tight">
                               {app.applicant_name || "Applicant (Name Pending)"}
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                               <span>{app.position_title}</span>
                               <span>&bull;</span>
                               <span className="font-mono text-[11px]">{app.application_id}</span>
@@ -373,7 +376,10 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
 
                         {/* Personal Email */}
                         <TableCell>
-                          <div className="font-mono text-xs text-muted-foreground">
+                          <div
+                            className="font-mono text-xs text-muted-foreground truncate max-w-[180px]"
+                            title={app.applicant_email}
+                          >
                             {app.applicant_email}
                           </div>
                         </TableCell>
@@ -384,10 +390,10 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
                             <div className="space-y-0.5">
                               <Badge
                                 variant="outline"
-                                className="font-mono text-xs border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 gap-1 inline-flex items-center"
+                                className="font-mono text-xs border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 gap-1 inline-flex items-center max-w-[210px]"
                               >
-                                <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                                <span>{app.corporate_email}</span>
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span className="truncate" title={app.corporate_email}>{app.corporate_email}</span>
                               </Badge>
                               {app.corporate_email_provisioned_at && (
                                 <div className="text-[11px] text-muted-foreground">
@@ -400,7 +406,7 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
                               variant="secondary"
                               className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 font-medium text-xs gap-1 inline-flex items-center"
                             >
-                              <Clock className="h-3 w-3" />
+                              <Clock className="h-3 w-3 shrink-0" />
                               <span>Pending Setup</span>
                             </Badge>
                           )}
@@ -418,23 +424,23 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
 
                         {/* Action Buttons */}
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Resend Portal Invite Button if pending/expired */}
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                            {/* Resend Onboarding Emails Button if pending/expired/not_invited */}
                             {canResendInvite && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 disabled={resendingId === app.id}
                                 onClick={() => handleResendPortalInvite(app.id, app.corporate_email!)}
-                                className="h-8 px-2.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 gap-1"
-                                title="Resend Staff Portal invite to company email"
+                                className="h-8 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 gap-1 shrink-0"
+                                title="Ping cPanel & resend portal invite + credentials guide to personal email"
                               >
                                 {resendingId === app.id ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
                                   <Send className="h-3.5 w-3.5" />
                                 )}
-                                <span>Resend Invite</span>
+                                <span>Resend</span>
                               </Button>
                             )}
 
@@ -447,11 +453,17 @@ export function ItOnboardingClient({ applications }: ItOnboardingClientProps) {
                               corporateEmail={app.corporate_email}
                               corporateEmailProvisionedAt={app.corporate_email_provisioned_at}
                               formData={app.form_data}
+                              compact={true}
                             />
 
                             {/* View Full HR Application */}
                             <Link href={`/hr/applications/${app.id}`}>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="View HR Application">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                                title="View HR Application"
+                              >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
                             </Link>
