@@ -24,9 +24,11 @@ import {
 } from "@/components/ui/select";
 import { Employee } from "@/lib/api/employees";
 import { updateUserStatusAction } from "../actions";
+import { initiateFullClearance } from "@/lib/api/inventory";
 import { toast } from "sonner";
-import { Loader2, UserX } from "lucide-react";
+import { Loader2, ShieldAlert, UserX } from "lucide-react";
 import { USER_EXIT_TYPE_LABELS, UserExitType } from "@/types/user-types";
+import { useRouter } from "next/navigation";
 
 interface DeactivateUserDialogProps {
   employee: Employee | null;
@@ -48,6 +50,8 @@ export function DeactivateUserDialog({
   onSuccess,
 }: DeactivateUserDialogProps) {
   const [isPending, setIsPending] = useState(false);
+  const [initiateClearance, setInitiateClearance] = useState(true);
+  const router = useRouter();
 
   const {
     register,
@@ -74,6 +78,7 @@ export function DeactivateUserDialog({
           format(new Date(), "yyyy-MM-dd"),
         exit_reason: employee.exit_reason || "",
       });
+      setInitiateClearance(true);
     }
   }, [employee, reset]);
 
@@ -92,9 +97,37 @@ export function DeactivateUserDialog({
       });
 
       if (result.success) {
-        toast.success(
-          `${employee.firstName} ${employee.lastName} has been marked as inactive (${USER_EXIT_TYPE_LABELS[data.exit_type] || "Separated"}).`
-        );
+        if (initiateClearance) {
+          try {
+            const clearanceNotes = `Offboarding (${USER_EXIT_TYPE_LABELS[data.exit_type] || "Separated"} effective ${data.exit_date}): ${data.exit_reason.trim() || "Staff exit"}`;
+            const clearanceRes = await initiateFullClearance(employee.id, clearanceNotes);
+            toast.success(
+              `${employee.firstName} marked inactive. Initiated gadget clearance for ${clearanceRes.length} device(s).`,
+              {
+                action: {
+                  label: "View Inventory",
+                  onClick: () => router.push("/admin/inventory"),
+                },
+              }
+            );
+          } catch (clearanceErr: any) {
+            const msg = clearanceErr?.message || "";
+            if (msg.toLowerCase().includes("no assigned devices")) {
+              toast.success(
+                `${employee.firstName} marked as inactive. (No assigned company devices found in Inventory).`
+              );
+            } else {
+              toast.success(
+                `${employee.firstName} marked as inactive. Note: Clearance not started (${msg}).`
+              );
+            }
+          }
+        } else {
+          toast.success(
+            `${employee.firstName} ${employee.lastName} has been marked as inactive (${USER_EXIT_TYPE_LABELS[data.exit_type] || "Separated"}).`
+          );
+        }
+
         onOpenChange(false);
         onSuccess?.();
       } else {
@@ -194,6 +227,27 @@ export function DeactivateUserDialog({
                 {errors.exit_reason.message}
               </p>
             )}
+          </div>
+
+          {/* IT Device & Asset Clearance Trigger */}
+          <div className="p-3 rounded-lg border bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40">
+            <label className="flex items-start gap-2.5 cursor-pointer text-xs">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                checked={initiateClearance}
+                onChange={(e) => setInitiateClearance(e.target.checked)}
+              />
+              <div className="space-y-0.5">
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                  Initiate IT Gadget & Laptop Clearance in Inventory
+                </span>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Automatically launches offboarding return inspection for company devices assigned to this staff member. If no devices are assigned, deactivation proceeds smoothly.
+                </p>
+              </div>
+            </label>
           </div>
 
           <DialogFooter className="pt-2">

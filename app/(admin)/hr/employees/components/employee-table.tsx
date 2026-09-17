@@ -38,6 +38,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ShieldAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from "@/lib/api/employees";
@@ -47,6 +48,7 @@ import { useState, useMemo } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
 import { EditUserDialog } from "./edit-user-dialog";
 import { DeactivateUserDialog } from "./deactivate-user-dialog";
+import { InitiateFullClearanceDialog } from "@/app/(admin)/admin/inventory/components/initiate-full-clearance-dialog";
 import { formatLagosDate } from "@/lib/utils/attendance";
 import {
   getRoleLabel,
@@ -72,6 +74,9 @@ export function EmployeeTable({
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deactivatingEmployee, setDeactivatingEmployee] =
     useState<Employee | null>(null);
+  const [clearanceEmployee, setClearanceEmployee] = useState<Employee | null>(
+    null,
+  );
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
     null,
   );
@@ -311,6 +316,11 @@ export function EmployeeTable({
                           <UserCheck className="mr-2 h-4 w-4" /> Make Active
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem
+                        onClick={() => setClearanceEmployee(employee)}
+                      >
+                        <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" /> Gadget Clearance
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive focus:bg-destructive/10 focus:outline-none"
@@ -340,6 +350,13 @@ export function EmployeeTable({
         employee={deactivatingEmployee}
         open={!!deactivatingEmployee}
         onOpenChange={(open) => !open && setDeactivatingEmployee(null)}
+      />
+
+      <InitiateFullClearanceDialog
+        open={!!clearanceEmployee}
+        onOpenChange={(open) => !open && setClearanceEmployee(null)}
+        employees={employees}
+        initialStaffId={clearanceEmployee?.id}
       />
 
       <AlertDialog
