@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Download, Eye } from "lucide-react";
 import { getProxiedImageUrl } from "@/lib/utils";
 import { MediaData } from "@/lib/types/form-data";
 
@@ -145,7 +146,7 @@ function DocumentCard({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <div className={iconContainerClass}>
@@ -184,9 +185,11 @@ function DocumentCard({
                 </svg>
               )}
             </div>
-            <div>
-              <h4 className="font-medium text-sm">{title}</h4>
-              <p className="text-xs text-muted-foreground">{description}</p>
+            <div className="min-w-0">
+              <h4 className="break-words text-sm font-medium">{title}</h4>
+              <p className="break-words text-xs text-muted-foreground">
+                {description}
+              </p>
             </div>
           </div>
 
@@ -251,6 +254,29 @@ function DocumentCard({
               {isLoading ? "..." : "Download"}
             </Button>
           </div>
+        </div>
+      )}
+
+      {proxiedUrl && (
+        <div className="mt-3 flex gap-2 md:hidden">
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-h-10 flex-1"
+            onClick={() => window.open(proxiedUrl, "_blank")}
+          >
+            <Eye className="mr-1 h-4 w-4" />
+            View
+          </Button>
+          <Button
+            size="sm"
+            className="min-h-10 flex-1"
+            onClick={handleDownload}
+            disabled={isLoading}
+          >
+            <Download className="mr-1 h-4 w-4" />
+            {isLoading ? "..." : "Download"}
+          </Button>
         </div>
       )}
     </div>

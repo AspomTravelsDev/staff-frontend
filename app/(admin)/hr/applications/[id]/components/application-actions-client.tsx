@@ -200,7 +200,7 @@ export function ApplicationActionsClient({
         <CardTitle>Actions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
           {applicantEmail && (
             <ProvisionEmailDialog
               applicationId={applicationId}
@@ -217,6 +217,7 @@ export function ApplicationActionsClient({
             variant="outline"
             onClick={handleGenerateDocuments}
             disabled={isGenerating}
+            className="min-h-10 sm:min-h-8"
           >
             {isGenerating ? "Generating..." : "Generate Documents"}
           </Button>
@@ -225,6 +226,7 @@ export function ApplicationActionsClient({
             variant="outline"
             onClick={() => setIsReminderDialogOpen(true)}
             disabled={isSendingReminder || status === "completed"}
+            className="min-h-10 sm:min-h-8"
           >
             {isSendingReminder ? "Sending..." : "Send Reminder Email"}
           </Button>
@@ -233,13 +235,18 @@ export function ApplicationActionsClient({
             variant="secondary"
             onClick={() => setIsCorrectionDialogOpen(true)}
             disabled={status !== "completed"}
+            className="min-h-10 sm:min-h-8"
           >
             Request Correction
           </Button>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={isDeleting}>
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+                className="min-h-10 sm:min-h-8"
+              >
                 {isDeleting ? "Deleting..." : "Delete Application"}
               </Button>
             </AlertDialogTrigger>

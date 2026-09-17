@@ -3,10 +3,11 @@
 import { deleteApplication } from "@/lib/api/hr";
 import { requestOnboardingCorrection, type OnboardingCorrectionReason } from "@/lib/api/hr";
 import { sendOnboardingReminder } from "@/lib/api/hr";
-import { toggleAddressVerification } from "@/lib/api/hr";
-import { 
-    provisionCorporateEmail, 
-    resendPortalInvite, 
+import { toggleAddressVerification, updateContactVerification } from "@/lib/api/hr";
+import type { ContactVerificationStatus } from "@/lib/types/form-data";
+import {
+    provisionCorporateEmail,
+    resendPortalInvite,
     checkCpanelEmail,
     type ProvisionCorporateEmailRequest,
     type ResendOnboardingEmailsRequest
@@ -46,6 +47,20 @@ export async function sendReminderAction(id: string, note: string) {
 
 export async function toggleAddressVerificationAction(id: string, verified?: boolean) {
     const updated = await toggleAddressVerification(id, verified);
+    revalidatePath(`/hr/applications/${id}`);
+    revalidatePath("/hr/applications");
+    return updated;
+}
+
+export async function updateContactVerificationAction(
+    id: string,
+    payload: {
+        contact: "guarantor" | "referee";
+        index?: number;
+        status: ContactVerificationStatus;
+    },
+) {
+    const updated = await updateContactVerification(id, payload);
     revalidatePath(`/hr/applications/${id}`);
     revalidatePath("/hr/applications");
     return updated;

@@ -17,7 +17,7 @@ export default async function MyTasksPage() {
   const initialTasks = await getTodaysTasks();
 
   return (
-    <div className="flex flex-col gap-8 p-4">
+    <div className="flex flex-col gap-8 px-3 py-4 sm:p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Daily Tasks</h1>
       </div>

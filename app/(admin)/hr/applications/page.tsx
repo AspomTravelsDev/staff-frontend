@@ -36,16 +36,20 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Applications Dashboard</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl">
+            Applications Dashboard
+          </h1>
           <p className="text-muted-foreground">
             Manage onboarding applications and track progress
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <ApplicationExportButton applications={applications} />
-          <Button asChild>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="flex-1 sm:flex-none">
+            <ApplicationExportButton applications={applications} />
+          </div>
+          <Button asChild className="min-h-10 flex-1 sm:flex-none">
             <Link href="/hr/applications/new">Create Application</Link>
           </Button>
         </div>
@@ -109,27 +113,25 @@ export default async function AdminDashboardPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="space-y-3 md:hidden">
                 {applications.map((app) => (
-                  <TableRow key={app.id}>
-                    <TableCell className="font-medium">
-                      {app.applicant_name || app.applicant_email.split("@")[0]}
-                    </TableCell>
-                    <TableCell>{app.applicant_email}</TableCell>
-                    <TableCell>{app.position_title}</TableCell>
-                    <TableCell>
+                  <div
+                    key={app.id}
+                    className="space-y-3 rounded-lg border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium break-words">
+                          {app.applicant_name ||
+                            app.applicant_email.split("@")[0]}
+                        </p>
+                        <p className="break-all text-xs text-muted-foreground">
+                          {app.applicant_email}
+                        </p>
+                      </div>
                       <Badge
+                        className="shrink-0"
                         variant={
                           app.status === "completed"
                             ? "default"
@@ -140,18 +142,65 @@ export default async function AdminDashboardPage() {
                       >
                         {app.status.replaceAll("_", " ")}
                       </Badge>
-                    </TableCell>
-                    <TableCell>{formatLagosDate(app.invited_at)}</TableCell>
-                    <TableCell>
-                      <ApplicationActions
-                        id={app.id}
-                        step={app.form_data?.currentStep ?? 1}
-                      />
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span className="break-words">{app.position_title}</span>
+                      <span>{formatLagosDate(app.invited_at)}</span>
+                    </div>
+                    <ApplicationActions
+                      id={app.id}
+                      step={app.form_data?.currentStep ?? 1}
+                    />
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden overflow-x-auto md:block">
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {applications.map((app) => (
+                      <TableRow key={app.id}>
+                        <TableCell className="font-medium">
+                          {app.applicant_name ||
+                            app.applicant_email.split("@")[0]}
+                        </TableCell>
+                        <TableCell>{app.applicant_email}</TableCell>
+                        <TableCell>{app.position_title}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              app.status === "completed"
+                                ? "default"
+                                : app.status === "in_progress"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
+                            {app.status.replaceAll("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatLagosDate(app.invited_at)}</TableCell>
+                        <TableCell>
+                          <ApplicationActions
+                            id={app.id}
+                            step={app.form_data?.currentStep ?? 1}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -67,9 +67,7 @@ export function TaskHistory() {
       key: (r: DailyTaskRecord) => {
         const total = r.tasks.length;
         const completed = r.tasks.filter((t) => t.completed).length;
-        return total > 0
-          ? Math.round((completed / total) * 100) + "%"
-          : "0%";
+        return total > 0 ? Math.round((completed / total) * 100) + "%" : "0%";
       },
     },
     {
@@ -100,7 +98,7 @@ export function TaskHistory() {
 
   return (
     <div className="border-none shadow-none bg-transparent">
-      <CardHeader className="px-0 pb-6 flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col items-start gap-4 px-0 pb-6 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div className="flex items-center gap-3 px-4">
           <div className="p-2 bg-primary/10 rounded-xl">
             <History className="h-5 w-5 text-primary" />
@@ -112,7 +110,7 @@ export function TaskHistory() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 px-4 sm:w-auto sm:px-0">
           {filteredHistory && filteredHistory.length > 0 && (
             <TableExportButton
               data={filteredHistory}
@@ -123,7 +121,7 @@ export function TaskHistory() {
           <DatePickerWithRange
             date={dateRange}
             setDate={setDateRange}
-            className="scale-95 origin-right"
+            className="min-w-0 flex-1 scale-95 origin-left sm:flex-none sm:origin-right"
           />
         </div>
       </CardHeader>

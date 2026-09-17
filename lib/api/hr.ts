@@ -3,6 +3,7 @@
 import { api, apiClient } from "./client";
 import { revalidatePath } from "next/cache";
 import type { OnboardingApplication, CreateApplicationRequest } from "@/lib/types/hr";
+import type { ContactVerificationStatus } from "@/lib/types/form-data";
 
 // ─── Authenticated endpoints (HR/Super admin) ───
 
@@ -85,6 +86,24 @@ export async function toggleAddressVerification(
     );
     if (!response.success) {
         throw new Error(response.error.error || "Failed to update address verification");
+    }
+    return response.data.data;
+}
+
+export async function updateContactVerification(
+    id: string,
+    payload: {
+        contact: "guarantor" | "referee";
+        index?: number;
+        status: ContactVerificationStatus;
+    },
+): Promise<OnboardingApplication> {
+    const response = await api.patch<{ message: string; data: OnboardingApplication }>(
+        `/api/onboarding-applications/${id}/verify-contact`,
+        payload,
+    );
+    if (!response.success) {
+        throw new Error(response.error.error || "Failed to update contact verification");
     }
     return response.data.data;
 }

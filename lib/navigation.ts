@@ -235,14 +235,8 @@ export const departmentNav: NavItem[] = [
     title: "Ad Compliance Checker",
     url: "/social-media/compliance",
     icon: ShieldCheck,
-    allowedRoles: ["social-media", "super", "compliance", "admin"],
+    allowedRoles: ["social-media", "super"],
   },
-  // {
-  //     title: "IT Service Desk",
-  //     url: "/it/service-desk",
-  //     icon: Settings2,
-  //     allowedRoles: ["it", "super"],
-  // },
   {
     title: "All IT Issues",
     url: "/it/report-issues",

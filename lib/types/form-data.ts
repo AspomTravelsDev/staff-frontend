@@ -87,6 +87,17 @@ export interface LegalAgreements {
     };
 }
 
+export type ContactVerificationStatus = "unverified" | "unreachable" | "verified";
+
+export interface ContactVerification {
+    status: ContactVerificationStatus;
+    updated_at?: string | null;
+    updated_by?: {
+        id?: string | null;
+        name?: string | null;
+    } | null;
+}
+
 export interface GuarantorRefereeData {
     guarantors: Array<{
         firstName: string;
@@ -127,6 +138,7 @@ export interface GuarantorRefereeData {
             address?: string;
             signature?: string;
         };
+        verification?: ContactVerification;
     }>;
     referee: {
         fullName: string;
@@ -162,6 +174,7 @@ export interface GuarantorRefereeData {
             uploadedAt?: string;
             fileId?: string;
         };
+        verification?: ContactVerification;
     };
 }
 

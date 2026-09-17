@@ -1,3 +1,5 @@
+import type { ContactVerification } from "./form-data";
+
 export interface SalaryBreakdown {
     basic: number;
     rent_housing: number;
@@ -135,6 +137,7 @@ export interface Referee {
     relationshipType: string;
     phoneNumberAlternate: string;
     professionalAssessment: string | null;
+    verification?: ContactVerification;
 }
 
 export interface Guarantor {
@@ -163,6 +166,7 @@ export interface Guarantor {
     characterAssessment: string;
     liabilityAcceptedAt: string;
     alternatePhoneNumber: string;
+    verification?: ContactVerification;
 }
 
 export interface GuarantorReferee {

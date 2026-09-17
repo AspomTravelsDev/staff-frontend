@@ -28,11 +28,11 @@ export default async function AdminLayout({
       <UserProvider user={user}>
         <NotificationsUpdater notifications={initialNotifications} />
         <GlobalChatNotifications />
-        <SidebarProvider>
+        <SidebarProvider className="h-svh min-h-0 overflow-hidden">
           <AppSidebar />
-          <SidebarInset className="min-w-0 overflow-x-hidden">
+          <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
             <SiteHeader />
-            <div className="flex flex-1 flex-col gap-4 p-4 pt-4 min-w-0 w-full overflow-x-hidden">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 pt-4">
               {children}
             </div>
             {/* <CheatsheetFloatingWidget /> */}

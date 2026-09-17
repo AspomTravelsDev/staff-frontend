@@ -268,7 +268,7 @@ export function TaskList({ initialData }: TaskListProps) {
       </div>
 
       {!isLocked && localTasks.length > 0 && (
-        <div className="flex items-center justify-end gap-3 pt-4 border-t">
+        <div className="flex flex-col items-stretch gap-3 pt-4 border-t sm:flex-row sm:items-center sm:justify-end">
           {isAutosaving ? (
             <Badge
               variant="outline"
@@ -296,6 +296,7 @@ export function TaskList({ initialData }: TaskListProps) {
             onClick={handleSave}
             disabled={updateTasks.isPending}
             variant={hasUnsavedChanges ? "default" : "secondary"}
+            className="min-h-11 sm:min-h-8"
           >
             {updateTasks.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -307,7 +308,7 @@ export function TaskList({ initialData }: TaskListProps) {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                className="bg-green-600 hover:bg-green-700"
+                className="min-h-11 bg-green-600 hover:bg-green-700 sm:min-h-8"
                 disabled={isQuestionnaireLocked}
               >
                 <Send className="h-4 w-4 mr-2" /> Submit Daily Report

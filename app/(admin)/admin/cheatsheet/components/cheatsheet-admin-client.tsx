@@ -419,7 +419,7 @@ export function CheatsheetAdminClient({
               />
               <Textarea
                 placeholder="Paste the source content here..."
-                className="min-h-[180px]"
+                className="min-h-45"
                 value={newContent}
                 onChange={(event) => setNewContent(event.target.value)}
               />
@@ -465,7 +465,7 @@ export function CheatsheetAdminClient({
                       onChange={(event) =>
                         handleDraftChange(source.id, event.target.value)
                       }
-                      className="min-h-[140px]"
+                      className="min-h-35"
                     />
                     <div className="flex items-center gap-2">
                       <Button
@@ -1078,7 +1078,7 @@ export function CheatsheetAdminClient({
                 value={itemForm.content}
                 onChange={(e) => setItemForm(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Factual guideline content..."
-                className="min-h-[120px]"
+                className="min-h-30"
               />
             </div>
             
@@ -1165,7 +1165,7 @@ export function CheatsheetAdminClient({
                 value={questionForm.explanation}
                 onChange={(e) => setQuestionForm(prev => ({ ...prev, explanation: e.target.value }))}
                 placeholder="Why is this option correct?"
-                className="min-h-[80px]"
+                className="min-h-20"
               />
             </div>
             

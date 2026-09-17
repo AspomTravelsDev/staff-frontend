@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { BioData } from "./components/bio-data";
 import { ApplicationExportButton } from "../components/application-export-button";
 import { ApplicationTimeline } from "./components/application-timeline";
 import { AddressVerificationToggle } from "./components/address-verification-toggle";
-
+import { ContactVerificationSelect } from "./components/contact-verification-select";
 
 export default async function ApplicationDetailPage({
   params,
@@ -76,11 +77,12 @@ export default async function ApplicationDetailPage({
     personal?.residentialAddress?.state,
     personal?.residentialAddress?.country,
   ].filter(Boolean);
-  const formattedAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
+  const formattedAddress =
+    addressParts.length > 0 ? addressParts.join(", ") : null;
 
   const addressVerification = application.form_data?.address_verification;
   const isAddressVerified = Boolean(
-    addressVerification?.verified || application.form_data?.address_verified
+    addressVerification?.verified || application.form_data?.address_verified,
   );
 
   const guarantorReferee = application.form_data?.guarantorReferee;
@@ -118,22 +120,28 @@ export default async function ApplicationDetailPage({
       .join(" / ") || "—";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{application.application_id}</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="break-all text-2xl font-bold sm:text-3xl">
+              {application.application_id}
+            </h1>
             {getStatusBadge(application.status)}
           </div>
           <p className="text-muted-foreground">{application.position_title}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <ApplicationExportButton
             applications={[application]}
             filename={application.application_id || "hr-application"}
           />
-          <Button variant="outline" asChild>
+          <Button
+            variant="outline"
+            asChild
+            className="min-h-6"
+          >
             <Link href="/hr/applications">Back to List</Link>
           </Button>
         </div>
@@ -153,28 +161,38 @@ export default async function ApplicationDetailPage({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Personal Email</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Personal Email
+              </p>
               <p className="text-sm">{application.applicant_email}</p>
             </div>
             {application.corporate_email && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Corporate Work Email</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Corporate Work Email
+                </p>
                 <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                  <Badge variant="outline" className="font-mono text-emerald-700 dark:text-emerald-300 border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30">
+                  <Badge
+                    variant="outline"
+                    className="font-mono text-emerald-700 dark:text-emerald-300 border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30"
+                  >
                     {application.corporate_email}
                   </Badge>
-                  {application.portal_status?.status === 'accepted' && (
+                  {application.portal_status?.status === "accepted" && (
                     <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-white" />
                       Portal Active
                     </Badge>
                   )}
-                  {application.portal_status?.status === 'pending' && (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] gap-1">
+                  {application.portal_status?.status === "pending" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] gap-1"
+                    >
                       Portal Invite Pending
                     </Badge>
                   )}
-                  {application.portal_status?.status === 'expired' && (
+                  {application.portal_status?.status === "expired" && (
                     <Badge variant="destructive" className="text-[11px]">
                       Portal Invite Expired
                     </Badge>
@@ -208,7 +226,11 @@ export default async function ApplicationDetailPage({
                 {application.form_data?.documents?.dressCodeAcknowledged ? (
                   <>
                     <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-                    Yes (on {formatDate(application.form_data.documents.dressCodeAcknowledgedAt)})
+                    Yes (on{" "}
+                    {formatDate(
+                      application.form_data.documents.dressCodeAcknowledgedAt,
+                    )}
+                    )
                   </>
                 ) : (
                   <>
@@ -247,9 +269,22 @@ export default async function ApplicationDetailPage({
                     Guarantor 1
                   </span>
                   {guarantor1?.relationship && (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] py-0 px-1.5 font-normal"
+                    >
                       {guarantor1.relationship}
                     </Badge>
+                  )}
+                  {guarantor1 && (
+                    <ContactVerificationSelect
+                      applicationId={application.id}
+                      contact="guarantor"
+                      index={0}
+                      initialStatus={
+                        guarantor1.verification?.status || "unverified"
+                      }
+                    />
                   )}
                 </div>
                 <p className="text-sm font-semibold text-foreground">
@@ -272,9 +307,22 @@ export default async function ApplicationDetailPage({
                     Guarantor 2
                   </span>
                   {guarantor2?.relationship && (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] py-0 px-1.5 font-normal"
+                    >
                       {guarantor2.relationship}
                     </Badge>
+                  )}
+                  {guarantor2 && (
+                    <ContactVerificationSelect
+                      applicationId={application.id}
+                      contact="guarantor"
+                      index={1}
+                      initialStatus={
+                        guarantor2.verification?.status || "unverified"
+                      }
+                    />
                   )}
                 </div>
                 <p className="text-sm font-semibold text-foreground">
@@ -297,16 +345,30 @@ export default async function ApplicationDetailPage({
                     Referee
                   </span>
                   {referee?.relationshipType && (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal capitalize">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] py-0 px-1.5 font-normal capitalize"
+                    >
                       {referee.relationshipType}
                     </Badge>
+                  )}
+                  {referee && (
+                    <ContactVerificationSelect
+                      applicationId={application.id}
+                      contact="referee"
+                      initialStatus={
+                        referee.verification?.status || "unverified"
+                      }
+                    />
                   )}
                 </div>
                 <p className="text-sm font-semibold text-foreground">
                   {refName}
                 </p>
                 <div className="text-xs text-muted-foreground flex flex-col gap-0.5 pt-0.5">
-                  <span className="font-medium text-foreground">{refPhone}</span>
+                  <span className="font-medium text-foreground">
+                    {refPhone}
+                  </span>
                   {referee?.organization && (
                     <span className="text-[11px] text-muted-foreground truncate">
                       {referee.organization}
@@ -321,7 +383,7 @@ export default async function ApplicationDetailPage({
 
           <div>
             <p className="mb-2 text-sm font-medium">Applicant Link</p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all">
                 {applicantUrl}
               </code>

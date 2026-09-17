@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,20 +16,20 @@ interface BioDataProps {
   };
   applicationId?: string;
 }
- const InfoRow = ({
-    label,
-    value,
-  }: {
-    label: string;
-    value: React.ReactNode;
-  }) => (
-    <div className="flex flex-col py-1">
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        {label}
-      </span>
-      <span className="text-sm font-medium">{value || "—"}</span>
-    </div>
-  );
+const InfoRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <div className="flex min-w-0 flex-col py-1">
+    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      {label}
+    </span>
+    <span className="wrap-break-word text-sm font-medium">{value || "—"}</span>
+  </div>
+);
 export function BioData({ formData, applicationId }: BioDataProps) {
   const { personal, employmentFinance, legal, guarantorReferee } = formData;
 
@@ -94,11 +95,31 @@ export function BioData({ formData, applicationId }: BioDataProps) {
       <h3 className="text-lg font-semibold px-1">Applicant Bio Data</h3>
 
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="personal">Personal Info</TabsTrigger>
-          <TabsTrigger value="professional">Professional</TabsTrigger>
-          <TabsTrigger value="background">Account & Background</TabsTrigger>
-          <TabsTrigger value="guarantors">Guarantors & Referee</TabsTrigger>
+        <TabsList className="flex h-auto w-full max-w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-4 sm:overflow-visible">
+          <TabsTrigger
+            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            value="personal"
+          >
+            Personal Info
+          </TabsTrigger>
+          <TabsTrigger
+            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            value="professional"
+          >
+            Professional
+          </TabsTrigger>
+          <TabsTrigger
+            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            value="background"
+          >
+            Account & Background
+          </TabsTrigger>
+          <TabsTrigger
+            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            value="guarantors"
+          >
+            Guarantors & Referee
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal" className="mt-4 space-y-6">
@@ -184,7 +205,7 @@ export function BioData({ formData, applicationId }: BioDataProps) {
                       landmark={personal?.nearestLandmark}
                       initialVerified={Boolean(
                         formData?.address_verification?.verified ||
-                          formData?.address_verified
+                        formData?.address_verified,
                       )}
                       verifiedAt={formData?.address_verification?.verified_at}
                       verifiedByName={
@@ -195,10 +216,7 @@ export function BioData({ formData, applicationId }: BioDataProps) {
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InfoRow
-                    label="Address"
-                    value={addressText || "—"}
-                  />
+                  <InfoRow label="Address" value={addressText || "—"} />
                   <InfoRow
                     label="Nearest Landmark"
                     value={personal?.nearestLandmark}
@@ -506,10 +524,7 @@ export function BioData({ formData, applicationId }: BioDataProps) {
                   value={g1?.yearsKnown ? `${g1.yearsKnown} years` : "—"}
                 />
                 <InfoRow label="Employer Name" value={g1?.employerName} />
-                <InfoRow
-                  label="Employer Address"
-                  value={g1?.employerAddress}
-                />
+                <InfoRow label="Employer Address" value={g1?.employerAddress} />
                 <InfoRow label="Residential Address" value={g1Address} />
               </div>
 
@@ -559,10 +574,7 @@ export function BioData({ formData, applicationId }: BioDataProps) {
                   value={g2?.yearsKnown ? `${g2.yearsKnown} years` : "—"}
                 />
                 <InfoRow label="Employer Name" value={g2?.employerName} />
-                <InfoRow
-                  label="Employer Address"
-                  value={g2?.employerAddress}
-                />
+                <InfoRow label="Employer Address" value={g2?.employerAddress} />
                 <InfoRow label="Residential Address" value={g2Address} />
               </div>
 
