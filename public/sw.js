@@ -1,6 +1,16 @@
-const CACHE_NAME = "aspom-portal-cache-v1";
+const CACHE_NAME = "aspom-portal-cache-v2";
+const OFFLINE_URL = "/offline.html";
 
-self.addEventListener("install", () => {
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([
+        OFFLINE_URL,
+        "/android-chrome-192x192.png",
+        "/favicon-32x32.png",
+      ]);
+    })
+  );
   self.skipWaiting();
 });
 
@@ -19,9 +29,19 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Pass-through fetch listener required by Chromium for PWA installability
+// Fetch listener with offline fallback for navigation requests
 self.addEventListener("fetch", (event) => {
-  // Let the browser handle the request normally
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        const cache = await caches.open(CACHE_NAME);
+        return cache.match(OFFLINE_URL);
+      })
+    );
+    return;
+  }
+
+  // Pass-through for other requests
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request);

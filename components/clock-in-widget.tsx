@@ -128,7 +128,7 @@ export function ClockInWidget() {
   const isClockedIn = status && !status.clock_out_at;
 
   return (
-    <div id="tour-clock-widget" className="flex items-center gap-3">
+    <div id="tour-clock-widget" className="flex items-center gap-1.5 sm:gap-3">
       {isClockedIn ? (
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -137,11 +137,18 @@ export function ClockInWidget() {
               disabled={loading}
               variant="destructive"
               size="sm"
-              className="gap-2 h-8 px-3"
+              className="gap-1.5 h-8 px-2.5 sm:px-3"
             >
               <LogOut className="h-3.5 w-3.5" />
               <span className="text-xs font-bold uppercase tracking-wider">
-                {loading ? "Clocking Out..." : "Clock Out"}
+                {loading ? (
+                  "Clocking Out..."
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Clock Out</span>
+                    <span className="sm:hidden">Out</span>
+                  </>
+                )}
               </span>
             </Button>
           </AlertDialogTrigger>
@@ -167,26 +174,34 @@ export function ClockInWidget() {
         <Badge
           id="tour-clock-completed-badge"
           variant="outline"
-          className="h-8 gap-2 px-3 border-muted-foreground/20 text-muted-foreground font-medium"
+          className="h-8 gap-1.5 px-2.5 sm:px-3 border-muted-foreground/20 text-muted-foreground font-medium"
         >
-          <Clock className="h-3.5 w-3.5" />
+          <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
           <span className="text-[10px] uppercase tracking-widest">
-            Work Completed
+            <span className="hidden sm:inline">Work Completed</span>
+            <span className="sm:hidden">Done</span>
           </span>
         </Badge>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Button
             id="tour-clock-in-btn"
             disabled={loading}
             onClick={handleClockIn}
             variant="outline"
             size="sm"
-            className="gap-2 h-8 px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+            className="gap-1.5 h-8 px-2.5 sm:px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
           >
             <Clock className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              {loading ? "Clocking In..." : "Clock In Now"}
+              {loading ? (
+                "Clocking In..."
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Clock In Now</span>
+                  <span className="sm:hidden">Clock In</span>
+                </>
+              )}
             </span>
           </Button>
           <LatePermissionRequestModal
@@ -194,7 +209,7 @@ export function ClockInWidget() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-muted-foreground hover:text-foreground text-xs"
+                className="h-8 px-1.5 sm:px-2 text-muted-foreground hover:text-foreground text-xs"
                 title="Request permission to be late"
               >
                 <Clock className="h-3.5 w-3.5 text-indigo-500" />

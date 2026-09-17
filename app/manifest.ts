@@ -37,5 +37,35 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
       },
     ],
+    shortcuts: [
+      {
+        name: "Clock In / Attendance",
+        short_name: "Attendance",
+        description: "Quickly record daily clock-in or view punctuality",
+        url: "/my/attendance",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Daily Tasks & Reports",
+        short_name: "Tasks",
+        description: "Manage to-do list and submit daily work report",
+        url: "/my/tasks",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Request Leave",
+        short_name: "Leave",
+        description: "Apply for annual or emergency leave",
+        url: "/my/leave",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Staff Dashboard",
+        short_name: "Dashboard",
+        description: "Open the staff portal home screen",
+        url: "/dashboard",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+    ],
   };
 }
