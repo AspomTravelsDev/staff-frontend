@@ -39,7 +39,7 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           </div>
           <h3 className="text-sm font-semibold">No Late Requests</h3>
           <p className="text-xs text-muted-foreground max-w-sm">
-            You haven't submitted any late permission requests yet. Click "Request Late Permission" above if you expect to arrive after standard hours.
+            You haven&apos;t submitted any late permission requests yet. Click &ldquo;Request Late Permission&rdquo; above if you expect to arrive after standard hours.
           </p>
         </div>
       </div>
@@ -127,7 +127,7 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
                     {request.reviewer_note ? (
                       <div className="flex flex-col gap-0.5">
                         <span className="text-xs text-muted-foreground italic line-clamp-2" title={request.reviewer_note}>
-                          "{request.reviewer_note}"
+                          &ldquo;{request.reviewer_note}&rdquo;
                         </span>
                         {request.reviewer?.name && (
                           <span className="text-[10px] text-muted-foreground font-medium">

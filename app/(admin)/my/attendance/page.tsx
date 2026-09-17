@@ -1,4 +1,10 @@
-import { getClockInHistory, getClockInSummary, getMyLatePermissionRequests } from "@/lib/api/clock-in";
+import {
+  getClockInHistory,
+  getClockInSummary,
+  getMyLatePermissionRequests,
+  type ClockInRecord,
+  type LatePermissionRequestItem,
+} from "@/lib/api/clock-in";
 import { StatsCard } from "@/components/stats-card";
 import { Clock, CalendarCheck, AlertTriangle, History, CalendarClock } from "lucide-react";
 import { AttendanceTable } from "./components/attendance-table";
@@ -7,6 +13,7 @@ import { isLate } from "@/lib/utils/attendance";
 import { LatePermissionRequestModal } from "@/components/late-permission-request-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { AttendanceTour, AttendanceTourButton } from "./components/attendance-tour";
 
 export default async function MyAttendancePage() {
   const [summaryResponse, historyResponse, lateRequestsResponse] = await Promise.all([
@@ -16,8 +23,8 @@ export default async function MyAttendancePage() {
   ]);
 
   let summary = null;
-  let history: any[] = [];
-  let lateRequests: any[] = [];
+  let history: ClockInRecord[] = [];
+  let lateRequests: LatePermissionRequestItem[] = [];
   let totalClockIns = "0";
   let averageDuration = 0;
 
@@ -38,34 +45,41 @@ export default async function MyAttendancePage() {
   }
 
   const unexcusedLateDays = history.filter(
-    (record: any) => isLate(record.clock_in_at) && !record.is_late_permitted,
+    (record: ClockInRecord) => isLate(record.clock_in_at) && !record.is_late_permitted,
   ).length;
 
   const permittedLateDays = history.filter(
-    (record: any) => isLate(record.clock_in_at) && record.is_late_permitted,
+    (record: ClockInRecord) => isLate(record.clock_in_at) && record.is_late_permitted,
   ).length;
 
   const onTimeDays = history.filter(
-    (record: any) => !isLate(record.clock_in_at),
+    (record: ClockInRecord) => !isLate(record.clock_in_at),
   ).length;
 
   const pendingLateCount = lateRequests.filter(
-    (req: any) => req.status === "pending"
+    (req: LatePermissionRequestItem) => req.status === "pending"
   ).length;
 
   return (
     <div className="flex flex-col gap-6 p-4 pt-0">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+      <div id="tour-attendance-header" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold">My Attendance</h1>
           <p className="text-sm text-muted-foreground">
             View your attendance stats, check-in history, and late requests
           </p>
         </div>
-        <LatePermissionRequestModal />
+        <div className="flex items-center gap-2">
+          <AttendanceTourButton />
+          <div id="tour-late-request-btn">
+            <LatePermissionRequestModal />
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <AttendanceTour />
+
+      <div id="tour-attendance-stats" className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard
           title="Total Clock-Ins"
           icon={Clock}
@@ -114,7 +128,7 @@ export default async function MyAttendancePage() {
         />
       </div>
 
-      <Tabs defaultValue="history" className="w-full">
+      <Tabs id="tour-attendance-tabs" defaultValue="history" className="w-full">
         <TabsList className="grid w-full sm:w-auto grid-cols-2 mb-4">
           <TabsTrigger value="history" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />

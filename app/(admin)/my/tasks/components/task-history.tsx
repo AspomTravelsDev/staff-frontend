@@ -4,10 +4,8 @@ import { useState } from "react";
 import { format, subDays } from "date-fns";
 import { useMyDailyTasks } from "@/lib/api/hooks/use-tasks";
 import { TaskItem } from "./task-item";
-import { Button } from "@/components/ui/button";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { DailyTaskRecord } from "@/types/task-types";
-import { toast } from "sonner";
 import {
   Accordion,
   AccordionContent,
@@ -15,7 +13,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Loader2, History, Info } from "lucide-react";
@@ -97,7 +95,7 @@ export function TaskHistory() {
   ];
 
   return (
-    <div className="border-none shadow-none bg-transparent">
+    <div id="tour-task-history" className="border-none shadow-none bg-transparent">
       <CardHeader className="flex flex-col items-start gap-4 px-0 pb-6 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div className="flex items-center gap-3 px-4">
           <div className="p-2 bg-primary/10 rounded-xl">

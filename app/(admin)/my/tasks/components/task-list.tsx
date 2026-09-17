@@ -83,9 +83,9 @@ export function TaskList({ initialData }: TaskListProps) {
       await updateTasks.mutateAsync({ tasks: validTasks });
       setHasUnsavedChanges(false);
       toast.success("Saved successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save tasks:", error);
-      toast.error(error.message || "Failed to save tasks");
+      toast.error(error instanceof Error ? error.message : "Failed to save tasks");
     }
   };
 
@@ -162,9 +162,9 @@ export function TaskList({ initialData }: TaskListProps) {
 
       await submitReport.mutateAsync();
       toast.success("Report submitted successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to submit report:", error);
-      toast.error(error.message || "Failed to submit report");
+      toast.error(error instanceof Error ? error.message : "Failed to submit report");
     }
   };
 
@@ -222,11 +222,13 @@ export function TaskList({ initialData }: TaskListProps) {
         </div>
       </div>
 
-      <TaskStats
-        total={localTasks.length}
-        completed={completedCount}
-        ongoing={ongoingCount}
-      />
+      <div id="tour-tasks-stats">
+        <TaskStats
+          total={localTasks.length}
+          completed={completedCount}
+          ongoing={ongoingCount}
+        />
+      </div>
 
       {isQuestionnaireLocked ? (
         <Alert className="border-amber-300 bg-amber-50 text-amber-900">
@@ -244,7 +246,7 @@ export function TaskList({ initialData }: TaskListProps) {
         </Alert>
       ) : null}
 
-      <div className="space-y-3 group">
+      <div id="tour-tasks-container" className="space-y-3 group">
         {localTasks.map((task, index) => (
           <TaskItem
             key={index}
@@ -258,6 +260,7 @@ export function TaskList({ initialData }: TaskListProps) {
 
         {!isLocked && (
           <Button
+            id="tour-add-task"
             variant="outline"
             className="w-full border-dashed border-2 h-12 text-muted-foreground hover:text-foreground hover:bg-accent"
             onClick={handleAddTask}
@@ -268,7 +271,7 @@ export function TaskList({ initialData }: TaskListProps) {
       </div>
 
       {!isLocked && localTasks.length > 0 && (
-        <div className="flex flex-col items-stretch gap-3 pt-4 border-t sm:flex-row sm:items-center sm:justify-end">
+        <div id="tour-save-actions" className="flex flex-col items-stretch gap-3 pt-4 border-t sm:flex-row sm:items-center sm:justify-end">
           {isAutosaving ? (
             <Badge
               variant="outline"
@@ -308,6 +311,7 @@ export function TaskList({ initialData }: TaskListProps) {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
+                id="tour-submit-report"
                 className="min-h-11 bg-green-600 hover:bg-green-700 sm:min-h-8"
                 disabled={isQuestionnaireLocked}
               >

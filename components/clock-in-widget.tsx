@@ -128,11 +128,12 @@ export function ClockInWidget() {
   const isClockedIn = status && !status.clock_out_at;
 
   return (
-    <div className="flex items-center gap-3">
+    <div id="tour-clock-widget" className="flex items-center gap-3">
       {isClockedIn ? (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
+              id="tour-clock-out-btn"
               disabled={loading}
               variant="destructive"
               size="sm"
@@ -164,6 +165,7 @@ export function ClockInWidget() {
         </AlertDialog>
       ) : status?.clock_out_at ? (
         <Badge
+          id="tour-clock-completed-badge"
           variant="outline"
           className="h-8 gap-2 px-3 border-muted-foreground/20 text-muted-foreground font-medium"
         >
@@ -175,6 +177,7 @@ export function ClockInWidget() {
       ) : (
         <div className="flex items-center gap-2">
           <Button
+            id="tour-clock-in-btn"
             disabled={loading}
             onClick={handleClockIn}
             variant="outline"
