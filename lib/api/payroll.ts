@@ -40,6 +40,10 @@ export interface PayrollEntryUser {
   department: string | null;
   contract_type?: string | null;
   date_joined?: string | null;
+  exit_date?: string | null;
+  exit_type?: string | null;
+  exit_reason?: string | null;
+  is_active?: boolean;
   gross_pay?: number | null;
 }
 

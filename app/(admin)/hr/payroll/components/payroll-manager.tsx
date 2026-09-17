@@ -964,6 +964,14 @@ export function PayrollManager() {
                             Intern
                           </Badge>
                         )}
+                        {entry.user?.exit_date && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] bg-rose-50 text-rose-600 border-rose-200 tracking-tighter h-4 px-1.5 font-medium"
+                          >
+                            Exit: {entry.user.exit_date.split(" ")[0]}
+                          </Badge>
+                        )}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                         {entry.user?.staff_id ?? "N/A"} •{" "}

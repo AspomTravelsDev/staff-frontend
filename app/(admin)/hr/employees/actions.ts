@@ -4,6 +4,7 @@ import {
     updateUser,
     updateUserStatus,
     type UpdateUserRequest,
+    type UpdateUserStatusData,
 } from "@/lib/api/employees";
 import { revalidatePath } from "next/cache";
 
@@ -26,10 +27,10 @@ export async function updateUserAction(
 
 export async function updateUserStatusAction(
     userId: string,
-    isActive: boolean
+    statusData: boolean | UpdateUserStatusData
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        await updateUserStatus(userId, isActive);
+        await updateUserStatus(userId, statusData);
         revalidatePath("/hr/employees");
         return { success: true };
     } catch (error) {

@@ -146,13 +146,21 @@ export function PayrollEntrySheet({
   );
   const [adjustmentType, setAdjustmentType] = useState<"none" | "resumption" | "resignation">(
     () => {
+      const monthStrVal = payrollMonth || entry.run?.payroll_month;
+      const isExitedThisMonth =
+        !!entry.user?.exit_date &&
+        !!monthStrVal &&
+        entry.user.exit_date.startsWith(monthStrVal);
+      if (isExitedThisMonth) return "resignation";
+
+      const isJoinedThisMonth =
+        !!entry.user?.date_joined &&
+        !!monthStrVal &&
+        entry.user.date_joined.startsWith(monthStrVal);
+      if (isJoinedThisMonth) return "resumption";
+
       if (Number(entry.prorated_days ?? 0) > 0) {
-        const monthStrVal = payrollMonth || entry.run?.payroll_month;
-        const isJoinedThisMonth =
-          !!entry.user?.date_joined &&
-          !!monthStrVal &&
-          entry.user.date_joined.startsWith(monthStrVal);
-        return isJoinedThisMonth ? "resumption" : "resignation";
+        return "resignation";
       }
       return "none";
     },
@@ -170,6 +178,13 @@ export function PayrollEntrySheet({
   });
   const [resignationDate, setResignationDate] = useState<string>(() => {
     const monthStrVal = payrollMonth || entry.run?.payroll_month;
+    if (
+      entry.user?.exit_date &&
+      monthStrVal &&
+      entry.user.exit_date.startsWith(monthStrVal)
+    ) {
+      return entry.user.exit_date.split(" ")[0];
+    }
     return monthStrVal ? `${monthStrVal}-15` : "";
   });
   const [accommodationAmount, setAccommodationAmount] = useState<string>(
@@ -207,17 +222,23 @@ export function PayrollEntrySheet({
 
     const monthStrVal = payrollMonth || entry.run?.payroll_month;
     const hasProration = Number(entry.prorated_days ?? 0) > 0;
+    const isExitedThisMonth =
+      !!entry.user?.exit_date &&
+      !!monthStrVal &&
+      entry.user.exit_date.startsWith(monthStrVal);
     const isJoinedThisMonth =
       !!entry.user?.date_joined &&
       !!monthStrVal &&
       entry.user.date_joined.startsWith(monthStrVal);
     
     setAdjustmentType(
-      hasProration
-        ? isJoinedThisMonth
+      isExitedThisMonth
+        ? "resignation"
+        : isJoinedThisMonth
           ? "resumption"
-          : "resignation"
-        : "none"
+          : hasProration
+            ? "resignation"
+            : "none"
     );
     setResumptionDate(
       isJoinedThisMonth
@@ -227,7 +248,11 @@ export function PayrollEntrySheet({
           : "",
     );
     setResignationDate(
-      monthStrVal ? `${monthStrVal}-15` : ""
+      isExitedThisMonth
+        ? entry.user!.exit_date!.split(" ")[0]
+        : monthStrVal
+          ? `${monthStrVal}-15`
+          : "",
     );
 
     // Compute dynamic defaults based on raw inputs to detect database overrides
@@ -364,6 +389,26 @@ export function PayrollEntrySheet({
     return 0;
   }, [entry.user?.date_joined, monthStr]);
 
+  const suggestedExitProratedDays = useMemo(() => {
+    if (!entry.user?.exit_date || !monthStr) return 0;
+    const exitParts = entry.user.exit_date
+      .split(" ")[0]
+      .split("-")
+      .map(Number);
+    if (exitParts.length < 3) return 0;
+
+    const [exitYear, exitMonth, exitDay] = exitParts;
+    const [payYear, payMonth] = monthStr.split("-").map(Number);
+
+    if (exitYear === payYear && exitMonth === payMonth) {
+      const lastDay = getDaysInMonth(payYear, payMonth);
+      const startD = new Date(payYear, payMonth - 1, exitDay + 1);
+      const endD = new Date(payYear, payMonth - 1, lastDay);
+      return countWeekdaysBetween(startD, endD);
+    }
+    return 0;
+  }, [entry.user?.exit_date, monthStr]);
+
   const calculateDelayFromDate = (dateVal: string) => {
     if (!dateVal || !monthStr) return 0;
     const [year, month, day] = dateVal.split("-").map(Number);
@@ -425,6 +470,7 @@ export function PayrollEntrySheet({
       contractType: entry.user?.contract_type ?? null,
       isIntern: !!entry.is_intern,
       dateJoined: entry.user?.date_joined ?? null,
+      exitDate: entry.user?.exit_date ?? null,
       payrollMonth: monthStr || "",
       proratedDays: prorated,
       accommodationAmount: parse(accommodationAmount),
@@ -557,13 +603,18 @@ export function PayrollEntrySheet({
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl font-bold tracking-tight">
               {entry.user?.name ?? "Staff"}
             </h2>
             <Badge variant={isApproved ? "default" : "secondary"}>
               {entry.status}
             </Badge>
+            {entry.user?.exit_date && (
+              <Badge variant="outline" className="text-xs px-2 py-0.5 border-rose-300 text-rose-600 bg-rose-50 font-semibold">
+                Exit: {entry.user.exit_date.split(" ")[0]} {entry.user.exit_type ? `(${entry.user.exit_type})` : ""}
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {entry.user?.staff_id} • {entry.user?.department}
@@ -760,12 +811,19 @@ export function PayrollEntrySheet({
                   {adjustmentType === "resignation" && (
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-dashed animate-in fade-in duration-200">
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="resignation-date"
-                          className="text-xs font-semibold text-slate-600"
-                        >
-                          Resignation Date
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label
+                            htmlFor="resignation-date"
+                            className="text-xs font-semibold text-slate-600"
+                          >
+                            Resignation / Exit Date
+                          </Label>
+                          {entry.user?.exit_date && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-emerald-300 text-emerald-700 bg-emerald-50">
+                              Prefilled from HR
+                            </Badge>
+                          )}
+                        </div>
                         <Input
                           id="resignation-date"
                           type="date"
@@ -795,6 +853,19 @@ export function PayrollEntrySheet({
                           }}
                           className="bg-background text-xs h-9 cursor-pointer"
                         />
+                        {entry.user?.exit_date && (
+                          <p className="text-[10px] text-muted-foreground">
+                            System Exit:{" "}
+                            <span className="font-semibold text-slate-700">
+                              {entry.user.exit_date.split(" ")[0]}
+                            </span>
+                            {entry.user.exit_type && (
+                              <span className="ml-1 text-slate-500">
+                                ({entry.user.exit_type})
+                              </span>
+                            )}
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -823,6 +894,11 @@ export function PayrollEntrySheet({
                             days
                           </div>
                         </div>
+                        {suggestedExitProratedDays > 0 && (
+                          <p className="text-[10px] text-orange-600 font-medium">
+                            Suggested deduction: {suggestedExitProratedDays} working days after exit
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

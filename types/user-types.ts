@@ -151,6 +151,16 @@ export const getRoles = getUserActiveRoles;
 export const getUserRoles = getUserActiveRoles;
 
 
+export type UserExitType = "resignation" | "laid_off" | "termination" | "contract_ended" | "other";
+
+export const USER_EXIT_TYPE_LABELS: Record<UserExitType, string> = {
+    resignation: "Resignation",
+    laid_off: "Laid Off",
+    termination: "Termination",
+    contract_ended: "Contract Ended",
+    other: "Other",
+};
+
 export interface User {
     id: string;
     staff_id: string;
@@ -165,6 +175,9 @@ export interface User {
     roles?: UserRole[];
     department: string | null;
     is_active: boolean;
+    exit_type?: UserExitType | string | null;
+    exit_date?: string | null; // ISO date string (YYYY-MM-DD)
+    exit_reason?: string | null;
     is_supervisor: boolean;
     gross_pay: string;
     date_joined: string | null; // ISO date string (YYYY-MM-DD)

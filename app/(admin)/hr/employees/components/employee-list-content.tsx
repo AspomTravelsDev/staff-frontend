@@ -7,7 +7,11 @@ import { useState, useMemo } from "react";
 import type { Employee, EmployeeStats } from "@/lib/api/employees";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { formatLagosDate } from "@/lib/utils/attendance";
-import { type RoleOption } from "@/types/user-types";
+import {
+  type RoleOption,
+  USER_EXIT_TYPE_LABELS,
+  type UserExitType,
+} from "@/types/user-types";
 
 interface EmployeeListContentProps {
   employees: Employee[];
@@ -26,6 +30,7 @@ export function EmployeeListContent({
 }: EmployeeListContentProps) {
   const [filters, setFilters] = useState<FilterValues>({
     status: "all",
+    exit_type: "all",
     department: "all",
     sortBy: "name",
     sortOrder: "asc",
@@ -48,6 +53,15 @@ export function EmployeeListContent({
     // Apply status filter
     if (filters.status !== "all") {
       result = result.filter((e) => e.status === filters.status);
+    }
+
+    // Apply exit_type filter (when status is Inactive)
+    if (
+      filters.status === "Inactive" &&
+      filters.exit_type &&
+      filters.exit_type !== "all"
+    ) {
+      result = result.filter((e) => e.exit_type === filters.exit_type);
     }
 
     // Apply department filter
@@ -98,6 +112,23 @@ export function EmployeeListContent({
         emp.joinDate ? formatLagosDate(emp.joinDate) : "-",
     },
     { header: "Status", key: (emp: Employee) => emp.status || "" },
+    {
+      header: "Separation Type",
+      key: (emp: Employee) =>
+        emp.exit_type
+          ? USER_EXIT_TYPE_LABELS[emp.exit_type as UserExitType] ||
+            emp.exit_type
+          : "-",
+    },
+    {
+      header: "Separation Date",
+      key: (emp: Employee) =>
+        emp.exit_date ? formatLagosDate(emp.exit_date) : "-",
+    },
+    {
+      header: "Separation Reason",
+      key: (emp: Employee) => emp.exit_reason || "-",
+    },
   ];
 
   return (

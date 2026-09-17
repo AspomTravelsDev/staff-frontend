@@ -46,8 +46,14 @@ import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
 import { EditUserDialog } from "./edit-user-dialog";
+import { DeactivateUserDialog } from "./deactivate-user-dialog";
 import { formatLagosDate } from "@/lib/utils/attendance";
-import { getRoleLabel, type RoleOption } from "@/types/user-types";
+import {
+  getRoleLabel,
+  USER_EXIT_TYPE_LABELS,
+  type RoleOption,
+  type UserExitType,
+} from "@/types/user-types";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -64,6 +70,8 @@ export function EmployeeTable({
 }: EmployeeTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [deactivatingEmployee, setDeactivatingEmployee] =
+    useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
     null,
   );
@@ -82,7 +90,7 @@ export function EmployeeTable({
     handleSort,
   } = useSort(employees, sortOptions);
 
-  const SortIcon = ({ columnKey }: { columnKey: keyof Employee }) => {
+  const renderSortIcon = (columnKey: keyof Employee) => {
     if (sortConfig?.key !== columnKey)
       return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
     return sortConfig.direction === "asc" ? (
@@ -137,7 +145,7 @@ export function EmployeeTable({
               onClick={() => handleSort("staff_id")}
             >
               <div className="flex items-center">
-                Staff ID <SortIcon columnKey="staff_id" />
+                Staff ID {renderSortIcon("staff_id")}
               </div>
             </TableHead>
             <TableHead
@@ -145,7 +153,7 @@ export function EmployeeTable({
               onClick={() => handleSort("firstName")}
             >
               <div className="flex items-center">
-                Name <SortIcon columnKey="firstName" />
+                Name {renderSortIcon("firstName")}
               </div>
             </TableHead>
             <TableHead
@@ -153,7 +161,7 @@ export function EmployeeTable({
               onClick={() => handleSort("department")}
             >
               <div className="flex items-center">
-                Department <SortIcon columnKey="department" />
+                Department {renderSortIcon("department")}
               </div>
             </TableHead>
             <TableHead>Contact</TableHead>
@@ -162,7 +170,7 @@ export function EmployeeTable({
               onClick={() => handleSort("joinDate")}
             >
               <div className="flex items-center">
-                Date Joined <SortIcon columnKey="joinDate" />
+                Date Joined {renderSortIcon("joinDate")}
               </div>
             </TableHead>
             <TableHead
@@ -170,7 +178,7 @@ export function EmployeeTable({
               onClick={() => handleSort("status")}
             >
               <div className="flex items-center">
-                Status <SortIcon columnKey="status" />
+                Status {renderSortIcon("status")}
               </div>
             </TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -184,7 +192,7 @@ export function EmployeeTable({
               </TableCell>
             </TableRow>
           ) : (
-            sorted.map((employee) => (
+            sorted.map((employee: Employee) => (
               <TableRow key={employee.id}>
                 <TableCell className="font-mono text-xs font-medium">
                   {employee.staff_id}
@@ -228,13 +236,41 @@ export function EmployeeTable({
                   {employee.joinDate ? formatLagosDate(employee.joinDate) : "-"}
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      employee.status === "Active" ? "default" : "secondary"
-                    }
-                  >
-                    {employee.status}
-                  </Badge>
+                  {employee.status === "Active" ? (
+                    <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-200 hover:bg-emerald-500/15">
+                      Active
+                    </Badge>
+                  ) : (
+                    <div className="flex flex-col gap-0.5 items-start">
+                      <Badge
+                        variant="secondary"
+                        className="bg-muted text-muted-foreground border-border"
+                      >
+                        Inactive
+                        {employee.exit_type && (
+                          <span className="ml-1 text-[10px] font-semibold text-destructive uppercase tracking-wide">
+                            ·{" "}
+                            {USER_EXIT_TYPE_LABELS[
+                              employee.exit_type as UserExitType
+                            ] || employee.exit_type}
+                          </span>
+                        )}
+                      </Badge>
+                      {employee.exit_date && (
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {formatLagosDate(employee.exit_date)}
+                        </span>
+                      )}
+                      {employee.exit_reason && (
+                        <span
+                          className="text-[11px] text-muted-foreground italic truncate max-w-[150px]"
+                          title={employee.exit_reason}
+                        >
+                          &ldquo;{employee.exit_reason}&rdquo;
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -264,7 +300,7 @@ export function EmployeeTable({
                       {employee.status === "Active" ? (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                          onClick={() => handleStatusToggle(employee)}
+                          onClick={() => setDeactivatingEmployee(employee)}
                         >
                           <UserX className="mr-2 h-4 w-4" /> Make Inactive
                         </DropdownMenuItem>
@@ -298,6 +334,12 @@ export function EmployeeTable({
         roleOptions={roleOptions}
         departments={departments}
         roleToDepartment={roleToDepartment}
+      />
+
+      <DeactivateUserDialog
+        employee={deactivatingEmployee}
+        open={!!deactivatingEmployee}
+        onOpenChange={(open) => !open && setDeactivatingEmployee(null)}
       />
 
       <AlertDialog

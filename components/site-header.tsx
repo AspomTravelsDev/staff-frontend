@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { getNavigationForUser, NavItem } from "@/lib/navigation";
 import Link from "next/link";
 import { getTodayBirthdays, getTodayAnniversaries, Employee } from "@/lib/api/employees";
+import { PushNotificationSettings } from "@/components/pwa/push-notification-settings";
+
 
 export const SiteHeader = () => {
   const { user } = useUser();
@@ -192,7 +194,7 @@ export const SiteHeader = () => {
                       )}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-[320px] p-0">
+                  <PopoverContent align="end" className="w-[360px] sm:w-[380px] p-0">
                     <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/50">
                       <span className="text-sm font-bold">Notifications</span>
                       {totalNotifications > 0 && (
@@ -291,6 +293,9 @@ export const SiteHeader = () => {
                           },
                         )
                       )}
+                    </div>
+                    <div className="p-2.5 border-t bg-muted/20">
+                      <PushNotificationSettings compact />
                     </div>
                   </PopoverContent>
                 </Popover>

@@ -114,6 +114,7 @@ export interface PayrollEntryInput {
   contractType?: string | null;
   isIntern: boolean;
   dateJoined?: string | null;
+  exitDate?: string | null;
   payrollMonth: string;
   proratedDays: number;
   accommodationAmount?: number | null;
@@ -133,6 +134,7 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     contractType,
     isIntern,
     dateJoined,
+    exitDate,
     payrollMonth,
     proratedDays,
     accommodationAmount,
@@ -208,7 +210,15 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     const monthStart = new Date(year, month - 1, 1);
     if (joinDate > monthStart) {
       const diffMs = joinDate.getTime() - monthStart.getTime();
-      calendarProratedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      calendarProratedDays += Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+  }
+  if (exitDate) {
+    const exitD = new Date(exitDate.split(" ")[0]);
+    const monthEnd = new Date(year, month, 0);
+    if (exitD < monthEnd) {
+      const diffMs = monthEnd.getTime() - exitD.getTime();
+      calendarProratedDays += Math.floor(diffMs / (1000 * 60 * 60 * 24));
     }
   }
   const activeCalendarDays = Math.max(0, daysInMonth - calendarProratedDays);

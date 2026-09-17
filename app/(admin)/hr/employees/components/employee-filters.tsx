@@ -9,9 +9,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { USER_EXIT_TYPE_LABELS } from "@/types/user-types";
 
 export interface FilterValues {
   status?: "Active" | "Inactive" | "all";
+  exit_type?: string;
   department?: string;
   sortBy?: "staff_id" | "date_joined" | "name";
   sortOrder?: "asc" | "desc";
@@ -33,6 +35,7 @@ export function EmployeeFilters({
   const handleClearFilters = () => {
     onFiltersChange({
       status: "all",
+      exit_type: "all",
       department: "all",
       sortBy: "name",
       sortOrder: "asc",
@@ -41,6 +44,7 @@ export function EmployeeFilters({
 
   const hasActiveFilters =
     filters.status !== "all" ||
+    (filters.exit_type && filters.exit_type !== "all") ||
     filters.department !== "all" ||
     filters.sortBy !== "name" ||
     filters.sortOrder !== "asc";
@@ -57,6 +61,7 @@ export function EmployeeFilters({
               onFiltersChange({
                 ...filters,
                 status: value as FilterValues["status"],
+                exit_type: value === "Inactive" ? filters.exit_type || "all" : "all",
               })
             }
           >
@@ -70,6 +75,34 @@ export function EmployeeFilters({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Exit Type Filter (Shown when Inactive is selected) */}
+        {filters.status === "Inactive" && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Separation:</label>
+            <Select
+              value={filters.exit_type || "all"}
+              onValueChange={(value) =>
+                onFiltersChange({
+                  ...filters,
+                  exit_type: value,
+                })
+              }
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Separations</SelectItem>
+                {Object.entries(USER_EXIT_TYPE_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Department Filter */}
         {departments.length > 0 && (

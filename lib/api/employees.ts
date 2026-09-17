@@ -3,7 +3,7 @@
 import { api } from "./client";
 import { getCurrentUser as getSessionUser } from "@/lib/auth/session";
 import { PaginatedResponse } from "./types";
-import type { User } from "@/types/user-types";
+import type { User, UserExitType } from "@/types/user-types";
 
 // ============================================================================
 // Types
@@ -25,7 +25,10 @@ export interface Employee {
     status: "Active" | "Inactive";
     is_supervisor: boolean;
     joinDate: string | null;
-    exitDate?: string;
+    exitDate?: string | null;
+    exit_type?: UserExitType | string | null;
+    exit_date?: string | null;
+    exit_reason?: string | null;
     dob: string | null;
     contract_type: string | null;
     gross_pay: string;
@@ -45,6 +48,7 @@ export interface EmployeeFilters {
     search?: string;
     department?: string;
     status?: "Active" | "Inactive";
+    exit_type?: string;
     sortBy?: "staff_id" | "date_joined" | "name";
     sortOrder?: "asc" | "desc";
 }
@@ -86,7 +90,10 @@ function mapUserToEmployee(user: User): Employee {
         status: user.is_active ? "Active" : "Inactive",
         is_supervisor: user.is_supervisor,
         joinDate: user.date_joined || "",
-        exitDate: undefined,
+        exitDate: user.exit_date || null,
+        exit_type: user.exit_type || null,
+        exit_date: user.exit_date || null,
+        exit_reason: user.exit_reason || null,
         dob: user.dob,
         contract_type: user.contract_type,
         gross_pay: user.gross_pay,
@@ -108,6 +115,10 @@ export async function getEmployees(
         params.append("is_active", "true");
     } else if (filters.status === "Inactive") {
         params.append("is_active", "false");
+    }
+
+    if (filters.exit_type) {
+        params.append("exit_type", filters.exit_type);
     }
 
     // Backend doesn't support department or search filters
@@ -209,13 +220,23 @@ export async function getEmployeeStats(): Promise<EmployeeStats> {
 /**
  * Update user active status
  */
+export interface UpdateUserStatusData {
+    is_active: boolean;
+    exit_type?: string | null;
+    exit_date?: string | null;
+    exit_reason?: string | null;
+}
+
 export async function updateUserStatus(
     userId: string,
-    isActive: boolean
+    statusData: boolean | UpdateUserStatusData
 ): Promise<User> {
-    const result = await api.patch<UsersApiResponse>(`/api/users/${userId}`, {
-        is_active: isActive,
-    });
+    const payload =
+        typeof statusData === "boolean"
+            ? { is_active: statusData }
+            : statusData;
+
+    const result = await api.patch<UsersApiResponse>(`/api/users/${userId}`, payload);
 
     if (!result.success) {
         throw new Error(result.error.error);
@@ -242,6 +263,9 @@ export interface UpdateUserRequest {
     is_supervisor?: boolean;
     gross_pay?: number | null;
     is_active?: boolean;
+    exit_type?: string | null;
+    exit_date?: string | null;
+    exit_reason?: string | null;
     date_joined?: string | null; // ISO date string (YYYY-MM-DD)
     dob?: string | null;
     contract_type?: string | null;

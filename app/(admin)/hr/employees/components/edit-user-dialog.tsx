@@ -25,8 +25,9 @@ import { Employee } from "@/lib/api/employees";
 import { updateUserAction } from "../actions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { type RoleOption } from "@/types/user-types";
+import { type RoleOption, USER_EXIT_TYPE_LABELS, type UserExitType } from "@/types/user-types";
 import { formatLagosDateForInput } from "@/lib/utils/attendance";
+import { Textarea } from "@/components/ui/textarea";
 
 interface EditUserDialogProps {
   employee: Employee | null;
@@ -53,6 +54,9 @@ interface EditUserFormData {
   dob: string;
   contract_type: string;
   is_active: boolean;
+  exit_type: UserExitType;
+  exit_date: string;
+  exit_reason: string;
 }
 
 export function EditUserDialog({
@@ -89,6 +93,9 @@ export function EditUserDialog({
       dob: "",
       contract_type: "",
       is_active: true,
+      exit_type: "resignation",
+      exit_date: "",
+      exit_reason: "",
     },
   });
 
@@ -111,6 +118,9 @@ export function EditUserDialog({
         dob: formatLagosDateForInput(employee.dob),
         contract_type: employee.contract_type || "",
         is_active: employee.status === "Active",
+        exit_type: (employee.exit_type as UserExitType) || "resignation",
+        exit_date: employee.exit_date || employee.exitDate || "",
+        exit_reason: employee.exit_reason || "",
       });
     }
   }, [employee, reset]);
@@ -145,6 +155,9 @@ export function EditUserDialog({
       dob: data.dob || null,
       contract_type: data.contract_type || null,
       is_active: data.is_active,
+      exit_type: !data.is_active ? data.exit_type : null,
+      exit_date: !data.is_active ? data.exit_date || null : null,
+      exit_reason: !data.is_active ? data.exit_reason || null : null,
     });
 
     setIsPending(false);
@@ -414,6 +427,60 @@ export function EditUserDialog({
               />
               <Label htmlFor="is_active">Active</Label>
             </div>
+
+            {!watch("is_active") && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3.5 space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-destructive">
+                  Separation / Exit Details
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_exit_type">Separation Type</Label>
+                  <Select
+                    value={watch("exit_type")}
+                    onValueChange={(val: UserExitType) =>
+                      setValue("exit_type", val)
+                    }
+                  >
+                    <SelectTrigger id="edit_exit_type" className="bg-background">
+                      <SelectValue placeholder="Select separation type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(USER_EXIT_TYPE_LABELS).map(
+                        ([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_exit_date">
+                    Effective Date of Resignation / Separation
+                  </Label>
+                  <Input
+                    id="edit_exit_date"
+                    type="date"
+                    className="bg-background"
+                    {...register("exit_date")}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_exit_reason">Reason / Remarks</Label>
+                  <Textarea
+                    id="edit_exit_reason"
+                    rows={2}
+                    className="bg-background"
+                    placeholder="e.g. Formal resignation letter submitted with 30 days notice..."
+                    {...register("exit_reason")}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
