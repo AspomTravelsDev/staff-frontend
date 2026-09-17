@@ -3,7 +3,7 @@
 import { useEffect, useCallback } from "react";
 import { driver, DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
-import "./driver-theme.css";
+import "@/components/tour/driver-theme.css";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 

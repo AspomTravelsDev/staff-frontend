@@ -35,7 +35,7 @@ export function LeaveTable({ entries }: LeaveTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div id="tour-leave-table" className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

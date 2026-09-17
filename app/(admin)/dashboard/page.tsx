@@ -36,6 +36,7 @@ import { getRates } from "@/lib/api/rates";
 import { getAnnouncements } from "@/lib/api/announcements";
 import { getRandomCheatsheetItems } from "@/lib/api/cheatsheet";
 import { CheatsheetCard } from "@/components/dashboard/cheatsheet-card";
+import { DashboardTour, DashboardTourButton } from "./components/dashboard-tour";
 
 export default async function Page() {
   const now = new Date();
@@ -169,37 +170,56 @@ export default async function Page() {
     }));
 
   return (
-    <div className="flex flex-1 flex-col gap-12 pt-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatsCard
-          title={`Attendance - Clock In (${now.toLocaleString("default", { month: "long" })})`}
-          icon={Clock10Icon}
-          value={`${totalAttendance} / ${
-            Array.from({ length: now.getDate() }, (_, i) =>
-              new Date(now.getFullYear(), now.getMonth(), i + 1).getDay(),
-            ).filter((day) => day !== 0 && day !== 6).length
-          }`}
-          footer={<AttendanceStatusBlocks statuses={attendanceStatuses} showLegend />}
-          variant="dashboard"
-          cardColor={hasFlaggedProxy ? "red" : "blue"}
-        />
-        <StatsCard
-          title="Leave Days Remaining"
-          icon={Calendar}
-          value={`${myLeaveStats.totalLeaveDaysLeft} Days`}
-          description={`Out of ${myLeaveStats.allowance || 20} annual days allowance`}
-          variant="dashboard"
-          cardColor={myLeaveStats.totalLeaveDaysLeft <= 5 ? "red" : "green"}
-        />
-        <StatsCard
-          title="My Awards"
-          icon={Trophy}
-          value={myAwards.length.toString()}
-          description={`${myAwards.filter((a) => a.month === formatDate(now).substring(0, 7)).length} this month`}
-          variant="dashboard"
-          cardColor="yellow"
-        />
-        <ExchangeRateCard rates={rates} />
+    <div className="flex flex-1 flex-col gap-8 pt-2">
+      {/* Dashboard Top Header Bar with Tour Button */}
+      <div id="tour-dashboard-header" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Staff Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Welcome back! Here is your daily overview, attendance stats, and company updates.
+          </p>
+        </div>
+        <DashboardTourButton />
+      </div>
+
+      <div id="tour-dashboard-stats" className="grid gap-4 md:grid-cols-4">
+        <div id="tour-attendance-card">
+          <StatsCard
+            title={`Attendance - Clock In (${now.toLocaleString("default", { month: "long" })})`}
+            icon={Clock10Icon}
+            value={`${totalAttendance} / ${
+              Array.from({ length: now.getDate() }, (_, i) =>
+                new Date(now.getFullYear(), now.getMonth(), i + 1).getDay(),
+              ).filter((day) => day !== 0 && day !== 6).length
+            }`}
+            footer={<AttendanceStatusBlocks statuses={attendanceStatuses} showLegend />}
+            variant="dashboard"
+            cardColor={hasFlaggedProxy ? "red" : "blue"}
+          />
+        </div>
+        <div id="tour-leave-card">
+          <StatsCard
+            title="Leave Days Remaining"
+            icon={Calendar}
+            value={`${myLeaveStats.totalLeaveDaysLeft} Days`}
+            description={`Out of ${myLeaveStats.allowance || 20} annual days allowance`}
+            variant="dashboard"
+            cardColor={myLeaveStats.totalLeaveDaysLeft <= 5 ? "red" : "green"}
+          />
+        </div>
+        <div id="tour-awards-card">
+          <StatsCard
+            title="My Awards"
+            icon={Trophy}
+            value={myAwards.length.toString()}
+            description={`${myAwards.filter((a) => a.month === formatDate(now).substring(0, 7)).length} this month`}
+            variant="dashboard"
+            cardColor="yellow"
+          />
+        </div>
+        <div id="tour-exchange-rates">
+          <ExchangeRateCard rates={rates} />
+        </div>
       </div>
 
       {/* {cheatsheetItems && cheatsheetItems.length > 0 && (
@@ -210,7 +230,7 @@ export default async function Page() {
         </div>
       )} */}
 
-      <div className="flex flex-col gap-4">
+      <div id="tour-dashboard-quicklinks" className="flex flex-col gap-4">
         <h6 className="text-sm font-bold">Quick Links</h6>
         {/* Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -307,19 +327,25 @@ export default async function Page() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        <RecentUpdates
-          className="lg:w-5/7"
-          updates={(announcementsData.items ?? []).filter((a) => {
-            if (!a.publish_at) return true;
-            return new Date(a.publish_at) <= new Date();
-          })}
-        />
-        <DashboardCelebrationCard
-          monthlyAwards={spotlightAwards}
-          todayBirthdays={todayBirthdays}
-          todayAnniversaries={todayAnniversaries}
-        />
+        <div id="tour-dashboard-updates" className="lg:w-5/7">
+          <RecentUpdates
+            updates={(announcementsData.items ?? []).filter((a) => {
+              if (!a.publish_at) return true;
+              return new Date(a.publish_at) <= new Date();
+            })}
+          />
+        </div>
+        <div id="tour-dashboard-celebrations" className="lg:w-2/7">
+          <DashboardCelebrationCard
+            monthlyAwards={spotlightAwards}
+            todayBirthdays={todayBirthdays}
+            todayAnniversaries={todayAnniversaries}
+          />
+        </div>
       </div>
+
+      {/* Auto-runner for first-time visitors */}
+      <DashboardTour />
     </div>
   );
 }

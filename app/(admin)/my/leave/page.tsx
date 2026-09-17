@@ -5,6 +5,7 @@ import { LeaveTable } from "./components/leave-table";
 import { RequestLeaveModal } from "./components/request-leave-modal";
 import { getCurrentUser } from "@/lib/auth/session";
 import { markLeaveNotificationsViewed } from "@/lib/api/leave";
+import { LeaveTour, LeaveTourButton } from "./components/leave-tour";
 import {
   Card,
   CardContent,
@@ -29,22 +30,29 @@ export default async function MyLeavePage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 pt-0">
-      <div className="flex items-center justify-between">
+      <div id="tour-leave-header" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Leave</h1>
           <p className="text-sm text-muted-foreground">
-            Request time off and track your leave request history
+            Request time off, monitor available allowances, and track leave application history
           </p>
         </div>
-        <RequestLeaveModal
-          userName={userName}
-          role={department}
-        />
+        <div className="flex items-center gap-2">
+          <LeaveTourButton />
+          <div id="tour-request-leave-btn">
+            <RequestLeaveModal
+              userName={userName}
+              role={department}
+            />
+          </div>
+        </div>
       </div>
 
-      <StatCards stats={stats} />
+      <div id="tour-leave-stats">
+        <StatCards stats={stats} />
+      </div>
 
-      <Card>
+      <Card id="tour-leave-history">
         <CardHeader>
           <CardTitle>Leave History</CardTitle>
           <CardDescription>View your past and pending leave requests</CardDescription>
@@ -55,6 +63,9 @@ export default async function MyLeavePage() {
           </Suspense>
         </CardContent>
       </Card>
+
+      {/* Auto-runner for first-time visitors */}
+      <LeaveTour />
     </div>
   );
 }
