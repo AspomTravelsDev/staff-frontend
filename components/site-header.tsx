@@ -31,6 +31,23 @@ export const SiteHeader = () => {
       setIsClearing(true);
       await clearAllNotifications();
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+      // Clear active notifications from phone / laptop system notification center
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            registration.getNotifications().then((notifications) => {
+              notifications.forEach((n) => n.close());
+            });
+            if (navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({
+                action: "clear_all_notifications",
+              });
+            }
+          })
+          .catch((err) => console.warn("Failed to clear device notifications:", err));
+      }
+
       toast.success("All update notifications marked as read");
     } catch (error) {
       console.error("Failed to clear notifications:", error);

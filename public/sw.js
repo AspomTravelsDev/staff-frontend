@@ -96,6 +96,10 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
+  if (event.action === "dismiss") {
+    return;
+  }
+
   const targetUrl =
     event.notification.data && event.notification.data.url
       ? event.notification.data.url
@@ -121,4 +125,24 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+// Listen for messages from client tabs (e.g. Clear All)
+self.addEventListener("message", (event) => {
+  if (!event.data) return;
+
+  if (event.data.action === "clear_all_notifications") {
+    event.waitUntil(
+      self.registration.getNotifications().then((notifications) => {
+        return Promise.all(notifications.map((n) => n.close()));
+      })
+    );
+  } else if (event.data.action === "clear_notification_tag" && event.data.tag) {
+    event.waitUntil(
+      self.registration.getNotifications({ tag: event.data.tag }).then((notifications) => {
+        return Promise.all(notifications.map((n) => n.close()));
+      })
+    );
+  }
+});
+
 
