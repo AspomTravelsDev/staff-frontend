@@ -326,17 +326,19 @@ export default async function Page() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div id="tour-dashboard-updates" className="lg:w-5/7">
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+        <div id="tour-dashboard-updates" className="w-full lg:w-5/7 flex flex-col">
           <RecentUpdates
+            className="h-full"
             updates={(announcementsData.items ?? []).filter((a) => {
               if (!a.publish_at) return true;
               return new Date(a.publish_at) <= new Date();
             })}
           />
         </div>
-        <div id="tour-dashboard-celebrations" className="lg:w-2/7">
+        <div id="tour-dashboard-celebrations" className="w-full lg:w-2/7 flex flex-col">
           <DashboardCelebrationCard
+            className="h-full"
             monthlyAwards={spotlightAwards}
             todayBirthdays={todayBirthdays}
             todayAnniversaries={todayAnniversaries}

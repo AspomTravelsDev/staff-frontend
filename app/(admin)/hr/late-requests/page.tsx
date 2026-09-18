@@ -33,7 +33,7 @@ import { Clock, CheckCircle2, XCircle, Filter, Calendar, User, Search, RefreshCw
 export default function HrLateRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<LatePermissionRequestItem[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected" | "cancelled" | "all">("pending");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -133,8 +133,8 @@ export default function HrLateRequestsPage() {
       <Card className="shadow-2xs">
         <CardContent className="pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Status Filter Tabs */}
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg border w-fit">
-            {(["pending", "approved", "rejected", "all"] as const).map((tab) => (
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg border w-fit overflow-x-auto">
+            {(["pending", "approved", "rejected", "cancelled", "all"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setStatusFilter(tab)}
@@ -222,6 +222,8 @@ export default function HrLateRequestsPage() {
                               ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
                               : req.status === "rejected"
                               ? "bg-red-500/15 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800"
+                              : req.status === "cancelled"
+                              ? "bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800"
                               : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
                           }`}
                         >
@@ -249,6 +251,10 @@ export default function HrLateRequestsPage() {
                               Reject
                             </Button>
                           </div>
+                        ) : req.status === "cancelled" ? (
+                          <span className="text-[11px] text-muted-foreground italic">
+                            Cancelled by staff
+                          </span>
                         ) : (
                           <span className="text-[11px] text-muted-foreground">
                             {req.reviewer?.name ? `Reviewed by ${req.reviewer.name}` : "Reviewed"}

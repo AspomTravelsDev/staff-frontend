@@ -59,7 +59,7 @@ export interface LatePermissionRequestItem {
     request_date: string;
     expected_arrival_time: string;
     reason: string;
-    status: "pending" | "approved" | "rejected";
+    status: "pending" | "approved" | "rejected" | "cancelled";
     reviewed_by?: string | null;
     reviewer_note?: string | null;
     reviewed_at?: string | null;
@@ -315,7 +315,7 @@ export async function getMyLatePermissionRequests(
  * Get HR review queue for late requests
  */
 export async function getLatePermissionReviewQueue(filters?: {
-    status?: "pending" | "approved" | "rejected";
+    status?: "pending" | "approved" | "rejected" | "cancelled";
     user_id?: string;
     from?: string;
     to?: string;
@@ -329,6 +329,19 @@ export async function getLatePermissionReviewQueue(filters?: {
     if (filters?.page) params.append("page", String(filters.page));
 
     return api.get<StandardResponse<any>>(`/api/late-permission-requests?${params.toString()}`);
+}
+
+/**
+ * POST /api/late-permission-requests/{id}/cancel
+ * Cancel a pending late permission request (Staff)
+ */
+export async function cancelLatePermissionRequest(
+    requestId: number
+): Promise<ApiResponse<StandardResponse<LatePermissionRequestItem>>> {
+    revalidatePath("/attendance");
+    revalidatePath("/my/attendance");
+    revalidatePath("/hr/late-requests");
+    return api.post<StandardResponse<LatePermissionRequestItem>>(`/api/late-permission-requests/${requestId}/cancel`, {});
 }
 
 /**

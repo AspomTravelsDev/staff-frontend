@@ -51,12 +51,14 @@ interface DashboardCelebrationCardProps {
   }[];
   todayBirthdays: Employee[];
   todayAnniversaries: Employee[];
+  className?: string;
 }
 
 export function DashboardCelebrationCard({
   monthlyAwards,
   todayBirthdays,
   todayAnniversaries,
+  className,
 }: DashboardCelebrationCardProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -69,7 +71,7 @@ export function DashboardCelebrationCard({
     slides.push({
       type: "birthday",
       content: (
-        <div className="flex flex-1 flex-col items-center justify-center p-4 text-center sm:mt-4 sm:p-6 w-full animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex flex-1 flex-col items-center justify-center p-4 pb-12 text-center sm:p-6 sm:pb-14 w-full animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="relative mb-4 group sm:mb-6">
             <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full scale-110 animate-pulse" />
             <Cake className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-pink-500 animate-bounce z-10 drop-shadow-md" />
@@ -77,7 +79,7 @@ export function DashboardCelebrationCard({
             <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-pink-500 animate-pulse delay-75" />
             <Heart className="absolute -left-2 bottom-0 h-4 w-4 text-pink-500 animate-pulse delay-150" />
             <Stars className="absolute -right-4 -bottom-2 h-7 w-7 text-pink-500 animate-bounce delay-300" />
-            <Avatar className="h-36 w-36 rounded-xl ring-4 ring-pink-500 ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-48 sm:w-48">
+            <Avatar className="h-36 w-36 rounded-xl ring-4 ring-pink-500 ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
               <AvatarImage
                 src={toProxiedImageUrl(primaryBirthday.image_url)}
                 className="object-cover object-top"
@@ -113,7 +115,7 @@ export function DashboardCelebrationCard({
     slides.push({
       type: "anniversary",
       content: (
-        <div className="flex flex-1 flex-col items-center justify-center p-4 text-center sm:mt-4 sm:p-6 w-full animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex flex-1 flex-col items-center justify-center p-4 pb-12 text-center sm:p-6 sm:pb-14 w-full animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="relative mb-4 group sm:mb-6">
             <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full scale-110 animate-pulse" />
             <Trophy className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-amber-500 animate-bounce z-10 drop-shadow-md" />
@@ -121,7 +123,7 @@ export function DashboardCelebrationCard({
             <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-amber-500 animate-pulse delay-75" />
             <PartyPopper className="absolute -left-2 bottom-0 h-4 w-4 text-amber-500 animate-pulse delay-150" />
             <Stars className="absolute -right-4 -bottom-2 h-7 w-7 text-amber-500 animate-bounce delay-300" />
-            <Avatar className="h-36 w-36 rounded-xl ring-4 ring-amber-500 ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-48 sm:w-48">
+            <Avatar className="h-36 w-36 rounded-xl ring-4 ring-amber-500 ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
               <AvatarImage
                 src={toProxiedImageUrl(primaryAnniversary.image_url)}
                 className="object-cover object-top"
@@ -151,13 +153,13 @@ export function DashboardCelebrationCard({
       slides.push({
         type: `award-${award.id}`,
         content: (
-          <div className="flex flex-1 flex-col items-center justify-center p-4 text-center sm:mt-4 sm:p-6 w-full animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="flex flex-1 flex-col items-center justify-center p-4 pb-12 text-center sm:p-6 sm:pb-14 w-full animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="relative mb-4 group sm:mb-6">
               <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
               <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
               <Sparkles className="absolute -left-6 top-0 h-6 w-6 text-primary fill-primary/20 animate-pulse" />
               <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-primary fill-primary/20 animate-pulse delay-75" />
-              <Avatar className="h-36 w-36 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-48 sm:w-48">
+              <Avatar className="h-36 w-36 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
                 <AvatarImage
                   src={award.image || ""}
                   alt={award.name}
@@ -181,11 +183,11 @@ export function DashboardCelebrationCard({
     slides.push({
       type: "no-awards",
       content: (
-        <div className="flex flex-1 flex-col items-center justify-center p-4 text-center sm:mt-4 sm:p-6 w-full animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex flex-1 flex-col items-center justify-center p-4 pb-12 text-center sm:p-6 sm:pb-14 w-full animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="relative mb-4 group sm:mb-6">
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
             <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
-            <Avatar className="h-36 w-36 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-48 sm:w-48">
+            <Avatar className="h-36 w-36 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
               <AvatarFallback className="bg-muted">
                 <Crown className="h-12 w-12 text-primary/40" />
               </AvatarFallback>
@@ -220,7 +222,12 @@ export function DashboardCelebrationCard({
 
   return (
     <Card
-      className={`relative flex min-h-112 w-full flex-col justify-between overflow-hidden transition-all duration-500 sm:min-h-128 lg:min-h-0 lg:w-2/7 ${activeSlide.borderColor} ${activeSlide.bgColor}`}
+      className={cn(
+        "relative flex w-full h-full min-h-[460px] sm:min-h-[480px] flex-col justify-between overflow-hidden transition-all duration-500",
+        activeSlide.borderColor,
+        activeSlide.bgColor,
+        className,
+      )}
     >
       <CardContent className="p-0 h-full flex flex-col items-center justify-center relative">
         {slides.map((slide, index) => (

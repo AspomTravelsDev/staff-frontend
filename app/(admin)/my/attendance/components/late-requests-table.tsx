@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -18,19 +19,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LatePermissionRequestItem } from "@/lib/api/clock-in";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  cancelLatePermissionRequest,
+  LatePermissionRequestItem,
+} from "@/lib/api/clock-in";
 import { formatLagosDate } from "@/lib/utils/attendance";
-import { CalendarClock, CheckCircle2, Clock, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Ban,
+  AlertTriangle,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface LateRequestsTableProps {
   requests: LatePermissionRequestItem[];
 }
 
 export function LateRequestsTable({ requests }: LateRequestsTableProps) {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [items, setItems] = useState<LatePermissionRequestItem[]>(requests);
+  const [requestToCancel, setRequestToCancel] = useState<LatePermissionRequestItem | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  if (!requests || requests.length === 0) {
+  useEffect(() => {
+    setItems(requests);
+  }, [requests]);
+
+  if (!items || items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-8 text-center bg-card/50">
         <div className="flex flex-col items-center justify-center gap-2">
@@ -39,23 +71,51 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           </div>
           <h3 className="text-sm font-semibold">No Late Requests</h3>
           <p className="text-xs text-muted-foreground max-w-sm">
-            You haven&apos;t submitted any late permission requests yet. Click &ldquo;Request Late Permission&rdquo; above if you expect to arrive after standard hours.
+            You haven&apos;t submitted any late permission requests yet. Click &ldquo;Request Permission to be Late&rdquo; above if you expect to arrive after standard hours.
           </p>
         </div>
       </div>
     );
   }
 
-  const totalRecords = requests.length;
+  const totalRecords = items.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
   const validPage = Math.min(currentPage, totalPages);
   const startIndex = (validPage - 1) * pageSize;
-  const paginatedRequests = requests.slice(startIndex, startIndex + pageSize);
+  const paginatedRequests = items.slice(startIndex, startIndex + pageSize);
 
   const handlePageSizeChange = (val: string) => {
     setPageSize(Number(val));
     setCurrentPage(1);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!requestToCancel) return;
+    setIsCancelling(true);
+
+    try {
+      const res = await cancelLatePermissionRequest(requestToCancel.id);
+      if (res.success) {
+        toast.success("Late permission request cancelled successfully");
+        // Optimistically update status in local list
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === requestToCancel.id
+              ? { ...item, status: "cancelled" }
+              : item
+          )
+        );
+        setRequestToCancel(null);
+        router.refresh();
+      } else {
+        toast.error(res.error?.error || "Failed to cancel request");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An unexpected error occurred while cancelling");
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
@@ -69,7 +129,8 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
               <TableHead>Reason</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Reviewer Notes</TableHead>
-              <TableHead className="text-right">Submitted On</TableHead>
+              <TableHead>Submitted On</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -121,6 +182,15 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
                         Rejected
                       </Badge>
                     )}
+                    {request.status === "cancelled" && (
+                      <Badge
+                        variant="outline"
+                        className="border-slate-300 bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700 font-semibold gap-1"
+                      >
+                        <Ban className="h-3 w-3 text-slate-500" />
+                        Cancelled
+                      </Badge>
+                    )}
                   </TableCell>
 
                   <TableCell className="max-w-[220px]">
@@ -140,8 +210,25 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
                     )}
                   </TableCell>
 
-                  <TableCell className="text-right whitespace-nowrap text-xs text-muted-foreground">
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {formatLagosDate(request.created_at)}
+                  </TableCell>
+
+                  <TableCell className="text-right whitespace-nowrap">
+                    {request.status === "pending" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRequestToCancel(request)}
+                        className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900 gap-1 px-2.5"
+                        title="Cancel this pending request if you arrived early or no longer need it"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Cancel
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground opacity-50">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -203,6 +290,48 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           </div>
         </div>
       </div>
+
+      {/* CANCEL CONFIRMATION ALERT DIALOG */}
+      <AlertDialog
+        open={!!requestToCancel}
+        onOpenChange={(open) => {
+          if (!open && !isCancelling) setRequestToCancel(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-[425px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold flex items-center gap-2">
+              <AlertTriangle className="size-5 text-amber-600" />
+              Cancel Late Permission Request?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed pt-1">
+              Are you sure you want to cancel your late permission request for{" "}
+              <strong className="text-foreground">
+                {requestToCancel ? formatLagosDate(requestToCancel.request_date) : ""}
+              </strong>
+              ?
+              <br />
+              <br />
+              This will withdraw your request. You can cancel if you made it to work early/on time or no longer require late permission. HR will not need to review this request.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling} className="text-xs">
+              Keep Request
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmCancel();
+              }}
+              disabled={isCancelling}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isCancelling ? "Cancelling..." : "Yes, Cancel Request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

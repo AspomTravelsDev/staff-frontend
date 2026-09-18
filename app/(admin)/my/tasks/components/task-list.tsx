@@ -105,7 +105,7 @@ export function TaskList({ initialData }: TaskListProps) {
       } finally {
         setIsAutosaving(false);
       }
-    }, 3500),
+    }, 6000),
     [updateTasks],
   );
 

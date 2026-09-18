@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 import type { AnnouncementItem } from "@/lib/api/announcements";
 
@@ -42,14 +43,14 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
 
   if (!updates || updates.length === 0) {
     return (
-      <Card className={className}>
+      <Card className={cn("flex flex-col justify-between", className)}>
         <CardHeader>
           <CardTitle>Newsletter & Announcements</CardTitle>
           <CardDescription>
             Latest company news and announcements.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 flex items-center justify-center">
           <div className="text-center py-10 text-muted-foreground">
             No updates available.
           </div>
@@ -71,14 +72,14 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
   };
 
   return (
-    <Card id="announcements" className={className}>
+    <Card id="announcements" className={cn("flex flex-col justify-between", className)}>
       <CardHeader>
         <CardTitle>Newsletter & Announcements</CardTitle>
         <CardDescription>
           Latest company news and announcements.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col justify-between">
         <Table>
           <TableHeader>
             <TableRow>
