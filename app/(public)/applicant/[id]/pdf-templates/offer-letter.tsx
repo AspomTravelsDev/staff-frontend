@@ -11,6 +11,7 @@ interface EmploymentTerms {
   reporting_to?: string;
   effective_date?: string;
   is_intern?: boolean;
+  is_tax_exempt?: boolean;
   gross_salary?: number;
   net_salary?: number;
   statutory_tax_deduction?: number;
@@ -86,12 +87,13 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
     employmentTerms?.staff_designation || "Staff Member"
   ).toUpperCase();
   const effectiveDate = employmentTerms?.effective_date || "To be confirmed";
-  const reportingTo = employmentTerms?.reporting_to || "Management";
+  const reportingTo = employmentTerms?.reporting_to || "Nancy O. Peters";
   const grossMonthly = employmentTerms?.gross_salary || 0;
   const grossAnnual = grossMonthly * 12;
   const isIntern = Boolean(employmentTerms?.is_intern);
-  const tax = employmentTerms?.statutory_tax_deduction || 0;
-  const netSalary = employmentTerms?.net_salary || 0;
+  const isTaxExempt = Boolean(employmentTerms?.is_tax_exempt);
+  const tax = isTaxExempt ? 0 : (employmentTerms?.statutory_tax_deduction || 0);
+  const netSalary = isTaxExempt ? grossMonthly : (employmentTerms?.net_salary || Math.max(0, grossMonthly - tax));
 
   return (
     <Document title={`Offer Letter - ${applicantFullName}`}>
@@ -246,15 +248,15 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>4.3</Text>
             <Text style={pdfStyles.listContent}>
-              {isIntern
-                ? "No statutory tax deduction applies to this internship placement."
+              {isIntern || isTaxExempt || tax === 0
+                ? "No statutory tax deduction applies to this placement."
                 : `Necessary statutory deductions will be made from your Gross salary (Tax - ${formatAmount(tax)})`}
             </Text>
           </View>
           <View style={pdfStyles.listItem}>
             <Text style={pdfStyles.listNumber}>4.4</Text>
             <Text style={pdfStyles.listContent}>
-              {isIntern
+              {isIntern || isTaxExempt || tax === 0
                 ? `Your net salary is ${formatAmount(netSalary)} (no statutory deduction applies).`
                 : `Your net salary after Statutory deduction is ${formatAmount(netSalary)}`}
             </Text>

@@ -47,27 +47,15 @@ export function PushNotificationSettings({ compact = false }: PushNotificationSe
 
         <div className="flex items-center gap-1.5">
           {isSubscribed ? (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
-                disabled={isActionPending}
-                onClick={sendTest}
-                title="Send a test notification to this phone/laptop"
-              >
-                Test
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
-                disabled={isActionPending}
-                onClick={unsubscribe}
-              >
-                Disable
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+              disabled={isActionPending}
+              onClick={unsubscribe}
+            >
+              Disable
+            </Button>
           ) : (
             <Button
               size="sm"

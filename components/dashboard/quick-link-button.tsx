@@ -31,6 +31,8 @@ export function QuickLinkButton({
     rose: "text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-100",
     sky: "text-sky-600 hover:text-sky-700 hover:bg-sky-50 border-sky-100",
     red: "text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100",
+    amber:
+      "text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200",
   };
 
   const buttonContent = (

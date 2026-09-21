@@ -121,8 +121,19 @@ export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProp
                   </Badge>
                 )}
               </TableCell>
-              <TableCell className={issue.has_new_replies ? "font-bold" : ""}>{issue.user_department}</TableCell>
-              <TableCell className={issue.has_new_replies ? "font-bold" : ""}>{issue.type}</TableCell>
+              <TableCell className={issue.has_new_replies ? "font-bold" : ""}>
+                {issue.user_department}
+              </TableCell>
+              <TableCell className={issue.has_new_replies ? "font-bold" : ""}>
+                <div>
+                  <p className="leading-tight">{issue.type}</p>
+                  {issue.points !== undefined && (
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      {issue.points} {issue.points === 1 ? "occurrence" : "occurrences"}
+                    </span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell
                 className={`max-w-[200px] truncate ${issue.has_new_replies ? "font-bold" : ""}`}
                 title={issue.description}
@@ -138,13 +149,28 @@ export function ComplianceTable({ issues, isAdmin = false }: ComplianceTableProp
                 </div>
               </TableCell>
               <TableCell>
-                <Badge
-                  variant={
-                    issue.status === "open" ? "destructive" : "secondary"
-                  }
-                >
-                  {issue.status}
-                </Badge>
+                <div className="flex flex-col gap-0.5 items-start">
+                  <Badge
+                    variant={
+                      issue.status === "open"
+                        ? "destructive"
+                        : issue.outcome === "Resolved (No Action)"
+                        ? "secondary"
+                        : "default"
+                    }
+                    className="text-[11px]"
+                  >
+                    {issue.status === "open"
+                      ? "Open Query"
+                      : issue.outcome || "Closed"}
+                  </Badge>
+                  {issue.status === "closed" &&
+                    issue.outcome !== "Resolved (No Action)" && (
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        +{issue.points ?? 1.0} {(issue.points ?? 1.0) === 1 ? "occurrence" : "occurrences"}
+                      </span>
+                    )}
+                </div>
               </TableCell>
               <TableCell className={`whitespace-nowrap text-sm ${issue.has_new_replies ? "text-primary font-bold" : "text-muted-foreground"}`}>
                 {issue.occurrence_date && formatDistanceToNow(new Date(issue.occurrence_date), { addSuffix: true })}

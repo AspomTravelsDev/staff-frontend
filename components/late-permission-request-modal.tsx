@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatLagosDateForInput } from "@/lib/utils/attendance";
 import { submitLatePermissionRequest } from "@/lib/api/clock-in";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ export function LatePermissionRequestModal({
   trigger,
   onRequestSubmitted,
 }: LatePermissionRequestModalProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -67,6 +70,7 @@ export function LatePermissionRequestModal({
         toast.success("Late permission request submitted to HR & Compliance!");
         setReason("");
         setOpen(false);
+        router.refresh();
         if (onRequestSubmitted) onRequestSubmitted();
       } else {
         toast.error(res.error?.error || "Failed to submit request");
@@ -148,9 +152,20 @@ export function LatePermissionRequestModal({
 
             <div className="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[11px] flex items-start gap-2">
               <AlertCircle className="size-4 shrink-0 mt-0.5" />
-              <span>
-                HR and Compliance will review your request. When approved, your clock-in record for that day will be marked as <strong>Late (Permitted)</strong>.
-              </span>
+              <div className="flex-1 space-y-1">
+                <p>
+                  HR and Compliance will review your request. When approved, your clock-in record for that day will be marked as <strong>Late (Permitted)</strong>.
+                </p>
+                <p>
+                  <Link
+                    href="/my/attendance"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex items-center gap-1 font-semibold underline hover:text-indigo-900 dark:hover:text-indigo-200"
+                  >
+                    View your submitted requests in My Attendance &rarr;
+                  </Link>
+                </p>
+              </div>
             </div>
           </div>
 

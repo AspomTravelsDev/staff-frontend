@@ -75,7 +75,17 @@ const DASHBOARD_TOUR_STEPS: DriveStep[] = [
     popover: {
       title: "Quick Action Shortcuts",
       description:
-        "Fast 1-click links to Request Leave, Submit Daily To-Dos, browse IT Information Desk guides, report IT issues, or submit confidential comments.",
+        "Fast 1-click links to Request Leave, submit Late Requests, Submit Daily To-Dos, browse IT Information Desk guides, report IT issues, or submit confidential comments.",
+      side: "top",
+      align: "start",
+    },
+  },
+  {
+    element: "#tour-dashboard-tasks",
+    popover: {
+      title: "Upcoming Deadlines & Tasks",
+      description:
+        "Stay on top of deliverables! View upcoming deadlines, overdue items, and complete tasks with 1-click right from your dashboard.",
       side: "top",
       align: "start",
     },

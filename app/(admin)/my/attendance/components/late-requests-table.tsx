@@ -43,8 +43,10 @@ import {
   ChevronRight,
   Ban,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LateRequestDetailsSheet } from "@/components/late-request-details-sheet";
 
 interface LateRequestsTableProps {
   requests: LatePermissionRequestItem[];
@@ -57,6 +59,8 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
   const [items, setItems] = useState<LatePermissionRequestItem[]>(requests);
   const [requestToCancel, setRequestToCancel] = useState<LatePermissionRequestItem | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [selectedDetailRequest, setSelectedDetailRequest] = useState<LatePermissionRequestItem | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
 
   useEffect(() => {
     setItems(requests);
@@ -136,7 +140,14 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           <TableBody>
             {paginatedRequests.map((request) => {
               return (
-                <TableRow key={request.id}>
+                <TableRow
+                  key={request.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => {
+                    setSelectedDetailRequest(request);
+                    setDetailSheetOpen(true);
+                  }}
+                >
                   <TableCell className="font-medium whitespace-nowrap">
                     {formatLagosDate(request.request_date)}
                   </TableCell>
@@ -215,20 +226,37 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
                   </TableCell>
 
                   <TableCell className="text-right whitespace-nowrap">
-                    {request.status === "pending" ? (
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => setRequestToCancel(request)}
-                        className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900 gap-1 px-2.5"
-                        title="Cancel this pending request if you arrived early or no longer need it"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDetailRequest(request);
+                          setDetailSheetOpen(true);
+                        }}
+                        className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
+                        title="View full details in slide-over sheet"
                       >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Cancel
+                        <Eye className="size-3.5" />
+                        <span className="hidden sm:inline">Details</span>
                       </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground opacity-50">—</span>
-                    )}
+                      {request.status === "pending" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRequestToCancel(request);
+                          }}
+                          className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900 gap-1 px-2.5"
+                          title="Cancel this pending request if you arrived early or no longer need it"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -332,6 +360,14 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* FULL DETAILS SLIDE-OVER SHEET */}
+      <LateRequestDetailsSheet
+        request={selectedDetailRequest}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        isHrReview={false}
+      />
     </div>
   );
 }

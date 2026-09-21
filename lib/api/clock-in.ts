@@ -69,6 +69,10 @@ export interface LatePermissionRequestItem {
         name: string;
         email: string;
         image_url?: string;
+        department?: string;
+        role?: string;
+        staff_id?: string;
+        phone?: string;
     };
     reviewer?: {
         id: string;

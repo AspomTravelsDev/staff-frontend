@@ -71,6 +71,7 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
         description="Your disciplinary ladder for the active calendar half-year (Jan-Jun or Jul-Dec). Resolved (No Action) records are excluded."
         showDepartment={false}
         allowImageExport={false}
+        showBreakdown={false}
       />
 
       <ComplianceClientManager

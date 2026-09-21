@@ -1,6 +1,7 @@
 import {
   Baby,
   Calendar,
+  Clock,
   Clock10Icon,
   Cloud,
   CreditCard,
@@ -11,11 +12,14 @@ import {
   TreePalm,
   Trophy,
   MessageSquare,
+  CalendarCheck2,
 } from "lucide-react";
 
 import { getTodayBirthdays, getTodayAnniversaries } from "@/lib/api/employees";
 import { getMyLeaveStats } from "@/lib/api/leave";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
+import { UpcomingTasksWidget } from "@/components/dashboard/upcoming-tasks-widget";
+import { getTaskTrackerDashboardSummary } from "@/lib/api/task-tracker";
 import { StatsCard } from "@/components/stats-card";
 import { ExchangeRateCard } from "@/components/dashboard/exchange-rate-card";
 import { DashboardCelebrationCard } from "@/components/dashboard/dashboard-celebration-card";
@@ -26,6 +30,7 @@ import {
 import { getClockInHistory } from "@/lib/api/clock-in";
 import { QuickLinkButton } from "@/components/dashboard/quick-link-button";
 import { AnonymousCommentDialog } from "@/components/dashboard/anonymous-comment-dialog";
+import { LatePermissionRequestModal } from "@/components/late-permission-request-modal";
 
 import { getAllAwards, getMyAwards } from "@/lib/api/awards";
 import { isLate } from "@/lib/utils/attendance";
@@ -57,6 +62,7 @@ export default async function Page() {
     rolesMetadata,
     cheatsheetItems,
     myLeaveStats,
+    taskTrackerSummaryResponse,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getAllAwards().catch(() => []),
@@ -87,7 +93,15 @@ export default async function Page() {
       isConfirmed: true,
       tenureMonths: 12,
     })),
+    getTaskTrackerDashboardSummary().catch(() => ({
+      success: false as const,
+      error: { code: "500", error: "Failed" },
+    })),
   ]);
+
+  const taskTrackerData = taskTrackerSummaryResponse.success
+    ? taskTrackerSummaryResponse.data
+    : { data: [], stats: { total_pending: 0, overdue: 0, due_soon: 0 } };
 
   const roleToDepartment = rolesMetadata.role_to_department;
 
@@ -284,12 +298,30 @@ export default async function Page() {
             target="_self"
             color="rose"
           />
+          <LatePermissionRequestModal
+            trigger={
+              <button
+                type="button"
+                className="h-10 px-4 rounded-md border flex items-center justify-center gap-2 transition-all text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 cursor-pointer"
+              >
+                <Clock className="h-5 w-5" />
+                <span className="font-semibold">Late Requests</span>
+              </button>
+            }
+          />
           <QuickLinkButton
             icon={FileText}
             title="Submit To-Do / Report"
             url="/my/tasks"
             target="_self"
             color="indigo"
+          />
+          <QuickLinkButton
+            icon={CalendarCheck2}
+            title="Task Tracker"
+            url="/my/task-tracker"
+            target="_self"
+            color="emerald"
           />
           <QuickLinkButton
             icon={FileText}
@@ -324,6 +356,14 @@ export default async function Page() {
             }
           />
         </div>
+      </div>
+
+      {/* Upcoming Personal Tasks & Deadlines Widget */}
+      <div id="tour-dashboard-tasks" className="w-full">
+        <UpcomingTasksWidget
+          initialTasks={taskTrackerData.data}
+          stats={taskTrackerData.stats}
+        />
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 items-stretch">

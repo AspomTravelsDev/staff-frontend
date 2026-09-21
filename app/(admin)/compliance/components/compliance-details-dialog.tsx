@@ -53,6 +53,7 @@ export function ComplianceDetailsDialog({
   const [comment, setComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [outcome, setOutcome] = useState("");
+  const [awardPoints, setAwardPoints] = useState("1.0");
   const [deductionDays, setDeductionDays] = useState("0");
   const [resolving, setResolving] = useState(false);
   const isInsubordinationIssue = (issue?.type || "")
@@ -71,6 +72,9 @@ export function ComplianceDetailsDialog({
     try {
       const data = await getComplianceDetails(issueId);
       setIssue(data);
+      if (data.points !== undefined) {
+        setAwardPoints(String(data.points));
+      }
     } catch (error) {
       console.error("Failed to fetch compliance details", error);
       toast.error("Failed to load details");
@@ -99,16 +103,18 @@ export function ComplianceDetailsDialog({
     if (!issueId || !outcome) return;
     setResolving(true);
     try {
+      const finalPoints = outcome === "Resolved (No Action)" ? 0 : parseFloat(awardPoints) || 1.0;
       await resolveComplianceOccurrence(
         issueId,
         outcome,
         parseFloat(deductionDays) || 0,
+        finalPoints,
       );
-      toast.success(`Occurrence closed with outcome: ${outcome}`);
+      toast.success(`Disciplinary action recorded: ${outcome}`);
       fetchDetails();
     } catch (error) {
       console.error("Failed to resolve occurrence", error);
-      toast.error("Failed to close occurrence");
+      toast.error("Failed to record disciplinary action");
     } finally {
       setResolving(false);
     }
@@ -117,12 +123,21 @@ export function ComplianceDetailsDialog({
   if (!issue && loading) return null;
 
   const allowedOutcomes = isInsubordinationIssue
-    ? ["Resolved (No Action)", "Suspension", "Termination"]
-    : [
+    ? [
         "Resolved (No Action)",
-        "Warning (No Deduction)",
+        "Give Occurrence",
         "Suspension",
         "Termination",
+      ]
+    : [
+        "Resolved (No Action)",
+        "Give Occurrence",
+        "Verbal Warning",
+        "Written Warning",
+        "Final Written Warning",
+        "Suspension",
+        "Termination",
+        "Warning (No Deduction)",
       ];
 
   return (
@@ -157,22 +172,38 @@ export function ComplianceDetailsDialog({
 
           {/* Outcome Info if Closed */}
           {issue?.status === "closed" && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 space-y-2">
-              <div>
-                <h4 className="font-semibold text-sm text-blue-700 dark:text-blue-300 mb-1">
-                  Final Outcome
-                </h4>
-                <p className="text-sm font-medium">{issue.outcome}</p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-semibold text-xs uppercase tracking-wider text-blue-700 dark:text-blue-300 mb-0.5">
+                    Disciplinary Action & Outcome
+                  </h4>
+                  <p className="text-base font-semibold text-foreground">
+                    {issue.outcome}
+                  </p>
+                </div>
+                {issue.outcome !== "Resolved (No Action)" && (
+                  <Badge variant="outline" className="border-blue-300 text-blue-800 dark:text-blue-200">
+                    +{issue.points ?? 1.0} Occurrence{(issue.points ?? 1.0) === 1 ? "" : "s"}
+                  </Badge>
+                )}
               </div>
+
+              {issue.outcome === "Resolved (No Action)" && (
+                <p className="text-xs text-muted-foreground">
+                  This query was resolved with no action taken. No occurrences were added to the Sanction Ladder.
+                </p>
+              )}
+
               {issue &&
                 issue.deduction_days !== undefined &&
                 issue.deduction_days > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-red-700 dark:text-red-300 mb-1">
+                  <div className="pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
+                    <h4 className="font-semibold text-xs text-red-700 dark:text-red-300 mb-0.5">
                       Salary Deduction
                     </h4>
                     <p className="text-sm font-medium">
-                      {issue.deduction_days} days
+                      {issue.deduction_days} days deduction
                     </p>
                   </div>
                 )}
@@ -259,59 +290,125 @@ export function ComplianceDetailsDialog({
           {/* Admin Actions */}
           {isAdmin && issue?.status === "open" && (
             <div className="pt-4 border-t space-y-4">
-              <h4 className="font-semibold text-sm text-destructive">
-                Resolve & Close
-              </h4>
-              {isInsubordinationIssue ? (
-                <p className="text-xs text-amber-700">
-                  Insubordination case: allowed outcomes are No Action,
-                  Suspension, or Termination.
+              <div>
+                <h4 className="font-semibold text-sm text-foreground">
+                  Disciplinary Action & Resolution
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Confirming a disciplinary action awards occurrences onto the staff member&apos;s Sanction Grid.
                 </p>
-              ) : null}
-              <div className="flex items-end gap-3">
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="outcome">Final Outcome</Label>
+              </div>
+
+              {isInsubordinationIssue && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                  <p className="font-semibold">Insubordination Case</p>
+                  <p className="mt-0.5">
+                    Under company policy, verified insubordination jumps directly to Step 4 (Suspension).
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="outcome" className="text-xs font-semibold">
+                    Select Disciplinary Action
+                  </Label>
                   <Select value={outcome} onValueChange={setOutcome}>
                     <SelectTrigger id="outcome">
-                      <SelectValue placeholder="Select outcome" />
+                      <SelectValue placeholder="Choose action or outcome" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Resolved (No Action)">
-                        Resolve with no Action
+                      <SelectItem value="Give Occurrence" className="font-semibold text-primary">
+                        Give Occurrence (Disciplinary Action)
                       </SelectItem>
-                      {allowedOutcomes.includes("Warning (No Deduction)") ? (
+                      <SelectItem value="Resolved (No Action)">
+                        Resolve with No Action (Dismiss Query)
+                      </SelectItem>
+                      {allowedOutcomes.includes("Verbal Warning") && (
+                        <SelectItem value="Verbal Warning">
+                          Step 1: Verbal Warning
+                        </SelectItem>
+                      )}
+                      {allowedOutcomes.includes("Written Warning") && (
+                        <SelectItem value="Written Warning">
+                          Step 2: Written Warning
+                        </SelectItem>
+                      )}
+                      {allowedOutcomes.includes("Final Written Warning") && (
+                        <SelectItem value="Final Written Warning">
+                          Step 3: Final Written Warning
+                        </SelectItem>
+                      )}
+                      <SelectItem value="Suspension">
+                        Step 4: Suspension
+                      </SelectItem>
+                      <SelectItem value="Termination">
+                        Step 7: Termination
+                      </SelectItem>
+                      {allowedOutcomes.includes("Warning (No Deduction)") && (
                         <SelectItem value="Warning (No Deduction)">
                           Warning (no deduction)
                         </SelectItem>
-                      ) : null}
-                      <SelectItem value="Suspension">Suspension</SelectItem>
-                      <SelectItem value="Termination">Termination</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
-                {outcome === "Suspension" && (
-                  <div className="w-[120px] space-y-2">
-                    <Label htmlFor="deduction">Deduction (Days)</Label>
-                    <Input
-                      id="deduction"
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={deductionDays}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        setDeductionDays(e.target.value)
-                      }
-                      placeholder="Days"
-                    />
+
+                {outcome && outcome !== "Resolved (No Action)" && (
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="award-points" className="text-xs">
+                        Occurrences
+                      </Label>
+                      <Input
+                        id="award-points"
+                        type="number"
+                        min="0.5"
+                        max="20"
+                        step="0.5"
+                        value={awardPoints}
+                        onChange={(e) => setAwardPoints(e.target.value)}
+                        placeholder="1.0"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Standard: 1.0 (or 0.5 for Tardies / Reports)
+                      </p>
+                    </div>
+
+                    {outcome === "Suspension" && (
+                      <div className="space-y-1">
+                        <Label htmlFor="deduction" className="text-xs">
+                          Salary Deduction (Days)
+                        </Label>
+                        <Input
+                          id="deduction"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={deductionDays}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setDeductionDays(e.target.value)
+                          }
+                          placeholder="Days"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
-                <Button
-                  variant="destructive"
-                  onClick={handleResolve}
-                  disabled={resolving || !outcome}
-                >
-                  {resolving ? "Closing..." : "Resolve Occurrence"}
-                </Button>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant={outcome === "Resolved (No Action)" ? "outline" : "destructive"}
+                    onClick={handleResolve}
+                    disabled={resolving || !outcome}
+                  >
+                    {resolving
+                      ? "Recording..."
+                      : outcome === "Resolved (No Action)"
+                      ? "Dismiss & Resolve Query"
+                      : "Confirm Disciplinary Action"}
+                  </Button>
+                </div>
               </div>
             </div>
           )}

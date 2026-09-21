@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { addBatchComplianceOccurrences } from "@/lib/api/compliance";
+import { OFFICIAL_POLICY_CATEGORIES } from "@/lib/types/compliance";
 import { type Employee } from "@/lib/api/employees";
 import { toast } from "sonner";
 
@@ -42,10 +43,20 @@ export function AddOccurrenceDialog({
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     type: "",
+    points: 1.0,
     date: "",
     severity: "",
     description: "",
   });
+
+  const handleTypeChange = (typeVal: string) => {
+    const matched = OFFICIAL_POLICY_CATEGORIES.find((c) => c.type === typeVal);
+    setFormData((prev) => ({
+      ...prev,
+      type: typeVal,
+      points: matched ? matched.points : 1.0,
+    }));
+  };
 
   const handleAddUser = (userId: string) => {
     if (userId && !selectedUserIds.includes(userId)) {
@@ -80,6 +91,7 @@ export function AddOccurrenceDialog({
       await addBatchComplianceOccurrences({
         user_ids: selectedUserIds,
         type: formData.type,
+        points: formData.points,
         occurrence_date: `${formData.date} 12:00:00`,
         severity: formData.severity as any,
         description: formData.description,
@@ -89,6 +101,7 @@ export function AddOccurrenceDialog({
       setOpen(false);
       setFormData({
         type: "",
+        points: 1.0,
         date: "",
         severity: "",
         description: "",
@@ -188,32 +201,36 @@ export function AddOccurrenceDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="type" className="text-right text-sm">
-                Type
+                Policy Category
               </Label>
-              <Select
-                value={formData.type}
-                onValueChange={(val) => setFormData({ ...formData, type: val })}
-                required
-              >
-                <SelectTrigger className="w-full col-span-3">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Lateness">Lateness</SelectItem>
-                  <SelectItem value="Unauthorized Absence">Unauthorized Absence</SelectItem>
-                  <SelectItem value="Extended Breaks">Extended Breaks</SelectItem>
-                  <SelectItem value="Misconduct">Misconduct</SelectItem>
-                  <SelectItem value="Insubordination">Insubordination</SelectItem>
-                  <SelectItem value="Unprofessional Conduct">Unprofessional Conduct</SelectItem>
-                  <SelectItem value="Workplace Harassment">Workplace Harassment</SelectItem>
-                  <SelectItem value="Policy Violation">Policy Violation</SelectItem>
-                  <SelectItem value="Information Security Breach">Information Security Breach</SelectItem>
-                  <SelectItem value="Confidentiality Breach">Confidentiality Breach</SelectItem>
-                  <SelectItem value="Procedural Error">Procedural Error</SelectItem>
-                  <SelectItem value="Negligence">Negligence</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="col-span-3 space-y-1.5">
+                <Select
+                  value={formData.type}
+                  onValueChange={handleTypeChange}
+                  required
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select official policy category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OFFICIAL_POLICY_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.type} value={cat.type}>
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <span>{cat.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.type && (
+                  <div className="flex items-center justify-between text-xs px-2 py-1 rounded bg-muted/40 border">
+                    <span className="text-muted-foreground">Occurrences:</span>
+                    <span className="font-semibold text-primary">
+                      {OFFICIAL_POLICY_CATEGORIES.find((c) => c.type === formData.type)?.unitText || `${formData.points} Occurrence(s)`}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">

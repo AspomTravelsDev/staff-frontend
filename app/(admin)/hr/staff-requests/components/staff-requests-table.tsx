@@ -10,8 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Briefcase } from "lucide-react";
 import { StaffRequestActions } from "./staff-request-actions";
 import { RequestDetailsSheet } from "../../../my/request-staff/components/request-details-sheet";
+import { CreateRoleDialog } from "../../recruitment/components/create-role-dialog";
 
 export function StaffRequestsTable({ requests }: { requests: any[] }) {
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
@@ -100,10 +103,22 @@ export function StaffRequestsTable({ requests }: { requests: any[] }) {
                 className="text-right"
                 onClick={(e) => e.stopPropagation()}
               >
-                <StaffRequestActions
-                  id={request.id}
-                  currentStatus={request.status}
-                />
+                <div className="flex items-center justify-end gap-2">
+                  <CreateRoleDialog
+                    hrRequests={requests}
+                    preselectedRequestId={request.id}
+                    trigger={
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 hover:border-primary">
+                        <Briefcase className="h-3.5 w-3.5 text-primary" />
+                        Recruit
+                      </Button>
+                    }
+                  />
+                  <StaffRequestActions
+                    id={request.id}
+                    currentStatus={request.status}
+                  />
+                </div>
               </TableCell>
             </TableRow>
           ))}

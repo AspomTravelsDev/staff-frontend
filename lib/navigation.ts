@@ -19,6 +19,7 @@ import {
   Megaphone,
   MessageSquare,
   Mail,
+  Briefcase,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 
@@ -272,6 +273,12 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "Staff requests pending review",
   },
   {
+    title: "Recruitment",
+    url: "/hr/recruitment",
+    icon: Briefcase,
+    allowedRoles: ["hr", "super"],
+  },
+  {
     title: "Late Permission Requests",
     url: "/hr/late-requests",
     icon: CalendarCheck,
@@ -406,6 +413,10 @@ export const personalNav: NavItem[] = [
         url: "/my/tasks",
         badgeKey: "myTasks,reportReminder",
         badgeLabel: "Submit your to-do list",
+      },
+      {
+        title: "Task Tracker & Deadlines",
+        url: "/my/task-tracker",
       },
       {
         title: "Staff Surveys",

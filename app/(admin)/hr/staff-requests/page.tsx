@@ -22,6 +22,14 @@ export default async function StaffRequestsPage() {
             Review and manage requests for new personnel from staff members.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <a
+            href="/hr/recruitment"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-colors"
+          >
+            Recruitment Pipeline & AI
+          </a>
+        </div>
       </div>
 
       <Card>

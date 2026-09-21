@@ -28,7 +28,11 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Clock, CheckCircle2, XCircle, Filter, Calendar, User, Search, RefreshCw } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Filter, Calendar, User, Search, RefreshCw, Eye } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { toProxiedImageUrl } from "@/lib/utils/image-url";
+import { getInitials } from "@/lib/utils";
+import { LateRequestDetailsSheet } from "@/components/late-request-details-sheet";
 
 export default function HrLateRequestsPage() {
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,10 @@ export default function HrLateRequestsPage() {
   const [actionType, setActionType] = useState<"approved" | "rejected">("approved");
   const [reviewerNote, setReviewerNote] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Slide-over Sheet for full request details
+  const [sheetRequest, setSheetRequest] = useState<LatePermissionRequestItem | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -192,15 +200,41 @@ export default function HrLateRequestsPage() {
               ) : (
                 filteredRequests.map((req) => {
                   return (
-                    <TableRow key={req.id}>
+                    <TableRow
+                      key={req.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => {
+                        setSheetRequest(req);
+                        setSheetOpen(true);
+                      }}
+                    >
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-foreground">
-                            {req.user?.name || `User #${req.user_id}`}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {req.user?.email || ""}
-                          </span>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="size-8 shrink-0 border ring-1 ring-border">
+                            <AvatarImage
+                              src={toProxiedImageUrl(req.user?.image_url)}
+                              alt={req.user?.name || "Staff"}
+                            />
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
+                              {getInitials(req.user?.name || "U")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-semibold text-foreground truncate">
+                                {req.user?.name || `User #${req.user_id}`}
+                              </span>
+                              {req.user?.staff_id && (
+                                <span className="text-[9px] font-mono bg-muted text-muted-foreground px-1 py-0 rounded border">
+                                  {req.user.staff_id}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground truncate">
+                              {req.user?.department ? `${req.user.department} • ` : ""}
+                              {req.user?.email || ""}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-xs font-mono">
@@ -231,35 +265,57 @@ export default function HrLateRequestsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {req.status === "pending" ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              size="sm"
-                              onClick={() => openReviewModal(req, "approved")}
-                              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5"
-                            >
-                              <CheckCircle2 className="size-3.5" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openReviewModal(req, "rejected")}
-                              className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40 gap-1 px-2.5"
-                            >
-                              <XCircle className="size-3.5" />
-                              Reject
-                            </Button>
-                          </div>
-                        ) : req.status === "cancelled" ? (
-                          <span className="text-[11px] text-muted-foreground italic">
-                            Cancelled by staff
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">
-                            {req.reviewer?.name ? `Reviewed by ${req.reviewer.name}` : "Reviewed"}
-                          </span>
-                        )}
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSheetRequest(req);
+                              setSheetOpen(true);
+                            }}
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
+                            title="View full details in slide-over sheet"
+                          >
+                            <Eye className="size-3.5" />
+                            <span className="hidden sm:inline">Details</span>
+                          </Button>
+                          {req.status === "pending" ? (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openReviewModal(req, "approved");
+                                }}
+                                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5"
+                              >
+                                <CheckCircle2 className="size-3.5" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openReviewModal(req, "rejected");
+                                }}
+                                className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40 gap-1 px-2.5"
+                              >
+                                <XCircle className="size-3.5" />
+                                Reject
+                              </Button>
+                            </>
+                          ) : req.status === "cancelled" ? (
+                            <span className="text-[11px] text-muted-foreground italic">
+                              Cancelled
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">
+                              {req.reviewer?.name ? `Reviewed by ${req.reviewer.name}` : "Reviewed"}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -333,6 +389,15 @@ export default function HrLateRequestsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* FULL DETAILS SLIDE-OVER SHEET */}
+      <LateRequestDetailsSheet
+        request={sheetRequest}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onReviewSuccess={fetchQueue}
+        isHrReview={true}
+      />
     </div>
   );
 }

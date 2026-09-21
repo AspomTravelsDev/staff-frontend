@@ -7,107 +7,28 @@ import type { PaginatedResponse } from "./types";
 // Types
 // ============================================================================
 
-export type Severity = "low" | "medium" | "high" | "critical";
-export type ComplianceStatus = "open" | "closed";
+export type {
+    Severity,
+    ComplianceStatus,
+    ComplianceComment,
+    ComplianceIssue,
+    ComplianceStats,
+    SanctionStep,
+    SanctionOccurrenceMarker,
+    SanctionGridItem,
+    PolicyBreakdownRule,
+    SanctionGridResponse,
+    ComplianceFilters,
+} from "@/lib/types/compliance";
 
-export interface ComplianceComment {
-    id: string;
-    occurrence_id: string;
-    user_id: string;
-    comment: string;
-    created_at: string;
-    user?: {
-        id: string;
-        name: string;
-        image_url?: string;
-    };
-}
-
-export interface ComplianceIssue {
-    id: string;
-    user_id: string;
-    type: string;
-    severity: Severity;
-    status: ComplianceStatus;
-    outcome: string | null;
-    description: string;
-    occurrence_date: string;
-    date?: string; // Mapped for backward compatibility
-    created_at: string;
-    user_name?: string; // Mapped for UI
-    user_department?: string; // Mapped for UI
-    user?: {
-        id: string;
-        name: string;
-        department?: string;
-    };
-    creator?: {
-        id: string;
-        name: string;
-    };
-    comments?: ComplianceComment[];
-    latest_comment?: ComplianceComment | null;
-    deduction_days?: number;
-    has_new_replies?: boolean;
-}
-
-export interface ComplianceStats {
-    totalIssues: number;
-    openIssues: number;
-    resolvedIssues: number;
-    totalDeductions: number;
-    topOffender: {
-        name: string;
-        count: number;
-    } | null;
-    topDepartment: {
-        name: string;
-        count: number;
-    } | null;
-}
-
-export interface SanctionStep {
-    step: number;
-    threshold: number;
-    label: string;
-}
-
-export interface SanctionOccurrenceMarker {
-    id: string;
-    type: string;
-    occurrence_date: string;
-}
-
-export interface SanctionGridItem {
-    user_id: string;
-    name: string;
-    department?: string | null;
-    role: string;
-    issues_count: number;
-    current_step: number;
-    occurrence_markers: SanctionOccurrenceMarker[];
-}
-
-export interface SanctionGridResponse {
-    windowStart: string;
-    windowEnd: string;
-    periodLabel: string;
-    steps: SanctionStep[];
-    items: SanctionGridItem[];
-}
-
-export interface ComplianceFilters {
-    page?: number;
-    limit?: number;
-    search?: string;
-    department?: string;
-    severity?: Severity;
-    status?: ComplianceStatus;
-    user_id?: string;
-    type?: string;
-    date_from?: string;
-    date_to?: string;
-}
+import type {
+    ComplianceIssue,
+    ComplianceStats,
+    SanctionGridResponse,
+    ComplianceComment,
+    ComplianceFilters,
+    Severity,
+} from "@/lib/types/compliance";
 
 // ============================================================================
 // API Functions
@@ -186,6 +107,7 @@ export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): P
 export async function addBatchComplianceOccurrences(data: {
     user_ids: string[];
     type: string;
+    points?: number;
     occurrence_date: string;
     severity: Severity;
     description: string;
@@ -205,10 +127,11 @@ export async function addComplianceComment(id: string, comment: string): Promise
     return result.data;
 }
 
-export async function resolveComplianceOccurrence(id: string, outcome: string, deductionDays?: number): Promise<ComplianceIssue> {
+export async function resolveComplianceOccurrence(id: string, outcome: string, deductionDays?: number, points?: number): Promise<ComplianceIssue> {
     const result = await api.post<ComplianceIssue>(`/api/compliance/${id}/resolve`, {
         outcome,
-        deduction_days: deductionDays
+        deduction_days: deductionDays,
+        points: points,
     });
     if (!result.success) {
         throw new Error(result.error.error);

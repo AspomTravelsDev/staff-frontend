@@ -103,6 +103,7 @@ export interface EmploymentTerms {
     net_salary: number;
     gross_salary: number;
     is_intern: boolean;
+    is_tax_exempt?: boolean;
     reporting_to: string;
     effective_date: string;
     salary_breakdown: SalaryBreakdown;
