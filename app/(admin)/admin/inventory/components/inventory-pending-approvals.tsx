@@ -29,7 +29,7 @@ export function InventoryPendingApprovals({
 
   const isSuper = ["super", "mp", "md"].some((r) => activeRoles.includes(r));
   const isOfficer = isSuper || ["admin", "it"].some((r) => activeRoles.includes(r));
-  const isCompliance = isSuper || ["compliance"].some((r) => activeRoles.includes(r));
+  const isCompliance = isSuper || ["compliance", "office-operations"].some((r) => activeRoles.includes(r));
   const canFilterMultiple = isSuper || (isOfficer && isCompliance);
 
   const [activeQueueFilter, setActiveQueueFilter] = useState<

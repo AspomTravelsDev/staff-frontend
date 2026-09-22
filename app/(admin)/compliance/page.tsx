@@ -42,7 +42,7 @@ export default async function CompliancePage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["super", "admin", "hr", "compliance"])) {
+  if (!userHasAnyRole(user, ["super", "admin", "hr", "compliance", "office-operations"])) {
     redirect("/dashboard");
   }
 

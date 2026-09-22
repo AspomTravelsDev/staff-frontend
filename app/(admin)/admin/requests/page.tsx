@@ -47,7 +47,7 @@ export default async function RequestsPage({
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["super", "it", "admin", "compliance"])) {
+  if (!userHasAnyRole(user, ["super", "it", "admin", "compliance", "office-operations"])) {
     redirect("/dashboard");
   }
 

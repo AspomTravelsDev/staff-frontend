@@ -6,6 +6,7 @@ import type {
   TaskTrackerItem,
   TaskTrackerStats,
   TaskTrackerDashboardStats,
+  CompanyDelegatedTaskStats,
   CreateTaskTrackerPayload,
   UpdateTaskTrackerPayload,
   RequestTaskExtensionPayload,
@@ -17,6 +18,11 @@ import type {
 interface TaskTrackerListResponse {
   data: TaskTrackerItem[];
   stats: TaskTrackerStats;
+}
+
+interface CompanyDelegatedTasksResponse {
+  data: TaskTrackerItem[];
+  stats: CompanyDelegatedTaskStats;
 }
 
 interface TaskTrackerDashboardResponse {
@@ -163,6 +169,36 @@ export async function rejectTaskExtension(
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
+}
+
+/**
+ * Get company-wide delegated tasks (Office Operations & Management oversight)
+ */
+export async function getCompanyDelegatedTasks(filters?: {
+  status?: string;
+  priority?: string;
+  department?: string;
+  search?: string;
+}): Promise<ApiResponse<CompanyDelegatedTasksResponse>> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.priority) params.set("priority", filters.priority);
+  if (filters?.department) params.set("department", filters.department);
+  if (filters?.search) params.set("search", filters.search);
+
+  const qs = params.toString();
+  return api.get<CompanyDelegatedTasksResponse>(`/api/task-tracker/company-delegated${qs ? `?${qs}` : ""}`);
+}
+
+/**
+ * Nudge task assignee with a real-time reminder notification (Office Operations)
+ */
+export async function nudgeTaskAssignee(
+  id: string,
+  payload: { message?: string } = {}
+): Promise<ApiResponse<{ message: string }>> {
+  return api.post<{ message: string }>(`/api/task-tracker/${id}/nudge`, payload);
 }

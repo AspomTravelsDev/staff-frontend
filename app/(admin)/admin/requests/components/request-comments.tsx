@@ -130,7 +130,7 @@ export function RequestComments({
           >
             Post comment
           </Button>
-          {userHasAnyRole(user, ["it", "super", "compliance", "admin"]) &&
+          {userHasAnyRole(user, ["it", "super", "compliance", "admin", "office-operations"]) &&
             !["completed", "approved", "rejected", "cancelled"].includes(
               currentStatus,
             ) && (

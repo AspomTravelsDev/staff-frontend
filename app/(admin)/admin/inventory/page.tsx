@@ -36,7 +36,7 @@ export default async function InventoryPage({
 
   const activeRoles = getRoles(user);
   const isOfficer = userHasAnyRole(user, ["admin", "it", "super", "mp", "md"]);
-  const isCompliance = userHasAnyRole(user, ["compliance", "super", "mp", "md"]);
+  const isCompliance = userHasAnyRole(user, ["compliance", "super", "mp", "md", "office-operations"]);
 
   // Conditionally fetch queue data based on active permissions (including sub-roles/secondary roles)
   const officerQueuePromise = isOfficer

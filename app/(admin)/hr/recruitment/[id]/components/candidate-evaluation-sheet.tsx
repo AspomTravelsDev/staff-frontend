@@ -36,6 +36,11 @@ import {
   Loader2,
   ExternalLink,
   ClipboardList,
+  Sparkles,
+  AlertCircle,
+  XCircle,
+  Lightbulb,
+  TrendingUp,
 } from "lucide-react";
 import type { RecruitmentCandidate, CandidateStatus } from "@/lib/types/recruitment";
 import { updateCandidateStatus, reanalyzeCandidate } from "@/lib/api/recruitment";
@@ -143,15 +148,36 @@ export function CandidateEvaluationSheet({
               </SheetDescription>
             </div>
 
-            {/* AI Score Badge */}
-            <div
-              className={`flex flex-col items-center justify-center px-4 py-2 rounded-xl border font-bold ${getScoreColor(
-                score
-              )}`}
-            >
-              <div className="text-2xl">{score}%</div>
-              <div className="text-[10px] tracking-wider uppercase font-semibold">
-                Match Score
+            {/* AI Score Badges */}
+            <div className="flex items-center gap-2">
+              {candidate.post_interview_evaluation && (
+                <div
+                  className={`flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border font-bold ${getScoreColor(
+                    candidate.post_interview_evaluation.combined_score
+                  )}`}
+                >
+                  <div className="text-xl flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" />
+                    {candidate.post_interview_evaluation.combined_score}%
+                  </div>
+                  <div className="text-[9px] tracking-wider uppercase font-semibold">
+                    Post-Interview Index
+                  </div>
+                </div>
+              )}
+              <div
+                className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border font-bold ${
+                  candidate.post_interview_evaluation
+                    ? "bg-muted/40 border-border/60 text-muted-foreground"
+                    : getScoreColor(score)
+                }`}
+              >
+                <div className={candidate.post_interview_evaluation ? "text-base font-semibold text-foreground" : "text-2xl"}>
+                  {score}%
+                </div>
+                <div className="text-[9px] tracking-wider uppercase font-semibold">
+                  CV Match
+                </div>
               </div>
             </div>
           </div>
@@ -272,11 +298,93 @@ export function CandidateEvaluationSheet({
 
         {/* AI Evaluation Section */}
         <div className="space-y-5">
+          {/* Post-Interview AI Debrief (if available) */}
+          {candidate.post_interview_evaluation && (
+            <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4">
+              <div className="flex items-center justify-between gap-2 border-b border-primary/10 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                    Post-Interview AI Debrief & Hiring Verdict
+                  </span>
+                </div>
+                <Badge
+                  className={`text-xs font-semibold px-2.5 py-0.5 ${
+                    candidate.post_interview_evaluation.verdict === "Strong Hire"
+                      ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                      : candidate.post_interview_evaluation.verdict === "Recommend for Offer"
+                      ? "bg-blue-500/15 text-blue-600 border border-blue-500/30"
+                      : candidate.post_interview_evaluation.verdict === "Hire with Reservations"
+                      ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                      : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                  }`}
+                >
+                  {candidate.post_interview_evaluation.verdict}
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-muted-foreground">Combined Hiring Index:</span>
+                <span className="font-bold text-foreground text-sm flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  {candidate.post_interview_evaluation.combined_score}%
+                </span>
+              </div>
+
+              <p className="text-xs text-foreground/90 leading-relaxed bg-background/60 p-2.5 rounded border border-border/40">
+                {candidate.post_interview_evaluation.executive_summary}
+              </p>
+
+              {/* Gap Resolution Check */}
+              {candidate.post_interview_evaluation.gap_resolution && candidate.post_interview_evaluation.gap_resolution.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    CV Red Flag / Gap Resolution:
+                  </div>
+                  <div className="space-y-1.5">
+                    {candidate.post_interview_evaluation.gap_resolution.map((item, gIdx) => (
+                      <div
+                        key={gIdx}
+                        className="text-xs p-2 rounded bg-background/80 border border-border/50 flex items-start gap-2"
+                      >
+                        {item.status === "resolved" ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                        ) : item.status === "partially_resolved" ? (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                        ) : (
+                          <XCircle className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                        )}
+                        <div className="space-y-0.5">
+                          <div className="font-medium text-foreground text-[11px]">
+                            {item.gap}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {item.explanation}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Probation Watchlist */}
+              {candidate.post_interview_evaluation.probation_focus_areas && candidate.post_interview_evaluation.probation_focus_areas.length > 0 && (
+                <div className="pt-1 text-[11px]">
+                  <span className="text-muted-foreground font-medium">Probation Focus: </span>
+                  <span className="text-foreground">
+                    {candidate.post_interview_evaluation.probation_focus_areas.join(" • ")}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Executive Summary */}
           <div className="space-y-1.5 rounded-lg border bg-card p-4">
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <FileText className="h-3.5 w-3.5 text-primary" />
-              Candidate Fit Assessment
+              Candidate Fit Assessment (CV Screening)
             </div>
             <p className="text-sm text-foreground leading-relaxed">
               {candidate.ai_summary || evalData?.summary || "No summary available."}
@@ -284,7 +392,7 @@ export function CandidateEvaluationSheet({
             {evalData?.recommendation && (
               <div className="pt-2">
                 <Badge variant="outline" className="text-xs font-medium">
-                  Recommendation: {evalData.recommendation}
+                  Initial Recommendation: {evalData.recommendation}
                 </Badge>
               </div>
             )}
@@ -333,17 +441,84 @@ export function CandidateEvaluationSheet({
             </div>
           </div>
 
-          {/* Suggested Interview Questions */}
-          <div className="space-y-2.5 rounded-lg border bg-card p-4">
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-              <HelpCircle className="h-4 w-4" />
-              Tailored Interview Questions
+          {/* Targeted Interview Probes (Triggered by CV Gaps & Red Flags) */}
+          <div className="space-y-3 rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+                <HelpCircle className="h-4 w-4" />
+                Targeted Interview Probes (CV Gaps & Red Flags)
+              </div>
+              {evalData?.interview_probes && evalData.interview_probes.length > 0 && (
+                <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                  {evalData.interview_probes.length} Probes Generated
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Questions generated specifically to probe this candidate’s gaps and clarify role fit:
+              Questions generated specifically to probe this candidate’s CV red flags, experience gaps, or unverified claims:
             </p>
-            <div className="space-y-2 pt-1">
-              {(evalData?.suggested_interview_questions || []).length > 0 ? (
+
+            <div className="space-y-3 pt-1">
+              {evalData?.interview_probes && evalData.interview_probes.length > 0 ? (
+                evalData.interview_probes.map((probe, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors space-y-2 text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] font-semibold tracking-wide ${
+                          probe.category.toLowerCase().includes("red flag")
+                            ? "bg-rose-500/10 text-rose-600 border border-rose-500/30"
+                            : probe.category.toLowerCase().includes("gap")
+                            ? "bg-amber-500/10 text-amber-600 border border-amber-500/30"
+                            : "bg-primary/10 text-primary border border-primary/20"
+                        }`}
+                      >
+                        {probe.category}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-70 hover:opacity-100"
+                        onClick={() => handleCopyQuestion(probe.question, idx)}
+                        title="Copy question"
+                      >
+                        {copiedQuestionIndex === idx ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
+
+                    {probe.cv_trigger && (
+                      <div className="text-[11px] text-muted-foreground bg-background/80 p-2 rounded border border-border/60 flex items-start gap-1.5">
+                        <AlertCircle className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
+                        <span>
+                          <strong className="text-foreground/90 font-medium">CV Trigger:</strong>{" "}
+                          {probe.cv_trigger}
+                        </span>
+                      </div>
+                    )}
+
+                    <p className="font-semibold text-foreground text-xs leading-relaxed">
+                      {probe.question}
+                    </p>
+
+                    {probe.what_to_listen_for && (
+                      <div className="text-[11px] text-muted-foreground flex items-start gap-1.5 pt-0.5">
+                        <Lightbulb className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                        <span>
+                          <strong className="text-primary font-medium">Listen for:</strong>{" "}
+                          {probe.what_to_listen_for}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (evalData?.suggested_interview_questions || []).length > 0 ? (
                 evalData?.suggested_interview_questions.map((q, idx) => (
                   <div
                     key={idx}

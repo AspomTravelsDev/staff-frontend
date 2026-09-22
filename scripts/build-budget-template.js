@@ -126,12 +126,18 @@ function buildBudgetTemplate() {
 
     <!-- SUMMARY PARAGRAPH -->
     <w:p>
-      <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:before="240" w:after="200"/></w:pPr>
+      <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:before="240" w:after="160"/></w:pPr>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">The total estimated cost of my proposed trip to </w:t></w:r>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{destination_country_upper}</w:t></w:r>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve"> is </w:t></w:r>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{home_currency} {total_home} ({dest_currency} {total_dest})</w:t></w:r>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">.</w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">, calculated at a conversion rate of 1 {dest_currency} = {home_currency} {exchange_rate_formatted}.</w:t></w:r>
+    </w:p>
+
+    <!-- EXCHANGE RATE NOTE -->
+    <w:p>
+      <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:before="80" w:after="200"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:color w:val="555555"/></w:rPr><w:t xml:space="preserve">* Note: Currency conversions are calculated using an exchange rate of 1 {dest_currency} = {home_currency} {exchange_rate_formatted}.</w:t></w:r>
     </w:p>
 
     <!-- FUNDING PARAGRAPH -->

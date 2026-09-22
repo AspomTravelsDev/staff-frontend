@@ -8,6 +8,30 @@ export type CandidateStatus =
 
 export type RoleStatus = "active" | "paused" | "closed";
 
+export interface InterviewProbe {
+  category: string;
+  cv_trigger: string;
+  question: string;
+  what_to_listen_for: string;
+}
+
+export interface PostInterviewEvaluation {
+  verdict: "Strong Hire" | "Recommend for Offer" | "Hire with Reservations" | "Do Not Recommend" | string;
+  combined_score: number; // 0-100
+  gap_resolution: Array<{
+    gap: string;
+    status: "resolved" | "partially_resolved" | "unresolved" | string;
+    explanation: string;
+  }>;
+  executive_summary: string;
+  salary_alignment?: {
+    status: "aligned" | "exceeds_expectation" | "below_expectation" | string;
+    notes: string;
+  };
+  probation_focus_areas: string[];
+  analyzed_at?: string;
+}
+
 export interface CandidateAiEvaluation {
   candidate_name?: string;
   candidate_email?: string;
@@ -20,6 +44,7 @@ export interface CandidateAiEvaluation {
   strengths: string[];
   gaps: string[];
   suggested_interview_questions: string[];
+  interview_probes?: InterviewProbe[];
   suggested_rubric_scores?: {
     technical_skills: number;
     teamwork: number;
@@ -90,6 +115,7 @@ export interface RecruitmentCandidate {
   status: CandidateStatus;
   notes: string | null;
   interview_rubric?: InterviewRubric | null;
+  post_interview_evaluation?: PostInterviewEvaluation | null;
   ai_suggested_rubric_scores?: {
     technical_skills: number;
     teamwork: number;

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/collapsible";
 import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
+import { CopyTasksButton } from "@/components/tasks/copy-tasks-button";
 
 interface AllTasksTableProps {
   records: DailyTaskRecord[];
@@ -284,9 +285,21 @@ function TaskRow({ record }: { record: DailyTaskRecord }) {
         </TableRow>
         <CollapsibleContent asChild>
           <TableRow className="bg-muted/30 border-b hover:bg-muted/30">
-            <TableCell colSpan={6} className="p-0">
+            <TableCell colSpan={7} className="p-0">
               <div className="p-4 pl-16 grid gap-2">
-                <h4 className="font-semibold text-sm mb-2">Detailed Tasks</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-sm">Detailed Tasks</h4>
+                  {record.tasks.length > 0 && (
+                    <CopyTasksButton
+                      tasks={record.tasks}
+                      date={record.date}
+                      userName={record.user?.name}
+                      staffId={record.user?.staff_id}
+                      isSubmitted={record.report_submitted}
+                      size="sm"
+                    />
+                  )}
+                </div>
                 {record.tasks.map((task, i) => (
                   <div
                     key={i}

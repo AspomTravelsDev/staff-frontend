@@ -35,6 +35,13 @@ import {
   Calendar,
   Check,
   Download,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  RotateCw,
+  Target,
+  ShieldCheck,
 } from "lucide-react";
 import { toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
@@ -42,8 +49,9 @@ import type {
   RecruitmentCandidate,
   InterviewRubric,
   RubricAssessmentScores,
+  PostInterviewEvaluation,
 } from "@/lib/types/recruitment";
-import { saveCandidateRubricAction } from "@/lib/api/recruitment";
+import { saveCandidateRubricAction, analyzeInterviewAction } from "@/lib/api/recruitment";
 import { toast } from "sonner";
 
 interface InterviewRubricDialogProps {
@@ -54,6 +62,7 @@ interface InterviewRubricDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onProceedToOffer?: (candidate: RecruitmentCandidate) => void;
+  onCandidateUpdated?: (candidate: RecruitmentCandidate) => void;
 }
 
 export function InterviewRubricDialog({
@@ -64,9 +73,14 @@ export function InterviewRubricDialog({
   open,
   onOpenChange,
   onProceedToOffer,
+  onCandidateUpdated,
 }: InterviewRubricDialogProps) {
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [postInterviewEvaluation, setPostInterviewEvaluation] = useState<PostInterviewEvaluation | null>(
+    candidate?.post_interview_evaluation || null
+  );
 
   // Form State
   const [applicantName, setApplicantName] = useState("");
@@ -192,6 +206,7 @@ export function InterviewRubricDialog({
       setNyscStatus("");
       setAccommodation("NOT NEEDED");
     }
+    setPostInterviewEvaluation(candidate.post_interview_evaluation || null);
   }, [candidate, roleTitle, aiSuggestions]);
 
   // Total score calculation (out of 55)
@@ -216,49 +231,94 @@ export function InterviewRubricDialog({
     setScores((prev) => ({ ...prev, [field]: clamped }));
   };
 
-  const handleSaveRubric = async () => {
+  const buildRubricPayload = (): InterviewRubric => {
+    return {
+      applicant_info: {
+        name: applicantName.trim() || candidate?.name || "",
+        age: applicantAge.trim(),
+        address: applicantAddress.trim(),
+        role_applied_for: roleAppliedFor.trim() || roleTitle,
+      },
+      reviewer_info: {
+        name: reviewerName.trim() || "HR Reviewer",
+        designation: reviewerDesignation.trim() || "HR Officer",
+        date: interviewDate.trim() || format(new Date(), "do MMMM yyyy"),
+      },
+      scores: {
+        ...scores,
+        total_score: totalScore,
+      },
+      qualitative: {
+        key_strengths: keyStrengths.trim(),
+        weakness_areas: weaknessAreas.trim(),
+        comments_from_interview: interviewComments.trim(),
+      },
+      logistics: {
+        availability_to_resume: availabilityToResume.trim(),
+        salary_expectation: salaryExpectation.trim(),
+        recommended_salary: recommendedSalary.trim(),
+        recommendation: recommendation.trim(),
+        nysc_status: nyscStatus.trim(),
+        accommodation: accommodation.trim(),
+      },
+    };
+  };
+
+  const handleSaveRubricOnly = async () => {
     if (!candidate) return;
 
     setSaving(true);
     try {
-      const rubricPayload: InterviewRubric = {
-        applicant_info: {
-          name: applicantName.trim() || candidate.name,
-          age: applicantAge.trim(),
-          address: applicantAddress.trim(),
-          role_applied_for: roleAppliedFor.trim() || roleTitle,
-        },
-        reviewer_info: {
-          name: reviewerName.trim() || "HR Reviewer",
-          designation: reviewerDesignation.trim() || "HR Officer",
-          date: interviewDate.trim() || format(new Date(), "do MMMM yyyy"),
-        },
-        scores: {
-          ...scores,
-          total_score: totalScore,
-        },
-        qualitative: {
-          key_strengths: keyStrengths.trim(),
-          weakness_areas: weaknessAreas.trim(),
-          comments_from_interview: interviewComments.trim(),
-        },
-        logistics: {
-          availability_to_resume: availabilityToResume.trim(),
-          salary_expectation: salaryExpectation.trim(),
-          recommended_salary: recommendedSalary.trim(),
-          recommendation: recommendation.trim(),
-          nysc_status: nyscStatus.trim(),
-          accommodation: accommodation.trim(),
-        },
-      };
-
+      const rubricPayload = buildRubricPayload();
       await saveCandidateRubricAction(candidate.id, roleId, rubricPayload);
       toast.success("Interview rubric saved successfully.");
+
+      const updatedCandidate: RecruitmentCandidate = {
+        ...candidate,
+        interview_rubric: rubricPayload,
+      };
+      onCandidateUpdated?.(updatedCandidate);
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to save interview rubric.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAndAnalyze = async (proceedToOffer: boolean = false) => {
+    if (!candidate) return;
+
+    setSaving(true);
+    setAnalyzing(true);
+    try {
+      const rubricPayload = buildRubricPayload();
+      await saveCandidateRubricAction(candidate.id, roleId, rubricPayload);
+
+      const parsedSalary = recommendedSalary
+        ? parseFloat(recommendedSalary.replace(/[^0-9.]/g, ""))
+        : undefined;
+
+      const updatedCandidate = await analyzeInterviewAction(
+        candidate.id,
+        roleId,
+        !isNaN(parsedSalary as number) && (parsedSalary as number) > 0 ? (parsedSalary as number) : undefined
+      );
+
+      setPostInterviewEvaluation(updatedCandidate.post_interview_evaluation || null);
+      onCandidateUpdated?.(updatedCandidate);
+
+      if (proceedToOffer) {
+        toast.success("AI interview synthesis completed! Opening offer...");
+        onProceedToOffer?.(updatedCandidate);
+      } else {
+        toast.success("Interview rubric saved & analyzed by AI!");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save rubric or analyze with AI.");
+    } finally {
+      setSaving(false);
+      setAnalyzing(false);
     }
   };
 
@@ -648,6 +708,162 @@ export function InterviewRubricDialog({
                 </div>
               </div>
             </div>
+
+            {/* Section 5: Post-Interview AI Synthesis & Debrief */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  5. AI Post-Interview Debrief & Synthesis
+                </h3>
+                {postInterviewEvaluation && !analyzing && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => handleSaveAndAnalyze(false)}
+                    disabled={saving || analyzing}
+                  >
+                    <RotateCw className="h-3 w-3" />
+                    Re-analyze
+                  </Button>
+                )}
+              </div>
+
+              {analyzing ? (
+                <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 flex items-center gap-3 text-xs text-primary font-medium animate-pulse">
+                  <Loader2 className="h-5 w-5 animate-spin shrink-0 text-primary" />
+                  <div>
+                    <p className="font-semibold">AI is analyzing interview performance...</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Synthesizing initial CV match, 10 rubric competency scores, qualitative notes, CV gap resolutions, and recommended salary.
+                    </p>
+                  </div>
+                </div>
+              ) : postInterviewEvaluation ? (
+                <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4 text-xs">
+                  {/* Verdict & Score Banner */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-primary/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={`text-xs font-bold px-2.5 py-1 ${
+                          postInterviewEvaluation.verdict === "Strong Hire"
+                            ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                            : postInterviewEvaluation.verdict === "Recommend for Offer"
+                            ? "bg-blue-500/15 text-blue-600 border border-blue-500/30"
+                            : postInterviewEvaluation.verdict === "Hire with Reservations"
+                            ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                            : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                        }`}
+                      >
+                        {postInterviewEvaluation.verdict}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Combined Hiring Score:
+                      </span>
+                      <span className="text-sm font-bold text-foreground flex items-center gap-1">
+                        <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                        {postInterviewEvaluation.combined_score}%
+                      </span>
+                    </div>
+
+                    {postInterviewEvaluation.salary_alignment && (
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-background/80 px-2 py-1 rounded border border-border/50">
+                        <span>Salary Match:</span>
+                        <strong className="capitalize text-foreground">
+                          {postInterviewEvaluation.salary_alignment.status.replace("_", " ")}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Executive Summary */}
+                  <div className="bg-background/70 p-3 rounded-md border border-border/40 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Executive Summary & Assessment Debrief
+                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">
+                      {postInterviewEvaluation.executive_summary}
+                    </p>
+                  </div>
+
+                  {/* Red Flag & CV Gap Resolution */}
+                  {postInterviewEvaluation.gap_resolution && postInterviewEvaluation.gap_resolution.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <Target className="h-3 w-3 text-primary" />
+                        CV Gap & Red Flag Resolution
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {postInterviewEvaluation.gap_resolution.map((item, gIdx) => (
+                          <div
+                            key={gIdx}
+                            className="p-2.5 rounded bg-background/80 border border-border/50 flex items-start gap-2 text-xs"
+                          >
+                            {item.status === "resolved" ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                            ) : item.status === "partially_resolved" ? (
+                              <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                            )}
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="font-semibold text-foreground text-[11px]">
+                                {item.gap}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground leading-snug">
+                                {item.explanation}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Probation Watchlist */}
+                  {postInterviewEvaluation.probation_focus_areas && postInterviewEvaluation.probation_focus_areas.length > 0 && (
+                    <div className="pt-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3 text-primary" />
+                        Recommended Probation Focus Areas
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {postInterviewEvaluation.probation_focus_areas.map((area, aIdx) => (
+                          <span
+                            key={aIdx}
+                            className="bg-background/80 border border-border/50 px-2 py-0.5 rounded text-[11px] text-foreground font-medium"
+                          >
+                            • {area}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-lg border border-dashed border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5 text-center sm:text-left">
+                    <p className="font-medium text-foreground">AI Post-Interview Analysis Not Run Yet</p>
+                    <p className="text-muted-foreground text-[11px]">
+                      Click "Save & Analyze with AI" below to synthesize interview scores, evaluate CV gap resolutions, and verify hiring readiness.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={() => handleSaveAndAnalyze(false)}
+                    disabled={saving || analyzing}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Analyze with AI
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Action Footer */}
@@ -658,7 +874,7 @@ export function InterviewRubricDialog({
                 variant="outline"
                 size="sm"
                 className="h-9 gap-1.5 text-xs font-medium"
-                disabled={isExportingPdf}
+                disabled={isExportingPdf || saving || analyzing}
                 onClick={handleDownloadPdf}
               >
                 {isExportingPdf ? (
@@ -676,6 +892,7 @@ export function InterviewRubricDialog({
                 variant="ghost"
                 size="sm"
                 className="h-9 text-xs"
+                disabled={saving || analyzing}
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
@@ -683,17 +900,34 @@ export function InterviewRubricDialog({
 
               <Button
                 type="button"
+                variant="outline"
                 size="sm"
                 className="h-9 text-xs gap-1.5"
-                disabled={saving}
-                onClick={handleSaveRubric}
+                disabled={saving || analyzing}
+                onClick={handleSaveRubricOnly}
               >
-                {saving ? (
+                {saving && !analyzing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Save className="h-3.5 w-3.5" />
                 )}
-                Save Rubric
+                Save Only
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-9 text-xs gap-1.5 border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+                disabled={saving || analyzing}
+                onClick={() => handleSaveAndAnalyze(false)}
+              >
+                {analyzing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {analyzing ? "Analyzing..." : "Save & Analyze with AI"}
               </Button>
 
               {onProceedToOffer && recommendation === "RECOMMEND FOR OFFER" && (
@@ -701,14 +935,16 @@ export function InterviewRubricDialog({
                   type="button"
                   variant="default"
                   size="sm"
-                  className="h-9 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  onClick={async () => {
-                    await handleSaveRubric();
-                    onProceedToOffer(candidate);
-                  }}
+                  className="h-9 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+                  disabled={saving || analyzing}
+                  onClick={() => handleSaveAndAnalyze(true)}
                 >
-                  <Send className="h-3.5 w-3.5" />
-                  Proceed to Offer
+                  {saving || analyzing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                  {saving || analyzing ? "Analyzing with AI..." : "Proceed to Offer"}
                 </Button>
               )}
             </div>

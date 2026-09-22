@@ -134,3 +134,18 @@ export async function saveCandidateRubricAction(
   revalidatePath(`/hr/recruitment/${roleId}`);
   return response.data.data;
 }
+
+export async function analyzeInterviewAction(
+  candidateId: string,
+  roleId: string,
+  offeringSalary?: number
+): Promise<RecruitmentCandidate> {
+  const response = await api.post<{ data: RecruitmentCandidate }>(
+    `/api/recruitment/candidates/${candidateId}/analyze-interview`,
+    { offering_salary: offeringSalary }
+  );
+  if (!response.success) throw new Error(response.error.error);
+  revalidatePath(`/hr/recruitment/${roleId}`);
+  return response.data.data;
+}
+

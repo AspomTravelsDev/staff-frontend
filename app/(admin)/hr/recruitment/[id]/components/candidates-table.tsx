@@ -32,8 +32,9 @@ import {
   ChevronDown,
   RotateCw,
   ClipboardList,
+  TrendingUp,
 } from "lucide-react";
-import type { RecruitmentCandidate, CandidateStatus } from "@/lib/types/recruitment";
+import type { RecruitmentCandidate, CandidateStatus, PostInterviewEvaluation } from "@/lib/types/recruitment";
 import { updateCandidateStatus, reanalyzeCandidate } from "@/lib/api/recruitment";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -101,20 +102,34 @@ export function CandidatesTable({
         return nameMatch || emailMatch || skillsMatch || summaryMatch;
       })
       .sort((a, b) => {
-        const scoreA = a.ai_score ?? -1;
-        const scoreB = b.ai_score ?? -1;
+        const effectiveA = a.post_interview_evaluation?.combined_score ?? a.ai_score ?? -1;
+        const effectiveB = b.post_interview_evaluation?.combined_score ?? b.ai_score ?? -1;
 
         switch (sortBy) {
           case "score_desc":
-            return scoreB - scoreA;
+            if (effectiveB !== effectiveA) return effectiveB - effectiveA;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           case "score_asc":
-            return scoreA - scoreB;
+            if (effectiveA !== effectiveB) return effectiveA - effectiveB;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          case "post_desc": {
+            const postA = a.post_interview_evaluation?.combined_score ?? -1;
+            const postB = b.post_interview_evaluation?.combined_score ?? -1;
+            if (postB !== postA) return postB - postA;
+            return effectiveB - effectiveA;
+          }
+          case "cv_desc": {
+            const cvA = a.ai_score ?? -1;
+            const cvB = b.ai_score ?? -1;
+            if (cvB !== cvA) return cvB - cvA;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          }
           case "date_desc":
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           case "name_asc":
             return (a.name || "").localeCompare(b.name || "");
           default:
-            return scoreB - scoreA;
+            return effectiveB - effectiveA;
         }
       });
   }, [candidates, activeTab, searchQuery, sortBy]);
@@ -168,6 +183,30 @@ export function CandidatesTable({
     return (
       <Badge className="bg-rose-500/15 text-rose-600 border-rose-500/30 font-bold hover:bg-rose-500/20">
         {score}% Match
+      </Badge>
+    );
+  };
+
+  const getPostScoreBadge = (evaluation?: PostInterviewEvaluation | null) => {
+    if (!evaluation) return null;
+    const score = evaluation.combined_score;
+    const verdict = evaluation.verdict;
+
+    let badgeClass = "bg-primary/15 text-primary border-primary/30";
+    if (score >= 80 || verdict === "Strong Hire") {
+      badgeClass = "bg-emerald-500/15 text-emerald-600 border-emerald-500/30";
+    } else if (score >= 65 || verdict === "Recommend for Offer") {
+      badgeClass = "bg-blue-500/15 text-blue-600 border-blue-500/30";
+    } else if (score >= 50 || verdict === "Hire with Reservations") {
+      badgeClass = "bg-amber-500/15 text-amber-600 border-amber-500/30";
+    } else {
+      badgeClass = "bg-rose-500/15 text-rose-600 border-rose-500/30";
+    }
+
+    return (
+      <Badge className={`${badgeClass} font-bold hover:opacity-90 flex items-center gap-1`}>
+        <TrendingUp className="h-3 w-3" />
+        {score}% Combined
       </Badge>
     );
   };
@@ -229,8 +268,10 @@ export function CandidatesTable({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="score_desc">AI Score: Highest First</SelectItem>
-              <SelectItem value="score_asc">AI Score: Lowest First</SelectItem>
+              <SelectItem value="score_desc">Rank: Post-Interview / Best Score</SelectItem>
+              <SelectItem value="post_desc">Post-Interview Score: Highest First</SelectItem>
+              <SelectItem value="cv_desc">Initial CV Score: Highest First</SelectItem>
+              <SelectItem value="score_asc">Score: Lowest First</SelectItem>
               <SelectItem value="date_desc">Date Added: Newest First</SelectItem>
               <SelectItem value="name_asc">Candidate Name: A-Z</SelectItem>
             </SelectContent>
@@ -245,7 +286,8 @@ export function CandidatesTable({
             <TableRow>
               <TableHead className="w-14 text-center">Rank</TableHead>
               <TableHead>Candidate</TableHead>
-              <TableHead>AI Score & Fit</TableHead>
+              <TableHead>CV Match</TableHead>
+              <TableHead>Post-Interview Fit</TableHead>
               <TableHead>Skills & Experience</TableHead>
               <TableHead>Pipeline Stage</TableHead>
               <TableHead>Date Added</TableHead>
@@ -255,7 +297,7 @@ export function CandidatesTable({
           <TableBody>
             {filteredCandidates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   <div className="space-y-1">
                     <p className="font-medium">No candidates found in this view.</p>
                     <p className="text-xs">Upload a candidate CV to screen them with AI.</p>
@@ -272,8 +314,15 @@ export function CandidatesTable({
                     className="hover:bg-muted/50 transition-colors"
                   >
                     {/* Rank */}
-                    <TableCell className="text-center text-xs font-medium text-muted-foreground">
-                      #{index + 1}
+                    <TableCell className="text-center text-xs font-medium">
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="font-bold text-foreground">#{index + 1}</span>
+                        {candidate.post_interview_evaluation && (
+                          <span className="text-[9px] font-semibold text-primary uppercase tracking-tighter">
+                            Debriefed
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
 
                     {/* Candidate Info */}
@@ -289,22 +338,10 @@ export function CandidatesTable({
                           {candidate.email && <span>{candidate.email}</span>}
                           {candidate.phone && <span>{candidate.phone}</span>}
                         </div>
-                        {candidate.interview_rubric?.scores?.total_score !== undefined && (
-                          <div className="pt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenRubric(candidate)}
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/20 transition-colors"
-                            >
-                              <ClipboardList className="h-2.5 w-2.5" />
-                              Rubric: {candidate.interview_rubric.scores.total_score}/55
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </TableCell>
 
-                    {/* AI Score & Recommendation */}
+                    {/* Initial CV Score */}
                     <TableCell>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -316,6 +353,61 @@ export function CandidatesTable({
                           </div>
                         )}
                       </div>
+                    </TableCell>
+
+                    {/* Post-Interview AI Score & Verdict */}
+                    <TableCell>
+                      {candidate.post_interview_evaluation ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            {getPostScoreBadge(candidate.post_interview_evaluation)}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-semibold px-1.5 py-0 ${
+                                candidate.post_interview_evaluation.verdict === "Strong Hire"
+                                  ? "text-emerald-600 border-emerald-500/30"
+                                  : candidate.post_interview_evaluation.verdict === "Recommend for Offer"
+                                  ? "text-blue-600 border-blue-500/30"
+                                  : candidate.post_interview_evaluation.verdict === "Hire with Reservations"
+                                  ? "text-amber-600 border-amber-500/30"
+                                  : "text-rose-600 border-rose-500/30"
+                              }`}
+                            >
+                              {candidate.post_interview_evaluation.verdict}
+                            </Badge>
+                            {candidate.interview_rubric?.scores?.total_score !== undefined && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenRubric(candidate)}
+                                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300 hover:underline"
+                              >
+                                <ClipboardList className="h-2.5 w-2.5" />
+                                {candidate.interview_rubric.scores.total_score}/55
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : candidate.interview_rubric ? (
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRubric(candidate)}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/20 transition-colors"
+                          >
+                            <ClipboardList className="h-2.5 w-2.5" />
+                            Rubric: {candidate.interview_rubric.scores?.total_score ?? 0}/55
+                          </button>
+                          <div className="text-[10px] text-amber-600 font-medium">
+                            AI Debrief Pending
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground italic">
+                          Pending Interview
+                        </div>
+                      )}
                     </TableCell>
 
                     {/* Skills & Experience */}
@@ -504,6 +596,10 @@ export function CandidatesTable({
         roleDepartment=""
         open={rubricModalOpen}
         onOpenChange={setRubricModalOpen}
+        onCandidateUpdated={(updated) => {
+          setCandidateForRubric(updated);
+          router.refresh();
+        }}
         onProceedToOffer={(cand) => {
           setRubricModalOpen(false);
           handleOpenOnboard(cand);

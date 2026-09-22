@@ -13,6 +13,7 @@ export const USER_ROLES = {
     HOLIDAYS_OFFICER: "holidays",
     TICKETING_OFFICER: "ticket",
     OFFICE_ASSISTANT: "office-assistant",
+    OFFICE_OPERATIONS: "office-operations",
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
@@ -50,6 +51,7 @@ export const ROLE_TO_DEPARTMENT_FALLBACK: Record<string, string> = {
     holidays: "Holidays",
     ticket: "Ticketing",
     "office-assistant": "Office Assistants",
+    "office-operations": "Office Operations",
 };
 
 export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRole }> = {
@@ -67,6 +69,7 @@ export const USER_ROLE_DETAILS: Record<UserRole, { label: string; value: UserRol
     [USER_ROLES.HOLIDAYS_OFFICER]: { label: "Holidays Officer", value: "holidays" },
     [USER_ROLES.TICKETING_OFFICER]: { label: "Ticketing Officer", value: "ticket" },
     [USER_ROLES.OFFICE_ASSISTANT]: { label: "Office Assistant", value: "office-assistant" },
+    [USER_ROLES.OFFICE_OPERATIONS]: { label: "Office Operations Officer", value: "office-operations" },
 };
 
 export function getRolesForSelect() {

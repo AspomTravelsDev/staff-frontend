@@ -57,6 +57,15 @@ export interface TaskTrackerDashboardStats {
   due_soon: number;
 }
 
+export interface CompanyDelegatedTaskStats {
+  total: number;
+  pending: number;
+  due_soon: number;
+  overdue: number;
+  pending_extensions: number;
+  completed: number;
+}
+
 export interface CreateTaskTrackerPayload {
   title: string;
   description?: string | null;

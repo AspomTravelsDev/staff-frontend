@@ -45,7 +45,7 @@ function buildExplanationTemplate() {
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{applicant_name}</w:t></w:r>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">, and I am the holder of {nationality} passport number </w:t></w:r>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{applicant_passport}</w:t></w:r>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">. I respectfully submit this detailed letter in support of my application for a Temporary Visit Visa to {destination_country}{companion_narrative}. The purpose of our visit is strictly for {purpose_of_visit}. We intend to depart {home_country} on {travel_start_date} to arrive in {destination_country}. We will depart {destination_country} on {travel_end_date} to return to {home_country}.</w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">. I respectfully submit this detailed letter in support of my application for a Temporary Visit Visa to {destination_country}{companion_narrative}. {trip_purpose_narrative}</w:t></w:r>
     </w:p>
 
     <!-- PARAGRAPH 2: BUSINESS / EMPLOYMENT OVERVIEW -->
@@ -63,15 +63,15 @@ function buildExplanationTemplate() {
     <!-- PARAGRAPH 4: TOURISM ACTIVITIES & ITINERARY -->
     <w:p>
       <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:after="200"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">During my stay in {destination_country}, I intend to participate in tourism and leisure activities{companion_short_ref}. As outlined in our travel itinerary, we plan to visit attractions such as {attractions_list}. These activities are planned to allow us to experience the beauty, lifestyle, and culture of {destination_country} while enjoying a relaxing vacation together.</w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{activities_narrative}</w:t></w:r>
     </w:p>
 
     <!-- PARAGRAPH 5: ACCOMMODATION DETAILS -->
     <w:p>
       <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:after="200"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">During our stay, we will be lodging at </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{lodging_stay_prefix} </w:t></w:r>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{accommodation_name}</w:t></w:r>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">, located at {accommodation_address}. All arrangements regarding our travel, accommodation, and daily activities have been carefully planned to ensure a smooth and comfortable visit. The accommodation was selected due to its comfort, security, and convenient access to major tourist attractions, making it suitable for our vacation.</w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">, located at {accommodation_address}. {lodging_planning_details}</w:t></w:r>
     </w:p>
 
     <!-- PARAGRAPH 6: SPONSORSHIP & FINANCIAL CAPACITY -->
@@ -80,11 +80,13 @@ function buildExplanationTemplate() {
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{financial_sponsorship_narrative}</w:t></w:r>
     </w:p>
 
+    {#has_travel_history}
     <!-- PARAGRAPH 7: TRAVEL HISTORY -->
     <w:p>
       <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:after="200"/></w:pPr>
       <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{travel_history_narrative}</w:t></w:r>
     </w:p>
+    {/has_travel_history}
 
     <!-- PARAGRAPH 8: HOME TIES -->
     <w:p>
@@ -101,7 +103,7 @@ function buildExplanationTemplate() {
     <!-- PARAGRAPH 10: CONCLUSION -->
     <w:p>
       <w:pPr><w:jc w:val="both"/><w:spacing w:line="276" w:lineRule="auto" w:after="240"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">In conclusion, I respectfully request that my application be given favourable consideration. All required supporting documents, including proof of sponsorship, accommodation arrangements, and travel plans, have been provided. This is a genuine family vacation, and I look forward to returning to {home_country} upon completion of our visit.</w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">{conclusion_narrative}</w:t></w:r>
     </w:p>
 
     <!-- SIGN OFF -->

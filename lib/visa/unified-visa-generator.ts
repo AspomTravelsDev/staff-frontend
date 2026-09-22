@@ -81,6 +81,10 @@ export interface UnifiedVisaProfileData {
   sponsor_email: string;
   relationship_to_applicant: string;
 
+  // Travel history toggle & details
+  has_travel_history?: boolean;
+  travel_history_details?: string;
+
   // 8. Travel Budget Details
   home_currency?: string;
   dest_currency?: string;
@@ -96,6 +100,35 @@ export interface TravelBudgetItem {
   amount_dest: number | string;
   is_free?: boolean;
 }
+
+export interface CurrencyOption {
+  code: string;
+  name: string;
+  symbol: string;
+}
+
+export const MAJOR_CURRENCIES: CurrencyOption[] = [
+  { code: "NGN", name: "NGN — Nigerian Naira (₦)", symbol: "₦" },
+  { code: "USD", name: "USD — US Dollar ($)", symbol: "$" },
+  { code: "CAD", name: "CAD — Canadian Dollar (CA$)", symbol: "CA$" },
+  { code: "GBP", name: "GBP — British Pound (£)", symbol: "£" },
+  { code: "EUR", name: "EUR — Euro (€)", symbol: "€" },
+  { code: "AUD", name: "AUD — Australian Dollar (AU$)", symbol: "AU$" },
+  { code: "AED", name: "AED — UAE Dirham (AED)", symbol: "AED" },
+  { code: "ZAR", name: "ZAR — South African Rand (R)", symbol: "R" },
+  { code: "CNY", name: "CNY — Chinese Yuan (¥)", symbol: "¥" },
+  { code: "JPY", name: "JPY — Japanese Yen (¥)", symbol: "¥" },
+  { code: "SAR", name: "SAR — Saudi Riyal (SAR)", symbol: "SAR" },
+  { code: "BRL", name: "BRL — Brazilian Real (R$)", symbol: "R$" },
+  { code: "TRY", name: "TRY — Turkish Lira (₺)", symbol: "₺" },
+  { code: "CHF", name: "CHF — Swiss Franc (CHF)", symbol: "CHF" },
+  { code: "GHS", name: "GHS — Ghanaian Cedi (GH₵)", symbol: "GH₵" },
+  { code: "KES", name: "KES — Kenyan Shilling (KSh)", symbol: "KSh" },
+  { code: "INR", name: "INR — Indian Rupee (₹)", symbol: "₹" },
+  { code: "QAR", name: "QAR — Qatari Riyal (QR)", symbol: "QR" },
+  { code: "NZD", name: "NZD — New Zealand Dollar (NZ$)", symbol: "NZ$" },
+  { code: "SGD", name: "SGD — Singapore Dollar (S$)", symbol: "S$" },
+];
 
 // Helper to format ordinal dates
 function formatDateWithOrdinal(date: Date): string {
@@ -142,6 +175,14 @@ export function formatAddressWithLineBreaks(rawAddress: string): string {
   return parts.join(",\n");
 }
 
+export function sanitizeCountryName(country: string): string {
+  return (country || "Canada")
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/\b(general|winter|summer)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function buildPayloads(profile: UnifiedVisaProfileData) {
   const nameParts = profile.applicant_name.trim().split(" ");
   const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : profile.applicant_name;
@@ -163,10 +204,13 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
   const sponsorAddressHeader = formatAddressWithLineBreaks(rawSponsorAddress);
   const sponsorAddressInline = rawSponsorAddress.replace(/[\r\n]+/g, ", ").replace(/,\s*,/g, ", ").trim();
 
-  const cleanDestinationCountry = (profile.destination_country || "Canada")
-    .replace(/\s*\([^)]*\)/g, "")
-    .trim();
+  const cleanDestinationCountry = sanitizeCountryName(profile.destination_country);
   const cleanDestinationCountryUpper = cleanDestinationCountry.toUpperCase();
+  const cleanPurposeOfVisit = (profile.purpose_of_visit || "")
+    .replace(/\s*\((general|winter|summer)\)/gi, "")
+    .replace(/\b(general|winter|summer)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   // 1. Travel Itinerary Payload
   const familyNarrative = profile.familyMembers.length > 0
@@ -184,7 +228,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     applicant_passport: profile.applicant_passport,
     origin_country: profile.nationality,
     applicant_visa_info: "",
-    purpose_of_visit: profile.purpose_of_visit,
+    purpose_of_visit: cleanPurposeOfVisit,
     has_family: profile.familyMembers.length > 0,
     family_narrative: familyNarrative,
     arrival_city: profile.arrival_city,
@@ -299,12 +343,44 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
 
   const attractionsList = profile.activities_highlights || `major cultural, historical, shopping, and recreational locations in ${cleanDestinationCountry}`;
 
+  const hasCompanions = profile.familyMembers && profile.familyMembers.length > 0;
+  const homeCountry = profile.nationality || "Nigeria";
+
   const isSelfSponsored = !profile.sponsor_name || profile.sponsor_name === profile.applicant_name;
+  const capacityPronoun = hasCompanions ? "our" : "my";
   const financialSponsorshipNarrative = isSelfSponsored
     ? `I will fully self-sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. My financial resources are held at ${profile.bank_name || "my financial institution"} (Account ending ${profile.account_number_ending || "XXXX"}), with an available closing balance of ${profile.closing_balance || "adequate funds"}. Source of funds: ${profile.source_of_funds || "business operations and earnings"}. Enclosed herewith is my personal bank statement as evidence of financial capacity.`
-    : `My ${profile.relationship_to_applicant || "sponsor"}, ${profile.sponsor_name}, holder of ID/Passport number ${profile.sponsor_id_number || "N/A"}, is the ${profile.sponsor_designation || "Executive"} of ${profile.sponsor_business_name || "their organization"}. ${profile.sponsor_name} will fully sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. To demonstrate our financial capacity to undertake this trip, we have enclosed their bank statement, together with relevant supporting business documents, as evidence of ability to fully finance all expenses.`;
+    : `My ${profile.relationship_to_applicant || "sponsor"}, ${profile.sponsor_name}, holder of ID/Passport number ${profile.sponsor_id_number || "N/A"}, is the ${profile.sponsor_designation || "Executive"} of ${profile.sponsor_business_name || "their organization"}. ${profile.sponsor_name} will fully sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. To demonstrate ${capacityPronoun} financial capacity to undertake this trip, we have enclosed their bank statement, together with relevant supporting business documents, as evidence of ability to fully finance all expenses.`;
 
-  const travelHistoryNarrative = `I have travelled internationally in the past, during which I complied fully with all immigration laws and regulations. All previous travel was conducted with complete respect for visa validity and departure timelines.`;
+  // Singular vs. Plural narratives
+  const tripPurposeNarrative = hasCompanions
+    ? `The purpose of our visit is strictly for ${cleanPurposeOfVisit || "tourism, leisure, and vacation"}. We intend to depart ${homeCountry} on ${formattedArrivalDate} to arrive in ${cleanDestinationCountry}. We will depart ${cleanDestinationCountry} on ${formattedDepartureDate} to return to ${homeCountry}.`
+    : `The purpose of my visit is strictly for ${cleanPurposeOfVisit || "tourism, leisure, and vacation"}. I intend to depart ${homeCountry} on ${formattedArrivalDate} to arrive in ${cleanDestinationCountry}. I will depart ${cleanDestinationCountry} on ${formattedDepartureDate} to return to ${homeCountry}.`;
+
+  const activitiesNarrative = hasCompanions
+    ? `During our stay in ${cleanDestinationCountry}, we intend to participate in tourism and leisure activities${companionShortRef}. As outlined in our travel itinerary, we plan to visit attractions such as ${attractionsList}. These activities are planned to allow us to experience the beauty, lifestyle, and culture of ${cleanDestinationCountry} while enjoying a relaxing vacation together.`
+    : `During my stay in ${cleanDestinationCountry}, I intend to participate in tourism and leisure activities. As outlined in my travel itinerary, I plan to visit attractions such as ${attractionsList}. These activities are planned to allow me to experience the beauty, lifestyle, and culture of ${cleanDestinationCountry} while enjoying a relaxing vacation.`;
+
+  const lodgingStayPrefix = hasCompanions
+    ? "During our stay, we will be lodging at"
+    : "During my stay, I will be lodging at";
+
+  const lodgingPlanningDetails = hasCompanions
+    ? "All arrangements regarding our travel, accommodation, and daily activities have been carefully planned to ensure a smooth and comfortable visit. The accommodation was selected due to its comfort, security, and convenient access to major tourist attractions, making it suitable for our vacation."
+    : "All arrangements regarding my travel, accommodation, and daily activities have been carefully planned to ensure a smooth and comfortable visit. The accommodation was selected due to its comfort, security, and convenient access to major tourist attractions, making it suitable for my vacation.";
+
+  const conclusionNarrative = hasCompanions
+    ? `In conclusion, I respectfully request that our application be given favourable consideration. All required supporting documents, including proof of sponsorship, accommodation arrangements, and travel plans, have been provided. This is a genuine family vacation, and we look forward to returning to ${homeCountry} upon completion of our visit.`
+    : `In conclusion, I respectfully request that my application be given favourable consideration. All required supporting documents, including proof of sponsorship, accommodation arrangements, and travel plans, have been provided. This is a genuine vacation, and I look forward to returning to ${homeCountry} upon completion of my visit.`;
+
+  // Travel history toggle & details
+  const hasTravelHistory = profile.has_travel_history !== false;
+  const historyDetails = profile.travel_history_details && profile.travel_history_details.trim()
+    ? ` to ${profile.travel_history_details.trim()}`
+    : "";
+  const travelHistoryNarrative = hasTravelHistory
+    ? `I have travelled internationally${historyDetails}, during which I complied fully with all immigration laws and regulations. All previous travel was conducted with complete respect for visa validity and departure timelines.`
+    : "";
 
   const explanationPayload = {
     applicant_address: formattedApplicantAddress,
@@ -314,7 +390,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     embassy_title: `The Visa Officer, ${profile.embassy_name}`,
     destination_country_upper: cleanDestinationCountryUpper,
     destination_country: cleanDestinationCountry,
-    home_country: profile.nationality || "Nigeria",
+    home_country: homeCountry,
     nationality: profile.nationality || "Nigerian",
     applicant_name: profile.applicant_name,
     applicant_name_upper: applicantNameUpper,
@@ -322,16 +398,22 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     passport_number: profile.applicant_passport,
     companion_narrative: companionNarrative,
     companion_short_ref: companionShortRef,
-    purpose_of_visit: profile.purpose_of_visit || "tourism, leisure, and vacation",
+    purpose_of_visit: cleanPurposeOfVisit || "tourism, leisure, and vacation",
+    trip_purpose_narrative: tripPurposeNarrative,
     travel_start_date: formattedArrivalDate,
     travel_end_date: formattedDepartureDate,
     business_background_narrative: businessBackgroundNarrative,
     job_duties_narrative: jobDutiesNarrative,
     attractions_list: attractionsList,
+    activities_narrative: activitiesNarrative,
     accommodation_name: profile.accommodation_name,
     accommodation_address: profile.accommodation_address,
+    lodging_stay_prefix: lodgingStayPrefix,
+    lodging_planning_details: lodgingPlanningDetails,
     financial_sponsorship_narrative: financialSponsorshipNarrative,
+    has_travel_history: hasTravelHistory,
     travel_history_narrative: travelHistoryNarrative,
+    conclusion_narrative: conclusionNarrative,
     sponsor_name: profile.sponsor_name ? profile.sponsor_name : `${profile.applicant_name} (Self-Sponsored)`,
     bank_name: profile.bank_name,
     account_number_ending: profile.account_number_ending,
@@ -399,7 +481,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     applicant_passport: profile.applicant_passport,
     destination_country: cleanDestinationCountry,
     employment_narrative: employmentNarrative,
-    purpose_of_visit: profile.purpose_of_visit,
+    purpose_of_visit: cleanPurposeOfVisit,
     travel_start_date: formattedArrivalDate,
     travel_end_date: formattedDepartureDate,
     accommodation_full: `${profile.accommodation_name}, ${profile.accommodation_address}`,
@@ -450,18 +532,22 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     ? profile.funding_sources.join(" and ")
     : "personal account and business account";
 
+  const exchangeRateNum = typeof exchangeRate === "number" ? exchangeRate : parseFloat(String(exchangeRate)) || 1;
+  const exchangeRateFormatted = exchangeRateNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const travelBudgetPayload = {
     applicant_address: formattedApplicantAddress,
     letter_date: formattedLetterDate,
     consular_address: profile.consular_address,
-    destination_country_upper: profile.destination_country.toUpperCase(),
-    destination_country: profile.destination_country,
+    destination_country_upper: cleanDestinationCountryUpper,
+    destination_country: cleanDestinationCountry,
     applicant_name: profile.applicant_name,
     applicant_name_upper: applicantNameUpper,
     applicant_passport: profile.applicant_passport,
     home_currency: homeCurrency,
     dest_currency: destCurrency,
-    exchange_rate: exchangeRate.toFixed(2),
+    exchange_rate: exchangeRateFormatted,
+    exchange_rate_formatted: exchangeRateFormatted,
     expense_items_summary_list: expenseItemsSummaryList,
     expenses: formattedExpenses,
     total_home: totalHomeFormatted,

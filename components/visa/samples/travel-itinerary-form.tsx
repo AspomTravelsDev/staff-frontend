@@ -135,17 +135,23 @@ export function TravelItineraryForm() {
     const departureDate = addDays(start, duration - 1);
     const departureDateFormatted = formatDateWithOrdinal(departureDate);
 
+    const cleanDest = (presetData.countryName || "Canada")
+      .replace(/\s*\([^)]*\)/g, "")
+      .replace(/\b(general|winter|summer)\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
     // Update applicant and accommodation defaults
     setApplicantInfo((prev) => ({
       ...prev,
-      destination_country: presetData.countryName,
+      destination_country: cleanDest,
       arrival_city: presetData.defaultCity,
       arrival_date: arrivalDateFormatted,
       departure_date: departureDateFormatted,
       accommodation_name: presetData.defaultAccommodationName,
       accommodation_address: presetData.defaultAccommodationAddress,
       activities_highlights: presetData.activitiesHighlights,
-      purpose_of_visit: `a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to ${presetData.defaultCity}, ${presetData.countryName}`,
+      purpose_of_visit: `a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to ${presetData.defaultCity}, ${cleanDest}`,
     }));
 
     // Update consular address in background
@@ -286,20 +292,31 @@ export function TravelItineraryForm() {
       const formattedArrivalDate = formatDateWithOrdinal(startDate);
       const formattedDepartureDate = formatDateWithOrdinal(addDays(startDate, durationDays - 1));
 
+      const cleanDestCountry = (applicantInfo.destination_country || "Canada")
+        .replace(/\s*\([^)]*\)/g, "")
+        .replace(/\b(general|winter|summer)\b/gi, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      const cleanPurpose = (applicantInfo.purpose_of_visit || "")
+        .replace(/\s*\((general|winter|summer)\)/gi, "")
+        .replace(/\b(general|winter|summer)\b/gi, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
       // Build docx payload matching template variables
       const payload = {
         applicant_address: applicantAddress,
         letter_date: formattedLetterDate,
         consular_address: consularAddress,
-        destination_country_upper: applicantInfo.destination_country.toUpperCase(),
-        destination_country: applicantInfo.destination_country,
+        destination_country_upper: cleanDestCountry.toUpperCase(),
+        destination_country: cleanDestCountry,
         applicant_name: applicantInfo.applicant_name,
         applicant_passport: applicantInfo.passport_number,
         origin_country: applicantInfo.origin_country,
         applicant_visa_info: applicantInfo.visa_details
           ? ` and ${applicantInfo.visa_details}`
           : "",
-        purpose_of_visit: applicantInfo.purpose_of_visit,
+        purpose_of_visit: cleanPurpose,
         has_family: familyMembers.length > 0,
         family_narrative: buildFamilyNarrative(),
         arrival_city: applicantInfo.arrival_city,

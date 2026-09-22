@@ -18,7 +18,7 @@ export default async function MyTasksPage() {
   const initialTasks = await getTodaysTasks();
 
   return (
-    <div className="flex flex-col gap-8 px-3 py-4 sm:p-4">
+    <div className="flex flex-col gap-8 w-full">
       <div id="tour-tasks-header" className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Daily Tasks</h1>
         <TasksTourButton />
@@ -26,11 +26,11 @@ export default async function MyTasksPage() {
 
       <TasksTour />
 
-      <TaskList initialData={initialTasks} />
+      <TaskList initialData={initialTasks} user={user} />
 
       <Separator className="my-4" />
 
-      <TaskHistory />
+      <TaskHistory user={user} />
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
 import { ITINERARY_PRESETS } from "@/lib/visa/itinerary-presets";
 import {
   UnifiedVisaProfileData,
+  MAJOR_CURRENCIES,
   generateSingleDocument,
   generateVisaPackageZip,
 } from "@/lib/visa/unified-visa-generator";
@@ -260,6 +261,10 @@ export function UnifiedVisaForm() {
   const [selectedCountryKey, setSelectedCountryKey] = useState<string>("canada");
   const [durationDays, setDurationDays] = useState<7 | 14>(14);
 
+  // Currency Custom toggles
+  const [isCustomHomeCurrency, setIsCustomHomeCurrency] = useState<boolean>(false);
+  const [isCustomDestCurrency, setIsCustomDestCurrency] = useState<boolean>(false);
+
   // Dates
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(2026, 7, 22));
   const [letterDate, setLetterDate] = useState<Date | undefined>(new Date());
@@ -314,6 +319,8 @@ export function UnifiedVisaForm() {
     source_of_funds: "",
     home_ties_summary: "",
     additional_notes: "",
+    has_travel_history: true,
+    travel_history_details: "",
 
     sponsor_name: "",
     sponsor_id_number: "",
@@ -343,12 +350,7 @@ export function UnifiedVisaForm() {
     duration: 7 | 14,
     start: Date
   ) => {
-    let effectiveKey = countryKey;
-    if (countryKey === "canada") {
-      const month = start.getMonth(); // 0-indexed (11 = Dec, 0 = Jan, 1 = Feb, 10 = Nov)
-      const isWinter = [10, 11, 0, 1, 2].includes(month);
-      effectiveKey = isWinter ? "canada_winter" : "canada_summer";
-    }
+    const effectiveKey = countryKey;
 
     const presetData = ITINERARY_PRESETS[effectiveKey] || ITINERARY_PRESETS[countryKey] || ITINERARY_PRESETS["brazil"];
     const daysList = presetData.presets[duration] || presetData.presets[14];
@@ -368,18 +370,30 @@ export function UnifiedVisaForm() {
     });
 
     let defaultDestCurr = "USD";
-    if (countryKey === "canada") defaultDestCurr = "CAD";
+    if (["canada", "canada_winter", "canada_summer"].includes(countryKey)) defaultDestCurr = "CAD";
     else if (countryKey === "uk") defaultDestCurr = "GBP";
     else if (["schengen", "france", "germany", "italy", "spain"].includes(countryKey)) defaultDestCurr = "EUR";
     else if (countryKey === "australia") defaultDestCurr = "AUD";
     else if (countryKey === "japan") defaultDestCurr = "JPY";
+    else if (countryKey === "brazil") defaultDestCurr = "BRL";
+    else if (countryKey === "south_africa") defaultDestCurr = "ZAR";
+    else if (countryKey === "turkey") defaultDestCurr = "TRY";
+    else if (countryKey === "usa") defaultDestCurr = "USD";
+
+    setIsCustomDestCurrency(false);
+
+    const cleanDest = (presetData.countryName || "Canada")
+      .replace(/\s*\([^)]*\)/g, "")
+      .replace(/\b(general|winter|summer)\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
 
     setProfile((prev) => ({
       ...prev,
       selected_country_key: countryKey,
-      destination_country: presetData.countryName,
+      destination_country: cleanDest,
       dest_currency: defaultDestCurr,
-      embassy_name: CONSULAR_ADDRESSES[effectiveKey]?.embassyName || CONSULAR_ADDRESSES[countryKey]?.embassyName || `Embassy of ${presetData.countryName}`,
+      embassy_name: CONSULAR_ADDRESSES[effectiveKey]?.embassyName || CONSULAR_ADDRESSES[countryKey]?.embassyName || `Embassy of ${cleanDest}`,
       embassy_address: CONSULAR_ADDRESSES[effectiveKey]?.addressLines ? CONSULAR_ADDRESSES[effectiveKey].addressLines.slice(-2).join(", ") : "Lagos, Nigeria",
       consular_address: consularFormatted,
       arrival_city: presetData.defaultCity,
@@ -388,7 +402,7 @@ export function UnifiedVisaForm() {
       duration_days: duration,
       accommodation_name: presetData.defaultAccommodationName,
       accommodation_address: presetData.defaultAccommodationAddress,
-      purpose_of_visit: `a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to ${presetData.defaultCity}, ${presetData.countryName}`,
+      purpose_of_visit: `a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to ${presetData.defaultCity}, ${cleanDest}`,
       activities_highlights: presetData.activitiesHighlights,
       days: computedDays,
     }));
@@ -406,9 +420,10 @@ export function UnifiedVisaForm() {
   };
 
   // Travel Budget State Helpers
-  const fetchLiveExchangeRate = async () => {
-    const homeCurr = profile.home_currency || "NGN";
-    const destCurr = profile.dest_currency || "CAD";
+  const fetchLiveRateForPair = async (home: string, dest: string, silent = false) => {
+    const homeCurr = (home || "NGN").trim().toUpperCase();
+    const destCurr = (dest || "CAD").trim().toUpperCase();
+    if (!homeCurr || !destCurr) return;
     try {
       const res = await fetch(`https://open.er-api.com/v6/latest/${destCurr}`);
       if (!res.ok) throw new Error("Failed to fetch live rate");
@@ -427,17 +442,27 @@ export function UnifiedVisaForm() {
           });
           return {
             ...prev,
+            home_currency: homeCurr,
+            dest_currency: destCurr,
             exchange_rate: updatedRate,
             budget_items: updatedItems,
           };
         });
-        toast.success(`Live rate updated: 1 ${destCurr} = ${rate.toFixed(2)} ${homeCurr}`);
-      } else {
+        if (!silent) {
+          toast.success(`Live rate updated: 1 ${destCurr} = ${rate.toFixed(2)} ${homeCurr}`);
+        }
+      } else if (!silent) {
         toast.error(`Could not find exchange rate for ${destCurr} to ${homeCurr}`);
       }
     } catch (err) {
-      toast.error("Failed to fetch live exchange rate. You can enter the rate manually.");
+      if (!silent) {
+        toast.error("Failed to fetch live exchange rate. You can enter the rate manually.");
+      }
     }
+  };
+
+  const fetchLiveExchangeRate = () => {
+    return fetchLiveRateForPair(profile.home_currency || "NGN", profile.dest_currency || "CAD", false);
   };
 
   const handleBudgetItemChange = (index: number, field: string, value: any) => {
@@ -873,41 +898,124 @@ export function UnifiedVisaForm() {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs font-medium">Home Currency</Label>
-                      <Input
-                        name="home_currency"
-                        value={profile.home_currency || "NGN"}
-                        onChange={handleInputChange}
-                        placeholder="e.g. NGN"
-                        className="h-8 text-xs font-mono"
-                      />
-                    </div>
+                  {(() => {
+                    const currentHomeCode = (profile.home_currency || "NGN").toUpperCase();
+                    const isPredefinedHome = MAJOR_CURRENCIES.some((c) => c.code === currentHomeCode);
+                    const homeSelectValue = isCustomHomeCurrency || !isPredefinedHome ? "custom" : currentHomeCode;
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-medium">Destination Currency</Label>
-                      <Input
-                        name="dest_currency"
-                        value={profile.dest_currency || "CAD"}
-                        onChange={handleInputChange}
-                        placeholder="e.g. CAD, USD, EUR"
-                        className="h-8 text-xs font-mono"
-                      />
-                    </div>
+                    const currentDestCode = (profile.dest_currency || "CAD").toUpperCase();
+                    const isPredefinedDest = MAJOR_CURRENCIES.some((c) => c.code === currentDestCode);
+                    const destSelectValue = isCustomDestCurrency || !isPredefinedDest ? "custom" : currentDestCode;
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-medium">Rate (1 {profile.dest_currency || "CAD"} = {profile.home_currency || "NGN"})</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        name="exchange_rate"
-                        value={profile.exchange_rate || 963.93}
-                        onChange={(e) => handleSelectChange("exchange_rate", parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs font-mono"
-                      />
-                    </div>
-                  </div>
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
+                        {/* HOME CURRENCY */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium">Home Currency</Label>
+                          <Select
+                            value={homeSelectValue}
+                            onValueChange={(val) => {
+                              if (val === "custom") {
+                                setIsCustomHomeCurrency(true);
+                              } else {
+                                setIsCustomHomeCurrency(false);
+                                setProfile((prev) => ({ ...prev, home_currency: val }));
+                                fetchLiveRateForPair(val, profile.dest_currency || "CAD");
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-xs font-mono">
+                              <SelectValue placeholder="Select home currency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MAJOR_CURRENCIES.map((c) => (
+                                <SelectItem key={c.code} value={c.code} className="text-xs font-mono">
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="custom" className="text-xs font-semibold text-primary">
+                                + Custom Currency...
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {(isCustomHomeCurrency || !isPredefinedHome) && (
+                            <Input
+                              name="home_currency"
+                              value={profile.home_currency || ""}
+                              onChange={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                setProfile((prev) => ({ ...prev, home_currency: val }));
+                              }}
+                              placeholder="Enter code (e.g. NGN)"
+                              className="h-8 text-xs font-mono uppercase mt-1"
+                              maxLength={6}
+                              autoFocus
+                            />
+                          )}
+                        </div>
+
+                        {/* DESTINATION CURRENCY */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium">Destination Currency</Label>
+                          <Select
+                            value={destSelectValue}
+                            onValueChange={(val) => {
+                              if (val === "custom") {
+                                setIsCustomDestCurrency(true);
+                              } else {
+                                setIsCustomDestCurrency(false);
+                                setProfile((prev) => ({ ...prev, dest_currency: val }));
+                                fetchLiveRateForPair(profile.home_currency || "NGN", val);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-xs font-mono">
+                              <SelectValue placeholder="Select destination currency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MAJOR_CURRENCIES.map((c) => (
+                                <SelectItem key={c.code} value={c.code} className="text-xs font-mono">
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="custom" className="text-xs font-semibold text-primary">
+                                + Custom Currency...
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {(isCustomDestCurrency || !isPredefinedDest) && (
+                            <Input
+                              name="dest_currency"
+                              value={profile.dest_currency || ""}
+                              onChange={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                setProfile((prev) => ({ ...prev, dest_currency: val }));
+                              }}
+                              placeholder="Enter code (e.g. SEK)"
+                              className="h-8 text-xs font-mono uppercase mt-1"
+                              maxLength={6}
+                              autoFocus
+                            />
+                          )}
+                        </div>
+
+                        {/* EXCHANGE RATE */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium">
+                            Rate (1 {profile.dest_currency || "CAD"} = {profile.home_currency || "NGN"})
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            name="exchange_rate"
+                            value={profile.exchange_rate || 963.93}
+                            onChange={(e) => handleSelectChange("exchange_rate", parseFloat(e.target.value) || 0)}
+                            className="h-8 text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* ITEM LIST TABLE */}
@@ -1139,6 +1247,51 @@ export function UnifiedVisaForm() {
                       </Button>
                     </div>
                     <Textarea id="home_ties_summary" name="home_ties_summary" rows={2} value={profile.home_ties_summary} onChange={handleInputChange} placeholder="e.g. 4+ years as Program Manager at Advokc Foundation leading key projects, plus domestic family commitments in Nigeria." className="text-xs" />
+                  </div>
+
+                  {/* PRIOR TRAVEL HISTORY TOGGLE */}
+                  <div className="space-y-3 pt-3 border-t md:col-span-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="has_travel_history" className="text-xs font-semibold cursor-pointer">
+                          Prior International Travel History
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          Toggle on if applicant has previous international travel to declare in the letter
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="has_travel_history"
+                          name="has_travel_history"
+                          checked={profile.has_travel_history ?? true}
+                          onChange={(e) => setProfile((prev) => ({ ...prev, has_travel_history: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+
+                    {(profile.has_travel_history ?? true) && (
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="travel_history_details" className="text-xs font-medium">
+                            Previous Countries Visited & Years
+                          </Label>
+                          <span className="text-[10px] text-muted-foreground">Optional details</span>
+                        </div>
+                        <Textarea
+                          id="travel_history_details"
+                          name="travel_history_details"
+                          rows={2}
+                          value={profile.travel_history_details || ""}
+                          onChange={handleInputChange}
+                          placeholder="e.g. United Kingdom (2022), United Arab Emirates (2023), and Qatar (2024)"
+                          className="text-xs"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </TabsContent>

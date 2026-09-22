@@ -254,7 +254,7 @@ export function ItIssueDetailsSheet({
                 >
                   Post comment
                 </Button>
-                {userHasAnyRole(user, ["it", "super", "compliance"]) &&
+                {userHasAnyRole(user, ["it", "super", "compliance", "office-operations"]) &&
                   currentStatus !== "closed" && (
                     <Button
                       variant="destructive"

@@ -105,6 +105,7 @@ function guessRoleFromPosition(position: string): UserRole {
   if (pos.includes("holiday") || pos.includes("tour")) return "holidays";
   if (pos.includes("ticket") || pos.includes("booking") || pos.includes("flight"))
     return "ticket";
+  if (pos.includes("operation")) return "office-operations";
   if (pos.includes("assistant") || pos.includes("office"))
     return "office-assistant";
   return "admin";

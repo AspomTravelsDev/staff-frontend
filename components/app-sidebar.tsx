@@ -68,6 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       "IT Tools": [],
       "Admin Tools": [],
       "Compliance Tools": [],
+      "Office Operations Tools": [],
       "Other Tools": [],
     };
 
@@ -112,6 +113,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         activeRoles.includes("compliance")
       ) {
         groups["Compliance Tools"].push(item);
+      } else if (
+        item.allowedRoles.includes("office-operations") &&
+        activeRoles.includes("office-operations")
+      ) {
+        groups["Office Operations Tools"].push(item);
       } else if (item.allowedRoles.includes("social-media")) {
         groups["Social Media Tools"].push(item);
       } else if (item.allowedRoles.includes("hr")) {
@@ -126,6 +132,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         groups["Admin Tools"].push(item);
       } else if (item.allowedRoles.includes("compliance")) {
         groups["Compliance Tools"].push(item);
+      } else if (item.allowedRoles.includes("office-operations")) {
+        groups["Office Operations Tools"].push(item);
       } else {
         groups["Other Tools"].push(item);
       }

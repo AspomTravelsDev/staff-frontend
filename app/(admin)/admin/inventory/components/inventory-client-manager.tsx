@@ -66,7 +66,7 @@ export function InventoryClientManager({
     [isSuper, activeRoles]
   );
   const isCompliance = useMemo(
-    () => isSuper || ["compliance"].some((r) => activeRoles.includes(r)),
+    () => isSuper || ["compliance", "office-operations"].some((r) => activeRoles.includes(r)),
     [isSuper, activeRoles]
   );
 

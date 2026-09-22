@@ -34,11 +34,15 @@ import { useWeeklyFeedbackLockStatus } from "@/lib/api/hooks/use-weekly-feedback
 import { useCallback } from "react";
 import { debounce } from "lodash";
 
+import { CopyTasksButton } from "@/components/tasks/copy-tasks-button";
+import type { User } from "@/types/user-types";
+
 interface TaskListProps {
   initialData: DailyTaskRecord[];
+  user?: User | null;
 }
 
-export function TaskList({ initialData }: TaskListProps) {
+export function TaskList({ initialData, user }: TaskListProps) {
   const today = format(new Date(), "yyyy-MM-dd");
   const { data: records, isLoading } = useMyDailyTasks({
     date: today,
@@ -198,7 +202,7 @@ export function TaskList({ initialData }: TaskListProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {record?.first_saved_at && (
             <Badge
               variant="secondary"
@@ -218,6 +222,17 @@ export function TaskList({ initialData }: TaskListProps) {
                 ? format(new Date(record.report_submitted_at), "HH:mm")
                 : ""}
             </Badge>
+          )}
+
+          {localTasks.length > 0 && (
+            <CopyTasksButton
+              tasks={localTasks}
+              date={today}
+              userName={user?.name}
+              staffId={user?.staff_id}
+              department={user?.department}
+              isSubmitted={isSubmitted}
+            />
           )}
         </div>
       </div>
@@ -295,6 +310,15 @@ export function TaskList({ initialData }: TaskListProps) {
               All changes saved
             </Badge>
           )}
+          <CopyTasksButton
+            tasks={localTasks}
+            date={today}
+            userName={user?.name}
+            staffId={user?.staff_id}
+            department={user?.department}
+            isSubmitted={isSubmitted}
+            className="min-h-11 sm:min-h-8"
+          />
           <Button
             onClick={handleSave}
             disabled={updateTasks.isPending}
@@ -345,6 +369,20 @@ export function TaskList({ initialData }: TaskListProps) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </div>
+      )}
+
+      {isLocked && localTasks.length > 0 && (
+        <div className="flex flex-col items-stretch gap-3 pt-4 border-t sm:flex-row sm:items-center sm:justify-end">
+          <CopyTasksButton
+            tasks={localTasks}
+            date={today}
+            userName={user?.name}
+            staffId={user?.staff_id}
+            department={user?.department}
+            isSubmitted={isSubmitted}
+            className="min-h-11 sm:min-h-8"
+          />
         </div>
       )}
     </div>

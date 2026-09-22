@@ -13,9 +13,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2, ArrowRight, CheckCircle2, ShieldOff } from "lucide-react";
-import type { RecruitmentCandidate } from "@/lib/types/recruitment";
-import { onboardCandidateAction } from "@/lib/api/recruitment";
+import { Badge } from "@/components/ui/badge";
+import {
+  Send,
+  Loader2,
+  ArrowRight,
+  CheckCircle2,
+  ShieldOff,
+  Sparkles,
+  AlertTriangle,
+  TrendingUp,
+  RotateCw,
+  HelpCircle,
+  XCircle,
+} from "lucide-react";
+import type { RecruitmentCandidate, PostInterviewEvaluation } from "@/lib/types/recruitment";
+import { onboardCandidateAction, analyzeInterviewAction } from "@/lib/api/recruitment";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 import { sendInvite } from "@/lib/api/hr";
 import {
@@ -70,6 +83,12 @@ export function AcceptOnboardModal({
     }
   }, [lastEdited, grossInput, netInput, isTaxExempt]);
 
+  // Pre-Offer AI Verification State
+  const [postInterviewAnalysis, setPostInterviewAnalysis] = useState<PostInterviewEvaluation | null>(
+    candidate?.post_interview_evaluation || null
+  );
+  const [analyzingInterview, setAnalyzingInterview] = useState(false);
+
   // Pre-fill when candidate changes
   useEffect(() => {
     if (candidate) {
@@ -93,8 +112,55 @@ export function AcceptOnboardModal({
       setLastEdited("gross");
       setIsTaxExempt(false);
       setCreatedAppId(null);
+      setPostInterviewAnalysis(candidate.post_interview_evaluation || null);
     }
   }, [candidate, roleTitle]);
+
+  // Automatically trigger pre-offer interview analysis if candidate has rubric but no debrief yet
+  useEffect(() => {
+    if (!open || !candidate) return;
+
+    if (candidate.post_interview_evaluation) {
+      setPostInterviewAnalysis(candidate.post_interview_evaluation);
+      return;
+    }
+
+    if (candidate.interview_rubric && !postInterviewAnalysis && !analyzingInterview) {
+      const runAutoPreOfferCheck = async () => {
+        try {
+          setAnalyzingInterview(true);
+          const currentGross = breakdown.gross_salary || 200000;
+          const updated = await analyzeInterviewAction(candidate.id, roleId, currentGross);
+          if (updated.post_interview_evaluation) {
+            setPostInterviewAnalysis(updated.post_interview_evaluation);
+          }
+        } catch (err: any) {
+          console.error("Auto pre-offer AI check failed:", err);
+        } finally {
+          setAnalyzingInterview(false);
+        }
+      };
+
+      runAutoPreOfferCheck();
+    }
+  }, [open, candidate?.id]);
+
+  const handleRerunInterviewAnalysis = async () => {
+    if (!candidate) return;
+    try {
+      setAnalyzingInterview(true);
+      const currentGross = breakdown.gross_salary || 200000;
+      const updated = await analyzeInterviewAction(candidate.id, roleId, currentGross);
+      if (updated.post_interview_evaluation) {
+        setPostInterviewAnalysis(updated.post_interview_evaluation);
+        toast.success("Pre-offer AI verification refreshed.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to run pre-offer analysis.");
+    } finally {
+      setAnalyzingInterview(false);
+    }
+  };
 
   const handleGrossChange = (val: string) => {
     setLastEdited("gross");
@@ -243,6 +309,130 @@ export function AcceptOnboardModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
+            {/* Pre-Offer AI Verification & Interview Debrief */}
+            {analyzingInterview ? (
+              <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 flex items-center gap-3 text-xs text-primary font-medium animate-pulse">
+                <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
+                <span>Running Pre-Offer AI Analysis (synthesizing interview rubric, gap resolution, & salary match)...</span>
+              </div>
+            ) : postInterviewAnalysis ? (
+              <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4 text-xs">
+                <div className="flex items-center justify-between gap-2 border-b border-primary/10 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="font-bold uppercase tracking-wider text-primary text-[11px]">
+                      Pre-Offer AI Hiring Verification
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      className={`text-xs font-semibold px-2 py-0.5 ${
+                        postInterviewAnalysis.verdict === "Strong Hire"
+                          ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                          : postInterviewAnalysis.verdict === "Recommend for Offer"
+                          ? "bg-blue-500/15 text-blue-600 border border-blue-500/30"
+                          : postInterviewAnalysis.verdict === "Hire with Reservations"
+                          ? "bg-amber-500/15 text-amber-600 border border-amber-500/30"
+                          : "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                      }`}
+                    >
+                      {postInterviewAnalysis.verdict}
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onClick={handleRerunInterviewAnalysis}
+                      title="Re-analyze with current salary"
+                    >
+                      <RotateCw className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Metric Highlights */}
+                <div className="grid grid-cols-3 gap-2 text-center py-1.5 bg-background/70 rounded border border-border/40">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">Combined Score</div>
+                    <div className="text-sm font-bold text-foreground flex items-center justify-center gap-0.5">
+                      <TrendingUp className="h-3 w-3 text-primary" />
+                      {postInterviewAnalysis.combined_score}%
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">Interview Rubric</div>
+                    <div className="text-sm font-bold text-foreground">
+                      {candidate?.interview_rubric?.scores?.total_score || 0}
+                      <span className="text-[10px] font-normal text-muted-foreground"> / 55</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">CV Gaps Cleared</div>
+                    <div className="text-sm font-bold text-emerald-600">
+                      {postInterviewAnalysis.gap_resolution?.filter((g) => g.status === "resolved").length || 0}
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        {" "}/ {postInterviewAnalysis.gap_resolution?.length || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Executive Summary */}
+                <p className="text-[11px] text-foreground/90 leading-relaxed bg-background/50 p-2.5 rounded border border-border/30">
+                  {postInterviewAnalysis.executive_summary}
+                </p>
+
+                {/* Salary Alignment Note */}
+                {postInterviewAnalysis.salary_alignment && (
+                  <div
+                    className={`p-2 rounded border text-[11px] flex items-start gap-1.5 ${
+                      postInterviewAnalysis.salary_alignment.status === "below_expectation"
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
+                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                    }`}
+                  >
+                    <span className="font-semibold shrink-0">Salary Match:</span>
+                    <span>{postInterviewAnalysis.salary_alignment.notes}</span>
+                  </div>
+                )}
+
+                {/* Caution banner for reservations */}
+                {(postInterviewAnalysis.verdict === "Do Not Recommend" ||
+                  postInterviewAnalysis.verdict === "Hire with Reservations") && (
+                  <div className="flex items-start gap-2 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[11px]">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Caution:</strong> The AI interview debrief noted reservations. Verify before sending this offer letter.
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg border bg-muted/30 text-xs text-muted-foreground flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {candidate?.interview_rubric ? (
+                    <span>Interview rubric is recorded. You can run pre-offer analysis below.</span>
+                  ) : (
+                    <span>No interview rubric recorded for this candidate yet. You can still proceed directly.</span>
+                  )}
+                </span>
+                {candidate?.interview_rubric && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={handleRerunInterviewAnalysis}
+                  >
+                    <Sparkles className="h-3 w-3 text-primary" />
+                    Run AI Analysis
+                  </Button>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="applicant_name">Candidate Name</Label>

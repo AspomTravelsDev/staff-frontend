@@ -17,8 +17,14 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Loader2, History, Info } from "lucide-react";
+import { CopyTasksButton } from "@/components/tasks/copy-tasks-button";
+import type { User } from "@/types/user-types";
 
-export function TaskHistory() {
+interface TaskHistoryProps {
+  user?: User | null;
+}
+
+export function TaskHistory({ user }: TaskHistoryProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
     to: subDays(new Date(), 1), // Exclude today by default
@@ -191,6 +197,20 @@ export function TaskHistory() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pb-4 pt-2">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/50">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {record.tasks.length} {record.tasks.length === 1 ? "task" : "tasks"} logged
+                      </span>
+                      <CopyTasksButton
+                        tasks={record.tasks}
+                        date={record.date || record.created_at}
+                        userName={user?.name}
+                        staffId={user?.staff_id}
+                        department={user?.department}
+                        isSubmitted={record.report_submitted}
+                        size="sm"
+                      />
+                    </div>
                     <div className="space-y-2">
                       {record.tasks.map((task, idx) => (
                         <TaskItem

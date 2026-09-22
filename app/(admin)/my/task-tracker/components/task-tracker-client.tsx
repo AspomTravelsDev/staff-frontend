@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface TaskTrackerClientProps {
   initialTasks: TaskTrackerItem[];
@@ -46,6 +47,7 @@ export function TaskTrackerClient({
   initialTasks,
   initialStats,
 }: TaskTrackerClientProps) {
+  const queryClient = useQueryClient();
   const [activeView, setActiveView] = useState<"assigned_to_me" | "assigned_by_me">("assigned_to_me");
   const [tasks, setTasks] = useState<TaskTrackerItem[]>(initialTasks);
   const [stats, setStats] = useState<TaskTrackerStats>(initialStats);
@@ -64,6 +66,7 @@ export function TaskTrackerClient({
       if (res.success) {
         setTasks(res.data.data);
         setStats(res.data.stats);
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
       }
     } catch {
       // silently handle or fallback
@@ -181,7 +184,7 @@ export function TaskTrackerClient({
   }, [tasks, activeTab, priorityFilter, searchQuery]);
 
   return (
-    <div className="flex flex-col gap-6 px-3 py-4 sm:p-4 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       {/* Tour guides */}
       <TaskTrackerTour />
 

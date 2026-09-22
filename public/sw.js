@@ -1,4 +1,4 @@
-const CACHE_NAME = "aspom-portal-cache-v2";
+const CACHE_NAME = "aspom-portal-cache-v3";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

@@ -20,7 +20,7 @@ export default async function AwardStaffPage() {
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["hr", "super", "compliance"])) {
+  if (!userHasAnyRole(user, ["hr", "super", "compliance", "office-operations"])) {
     redirect("/dashboard");
   }
 

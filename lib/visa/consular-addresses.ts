@@ -9,20 +9,7 @@ export interface ConsularAddress {
 export const CONSULAR_ADDRESSES: Record<string, ConsularAddress> = {
   canada: {
     countryCode: "canada",
-    countryName: "Canada",
-    consularTitle: "The Consular",
-    embassyName: "Canadian Deputy High Commission",
-    addressLines: [
-      "The Consular,",
-      "Canadian Deputy High Commission,",
-      "4 Anifowose Street,",
-      "Victoria Island,",
-      "Lagos State.",
-    ],
-  },
-  canada_summer: {
-    countryCode: "canada_summer",
-    countryName: "Canada",
+    countryName: "Canada (General)",
     consularTitle: "The Consular",
     embassyName: "Canadian Deputy High Commission",
     addressLines: [
@@ -35,7 +22,20 @@ export const CONSULAR_ADDRESSES: Record<string, ConsularAddress> = {
   },
   canada_winter: {
     countryCode: "canada_winter",
-    countryName: "Canada",
+    countryName: "Canada (Winter)",
+    consularTitle: "The Consular",
+    embassyName: "Canadian Deputy High Commission",
+    addressLines: [
+      "The Consular,",
+      "Canadian Deputy High Commission,",
+      "4 Anifowose Street,",
+      "Victoria Island,",
+      "Lagos State.",
+    ],
+  },
+  canada_summer: {
+    countryCode: "canada_summer",
+    countryName: "Canada (Summer)",
     consularTitle: "The Consular",
     embassyName: "Canadian Deputy High Commission",
     addressLines: [
