@@ -89,10 +89,15 @@ export function UploadCvDialog({ roleId, roleTitle, trigger }: UploadCvDialogPro
       if (candidatePhone.trim()) formData.append("phone", candidatePhone.trim());
 
       setUploadStep("Evaluating candidate with Gemini AI against role criteria...");
-      const candidate = await uploadCandidateCv(roleId, formData);
+      const res = await uploadCandidateCv(roleId, formData);
+
+      if (!res.success || !res.data) {
+        toast.error(res.error || "Failed to upload and analyze CV.");
+        return;
+      }
 
       toast.success(
-        `Candidate analyzed! Match score: ${candidate.ai_score ?? "N/A"}%`
+        `Candidate analyzed! Match score: ${res.data.ai_score ?? "N/A"}%`
       );
       setOpen(false);
       setFile(null);
@@ -101,7 +106,7 @@ export function UploadCvDialog({ roleId, roleTitle, trigger }: UploadCvDialogPro
       setCandidatePhone("");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to upload and analyze CV.");
+      toast.error(err?.message || "Failed to upload and analyze CV.");
     } finally {
       setUploading(false);
       setUploadStep("");

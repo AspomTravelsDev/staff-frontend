@@ -31,6 +31,7 @@ export interface UnifiedVisaProfileData {
   activities_highlights: string;
 
   // 4. Family Members & Schedule Days
+  has_family_members?: boolean;
   familyMembers: Array<{
     relationship: string;
     name: string;
@@ -68,6 +69,7 @@ export interface UnifiedVisaProfileData {
   source_of_funds: string;
   home_ties_summary: string;
   additional_notes: string;
+  leave_reason?: string;
 
   // 7. Sponsorship Details
   sponsor_name: string;
@@ -213,8 +215,14 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     .trim();
 
   // 1. Travel Itinerary Payload
-  const familyNarrative = profile.familyMembers.length > 0
-    ? ` together with my family: ${profile.familyMembers.map((m) => `${m.relationship ? m.relationship.toLowerCase() + " " : ""}${m.name} (${m.passport_number})`).join(" and ")}`
+  const isFamilyToggled = profile.has_family_members ?? (profile.familyMembers && profile.familyMembers.length > 0);
+  const validFamilyMembers = isFamilyToggled
+    ? (profile.familyMembers || []).filter((m) => m.name && m.name.trim().length > 0)
+    : [];
+  const hasCompanions = isFamilyToggled && validFamilyMembers.length > 0;
+
+  const familyNarrative = hasCompanions
+    ? ` together with my family: ${validFamilyMembers.map((m) => `${m.relationship ? m.relationship.toLowerCase() + " " : ""}${m.name} (${m.passport_number})`).join(" and ")}`
     : "";
 
   const itineraryPayload = {
@@ -229,7 +237,7 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
     origin_country: profile.nationality,
     applicant_visa_info: "",
     purpose_of_visit: cleanPurposeOfVisit,
-    has_family: profile.familyMembers.length > 0,
+    has_family: hasCompanions,
     family_narrative: familyNarrative,
     arrival_city: profile.arrival_city,
     arrival_date: formattedArrivalDate,
@@ -303,6 +311,8 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
         pronoun_object: pronounObject,
         signatory_name: profile.self_signatory_name || "KEMI ADEBAYO",
         signatory_designation: profile.self_signatory_designation || "Company Secretary",
+        applicant_role: profile.job_title?.trim() || "Managing Director",
+        job_title: profile.job_title?.trim() || "Managing Director",
         signatory_contact_info: [
           formattedSelfSignatoryAddress,
           profile.self_signatory_phone,
@@ -316,41 +326,44 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
       };
 
   // 3. Explanation Letter Payload
-  const spouseMember = profile.familyMembers?.find(
-    (m) => m.relationship.toLowerCase().includes("spouse") || m.relationship.toLowerCase().includes("husband") || m.relationship.toLowerCase().includes("wife")
-  );
-  const companionNarrative = spouseMember
-    ? ` alongside my ${spouseMember.relationship.toLowerCase()}, ${spouseMember.name}, holder of ${profile.nationality || "Nigerian"} passport number ${spouseMember.passport_number}`
-    : profile.familyMembers && profile.familyMembers.length > 0
-    ? ` alongside my family members`
-    : "";
+  const spouseMember = hasCompanions
+    ? validFamilyMembers.find(
+        (m) => m.relationship && (m.relationship.toLowerCase().includes("spouse") || m.relationship.toLowerCase().includes("husband") || m.relationship.toLowerCase().includes("wife"))
+      )
+    : undefined;
 
-  const companionShortRef = spouseMember
+  const companionNarrative = !hasCompanions
+    ? ""
+    : spouseMember
+    ? ` alongside my ${spouseMember.relationship.toLowerCase()}, ${spouseMember.name}, holder of ${profile.nationality || "Nigerian"} passport number ${spouseMember.passport_number}`
+    : ` alongside my family members`;
+
+  const companionShortRef = !hasCompanions
+    ? ""
+    : spouseMember
     ? ` together with my ${spouseMember.relationship.toLowerCase()}`
-    : profile.familyMembers && profile.familyMembers.length > 0
-    ? ` together with my family`
-    : "";
+    : ` together with my family`;
 
   const businessBackgroundNarrative = profile.employment_type === "self_employed"
-    ? `I am the ${profile.signatory_designation || "Managing Director"} of ${profile.business_name || profile.company_name || "my business"}. ${profile.business_name || "My company"} is a ${profile.business_nature || "commercial enterprise"} based in Nigeria, dedicated to providing high-quality services to a diverse clientele. With a strong focus on quality, style, and customer satisfaction, our business continues to build its reputation as a trusted brand.`
+    ? `I am the ${profile.job_title || "Managing Director"} of ${profile.business_name || profile.company_name || "my business"}. ${profile.business_name || "My company"} is a ${profile.business_nature || "commercial enterprise"} based in Nigeria, dedicated to providing high-quality services to a diverse clientele. With a strong focus on quality, style, and customer satisfaction, our business continues to build its reputation as a trusted brand.`
     : `I am currently employed as ${profile.job_title || "a professional"} at ${profile.company_name || "my organization"}. My company operates in ${profile.business_nature || "commercial services"}, providing high-quality solutions to client organizations.`;
 
   const jobDutiesNarrative = profile.additional_notes || (
     profile.employment_type === "self_employed"
-      ? `As the ${profile.signatory_designation || "Managing Director"}, I am responsible for overseeing the overall management and day-to-day operations of the business, ensuring that all aspects run efficiently and consistently meet high standards. I provide strategic direction, supervise staff and service delivery, monitor business performance, and ensure that our clients receive a professional experience. I am also actively involved in business development, brand positioning, marketing initiatives, and identifying opportunities for expansion.`
+      ? `As the ${profile.job_title || "Managing Director"}, I am responsible for overseeing the overall management and day-to-day operations of the business, ensuring that all aspects run efficiently and consistently meet high standards. I provide strategic direction, supervise staff and service delivery, monitor business performance, and ensure that our clients receive a professional experience. I am also actively involved in business development, brand positioning, marketing initiatives, and identifying opportunities for expansion.`
       : `In my role as ${profile.job_title || "Staff"}, I direct operational activities and process optimization initiatives. I manage core business deliverables, monitor resource allocation, and ensure seamless alignment between daily team execution and organizational objectives.`
   );
 
   const attractionsList = profile.activities_highlights || `major cultural, historical, shopping, and recreational locations in ${cleanDestinationCountry}`;
 
-  const hasCompanions = profile.familyMembers && profile.familyMembers.length > 0;
   const homeCountry = profile.nationality || "Nigeria";
 
   const isSelfSponsored = !profile.sponsor_name || profile.sponsor_name === profile.applicant_name;
   const capacityPronoun = hasCompanions ? "our" : "my";
+  const submissionPronoun = hasCompanions ? "we have enclosed" : "I have enclosed";
   const financialSponsorshipNarrative = isSelfSponsored
     ? `I will fully self-sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. My financial resources are held at ${profile.bank_name || "my financial institution"} (Account ending ${profile.account_number_ending || "XXXX"}), with an available closing balance of ${profile.closing_balance || "adequate funds"}. Source of funds: ${profile.source_of_funds || "business operations and earnings"}. Enclosed herewith is my personal bank statement as evidence of financial capacity.`
-    : `My ${profile.relationship_to_applicant || "sponsor"}, ${profile.sponsor_name}, holder of ID/Passport number ${profile.sponsor_id_number || "N/A"}, is the ${profile.sponsor_designation || "Executive"} of ${profile.sponsor_business_name || "their organization"}. ${profile.sponsor_name} will fully sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. To demonstrate ${capacityPronoun} financial capacity to undertake this trip, we have enclosed their bank statement, together with relevant supporting business documents, as evidence of ability to fully finance all expenses.`;
+    : `My ${profile.relationship_to_applicant || "sponsor"}, ${profile.sponsor_name}, holder of ID/Passport number ${profile.sponsor_id_number || "N/A"}, is the ${profile.sponsor_designation || "Executive"} of ${profile.sponsor_business_name || "their organization"}. ${profile.sponsor_name} will fully sponsor all expenses related to this trip, including flights, accommodation, daily living expenses, and travel insurance. To demonstrate ${capacityPronoun} financial capacity to undertake this trip, ${submissionPronoun} their bank statement, together with relevant supporting business documents, as evidence of ability to fully finance all expenses.`;
 
   // Singular vs. Plural narratives
   const tripPurposeNarrative = hasCompanions
@@ -453,24 +466,27 @@ export function buildPayloads(profile: UnifiedVisaProfileData) {
 
   // 5. Leave Approval Letter Payload
   const resumptionDate = formatDateWithOrdinal(addDays(profile.travel_end_date, 1));
+  const leaveReason = profile.leave_reason?.trim()
+    || profile.additional_notes?.trim()
+    || (cleanPurposeOfVisit ? `annual leave and travel (${cleanPurposeOfVisit})` : "personal matters, travel, and visa processing");
   const leaveApprovalPayload = {
     document_date: formattedLetterDate,
     applicant_name: profile.applicant_name,
     applicant_name_upper: applicantNameUpper,
-    job_title: profile.job_title || "Staff",
+    job_title: profile.job_title || (profile.employment_type === "self_employed" ? "Business Owner / Director" : "Staff"),
     company_name: profile.company_name || profile.business_name || "Company",
     travel_start_date: formattedArrivalDate,
     travel_end_date: formattedDepartureDate,
     resumption_date: resumptionDate,
-    leave_reason: profile.additional_notes || "personal matters, travel, and visa processing",
+    leave_reason: leaveReason,
     signatory_name: profile.signatory_name || profile.self_signatory_name || "HR Manager",
-    signatory_designation: profile.signatory_designation || profile.self_signatory_designation || "Human Resources",
+    signatory_designation: profile.signatory_designation || profile.self_signatory_designation || (profile.employment_type === "employed" ? "HR Manager" : "Human Resources"),
   };
 
   // 6. Self Introductory Letter Payload
   const employmentNarrative = profile.employment_type === "employed"
     ? `I am currently employed as a ${profile.job_title || "Staff"} at ${profile.company_name || "my organization"}. My employment serves as a stable source of income and demonstrates my strong professional and economic ties to my home country.`
-    : `I am currently self-employed as a business owner at ${profile.business_name || profile.company_name || "my business"}, engaged in ${profile.business_nature || "commercial activities"}. My business serves as a stable source of income and demonstrates my strong professional and economic ties to my home country.`;
+    : `I am currently self-employed as the ${profile.job_title || "business owner"} of ${profile.business_name || profile.company_name || "my business"}, engaged in ${profile.business_nature || "commercial activities"}. My business serves as a stable source of income and demonstrates my strong professional and economic ties to my home country.`;
 
   const selfIntroPayload = {
     applicant_address: formattedApplicantAddress,

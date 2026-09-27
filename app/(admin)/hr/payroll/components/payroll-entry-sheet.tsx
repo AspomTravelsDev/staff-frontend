@@ -254,56 +254,19 @@ export function PayrollEntrySheet({
           ? `${monthStrVal}-15`
           : "",
     );
-
-    // Compute dynamic defaults based on raw inputs to detect database overrides
-    if (monthStrVal) {
-      const [year, month] = monthStrVal.split("-").map(Number);
-      const daysInMonthVal = getDaysInMonth(year, month);
-      const workingDaysInMonthVal = getWorkingDaysInMonth(year, month);
-
-      const baseSalaryVal = (entry.calculation_snapshot as any)?.base_monthly_salary || Number(entry.user?.gross_pay || entry.gross_salary || 0);
-
-      const activeWorkingDays = Math.max(0, workingDaysInMonthVal - Number(entry.prorated_days ?? 0));
-      const factor = workingDaysInMonthVal > 0 ? activeWorkingDays / workingDaysInMonthVal : 0;
-      const defaultGross = round2(baseSalaryVal * factor);
-      const defaultTax = entry.is_intern ? 0 : calculateMonthlyTax(defaultGross);
-
-      let calendarProratedDays = 0;
-      if (entry.user?.date_joined) {
-        const joinDate = new Date(entry.user.date_joined.split(" ")[0]);
-        const monthStart = new Date(year, month - 1, 1);
-        if (joinDate > monthStart) {
-          const diffMs = joinDate.getTime() - monthStart.getTime();
-          calendarProratedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        }
-      }
-      const tenureMonthsVal = (() => {
-        if (!entry.user?.date_joined) return 0;
-        const [joinYear, joinMonth] = entry.user.date_joined.split("-").map(Number);
-        return (year - joinYear) * 12 + (month - joinMonth);
-      })();
-      const accommodationRateVal = getAccommodationRate(entry.user?.contract_type ?? undefined, tenureMonthsVal);
-      const defaultAccommodationAmount = calculateAccommodationAmount(accommodationRateVal, daysInMonthVal, calendarProratedDays);
-      const finalAccommodationAmount = Number(entry.accommodation_amount !== undefined ? entry.accommodation_amount : defaultAccommodationAmount);
-
-      const otherDeductionsAmount = normalizeOtherDeductions(entry).reduce((sum, d) => sum + Number(d.amount), 0);
-      const additionsAmount = normalizeAdditions(entry).reduce((sum, a) => sum + Number(a.amount), 0);
-
-      const dailyRateBase = Math.max(0, defaultGross - defaultTax - finalAccommodationAmount - otherDeductionsAmount);
-      const defaultDailyRate = workingDaysInMonthVal > 0 ? round2(dailyRateBase / workingDaysInMonthVal) : 0;
-
-      const attVal = Number(entry.attendance_days ?? 0);
-      const suspVal = Number(entry.suspension_days ?? 0);
-      const attAmount = round2(attVal * defaultDailyRate);
-      const suspAmount = round2(suspVal * defaultDailyRate);
-      const defaultDeductionAmount = round2(attAmount + suspAmount);
-
-      const defaultNet = Math.max(0, round2(Math.max(0, defaultGross - defaultTax)) - finalAccommodationAmount - otherDeductionsAmount - defaultDeductionAmount + additionsAmount);
-
-      setCustomActualGross(Number(entry.gross_salary) !== defaultGross ? String(entry.gross_salary) : "");
-      setCustomTaxAmount(Number(entry.tax_amount) !== defaultTax ? String(entry.tax_amount) : "");
-      setCustomDailyRate(Number(entry.daily_rate) !== defaultDailyRate ? String(entry.daily_rate) : "");
-      setCustomNetAmount(Number(entry.net_amount) !== defaultNet ? String(entry.net_amount) : "");
+    // Explicit manual overrides from calculation_snapshot
+    const snapshotOverrides = (entry.calculation_snapshot as any)?.manual_overrides;
+    if (snapshotOverrides && typeof snapshotOverrides === "object") {
+      setCustomActualGross(snapshotOverrides.gross ? String(entry.gross_salary) : "");
+      setCustomTaxAmount(snapshotOverrides.tax ? String(entry.tax_amount) : "");
+      setCustomDailyRate(snapshotOverrides.daily_rate ? String(entry.daily_rate) : "");
+      setCustomNetAmount(snapshotOverrides.net ? String(entry.net_amount) : "");
+    } else {
+      // Legacy entry or entry without manual_overrides: leave empty so everything is reactive in Auto mode
+      setCustomActualGross("");
+      setCustomTaxAmount("");
+      setCustomDailyRate("");
+      setCustomNetAmount("");
     }
   }, [entry, payrollMonth]);
 
@@ -462,8 +425,10 @@ export function PayrollEntrySheet({
       .filter((item) => item.label.length > 0 && item.amount > 0);
 
     const baseSalary =
-      (entry.calculation_snapshot as any)?.base_monthly_salary ||
-      Number(entry.user?.gross_pay || entry.gross_salary || 0);
+      Number(entry.user?.gross_pay || 0) > 0
+        ? Number(entry.user?.gross_pay)
+        : (entry.calculation_snapshot as any)?.base_monthly_salary ||
+          Number(entry.gross_salary || 0);
 
     const result = calculatePayrollEntry({
       baseSalary,
@@ -484,6 +449,82 @@ export function PayrollEntrySheet({
       customNet: customNetAmount !== "" ? parse(customNetAmount) : null,
     });
 
+    const autoBaselineGross = calculatePayrollEntry({
+      baseSalary,
+      contractType: entry.user?.contract_type ?? null,
+      isIntern: !!entry.is_intern,
+      dateJoined: entry.user?.date_joined ?? null,
+      exitDate: entry.user?.exit_date ?? null,
+      payrollMonth: monthStr || "",
+      proratedDays: prorated,
+      accommodationAmount: parse(accommodationAmount),
+      attendanceDays: att,
+      suspensionDays: susp,
+      otherDeductions: otherDeductionsPayload,
+      additions: additionsPayload,
+      customGross: null,
+      customTax: null,
+      customDailyRate: null,
+      customNet: null,
+    }).gross_salary;
+
+    const autoBaselineTax = calculatePayrollEntry({
+      baseSalary,
+      contractType: entry.user?.contract_type ?? null,
+      isIntern: !!entry.is_intern,
+      dateJoined: entry.user?.date_joined ?? null,
+      exitDate: entry.user?.exit_date ?? null,
+      payrollMonth: monthStr || "",
+      proratedDays: prorated,
+      accommodationAmount: parse(accommodationAmount),
+      attendanceDays: att,
+      suspensionDays: susp,
+      otherDeductions: otherDeductionsPayload,
+      additions: additionsPayload,
+      customGross: customActualGross !== "" ? parse(customActualGross) : null,
+      customTax: null,
+      customDailyRate: null,
+      customNet: null,
+    }).tax_amount;
+
+    const autoBaselineDailyRate = calculatePayrollEntry({
+      baseSalary,
+      contractType: entry.user?.contract_type ?? null,
+      isIntern: !!entry.is_intern,
+      dateJoined: entry.user?.date_joined ?? null,
+      exitDate: entry.user?.exit_date ?? null,
+      payrollMonth: monthStr || "",
+      proratedDays: prorated,
+      accommodationAmount: parse(accommodationAmount),
+      attendanceDays: att,
+      suspensionDays: susp,
+      otherDeductions: otherDeductionsPayload,
+      additions: additionsPayload,
+      customGross: customActualGross !== "" ? parse(customActualGross) : null,
+      customTax: customTaxAmount !== "" ? parse(customTaxAmount) : null,
+      customDailyRate: null,
+      customNet: null,
+    }).daily_rate;
+
+    const autoBaselineNet = calculatePayrollEntry({
+      baseSalary,
+      contractType: entry.user?.contract_type ?? null,
+      isIntern: !!entry.is_intern,
+      dateJoined: entry.user?.date_joined ?? null,
+      exitDate: entry.user?.exit_date ?? null,
+      payrollMonth: monthStr || "",
+      proratedDays: prorated,
+      accommodationAmount: parse(accommodationAmount),
+      attendanceDays: att,
+      suspensionDays: susp,
+      otherDeductions: otherDeductionsPayload,
+      additions: additionsPayload,
+      customGross: customActualGross !== "" ? parse(customActualGross) : null,
+      customTax: customTaxAmount !== "" ? parse(customTaxAmount) : null,
+      customDailyRate: customDailyRate !== "" ? parse(customDailyRate) : null,
+      customNet: null,
+    }).net_amount;
+
     return {
       baseSalary,
       actualGross: result.gross_salary,
@@ -497,6 +538,12 @@ export function PayrollEntrySheet({
       taxAmount: result.tax_amount,
       netAmount: result.net_amount,
       dailyRate: result.daily_rate,
+      autoPlaceholders: {
+        gross: autoBaselineGross,
+        tax: autoBaselineTax,
+        dailyRate: autoBaselineDailyRate,
+        net: autoBaselineNet,
+      },
       fullOutput: result,
     };
   }, [
@@ -643,7 +690,7 @@ export function PayrollEntrySheet({
               </div>
               <div className="space-y-0.5 border-l pl-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Daily Rate</p>
-                <p className="text-sm font-bold text-slate-800">{money(computed.dailyRate)}</p>
+                <p className="text-sm font-bold text-slate-800">{money(computed.dailyRate)} <span className="text-[10px] text-muted-foreground font-normal">/work day</span></p>
               </div>
             </div>
 
@@ -686,7 +733,6 @@ export function PayrollEntrySheet({
                       onChange={(e) => {
                         const val = e.target.value as "none" | "resumption" | "resignation";
                         setAdjustmentType(val);
-                        setCustomActualGross("");
                         setCustomTaxAmount("");
                         setCustomDailyRate("");
                         setCustomNetAmount("");
@@ -747,7 +793,6 @@ export function PayrollEntrySheet({
                           onChange={(e) => {
                             const dateVal = e.target.value;
                             setResumptionDate(dateVal);
-                            setCustomActualGross("");
                             setCustomTaxAmount("");
                             setCustomDailyRate("");
                             setCustomNetAmount("");
@@ -778,7 +823,7 @@ export function PayrollEntrySheet({
                           htmlFor="prorated-days"
                           className="text-xs font-semibold text-slate-600"
                         >
-                          Days Missed Before Joining
+                          Working Days Missed Before Joining (Mon–Fri)
                         </Label>
                         <div className="relative">
                           <Input
@@ -788,20 +833,23 @@ export function PayrollEntrySheet({
                             value={proratedDays}
                             onChange={(e) => {
                               setProratedDays(e.target.value);
-                              setCustomActualGross("");
                               setCustomTaxAmount("");
                               setCustomDailyRate("");
                               setCustomNetAmount("");
                             }}
-                            className="pr-16 bg-background text-xs h-9"
+                            className="pr-24 bg-background text-xs h-9"
                           />
                           <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                            days
+                            working days
                           </div>
                         </div>
-                        {suggestedProratedDays > 0 && (
+                        {suggestedProratedDays > 0 ? (
                           <p className="text-[10px] text-orange-600 font-medium">
-                            Suggested delay: {suggestedProratedDays} days
+                            Suggested delay: {suggestedProratedDays} working days (weekends excluded)
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground">
+                            Counts weekdays only; weekends are not deducted.
                           </p>
                         )}
                       </div>
@@ -837,7 +885,6 @@ export function PayrollEntrySheet({
                           onChange={(e) => {
                             const dateVal = e.target.value;
                             setResignationDate(dateVal);
-                            setCustomActualGross("");
                             setCustomTaxAmount("");
                             setCustomDailyRate("");
                             setCustomNetAmount("");
@@ -873,7 +920,7 @@ export function PayrollEntrySheet({
                           htmlFor="prorated-days"
                           className="text-xs font-semibold text-slate-600"
                         >
-                          Days Missed After Resignation
+                          Working Days Missed After Resignation (Mon–Fri)
                         </Label>
                         <div className="relative">
                           <Input
@@ -883,20 +930,23 @@ export function PayrollEntrySheet({
                             value={proratedDays}
                             onChange={(e) => {
                               setProratedDays(e.target.value);
-                              setCustomActualGross("");
                               setCustomTaxAmount("");
                               setCustomDailyRate("");
                               setCustomNetAmount("");
                             }}
-                            className="pr-16 bg-background text-xs h-9"
+                            className="pr-24 bg-background text-xs h-9"
                           />
                           <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                            days
+                            working days
                           </div>
                         </div>
-                        {suggestedExitProratedDays > 0 && (
+                        {suggestedExitProratedDays > 0 ? (
                           <p className="text-[10px] text-orange-600 font-medium">
-                            Suggested deduction: {suggestedExitProratedDays} working days after exit
+                            Suggested deduction: {suggestedExitProratedDays} working days after exit (weekends excluded)
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground">
+                            Counts remaining weekdays after exit; weekends are not deducted.
                           </p>
                         )}
                       </div>
@@ -933,7 +983,6 @@ export function PayrollEntrySheet({
                         onChange={(e) => {
                           setIsAccommodationOverride(true);
                           setAccommodationAmount(e.target.value);
-                          setCustomActualGross("");
                           setCustomTaxAmount("");
                           setCustomDailyRate("");
                           setCustomNetAmount("");
@@ -945,7 +994,7 @@ export function PayrollEntrySheet({
                       </div>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Default Rate: {money(accommodationRate)}
+                      Rate: {money(accommodationRate)}/mo • Prorated by calendar days ({daysInMonth} days in month)
                     </p>
                   </div>
                   <div className="flex flex-col justify-center items-end text-right">
@@ -965,7 +1014,7 @@ export function PayrollEntrySheet({
                       htmlFor="att-days"
                       className="text-xs font-semibold text-slate-700"
                     >
-                      Absent Days (Unpaid)
+                      Absent Days (Unpaid Working Days)
                     </Label>
                     <div className="relative">
                       <Input
@@ -975,21 +1024,23 @@ export function PayrollEntrySheet({
                         value={attendanceDays}
                         onChange={(e) => {
                           setAttendanceDays(e.target.value);
-                          setCustomActualGross("");
                           setCustomTaxAmount("");
                           setCustomDailyRate("");
                           setCustomNetAmount("");
                         }}
-                        className="pr-16 bg-background text-xs h-9"
+                        className="pr-24 bg-background text-xs h-9"
                       />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                        days
+                        working days
                       </div>
                     </div>
-                    {Number(entry.attendance_suggested_days) > 0 && (
+                    {Number(entry.attendance_suggested_days) > 0 ? (
                       <p className="text-[10px] text-orange-600 font-medium leading-tight">
-                        Suggested absences: {entry.attendance_suggested_days}{" "}
-                        days
+                        Suggested absences: {entry.attendance_suggested_days} working days missed
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        Deducted at {money(computed.dailyRate)} per working day
                       </p>
                     )}
                   </div>
@@ -1010,7 +1061,7 @@ export function PayrollEntrySheet({
                       htmlFor="susp-days"
                       className="text-xs font-semibold text-slate-700"
                     >
-                      Suspension Period
+                      Suspension Period (Working Days)
                     </Label>
                     <div className="relative">
                       <Input
@@ -1020,20 +1071,23 @@ export function PayrollEntrySheet({
                         value={suspensionDays}
                         onChange={(e) => {
                           setSuspensionDays(e.target.value);
-                          setCustomActualGross("");
                           setCustomTaxAmount("");
                           setCustomDailyRate("");
                           setCustomNetAmount("");
                         }}
-                        className="pr-16 bg-background text-xs h-9"
+                        className="pr-24 bg-background text-xs h-9"
                       />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">
-                        days
+                        working days
                       </div>
                     </div>
-                    {Number(entry.compliance_suggested_days) > 0 && (
+                    {Number(entry.compliance_suggested_days) > 0 ? (
                       <p className="text-[10px] text-orange-600 font-medium">
-                        Suggested: {entry.compliance_suggested_days} days
+                        Suggested: {entry.compliance_suggested_days} working days
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        Deducted at {money(computed.dailyRate)} per working day
                       </p>
                     )}
                   </div>
@@ -1292,7 +1346,7 @@ export function PayrollEntrySheet({
                           id="custom-gross"
                           type="number"
                           step="0.01"
-                          placeholder={String(computed.fullOutput.gross_salary)}
+                          placeholder={String(computed.autoPlaceholders.gross)}
                           value={customActualGross}
                           onChange={(e) => setCustomActualGross(e.target.value)}
                           className={cn(
@@ -1332,7 +1386,7 @@ export function PayrollEntrySheet({
                           id="custom-tax"
                           type="number"
                           step="0.01"
-                          placeholder={String(computed.fullOutput.tax_amount)}
+                          placeholder={String(computed.autoPlaceholders.tax)}
                           value={customTaxAmount}
                           onChange={(e) => setCustomTaxAmount(e.target.value)}
                           className={cn(
@@ -1350,7 +1404,7 @@ export function PayrollEntrySheet({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="custom-daily-rate" className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                          <span>Daily Rate</span>
+                          <span>Daily Rate (per working day)</span>
                           {customDailyRate !== "" ? (
                             <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-300">Overridden</Badge>
                           ) : (
@@ -1372,7 +1426,7 @@ export function PayrollEntrySheet({
                           id="custom-daily-rate"
                           type="number"
                           step="0.01"
-                          placeholder={String(computed.fullOutput.daily_rate)}
+                          placeholder={String(computed.autoPlaceholders.dailyRate)}
                           value={customDailyRate}
                           onChange={(e) => setCustomDailyRate(e.target.value)}
                           className={cn(
@@ -1412,7 +1466,7 @@ export function PayrollEntrySheet({
                           id="custom-net"
                           type="number"
                           step="0.01"
-                          placeholder={String(computed.fullOutput.net_amount)}
+                          placeholder={String(computed.autoPlaceholders.net)}
                           value={customNetAmount}
                           onChange={(e) => setCustomNetAmount(e.target.value)}
                           className={cn(
@@ -1452,9 +1506,14 @@ export function PayrollEntrySheet({
           <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-0">
             {/* Calculation Summary */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Net Computation
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Net Computation
+                </h3>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  {workingDaysInMonth} working days • {daysInMonth} calendar days
+                </span>
+              </div>
               <div className="grid gap-3 rounded-xl border p-4 bg-card shadow-xs text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Monthly Contract Salary</span>
@@ -1466,8 +1525,8 @@ export function PayrollEntrySheet({
                   <div className="flex justify-between text-red-600 bg-red-50/55 p-2 rounded-lg">
                     <span className="italic">
                       {adjustmentType === "resignation"
-                        ? `Resigned Before Month End (${computed.prorated} days)`
-                        : `Joined Mid-Month (${computed.prorated} days)`}
+                        ? `Resigned Before Month End (${computed.prorated} working days missed)`
+                        : `Joined Mid-Month (${computed.prorated} working days missed)`}
                     </span>
                     <span className="font-semibold">
                       -{money(computed.baseSalary - computed.actualGross)}
@@ -1515,7 +1574,7 @@ export function PayrollEntrySheet({
                 </div>
                 {computed.accommodation > 0 && (
                   <div className="flex justify-between text-red-600">
-                    <span>Accommodation Fee</span>
+                    <span>Accommodation Fee (calendar prorated)</span>
                     <span className="font-semibold">
                       -{money(computed.accommodation)}
                     </span>
@@ -1542,7 +1601,7 @@ export function PayrollEntrySheet({
                 {computed.attAmount > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span className="italic">
-                      Absent Days ({attendanceDays} days):
+                      Absent Days ({attendanceDays} working days):
                     </span>
                     <span className="font-semibold">
                       -{money(computed.attAmount)}
@@ -1552,7 +1611,7 @@ export function PayrollEntrySheet({
                 {computed.suspAmount > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span className="italic">
-                      Suspension Ded. ({suspensionDays} days):
+                      Suspension Ded. ({suspensionDays} working days):
                     </span>
                     <span className="font-semibold">
                       -{money(computed.suspAmount)}

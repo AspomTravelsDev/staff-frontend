@@ -156,74 +156,88 @@ export async function getSalaryAdvanceRequestsAccountsQueue() {
     return response.data;
 }
 
-export async function createSalaryAdvanceRequest(payload: SalaryAdvanceRequestPayload) {
+export async function createSalaryAdvanceRequest(
+    payload: SalaryAdvanceRequestPayload
+): Promise<{ success: boolean; data?: SalaryAdvanceRequestRecord; error?: string }> {
     const response = await api.post<SalaryAdvanceRequestMutationResponse>("/api/salary-advance-requests", payload);
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || "Failed to submit salary advance request" };
+    }
 
     revalidatePath("/my/salary-advance-requests");
     revalidatePath("/hr/salary-advance-requests");
     revalidatePath("/accounts/salary-advance-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
 export async function decideSalaryAdvanceRequestByHr(
     id: string,
     decision: "approved" | "rejected",
     comment?: string
-) {
+): Promise<{ success: boolean; data?: SalaryAdvanceRequestRecord; error?: string }> {
     const response = await api.patch<SalaryAdvanceRequestMutationResponse>(`/api/salary-advance-requests/${id}/hr-decision`, {
         decision,
         comment,
     });
 
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || `Failed to ${decision} salary advance request` };
+    }
 
     revalidatePath("/hr/salary-advance-requests");
     revalidatePath("/accounts/salary-advance-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
 export async function decideSalaryAdvanceRequestByAccounts(
     id: string,
     decision: "approved" | "rejected",
     comment?: string
-) {
+): Promise<{ success: boolean; data?: SalaryAdvanceRequestRecord; error?: string }> {
     const response = await api.patch<SalaryAdvanceRequestMutationResponse>(`/api/salary-advance-requests/${id}/accounts-decision`, {
         decision,
         comment,
     });
 
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || `Failed to ${decision} salary advance request` };
+    }
 
     revalidatePath("/accounts/salary-advance-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
-export async function markSalaryAdvanceRequestPaid(id: string) {
+export async function markSalaryAdvanceRequestPaid(
+    id: string
+): Promise<{ success: boolean; data?: SalaryAdvanceRequestRecord; error?: string }> {
     const response = await api.patch<SalaryAdvanceRequestMutationResponse>(`/api/salary-advance-requests/${id}/mark-paid`);
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || "Failed to mark salary advance request as paid" };
+    }
 
     revalidatePath("/accounts/salary-advance-requests");
     revalidatePath("/my/salary-advance-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
 export async function reopenSalaryAdvanceRequest(
     id: string,
     payload: ReopenSalaryAdvanceRequestPayload
-) {
+): Promise<{ success: boolean; data?: SalaryAdvanceRequestRecord; error?: string }> {
     const response = await api.patch<SalaryAdvanceRequestMutationResponse>(
         `/api/salary-advance-requests/${id}/reopen`,
         payload
     );
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || "Failed to reopen salary advance request" };
+    }
 
     revalidatePath("/my/salary-advance-requests");
     revalidatePath("/hr/salary-advance-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }

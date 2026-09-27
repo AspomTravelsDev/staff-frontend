@@ -489,12 +489,21 @@ export function PayrollManager() {
       const target = currentRun?.entries?.find((e) => e.id === entryId);
       if (!target) throw new Error("Entry not found in current run.");
 
-      const baseSalary = (target.calculation_snapshot as any)?.base_monthly_salary || Number(target.user?.gross_pay || target.gross_salary || 0);
+      const baseSalary = raw.gross_pay !== undefined && raw.gross_pay !== null && Number(raw.gross_pay) > 0
+        ? Number(raw.gross_pay)
+        : Number(target.user?.gross_pay || (target.calculation_snapshot as any)?.base_monthly_salary || target.gross_salary || 0);
+
+      const contractType = raw.contract_type ?? target.user?.contract_type ?? null;
+      const isIntern = raw.is_intern !== undefined ? !!raw.is_intern : !!target.is_intern;
+      const dateJoined = raw.date_joined ?? target.user?.date_joined ?? null;
+      const exitDate = raw.exit_date ?? target.user?.exit_date ?? null;
+
       const computed = calculatePayrollEntry({
         baseSalary,
-        contractType: target.user?.contract_type ?? null,
-        isIntern: !!raw.is_intern,
-        dateJoined: target.user?.date_joined ?? null,
+        contractType,
+        isIntern,
+        dateJoined,
+        exitDate,
         payrollMonth: currentRun?.payroll_month || selectedMonth,
         proratedDays: Number(raw.prorated_days || 0),
         accommodationAmount: Number(raw.accommodation_amount || 0),
@@ -537,7 +546,12 @@ export function PayrollManager() {
             const updated = refreshed.data.data.entries?.find(
               (e) => e.id === entryId,
             );
-            if (updated) setActiveEntry(updated);
+            if (updated) {
+              if (raw.gross_pay !== undefined && updated.user) {
+                updated.user.gross_pay = raw.gross_pay;
+              }
+              setActiveEntry(updated);
+            }
           }
         }
       }

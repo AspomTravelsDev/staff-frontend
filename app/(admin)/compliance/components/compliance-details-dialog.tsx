@@ -87,13 +87,17 @@ export function ComplianceDetailsDialog({
     if (!issueId || !comment.trim()) return;
     setSubmittingComment(true);
     try {
-      await addComplianceComment(issueId, comment);
+      const res = await addComplianceComment(issueId, comment);
+      if (!res.success) {
+        toast.error(res.error || "Failed to post comment");
+        return;
+      }
       setComment("");
       fetchDetails();
       toast.success("Comment added");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add comment", error);
-      toast.error("Failed to post comment");
+      toast.error(error?.message || "Failed to post comment");
     } finally {
       setSubmittingComment(false);
     }
@@ -104,17 +108,21 @@ export function ComplianceDetailsDialog({
     setResolving(true);
     try {
       const finalPoints = outcome === "Resolved (No Action)" ? 0 : parseFloat(awardPoints) || 1.0;
-      await resolveComplianceOccurrence(
+      const res = await resolveComplianceOccurrence(
         issueId,
         outcome,
         parseFloat(deductionDays) || 0,
         finalPoints,
       );
+      if (!res.success) {
+        toast.error(res.error || "Failed to record disciplinary action");
+        return;
+      }
       toast.success(`Disciplinary action recorded: ${outcome}`);
       fetchDetails();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to resolve occurrence", error);
-      toast.error("Failed to record disciplinary action");
+      toast.error(error?.message || "Failed to record disciplinary action");
     } finally {
       setResolving(false);
     }

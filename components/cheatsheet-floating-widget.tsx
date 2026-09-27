@@ -17,7 +17,7 @@ export function CheatsheetFloatingWidget() {
   const handleOpen = async () => {
     if (isOpen) {
       setIsOpen(false);
-      return;
+      return; 
     }
 
     setIsOpen(true);

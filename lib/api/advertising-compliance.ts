@@ -32,15 +32,38 @@ export interface ComplianceReport {
   visual_quality: VisualQuality;
 }
 
-export async function checkAdCompliance(formData: FormData): Promise<ComplianceReport> {
-  const result = await api.post<{ success: boolean; data: ComplianceReport }>(
-    "/api/social-media/compliance-check",
-    formData
-  );
+export type ComplianceCheckResult =
+  | { success: true; data: ComplianceReport }
+  | { success: false; error: string };
 
-  if (!result.success) {
-    throw new Error(result.error.error || "Failed to analyze marketing compliance");
+export async function checkAdCompliance(formData: FormData): Promise<ComplianceCheckResult> {
+  try {
+    const result = await api.post<{ success: boolean; data: ComplianceReport }>(
+      "/api/social-media/compliance-check",
+      formData
+    );
+
+    if (!result.success) {
+      return {
+        success: false,
+        error:
+          result.error?.error ||
+          "AI compliance service is temporarily busy. Please try again shortly.",
+      };
+    }
+
+    return {
+      success: true,
+      data: result.data.data,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Failed to complete compliance audit. Please try again.";
+    return {
+      success: false,
+      error: message,
+    };
   }
-
-  return result.data.data;
 }

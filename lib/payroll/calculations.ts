@@ -287,11 +287,17 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     additions: additions,
     net_amount: netAmount,
     is_intern: isIntern,
+    manual_overrides: {
+      gross: customGross !== undefined && customGross !== null,
+      tax: customTax !== undefined && customTax !== null,
+      daily_rate: customDailyRate !== undefined && customDailyRate !== null,
+      net: customNet !== undefined && customNet !== null,
+    },
   };
 
   return {
     gross_salary: actualGross,
-    taxable_gross: actualGross,
+    taxable_gross: taxableGross,
     is_intern: isIntern,
     accommodation_amount: finalAccommodationAmount,
     attendance_days: attendanceDays,
@@ -307,6 +313,7 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     tax_amount: taxAmount,
     net_amount: netAmount,
     calculation_snapshot: snapshot,
+    manual_overrides: snapshot.manual_overrides,
   };
 }
 

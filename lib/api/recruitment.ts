@@ -23,6 +23,12 @@ export async function getRecruitmentRole(id: string): Promise<RoleDetailResponse
   return response.data.data;
 }
 
+export type RecruitmentActionResult<T = any> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
 export async function createRecruitmentRole(data: {
   title: string;
   department: string;
@@ -31,12 +37,14 @@ export async function createRecruitmentRole(data: {
   job_description?: string;
   custom_instructions?: string;
   hr_request_id?: string;
-}): Promise<RecruitmentRole> {
+}): Promise<RecruitmentActionResult<RecruitmentRole>> {
   const response = await api.post<{ data: RecruitmentRole }>("/api/recruitment/roles", data);
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to create recruitment role" };
+  }
   revalidatePath("/hr/recruitment");
   revalidatePath("/hr/staff-requests");
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
 export async function updateRecruitmentRole(
@@ -50,44 +58,53 @@ export async function updateRecruitmentRole(
     custom_instructions: string;
     status: "active" | "paused" | "closed";
   }>
-): Promise<RecruitmentRole> {
+): Promise<RecruitmentActionResult<RecruitmentRole>> {
   const response = await api.put<{ data: RecruitmentRole }>(`/api/recruitment/roles/${id}`, data);
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to update recruitment role" };
+  }
   revalidatePath(`/hr/recruitment/${id}`);
   revalidatePath("/hr/recruitment");
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
-export async function deleteRecruitmentRole(id: string): Promise<void> {
+export async function deleteRecruitmentRole(id: string): Promise<RecruitmentActionResult<void>> {
   const response = await api.delete(`/api/recruitment/roles/${id}`);
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to delete recruitment role" };
+  }
   revalidatePath("/hr/recruitment");
+  return { success: true };
 }
 
 export async function uploadCandidateCv(
   roleId: string,
   formData: FormData
-): Promise<RecruitmentCandidate> {
+): Promise<RecruitmentActionResult<RecruitmentCandidate>> {
   const response = await api.post<{ data: RecruitmentCandidate }>(
     `/api/recruitment/roles/${roleId}/candidates`,
     formData
   );
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to upload candidate CV" };
+  }
   revalidatePath(`/hr/recruitment/${roleId}`);
   revalidatePath("/hr/recruitment");
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
 export async function reanalyzeCandidate(
   candidateId: string,
   roleId: string
-): Promise<RecruitmentCandidate> {
+): Promise<RecruitmentActionResult<RecruitmentCandidate>> {
   const response = await api.post<{ data: RecruitmentCandidate }>(
     `/api/recruitment/candidates/${candidateId}/reanalyze`
   );
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to reanalyze candidate" };
+  }
   revalidatePath(`/hr/recruitment/${roleId}`);
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
 export async function updateCandidateStatus(
@@ -95,57 +112,65 @@ export async function updateCandidateStatus(
   roleId: string,
   status: CandidateStatus,
   notes?: string
-): Promise<RecruitmentCandidate> {
+): Promise<RecruitmentActionResult<RecruitmentCandidate>> {
   const response = await api.patch<{ data: RecruitmentCandidate }>(
     `/api/recruitment/candidates/${candidateId}/status`,
     { status, notes }
   );
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to update candidate status" };
+  }
   revalidatePath(`/hr/recruitment/${roleId}`);
   revalidatePath("/hr/recruitment");
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
 export async function onboardCandidateAction(
   candidateId: string,
   roleId: string,
   payload: OnboardCandidatePayload
-): Promise<any> {
+): Promise<RecruitmentActionResult<any>> {
   const response = await api.post<{ data: any }>(
     `/api/recruitment/candidates/${candidateId}/onboard`,
     payload
   );
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to onboard candidate" };
+  }
   revalidatePath(`/hr/recruitment/${roleId}`);
   revalidatePath("/hr/applications");
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
 export async function saveCandidateRubricAction(
   candidateId: string,
   roleId: string,
   rubric: InterviewRubric
-): Promise<RecruitmentCandidate> {
+): Promise<RecruitmentActionResult<RecruitmentCandidate>> {
   const response = await api.post<{ data: RecruitmentCandidate }>(
     `/api/recruitment/candidates/${candidateId}/rubric`,
     { rubric }
   );
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to save interview rubric" };
+  }
   revalidatePath(`/hr/recruitment/${roleId}`);
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 
 export async function analyzeInterviewAction(
   candidateId: string,
   roleId: string,
   offeringSalary?: number
-): Promise<RecruitmentCandidate> {
+): Promise<RecruitmentActionResult<RecruitmentCandidate>> {
   const response = await api.post<{ data: RecruitmentCandidate }>(
     `/api/recruitment/candidates/${candidateId}/analyze-interview`,
     { offering_salary: offeringSalary }
   );
-  if (!response.success) throw new Error(response.error.error);
+  if (!response.success) {
+    return { success: false, error: response.error?.error || "Failed to analyze interview" };
+  }
   revalidatePath(`/hr/recruitment/${roleId}`);
-  return response.data.data;
+  return { success: true, data: response.data.data };
 }
 

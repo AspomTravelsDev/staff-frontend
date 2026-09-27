@@ -130,9 +130,9 @@ export function AcceptOnboardModal({
         try {
           setAnalyzingInterview(true);
           const currentGross = breakdown.gross_salary || 200000;
-          const updated = await analyzeInterviewAction(candidate.id, roleId, currentGross);
-          if (updated.post_interview_evaluation) {
-            setPostInterviewAnalysis(updated.post_interview_evaluation);
+          const res = await analyzeInterviewAction(candidate.id, roleId, currentGross);
+          if (res.success && res.data?.post_interview_evaluation) {
+            setPostInterviewAnalysis(res.data.post_interview_evaluation);
           }
         } catch (err: any) {
           console.error("Auto pre-offer AI check failed:", err);
@@ -150,13 +150,17 @@ export function AcceptOnboardModal({
     try {
       setAnalyzingInterview(true);
       const currentGross = breakdown.gross_salary || 200000;
-      const updated = await analyzeInterviewAction(candidate.id, roleId, currentGross);
-      if (updated.post_interview_evaluation) {
-        setPostInterviewAnalysis(updated.post_interview_evaluation);
+      const res = await analyzeInterviewAction(candidate.id, roleId, currentGross);
+      if (!res.success) {
+        toast.error(res.error || "Failed to run pre-offer analysis.");
+        return;
+      }
+      if (res.data?.post_interview_evaluation) {
+        setPostInterviewAnalysis(res.data.post_interview_evaluation);
         toast.success("Pre-offer AI verification refreshed.");
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to run pre-offer analysis.");
+      toast.error(err?.message || "Failed to run pre-offer analysis.");
     } finally {
       setAnalyzingInterview(false);
     }
@@ -217,7 +221,7 @@ export function AcceptOnboardModal({
     const toastId = toast.loading("Configuring employment terms...");
     try {
       setLoading(true);
-      const result = await onboardCandidateAction(candidate.id, roleId, {
+      const res = await onboardCandidateAction(candidate.id, roleId, {
         applicant_name: formData.applicant_name,
         applicant_email: formData.applicant_email,
         position_title: formData.position_title,
@@ -242,7 +246,12 @@ export function AcceptOnboardModal({
         },
       });
 
-      const newApp = result.onboarding_application;
+      if (!res.success) {
+        toast.error(res.error || "Failed to configure employment terms.", { id: toastId });
+        return;
+      }
+
+      const newApp = res.data?.onboarding_application || res.data;
       if (!newApp?.id) {
         throw new Error("Failed to initialize onboarding application.");
       }

@@ -8,6 +8,8 @@ import { AttendanceStats } from "./attendance-stats";
 import { AdminAttendanceTable } from "./admin-attendance-table";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { TableExportButton } from "@/components/ui/table-export-button";
+import { WallQrPosterDialog } from "@/components/attendance/wall-qr-poster-dialog";
+import { ClockInModeToggle } from "@/components/attendance/clock-in-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Filter, Users } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -353,6 +355,8 @@ export function AttendanceClient({
         <div className="flex-1" />
 
         <div className="flex items-center gap-2">
+          <ClockInModeToggle />
+          <WallQrPosterDialog />
           <TableExportButton
             data={pivotedRows}
             columns={exportColumns}

@@ -85,11 +85,15 @@ export function SalaryAdvanceRequestsTable({
   ) {
     try {
       setLoadingId(id);
-      await decideSalaryAdvanceRequestByHr(id, decision);
+      const res = await decideSalaryAdvanceRequestByHr(id, decision);
+      if (!res.success) {
+        toast.error(res.error || `Failed to ${decision} salary advance request.`);
+        return;
+      }
       toast.success(`HR ${decision} salary advance request.`);
       router.refresh();
-    } catch {
-      toast.error("Failed to update HR decision.");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update HR decision.");
     } finally {
       setLoadingId(null);
     }
@@ -101,11 +105,15 @@ export function SalaryAdvanceRequestsTable({
   ) {
     try {
       setLoadingId(id);
-      await decideSalaryAdvanceRequestByAccounts(id, decision);
+      const res = await decideSalaryAdvanceRequestByAccounts(id, decision);
+      if (!res.success) {
+        toast.error(res.error || `Failed to ${decision} salary advance request.`);
+        return;
+      }
       toast.success(`Accounts ${decision} salary advance request.`);
       router.refresh();
-    } catch {
-      toast.error("Failed to update Accounts decision.");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update Accounts decision.");
     } finally {
       setLoadingId(null);
     }
@@ -114,11 +122,15 @@ export function SalaryAdvanceRequestsTable({
   async function handleMarkPaid(id: string) {
     try {
       setLoadingId(id);
-      await markSalaryAdvanceRequestPaid(id);
+      const res = await markSalaryAdvanceRequestPaid(id);
+      if (!res.success) {
+        toast.error(res.error || "Failed to mark salary advance request as paid.");
+        return;
+      }
       toast.success("Salary advance request marked as paid.");
       router.refresh();
-    } catch {
-      toast.error("Failed to mark as paid.");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to mark as paid.");
     } finally {
       setLoadingId(null);
     }
@@ -171,15 +183,15 @@ export function SalaryAdvanceRequestsTable({
 
     try {
       setLoadingId(request.id);
-      await reopenSalaryAdvanceRequest(request.id, payload);
+      const res = await reopenSalaryAdvanceRequest(request.id, payload);
+      if (!res.success) {
+        toast.error(res.error || "Failed to reopen salary advance request.");
+        return;
+      }
       toast.success("Salary advance request reopened and sent back to HR.");
       router.refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : "Failed to reopen salary advance request.";
-      toast.error(message);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reopen salary advance request.");
     } finally {
       setLoadingId(null);
     }

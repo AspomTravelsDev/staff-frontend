@@ -10,7 +10,7 @@ export interface ClockInRecord {
     clock_out_at: string | null;
     duration_minutes: number | null;
     is_clocked_in?: boolean; // Sometimes returned by /today
-    location_method?: "gps" | "ip" | "exempt" | "disabled";
+    location_method?: "gps" | "ip" | "exempt" | "disabled" | "qrcode";
     ip_address?: string;
     distance?: number;
     accuracy?: number;
@@ -107,14 +107,25 @@ export async function clockIn(
         device_uuid?: string;
         device_fingerprint?: string;
         device_name?: string;
-    }
+    },
+    qr_scan?: boolean
 ): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
-    revalidatePath("/my/attendance");
-    return api.post<StandardResponse<ClockInRecord>>("/api/clock-in", {
+    const result = await api.post<StandardResponse<ClockInRecord>>("/api/clock-in", {
         location,
         client_ip,
-        ...(deviceData || {})
+        ...(deviceData || {}),
+        ...(qr_scan !== undefined ? { qr_scan } : {})
     });
+
+    if (result.success) {
+        revalidatePath("/my/attendance");
+        revalidatePath("/attendance");
+        revalidatePath("/attendance/scan");
+        revalidatePath("/dashboard");
+        revalidatePath("/", "layout");
+    }
+
+    return result;
 }
 
 /**
@@ -123,12 +134,24 @@ export async function clockIn(
  */
 export async function clockOut(
     location?: LocationData,
-    client_ip?: string
+    client_ip?: string,
+    qr_scan?: boolean
 ): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
-    return api.post<StandardResponse<ClockInRecord>>("/api/clock-out", {
+    const result = await api.post<StandardResponse<ClockInRecord>>("/api/clock-out", {
         location,
-        client_ip
+        client_ip,
+        ...(qr_scan !== undefined ? { qr_scan } : {})
     });
+
+    if (result.success) {
+        revalidatePath("/my/attendance");
+        revalidatePath("/attendance");
+        revalidatePath("/attendance/scan");
+        revalidatePath("/dashboard");
+        revalidatePath("/", "layout");
+    }
+
+    return result;
 }
 
 /**

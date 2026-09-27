@@ -79,7 +79,7 @@ export function CreateRoleDialog({
 
     try {
       setLoading(true);
-      const role = await createRecruitmentRole({
+      const res = await createRecruitmentRole({
         title: formData.title.trim(),
         department: formData.department.trim(),
         openings_count: Number(formData.openings_count) || 1,
@@ -89,11 +89,16 @@ export function CreateRoleDialog({
         hr_request_id: formData.hr_request_id || undefined,
       });
 
+      if (!res.success || !res.data) {
+        toast.error(res.error || "Failed to create recruitment role.");
+        return;
+      }
+
       toast.success("Recruitment role created successfully!");
       setOpen(false);
-      router.push(`/hr/recruitment/${role.id}`);
+      router.push(`/hr/recruitment/${res.data.id}`);
     } catch (err: any) {
-      toast.error(err.message || "Failed to create recruitment role.");
+      toast.error(err?.message || "Failed to create recruitment role.");
     } finally {
       setLoading(false);
     }

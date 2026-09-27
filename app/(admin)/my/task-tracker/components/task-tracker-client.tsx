@@ -221,9 +221,11 @@ export function TaskTrackerClient({
       </div>
 
       {/* Top View Switcher: Assigned to Me vs Assigned by Me */}
-      <div className="flex items-center gap-2 border-b pb-3">
+      <div id="tour-view-switcher" className="flex items-center gap-2 border-b pb-3">
         <button
+          id="tour-view-my-deliverables"
           type="button"
+          data-active={activeView === "assigned_to_me" ? "true" : "false"}
           onClick={() => handleViewChange("assigned_to_me")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer",
@@ -248,7 +250,9 @@ export function TaskTrackerClient({
         </button>
 
         <button
+          id="tour-view-delegated"
           type="button"
+          data-active={activeView === "assigned_by_me" ? "true" : "false"}
           onClick={() => handleViewChange("assigned_by_me")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer",

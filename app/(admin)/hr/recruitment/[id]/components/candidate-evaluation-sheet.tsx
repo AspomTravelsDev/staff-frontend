@@ -100,22 +100,30 @@ export function CandidateEvaluationSheet({
   const handleStatusChange = async (newStatus: CandidateStatus) => {
     try {
       setStatus(newStatus);
-      await updateCandidateStatus(candidate.id, roleId, newStatus, notes);
+      const res = await updateCandidateStatus(candidate.id, roleId, newStatus, notes);
+      if (!res.success) {
+        toast.error(res.error || "Failed to update status.");
+        return;
+      }
       toast.success(`Candidate status moved to ${newStatus}`);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to update status.");
+      toast.error(err?.message || "Failed to update status.");
     }
   };
 
   const handleSaveNotes = async () => {
     try {
       setSavingNotes(true);
-      await updateCandidateStatus(candidate.id, roleId, status, notes);
+      const res = await updateCandidateStatus(candidate.id, roleId, status, notes);
+      if (!res.success) {
+        toast.error(res.error || "Failed to save notes.");
+        return;
+      }
       toast.success("Notes saved successfully.");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to save notes.");
+      toast.error(err?.message || "Failed to save notes.");
     } finally {
       setSavingNotes(false);
     }
@@ -124,11 +132,15 @@ export function CandidateEvaluationSheet({
   const handleReanalyze = async () => {
     try {
       setReanalyzing(true);
-      await reanalyzeCandidate(candidate.id, roleId);
+      const res = await reanalyzeCandidate(candidate.id, roleId);
+      if (!res.success) {
+        toast.error(res.error || "Failed to re-analyze candidate.");
+        return;
+      }
       toast.success("Candidate re-analyzed with updated role criteria!");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to re-analyze candidate.");
+      toast.error(err?.message || "Failed to re-analyze candidate.");
     } finally {
       setReanalyzing(false);
     }

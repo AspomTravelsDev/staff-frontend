@@ -63,7 +63,12 @@ export default function AdvertisingCompliancePage() {
       }
 
       const result = await checkAdCompliance(formData);
-      setReport(result);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      setReport(result.data);
       toast.success("Compliance audit completed!");
     } catch (error: any) {
       toast.error(error.message || "Failed to complete compliance audit.");

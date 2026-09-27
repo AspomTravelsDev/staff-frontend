@@ -53,12 +53,16 @@ export function EditInstructionsDialog({ role, trigger }: EditInstructionsDialog
     e.preventDefault();
     try {
       setLoading(true);
-      await updateRecruitmentRole(role.id, formData);
+      const res = await updateRecruitmentRole(role.id, formData);
+      if (!res.success) {
+        toast.error(res.error || "Failed to update role.");
+        return;
+      }
       toast.success("Role and screening criteria updated successfully!");
       setOpen(false);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to update role.");
+      toast.error(err?.message || "Failed to update role.");
     } finally {
       setLoading(false);
     }

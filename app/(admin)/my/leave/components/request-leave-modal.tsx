@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { createLeaveRequest, uploadLeaveFile } from "@/lib/api/leave";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Paperclip, AlertCircle, FileText, Upload, X, CheckCircle2 } from "lucide-react";
@@ -47,6 +46,21 @@ const leaveTypes = [
   { value: "Special", label: "Special Leave", badge: "Line Manager discretion" },
 ];
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "jpg", "jpeg", "png"];
+
+export function validateLeaveFile(file: File): string | null {
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    return `File "${file.name}" is ${sizeMB}MB. Maximum allowed size is 10MB.`;
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+    return `File "${file.name}" has an unsupported format (.${ext}). Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`;
+  }
+  return null;
+}
+
 export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState(leaveTypes[0].value);
@@ -77,8 +91,34 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function uploadDocumentFile(file: File, label: string): Promise<string> {
+    const validationError = validateLeaveFile(file);
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+
+    const res = await fetch("/api/leave/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.download_url) {
+      throw new Error(data.error || `Failed to upload ${label}. Please try again.`);
+    }
+
+    return data.download_url;
+  }
+
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     if (!startDate) {
       toast.error("Please pick a proposed start date.");
       return;
@@ -95,26 +135,31 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
 
       // Upload Handover Note if selected
       if (handoverFile) {
-        const formData = new FormData();
-        formData.append("file", handoverFile);
-        handoverNoteUrl = await uploadLeaveFile(formData);
+        handoverNoteUrl = await uploadDocumentFile(handoverFile, "handover note");
       }
 
       // Upload Supporting Evidence if selected
       if (evidenceFile) {
-        const formData = new FormData();
-        formData.append("file", evidenceFile);
-        attachmentUrl = await uploadLeaveFile(formData);
+        attachmentUrl = await uploadDocumentFile(evidenceFile, "supporting document");
       }
 
-      await createLeaveRequest({
-        type,
-        start_date: format(startDate, "yyyy-MM-dd"),
-        days,
-        reason,
-        handover_note_url: handoverNoteUrl,
-        attachment_url: attachmentUrl,
+      const res = await fetch("/api/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          start_date: format(startDate, "yyyy-MM-dd"),
+          days,
+          reason,
+          handover_note_url: handoverNoteUrl || null,
+          attachment_url: attachmentUrl || null,
+        }),
       });
+
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(resData.error || "Failed to submit leave request.");
+      }
 
       toast.success("Leave request submitted successfully.");
       setOpen(false);
@@ -267,7 +312,20 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={(e) => setHandoverFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const err = validateLeaveFile(file);
+                        if (err) {
+                          toast.error(err);
+                          e.target.value = "";
+                          return;
+                        }
+                        setHandoverFile(file);
+                      } else {
+                        setHandoverFile(null);
+                      }
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                   {handoverFile ? (
@@ -305,7 +363,20 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const err = validateLeaveFile(file);
+                        if (err) {
+                          toast.error(err);
+                          e.target.value = "";
+                          return;
+                        }
+                        setEvidenceFile(file);
+                      } else {
+                        setEvidenceFile(null);
+                      }
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                   {evidenceFile ? (
@@ -342,7 +413,12 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading} className="px-5">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="px-6 font-semibold">
+            <Button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={loading}
+              className="px-6 font-semibold"
+            >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Submit Leave Request
             </Button>

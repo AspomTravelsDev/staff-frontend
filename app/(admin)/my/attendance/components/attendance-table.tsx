@@ -90,7 +90,9 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
                         <Badge
                           variant="outline"
                           className={`text-[10px] font-bold uppercase tracking-wider px-1.5 h-5 w-fit ${
-                            method === "gps"
+                            method === "qrcode"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                              : method === "gps"
                               ? "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                               : method === "ip"
                               ? "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
@@ -101,7 +103,9 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
                               : "border-gray-200 bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
                           }`}
                         >
-                          {method === "ip"
+                          {method === "qrcode"
+                            ? "Office QR"
+                            : method === "ip"
                             ? "WiFi"
                             : method === "exempt"
                             ? "Exempt"

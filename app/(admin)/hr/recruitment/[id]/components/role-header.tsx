@@ -57,7 +57,12 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
 
     startTransition(async () => {
       try {
-        await updateRecruitmentRole(role.id, { status: newStatus });
+        const res = await updateRecruitmentRole(role.id, { status: newStatus });
+        if (!res.success) {
+          setCurrentStatus(role.status);
+          toast.error(res.error || "Failed to update campaign status.");
+          return;
+        }
         toast.success(
           newStatus === "closed"
             ? "Campaign marked as closed."
@@ -68,7 +73,7 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
         router.refresh();
       } catch (err: any) {
         setCurrentStatus(role.status);
-        toast.error(err.message || "Failed to update campaign status.");
+        toast.error(err?.message || "Failed to update campaign status.");
       }
     });
   };

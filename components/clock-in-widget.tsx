@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, LogOut } from "lucide-react";
+import { Clock, LogOut, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   clockIn,
@@ -23,12 +23,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { getDeviceSignature } from "@/lib/utils/device-fingerprint";
+import { useClockInMode } from "@/hooks/use-clock-in-mode";
+import { CameraQrScanner } from "@/components/attendance/camera-qr-scanner";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function ClockInWidget() {
+  const router = useRouter();
+  const { isButtonEnabled, isQrCodeEnabled, mode } = useClockInMode();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<ClockInRecord | null>(null);
   const [isFetched, setIsFetched] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -47,7 +62,7 @@ export function ClockInWidget() {
     fetchStatus();
   }, []);
 
-  const handleClockIn = async () => {
+  const handleClockIn = async (isQrScan: boolean = false) => {
     try {
       setLoading(true);
 
@@ -68,10 +83,11 @@ export function ClockInWidget() {
       }
 
       const deviceData = getDeviceSignature();
-      const response = await clockIn(location, client_ip, deviceData);
+      const response = await clockIn(location, client_ip, deviceData, isQrScan);
       if (response.success) {
         toast.success(response.data.message || "Successfully clocked in");
         setStatus(response.data.data);
+        router.refresh();
       } else {
         toast.error(response.error?.error || "Failed to clock in");
       }
@@ -107,6 +123,7 @@ export function ClockInWidget() {
       if (response.success) {
         toast.success("Successfully clocked out");
         setStatus(response.data.data);
+        router.refresh();
         if (response.data.data.duration_minutes) {
           const hours = Math.floor(response.data.data.duration_minutes / 60);
           const minutes = response.data.data.duration_minutes % 60;
@@ -184,26 +201,47 @@ export function ClockInWidget() {
         </Badge>
       ) : (
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button
-            id="tour-clock-in-btn"
-            disabled={loading}
-            onClick={handleClockIn}
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-8 px-2.5 sm:px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
-          >
-            <Clock className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              {loading ? (
-                "Clocking In..."
-              ) : (
-                <>
-                  <span className="hidden sm:inline">Clock In Now</span>
-                  <span className="sm:hidden">Clock In</span>
-                </>
-              )}
-            </span>
-          </Button>
+          {isButtonEnabled && (
+            <Button
+              id="tour-clock-in-btn"
+              disabled={loading}
+              onClick={() => handleClockIn(false)}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 px-2.5 sm:px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+            >
+              <Clock className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                {loading ? (
+                  "Clocking In..."
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Clock In Now</span>
+                    <span className="sm:hidden">Clock In</span>
+                  </>
+                )}
+              </span>
+            </Button>
+          )}
+
+          {isQrCodeEnabled && (
+            <Button
+              id="tour-clock-scan-btn"
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              onClick={() => setScannerOpen(true)}
+              className="gap-1.5 h-8 px-2 sm:px-2.5 border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all text-primary cursor-pointer"
+              title="Scan wall QR code with camera"
+            >
+              <QrCode className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                <span className={mode === "qrcode" ? "" : "hidden sm:inline"}>
+                  Scan QR
+                </span>
+              </span>
+            </Button>
+          )}
           <LatePermissionRequestModal
             trigger={
               <Button
@@ -218,6 +256,18 @@ export function ClockInWidget() {
           />
         </div>
       )}
+
+      {/* In-Portal Camera Scanner Modal */}
+      <CameraQrScanner
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        isSubmitting={loading}
+        onScanSuccess={async (scannedCode) => {
+          toast.success("Office QR Code verified! Clocking you in...");
+          await handleClockIn(true);
+          setScannerOpen(false);
+        }}
+      />
     </div>
   );
 }

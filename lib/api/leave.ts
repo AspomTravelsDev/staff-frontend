@@ -269,28 +269,34 @@ export async function createLeaveRequest(data: {
     return result.data;
 }
 
-export async function cancelLeaveRequest(id: string) {
+export async function cancelLeaveRequest(id: string): Promise<{ success: boolean; data?: any; error?: string }> {
     const result = await api.post<{ message: string }>(`/api/my/leave/${id}/cancel`, {});
-    if (!result.success) throw new Error(result.error.error || "Failed to cancel leave request");
+    if (!result.success) {
+        return { success: false, error: result.error?.error || "Failed to cancel leave request" };
+    }
     revalidatePath("/my/leave");
     revalidatePath("/hr/leave");
-    return result.data;
+    return { success: true, data: result.data };
 }
 
-export async function approveLeaveRequest(id: string) {
+export async function approveLeaveRequest(id: string): Promise<{ success: boolean; data?: any; error?: string }> {
     const result = await api.post<{ message: string }>(`/api/hr/leave/${id}/approve`, {});
-    if (!result.success) throw new Error(result.error.error || "Failed to approve leave request");
+    if (!result.success) {
+        return { success: false, error: result.error?.error || "Failed to approve leave request" };
+    }
     revalidatePath("/my/leave");
     revalidatePath("/hr/leave");
-    return result.data;
+    return { success: true, data: result.data };
 }
 
-export async function rejectLeaveRequest(id: string, reason: string) {
+export async function rejectLeaveRequest(id: string, reason: string): Promise<{ success: boolean; data?: any; error?: string }> {
     const result = await api.post<{ message: string }>(`/api/hr/leave/${id}/reject`, { rejection_reason: reason });
-    if (!result.success) throw new Error(result.error.error || "Failed to reject leave request");
+    if (!result.success) {
+        return { success: false, error: result.error?.error || "Failed to reject leave request" };
+    }
     revalidatePath("/my/leave");
     revalidatePath("/hr/leave");
-    return result.data;
+    return { success: true, data: result.data };
 }
 
 export async function markLeaveNotificationsViewed() {

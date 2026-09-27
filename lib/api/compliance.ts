@@ -96,12 +96,18 @@ export async function getComplianceDetails(id: string): Promise<ComplianceIssue>
     return result.data;
 }
 
-export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): Promise<ComplianceIssue> {
+export type ComplianceActionResult<T = any> = {
+    success: boolean;
+    data?: T;
+    error?: string;
+};
+
+export async function addComplianceOccurrence(data: Partial<ComplianceIssue>): Promise<ComplianceActionResult<ComplianceIssue>> {
     const result = await api.post<ComplianceIssue>("/api/compliance", data);
     if (!result.success) {
-        throw new Error(result.error.error);
+        return { success: false, error: result.error?.error || "Failed to add compliance occurrence" };
     }
-    return result.data;
+    return { success: true, data: result.data };
 }
 
 export async function addBatchComplianceOccurrences(data: {
@@ -111,37 +117,38 @@ export async function addBatchComplianceOccurrences(data: {
     occurrence_date: string;
     severity: Severity;
     description: string;
-}): Promise<ComplianceIssue[]> {
+}): Promise<ComplianceActionResult<ComplianceIssue[]>> {
     const result = await api.post<ComplianceIssue[]>("/api/compliance", data);
     if (!result.success) {
-        throw new Error(result.error.error);
+        return { success: false, error: result.error?.error || "Failed to add compliance occurrences" };
     }
-    return result.data;
+    return { success: true, data: result.data };
 }
 
-export async function addComplianceComment(id: string, comment: string): Promise<ComplianceComment> {
+export async function addComplianceComment(id: string, comment: string): Promise<ComplianceActionResult<ComplianceComment>> {
     const result = await api.post<ComplianceComment>(`/api/compliance/${id}/comments`, { comment });
     if (!result.success) {
-        throw new Error(result.error.error);
+        return { success: false, error: result.error?.error || "Failed to post comment" };
     }
-    return result.data;
+    return { success: true, data: result.data };
 }
 
-export async function resolveComplianceOccurrence(id: string, outcome: string, deductionDays?: number, points?: number): Promise<ComplianceIssue> {
+export async function resolveComplianceOccurrence(id: string, outcome: string, deductionDays?: number, points?: number): Promise<ComplianceActionResult<ComplianceIssue>> {
     const result = await api.post<ComplianceIssue>(`/api/compliance/${id}/resolve`, {
         outcome,
         deduction_days: deductionDays,
         points: points,
     });
     if (!result.success) {
-        throw new Error(result.error.error);
+        return { success: false, error: result.error?.error || "Failed to record disciplinary action" };
     }
-    return result.data;
+    return { success: true, data: result.data };
 }
 
-export async function deleteComplianceIssue(id: string): Promise<void> {
+export async function deleteComplianceIssue(id: string): Promise<ComplianceActionResult<void>> {
     const result = await api.delete(`/api/compliance/${id}`);
     if (!result.success) {
-        throw new Error(result.error.error);
+        return { success: false, error: result.error?.error || "Failed to delete compliance issue" };
     }
+    return { success: true };
 }

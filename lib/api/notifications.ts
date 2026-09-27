@@ -34,10 +34,10 @@ export async function clearAllNotifications(): Promise<Record<string, Notificati
 
     if (!result.success) {
         console.error("[Notifications API] Failed to clear all:", result.error);
-        throw new Error(result.error?.error || "Failed to clear notifications");
+        return {};
     }
 
     const actualData = (result.data as any)?.data || result.data;
-    return actualData;
+    return actualData || {};
 }
 

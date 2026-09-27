@@ -44,24 +44,26 @@ export function SalaryAdvanceRequestDialog() {
 
     try {
       setIsSubmitting(true);
-      await createSalaryAdvanceRequest({
+      const res = await createSalaryAdvanceRequest({
         amount,
         reason,
         repayment_months:
           repaymentMonths === "" ? undefined : Number(repaymentMonths),
       });
+
+      if (!res.success) {
+        toast.error(res.error || "Failed to submit salary advance request.");
+        return;
+      }
+
       toast.success("Salary advance request submitted.");
       setOpen(false);
       setAmount(0);
       setRepaymentMonths(1);
       setReason("");
       router.refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : "Failed to submit salary advance request.";
-      toast.error(message);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to submit salary advance request.");
     } finally {
       setIsSubmitting(false);
     }

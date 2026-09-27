@@ -156,68 +156,81 @@ export async function getLoanRequestsAccountsQueue() {
     return response.data;
 }
 
-export async function createLoanRequest(payload: LoanRequestPayload) {
+export async function createLoanRequest(payload: LoanRequestPayload): Promise<{ success: boolean; data?: LoanRequestRecord; error?: string }> {
     const response = await api.post<LoanRequestMutationResponse>("/api/loan-requests", payload);
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || "Failed to submit loan request" };
+    }
 
     revalidatePath("/my/loan-requests");
     revalidatePath("/hr/loan-requests");
     revalidatePath("/accounts/loan-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
 export async function decideLoanRequestByHr(
     id: string,
     decision: "approved" | "rejected",
     comment?: string
-) {
+): Promise<{ success: boolean; data?: LoanRequestRecord; error?: string }> {
     const response = await api.patch<LoanRequestMutationResponse>(`/api/loan-requests/${id}/hr-decision`, {
         decision,
         comment,
     });
 
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || `Failed to ${decision} loan request` };
+    }
 
     revalidatePath("/hr/loan-requests");
     revalidatePath("/accounts/loan-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
 export async function decideLoanRequestByAccounts(
     id: string,
     decision: "approved" | "rejected",
     comment?: string
-) {
+): Promise<{ success: boolean; data?: LoanRequestRecord; error?: string }> {
     const response = await api.patch<LoanRequestMutationResponse>(`/api/loan-requests/${id}/accounts-decision`, {
         decision,
         comment,
     });
 
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || `Failed to ${decision} loan request` };
+    }
 
     revalidatePath("/accounts/loan-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
-export async function markLoanRequestPaid(id: string) {
+export async function markLoanRequestPaid(id: string): Promise<{ success: boolean; data?: LoanRequestRecord; error?: string }> {
     const response = await api.patch<LoanRequestMutationResponse>(`/api/loan-requests/${id}/mark-paid`);
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || "Failed to mark loan request as paid" };
+    }
 
     revalidatePath("/accounts/loan-requests");
     revalidatePath("/my/loan-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }
 
-export async function reopenLoanRequest(id: string, payload: ReopenLoanRequestPayload) {
+export async function reopenLoanRequest(
+    id: string,
+    payload: ReopenLoanRequestPayload
+): Promise<{ success: boolean; data?: LoanRequestRecord; error?: string }> {
     const response = await api.patch<LoanRequestMutationResponse>(`/api/loan-requests/${id}/reopen`, payload);
-    if (!response.success) throw new Error(response.error.error);
+    if (!response.success) {
+        return { success: false, error: response.error?.error || "Failed to reopen loan request" };
+    }
 
     revalidatePath("/my/loan-requests");
     revalidatePath("/hr/loan-requests");
 
-    return response.data.data;
+    return { success: true, data: response.data.data };
 }

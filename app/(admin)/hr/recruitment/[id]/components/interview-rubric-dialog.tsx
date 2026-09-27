@@ -270,7 +270,11 @@ export function InterviewRubricDialog({
     setSaving(true);
     try {
       const rubricPayload = buildRubricPayload();
-      await saveCandidateRubricAction(candidate.id, roleId, rubricPayload);
+      const saveRes = await saveCandidateRubricAction(candidate.id, roleId, rubricPayload);
+      if (!saveRes.success) {
+        toast.error(saveRes.error || "Failed to save interview rubric.");
+        return;
+      }
       toast.success("Interview rubric saved successfully.");
 
       const updatedCandidate: RecruitmentCandidate = {
@@ -280,7 +284,7 @@ export function InterviewRubricDialog({
       onCandidateUpdated?.(updatedCandidate);
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err.message || "Failed to save interview rubric.");
+      toast.error(err?.message || "Failed to save interview rubric.");
     } finally {
       setSaving(false);
     }
@@ -293,18 +297,28 @@ export function InterviewRubricDialog({
     setAnalyzing(true);
     try {
       const rubricPayload = buildRubricPayload();
-      await saveCandidateRubricAction(candidate.id, roleId, rubricPayload);
+      const saveRes = await saveCandidateRubricAction(candidate.id, roleId, rubricPayload);
+      if (!saveRes.success) {
+        toast.error(saveRes.error || "Failed to save interview rubric.");
+        return;
+      }
 
       const parsedSalary = recommendedSalary
         ? parseFloat(recommendedSalary.replace(/[^0-9.]/g, ""))
         : undefined;
 
-      const updatedCandidate = await analyzeInterviewAction(
+      const analyzeRes = await analyzeInterviewAction(
         candidate.id,
         roleId,
         !isNaN(parsedSalary as number) && (parsedSalary as number) > 0 ? (parsedSalary as number) : undefined
       );
 
+      if (!analyzeRes.success || !analyzeRes.data) {
+        toast.error(analyzeRes.error || "Failed to analyze interview with AI.");
+        return;
+      }
+
+      const updatedCandidate = analyzeRes.data;
       setPostInterviewEvaluation(updatedCandidate.post_interview_evaluation || null);
       onCandidateUpdated?.(updatedCandidate);
 
@@ -315,7 +329,7 @@ export function InterviewRubricDialog({
         toast.success("Interview rubric saved & analyzed by AI!");
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to save rubric or analyze with AI.");
+      toast.error(err?.message || "Failed to save rubric or analyze with AI.");
     } finally {
       setSaving(false);
       setAnalyzing(false);

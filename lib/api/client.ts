@@ -87,26 +87,21 @@ export async function apiClient<T>(
             return { success: true, data: null as T };
         }
 
-        let data;
+        let text = "";
+        let data: any = null;
         try {
-            const text = await response.text();
-            try {
+            text = await response.text();
+            if (text && text.trim()) {
                 data = JSON.parse(text);
-            } catch (e) {
-                console.error(`API JSON Parse Error [${endpoint}]:`, e);
-                console.error("Raw Response Preview:", text.substring(0, 1000));
-                console.error("Raw Response End:", text.slice(-1000));
-                throw new Error(`Invalid JSON response from server: ${text.substring(0, 100)}...`);
             }
-        } catch (error) {
-            // Handle non-json responses or network stream errors
-            throw error;
+        } catch {
+            // Response was not JSON (e.g. 502/504 HTML from Nginx/Vercel or PHP fatal error)
+            data = null;
         }
 
         if (!response.ok) {
             // Handle 401 Unauthorized globally (only for true session expiration)
             if (response.status === 401 && data?.code === "UNAUTHENTICATED" && !endpoint.includes("/login")) {
-                // If in browser context, trigger global redirection
                 if (typeof window !== "undefined") {
                     const { toast } = await import("sonner");
                     toast.error("Session expired. Please login again.");
@@ -134,8 +129,24 @@ export async function apiClient<T>(
                     errorMessage = flatErrors.join(" ");
                 }
             }
+
+            // Meaningful fallbacks when backend doesn't return JSON or a message
             if (!errorMessage) {
-                errorMessage = `Request failed with status ${response.status}`;
+                if (response.status === 502 || response.status === 503) {
+                    errorMessage = "Server is temporarily unavailable. Please try again in a moment.";
+                } else if (response.status === 504) {
+                    errorMessage = "The server request timed out. Please try again.";
+                } else if (response.status === 500) {
+                    errorMessage = "Internal server error. Please try again or contact IT support.";
+                } else if (response.status === 413) {
+                    errorMessage = "The uploaded file or request is too large for the server.";
+                } else if (response.status === 403) {
+                    errorMessage = "You do not have permission to perform this action.";
+                } else if (response.status === 404) {
+                    errorMessage = "The requested resource was not found.";
+                } else {
+                    errorMessage = `Request failed with status ${response.status}`;
+                }
             }
 
             return {
@@ -147,14 +158,20 @@ export async function apiClient<T>(
             };
         }
 
-        return { success: true, data };
-    } catch (error) {
+        return { success: true, data: (data ?? ({} as T)) };
+    } catch (error: any) {
         console.error(`API Error [${endpoint}]:`, error);
+        const isAbort = error?.name === "AbortError";
+        const message = isAbort
+            ? "Request was cancelled."
+            : (error?.message && !error.message.includes("fetch failed") && !error.message.includes("NetworkError")
+                ? error.message
+                : "Unable to reach the server. Please check your internet connection.");
         return {
             success: false,
             error: {
-                error: "Network error. Please check your connection.",
-                code: "NETWORK_ERROR",
+                error: message,
+                code: isAbort ? "ABORTED" : "NETWORK_ERROR",
             },
         };
     }
@@ -207,10 +224,32 @@ export async function apiClientBrowser<T>(
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-            errorData.message || errorData.error || `HTTP ${response.status}`
-        );
+        let errorData: any = {};
+        try {
+            errorData = await response.json();
+        } catch {
+            errorData = {};
+        }
+
+        let errorMessage = errorData.message || errorData.error;
+        if (errorData.errors && typeof errorData.errors === "object") {
+            const flat = Object.values(errorData.errors).flat().filter(Boolean);
+            if (flat.length > 0) errorMessage = flat.join(" ");
+        }
+
+        if (!errorMessage) {
+            if (response.status === 502 || response.status === 503) {
+                errorMessage = "Server is temporarily unavailable. Please try again in a moment.";
+            } else if (response.status === 504) {
+                errorMessage = "The server request timed out. Please try again.";
+            } else if (response.status === 500) {
+                errorMessage = "Internal server error. Please try again or contact IT support.";
+            } else {
+                errorMessage = `Request failed with status ${response.status}`;
+            }
+        }
+
+        throw new Error(errorMessage);
     }
 
     // Handle empty responses
@@ -220,3 +259,4 @@ export async function apiClientBrowser<T>(
 
     return response.json();
 }
+

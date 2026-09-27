@@ -88,7 +88,7 @@ export function AddOccurrenceDialog({
     setLoading(true);
 
     try {
-      await addBatchComplianceOccurrences({
+      const res = await addBatchComplianceOccurrences({
         user_ids: selectedUserIds,
         type: formData.type,
         points: formData.points,
@@ -96,6 +96,11 @@ export function AddOccurrenceDialog({
         severity: formData.severity as any,
         description: formData.description,
       });
+
+      if (!res.success) {
+        toast.error(res.error || "Failed to add compliance occurrence");
+        return;
+      }
 
       toast.success(`Compliance queries sent to ${selectedUserIds.length} staff members`);
       setOpen(false);
@@ -109,9 +114,9 @@ export function AddOccurrenceDialog({
       setSelectedUserIds([]);
       // Refresh the page or trigger a re-fetch
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add occurrence", error);
-      toast.error("Failed to add compliance occurrence");
+      toast.error(error?.message || "Failed to add compliance occurrence");
     } finally {
       setLoading(false);
     }

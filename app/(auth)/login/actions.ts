@@ -5,6 +5,7 @@ import { login } from "@/lib/auth/api";
 import { setSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
 import { headers } from "next/headers";
+import { ATTENDANCE_CONFIG } from "@/lib/config/attendance";
 
 export type LoginState = {
     error?: string;
@@ -54,9 +55,19 @@ export async function loginAction(
 
     const { email, password } = validatedFields.data;
 
-    // console.log(rawData.location, rawData.client_ip)
+    const skipClockIn =
+        !ATTENDANCE_CONFIG.isLoginAutoClockInEnabled() ||
+        formData.get("skip_clock_in") === "true";
+
     // Call API
-    const result = await login(email, password, rawData.location, rawData.client_ip, rawData.deviceData);
+    const result = await login(
+        email,
+        password,
+        skipClockIn ? undefined : rawData.location,
+        rawData.client_ip,
+        rawData.deviceData,
+        skipClockIn
+    );
 
     if (!result.success) {
         const errorCode = result.error.code;
@@ -75,6 +86,6 @@ export async function loginAction(
         success: true,
         destination,
         clocked_in: result.data.clocked_in,
-        clock_in_message: result.data.clock_in_message
+        clock_in_message: skipClockIn ? null : result.data.clock_in_message
     };
 }

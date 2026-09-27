@@ -13,7 +13,11 @@ import { toJpeg } from "html-to-image";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 
-export function ExportButton() {
+interface ExportButtonProps {
+  entry?: any;
+}
+
+export function ExportButton({ entry }: ExportButtonProps = {}) {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async (format: "jpg" | "pdf") => {
@@ -36,14 +40,27 @@ export function ExportButton() {
         },
       });
 
-      const monthName = new Date().toLocaleString("default", { month: "short", year: "numeric" });
+      const runStatus = entry?.run?.status || entry?.run_status;
+      const isDraft = entry
+        ? entry.status !== "approved" ||
+          (Boolean(runStatus) && runStatus !== "closed")
+        : false;
+      const draftSuffix = isDraft ? "_DRAFT" : "";
+
+      const monthName = entry?.run?.payroll_month
+        ? new Date(entry.run.payroll_month + "-01")
+            .toLocaleString("default", { month: "short", year: "numeric" })
+            .replace(/\s+/g, "_")
+        : new Date()
+            .toLocaleString("default", { month: "short", year: "numeric" })
+            .replace(/\s+/g, "_");
 
       if (format === "jpg") {
         const link = document.createElement("a");
-        link.download = `Payslip_${monthName}.jpg`;
+        link.download = `Payslip_${monthName}${draftSuffix}.jpg`;
         link.href = dataUrl;
         link.click();
-        toast.success("Payslip exported as JPG successfully");
+        toast.success(`Payslip ${isDraft ? "(Draft) " : ""}exported as JPG successfully`);
       } else {
         const pdf = new jsPDF({
           orientation: "portrait",
@@ -51,8 +68,8 @@ export function ExportButton() {
           format: [element.offsetWidth, element.offsetHeight],
         });
         pdf.addImage(dataUrl, "JPEG", 0, 0, element.offsetWidth, element.offsetHeight);
-        pdf.save(`Payslip_${monthName}.pdf`);
-        toast.success("Payslip exported as PDF successfully");
+        pdf.save(`Payslip_${monthName}${draftSuffix}.pdf`);
+        toast.success(`Payslip ${isDraft ? "(Draft) " : ""}exported as PDF successfully`);
       }
     } catch (err) {
       console.error("Export failed", err);

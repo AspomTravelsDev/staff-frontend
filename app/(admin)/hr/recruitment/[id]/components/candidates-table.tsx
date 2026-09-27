@@ -139,11 +139,15 @@ export function CandidatesTable({
     newStatus: CandidateStatus
   ) => {
     try {
-      await updateCandidateStatus(candidateId, roleId, newStatus);
+      const res = await updateCandidateStatus(candidateId, roleId, newStatus);
+      if (!res.success) {
+        toast.error(res.error || "Failed to update status.");
+        return;
+      }
       toast.success(`Candidate status moved to ${newStatus}`);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Failed to update status.");
+      toast.error(err?.message || "Failed to update status.");
     }
   };
 

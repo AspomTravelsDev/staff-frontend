@@ -55,14 +55,16 @@ export async function login(
         device_uuid?: string;
         device_fingerprint?: string;
         device_name?: string;
-    }
+    },
+    skip_clock_in?: boolean
 ): Promise<ApiResponse<AuthResponse>> {
     return api.post<AuthResponse>("/api/login", {
         email,
         password,
         location,
         client_ip,
-        ...(deviceData || {})
+        ...(deviceData || {}),
+        ...(skip_clock_in !== undefined ? { skip_clock_in } : {})
     });
 }
 

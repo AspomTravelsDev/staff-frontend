@@ -40,7 +40,7 @@ export function LoanRequestDialog() {
 
     try {
       setIsSubmitting(true);
-      await createLoanRequest({
+      const res = await createLoanRequest({
         amount,
         reason,
         repayment_months:
@@ -50,6 +50,12 @@ export function LoanRequestDialog() {
             ? undefined
             : Number(suggestedMonthlyDeduction),
       });
+
+      if (!res.success) {
+        toast.error(res.error || "Failed to submit loan request.");
+        return;
+      }
+
       toast.success("Loan request submitted.");
       setOpen(false);
       setAmount(0);
@@ -57,8 +63,8 @@ export function LoanRequestDialog() {
       setRepaymentMonths("");
       setSuggestedMonthlyDeduction("");
       router.refresh();
-    } catch {
-      toast.error("Failed to submit loan request.");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to submit loan request.");
     } finally {
       setIsSubmitting(false);
     }

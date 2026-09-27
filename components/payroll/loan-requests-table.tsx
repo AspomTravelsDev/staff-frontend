@@ -59,11 +59,15 @@ export function LoanRequestsTable({
   ) {
     try {
       setLoadingId(id);
-      await decideLoanRequestByHr(id, decision);
+      const res = await decideLoanRequestByHr(id, decision);
+      if (!res.success) {
+        toast.error(res.error || `Failed to ${decision} loan request.`);
+        return;
+      }
       toast.success(`HR ${decision} loan request.`);
       router.refresh();
-    } catch {
-      toast.error("Failed to update HR decision.");
+    } catch (error: any) {
+      toast.error(error?.message || `Failed to update HR decision.`);
     } finally {
       setLoadingId(null);
     }
@@ -75,11 +79,15 @@ export function LoanRequestsTable({
   ) {
     try {
       setLoadingId(id);
-      await decideLoanRequestByAccounts(id, decision);
+      const res = await decideLoanRequestByAccounts(id, decision);
+      if (!res.success) {
+        toast.error(res.error || `Failed to ${decision} loan request.`);
+        return;
+      }
       toast.success(`Accounts ${decision} loan request.`);
       router.refresh();
-    } catch {
-      toast.error("Failed to update Accounts decision.");
+    } catch (error: any) {
+      toast.error(error?.message || `Failed to update Accounts decision.`);
     } finally {
       setLoadingId(null);
     }
@@ -88,11 +96,15 @@ export function LoanRequestsTable({
   async function handleMarkPaid(id: string) {
     try {
       setLoadingId(id);
-      await markLoanRequestPaid(id);
+      const res = await markLoanRequestPaid(id);
+      if (!res.success) {
+        toast.error(res.error || "Failed to mark loan request as paid.");
+        return;
+      }
       toast.success("Loan request marked as paid.");
       router.refresh();
-    } catch {
-      toast.error("Failed to mark as paid.");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to mark as paid.");
     } finally {
       setLoadingId(null);
     }
@@ -145,15 +157,15 @@ export function LoanRequestsTable({
 
     try {
       setLoadingId(request.id);
-      await reopenLoanRequest(request.id, payload);
+      const res = await reopenLoanRequest(request.id, payload);
+      if (!res.success) {
+        toast.error(res.error || "Failed to reopen loan request.");
+        return;
+      }
       toast.success("Loan request reopened and sent back to HR.");
       router.refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : "Failed to reopen loan request.";
-      toast.error(message);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reopen loan request.");
     } finally {
       setLoadingId(null);
     }

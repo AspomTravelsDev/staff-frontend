@@ -25,7 +25,7 @@ export function PayslipDocument({ entry, user }: PayslipDocumentProps) {
             </p>
           </div>
         </div>
-        <ExportButton />
+        <ExportButton entry={entry} />
       </div>
 
       <PayslipContent entry={entry} user={user} fallbackMonth={entry.run?.payroll_month} />

@@ -7,25 +7,69 @@ import "@/components/tour/driver-theme.css";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 
-const TOUR_STORAGE_KEY = "aspom_has_seen_task_tracker_tour_v1";
+const TOUR_STORAGE_KEY = "aspom_has_seen_task_tracker_tour_v2";
 
 const TOUR_STEPS: DriveStep[] = [
   {
     element: "#tour-task-tracker-header",
     popover: {
-      title: "Task Tracker & Deadlines",
+      title: "Task Tracker & Deadlines Hub",
       description:
-        "Welcome to your personal task tracker! Log key action items, set custom deadlines, and receive automated email and push reminders before due dates arrive.",
+        "Welcome to ASPOM's centralized Task Tracker! Designed for accountability and timely delivery, this hub lets you manage personal commitments, assign and track deliverables across colleagues, set automated reminders, and prevent missed deadlines.",
       side: "bottom",
       align: "start",
     },
   },
   {
+    element: "#tour-view-switcher",
+    popover: {
+      title: "Dual Workspaces: Personal vs Delegated",
+      description:
+        "Switch effortlessly between two focused views:<ul><li><strong>My Deliverables:</strong> Tasks where you are the responsible owner.</li><li><strong>Delegated to Colleagues:</strong> Tasks you have assigned to team members across departments.</li></ul>The badges display the live number of active items in each workspace.",
+      side: "bottom",
+      align: "start",
+    },
+  },
+  {
+    element: "#tour-view-my-deliverables",
+    popover: {
+      title: "My Deliverables Workspace",
+      description:
+        "Your personal accountability board:<ul><li>Review self-assigned action items and deliverables delegated to you by supervisors or peers.</li><li>Monitor countdown badges and dynamic timeline progress bars.</li><li>Submit deadline extension requests with explanations if blockers arise.</li><li>Check off completed items to log verified on-time records.</li></ul>",
+      side: "bottom",
+      align: "start",
+    },
+    onHighlightStarted: (_element, _step, { driver }) => {
+      const myDeliverablesBtn = document.querySelector("#tour-view-my-deliverables") as HTMLButtonElement | null;
+      if (myDeliverablesBtn && myDeliverablesBtn.getAttribute("data-active") !== "true") {
+        myDeliverablesBtn.click();
+        setTimeout(() => driver.refresh(), 120);
+      }
+    },
+  },
+  {
+    element: "#tour-view-delegated",
+    popover: {
+      title: "Delegated to Colleagues Tab",
+      description:
+        "Assign and monitor cross-department deliverables with full transparency:<ul><li><strong>Cross-Team Delegation:</strong> Assign action items directly to any staff member in the company.</li><li><strong>Real-Time Accountability:</strong> See who is working on what, their remaining time, and whether they are approaching deadlines.</li><li><strong>Extension Governance:</strong> When a colleague requests extra time, a review prompt appears directly on their card to <strong>Approve</strong> or <strong>Decline</strong> with feedback.</li><li><strong>Automated Alerts:</strong> Assigned colleagues receive automated push and email notifications.</li></ul><em>We have switched to this tab so you can preview the live delegated workspace!</em>",
+      side: "bottom",
+      align: "start",
+    },
+    onHighlightStarted: (_element, _step, { driver }) => {
+      const delegatedBtn = document.querySelector("#tour-view-delegated") as HTMLButtonElement | null;
+      if (delegatedBtn && delegatedBtn.getAttribute("data-active") !== "true") {
+        delegatedBtn.click();
+        setTimeout(() => driver.refresh(), 120);
+      }
+    },
+  },
+  {
     element: "#tour-add-task-btn",
     popover: {
-      title: "Add New Task",
+      title: "Add & Delegate Deliverables",
       description:
-        "Click here to record a new task with its deadline (e.g. 'Upload client docs to cloud'), select a priority, and choose how many hours in advance to be reminded.",
+        "Click here to record a deliverable or assign work to a colleague:<ul><li><strong>Assignee:</strong> Assign to yourself or select any colleague across company departments.</li><li><strong>Title & Description:</strong> Clearly describe deliverables, scope, and instructions.</li><li><strong>Deadline & Priority:</strong> Set specific due date and time, and assign priority (Urgent, High, Medium, Low).</li><li><strong>Automated Reminders:</strong> Configure lead-time alerts (1h, 12h, 24h, 48h) delivered via Web Push and Email.</li></ul>",
       side: "bottom",
       align: "end",
     },
@@ -33,9 +77,9 @@ const TOUR_STEPS: DriveStep[] = [
   {
     element: "#tour-task-stats",
     popover: {
-      title: "Deadline Health & Stats",
+      title: "Deadline Health & Metrics",
       description:
-        "Quick glance cards showing your pending tasks, upcoming deadlines (within 48 hours), overdue alerts, and completed tasks. Click any card to filter!",
+        "Real-time overview of current deliverable velocity:<ul><li><strong>Active Tasks:</strong> Total deliverables currently in progress.</li><li><strong>Due in 48h:</strong> Amber alerts for deliverables with approaching deadlines.</li><li><strong>Overdue:</strong> Rose warning cards for overdue items needing immediate action.</li><li><strong>Completed:</strong> Finished deliverables with recorded timestamps.</li></ul><em>Click any stat card to quickly filter your task list!</em>",
       side: "bottom",
       align: "start",
     },
@@ -43,9 +87,9 @@ const TOUR_STEPS: DriveStep[] = [
   {
     element: "#tour-task-filters",
     popover: {
-      title: "Tabs & Search Filters",
+      title: "Status Tabs, Priority & Live Search",
       description:
-        "Switch between All, Pending, Due Soon, Overdue, and Completed tasks. You can also filter by priority level or search tasks by keyword.",
+        "Easily filter and find any deliverable:<ul><li><strong>Status Tabs:</strong> Switch among All, Pending, Due Soon, Overdue, and Completed.</li><li><strong>Priority Selector:</strong> Filter deliverables by Urgent, High, Medium, or Low priority.</li><li><strong>Search Bar:</strong> Search instantly by deliverable title, notes, or colleague name.</li></ul>",
       side: "top",
       align: "start",
     },
@@ -53,9 +97,9 @@ const TOUR_STEPS: DriveStep[] = [
   {
     element: "#tour-task-list",
     popover: {
-      title: "Interactive Task Cards",
+      title: "Interactive Deliverable Cards & Timelines",
       description:
-        "Check the box on any task to instantly mark it completed. Use the three-dot menu to edit details, adjust reminder timings, or remove items.",
+        "Cards provide rich real-time context:<ul><li><strong>Check to Complete:</strong> Instantly record completion and verify whether it was on-time.</li><li><strong>Visual Timeline:</strong> Progress bar displaying % of elapsed time from creation to deadline.</li><li><strong>Colleague Badges:</strong> Clear indicators displaying the assigner or assigned teammate with avatar and department.</li><li><strong>Action Menu (•••):</strong> Edit task details, adjust reminder alert thresholds, or delete items.</li></ul>",
       side: "top",
       align: "start",
     },
@@ -64,6 +108,9 @@ const TOUR_STEPS: DriveStep[] = [
 
 export function runTaskTrackerTour() {
   if (typeof window === "undefined") return;
+
+  const delegatedBtn = document.querySelector("#tour-view-delegated") as HTMLButtonElement | null;
+  const initialView = delegatedBtn?.getAttribute("data-active") === "true" ? "assigned_by_me" : "assigned_to_me";
 
   const activeSteps = TOUR_STEPS.filter((step) => {
     if (typeof step.element === "string") {
@@ -81,7 +128,7 @@ export function runTaskTrackerTour() {
     popoverClass: "aspom-tour-popover",
     nextBtnText: "Next →",
     prevBtnText: "← Back",
-    doneBtnText: "Finish Tour ✓",
+    doneBtnText: "Got it! ✓",
     steps: activeSteps,
     onDestroyStarted: () => {
       try {
@@ -89,6 +136,20 @@ export function runTaskTrackerTour() {
       } catch {
         // Ignore localStorage errors
       }
+
+      // Restore initial tab if user started on My Deliverables
+      if (initialView === "assigned_to_me") {
+        const myDeliverablesBtn = document.querySelector("#tour-view-my-deliverables") as HTMLButtonElement | null;
+        if (myDeliverablesBtn && myDeliverablesBtn.getAttribute("data-active") !== "true") {
+          myDeliverablesBtn.click();
+        }
+      } else {
+        const delBtn = document.querySelector("#tour-view-delegated") as HTMLButtonElement | null;
+        if (delBtn && delBtn.getAttribute("data-active") !== "true") {
+          delBtn.click();
+        }
+      }
+
       driverObj.destroy();
     },
   });
@@ -124,7 +185,7 @@ export function TaskTrackerTourButton() {
       variant="outline"
       size="sm"
       onClick={runTaskTrackerTour}
-      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border-dashed"
+      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border-dashed cursor-pointer"
       title="Take an interactive tour of Task Tracker & Deadlines"
     >
       <HelpCircle className="h-3.5 w-3.5 text-emerald-600" />

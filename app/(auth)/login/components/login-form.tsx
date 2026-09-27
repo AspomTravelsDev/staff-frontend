@@ -13,8 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getDeviceSignature } from "@/lib/utils/device-fingerprint";
+import { ATTENDANCE_CONFIG } from "@/lib/config/attendance";
 
 export function LoginForm({ redirect }: { redirect?: string }) {
+  const isAutoClockInEnabled = ATTENDANCE_CONFIG.isLoginAutoClockInEnabled();
   const [state, formAction, isPending] = useActionState<LoginState, FormData>(
     loginAction,
     null,
@@ -23,7 +25,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   // Using a ref to store location to avoid hydration issues with hidden input
   const locationRef = useRef<string>("");
   const clientIpRef = useRef<string>("");
-  const [isLocating, setIsLocating] = useState(true);
+  const [isLocating, setIsLocating] = useState(isAutoClockInEnabled);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
@@ -38,6 +40,11 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   }, [cooldown]);
 
   useEffect(() => {
+    if (!isAutoClockInEnabled) {
+      setIsLocating(false);
+      return;
+    }
+
     const initLocationData = async () => {
       const { getGPSLocation, getPublicIP } = await import("@/lib/utils/location");
       
@@ -63,7 +70,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
     };
 
     initLocationData();
-  }, []);
+  }, [isAutoClockInEnabled]);
 
   useEffect(() => {
     if (state?.error) {
@@ -102,11 +109,13 @@ export function LoginForm({ redirect }: { redirect?: string }) {
 
       <form
         action={(formData) => {
-          if (locationRef.current) {
-            formData.set("location", locationRef.current);
-          }
-          if (clientIpRef.current) {
-            formData.set("client_ip", clientIpRef.current);
+          if (isAutoClockInEnabled) {
+            if (locationRef.current) {
+              formData.set("location", locationRef.current);
+            }
+            if (clientIpRef.current) {
+              formData.set("client_ip", clientIpRef.current);
+            }
           }
           
           try {
@@ -118,11 +127,18 @@ export function LoginForm({ redirect }: { redirect?: string }) {
             console.error("Failed to append device signature to login request:", e);
           }
 
+          formData.set("skip_clock_in", isAutoClockInEnabled ? "false" : "true");
+
           formAction(formData);
         }}
         className="mt-8 space-y-6"
       >
         <input type="hidden" name="redirect" value={redirect || "/dashboard"} />
+        <input
+          type="hidden"
+          name="skip_clock_in"
+          value={isAutoClockInEnabled ? "false" : "true"}
+        />
 
         {state?.error && (
           <Alert variant="destructive">

@@ -63,12 +63,15 @@ export function LeaveTable({ requests }: LeaveTableProps) {
   const handleApprove = async (id: string) => {
     setLoadingId(id);
     try {
-      await approveLeaveRequest(id);
+      const res = await approveLeaveRequest(id);
+      if (!res.success) {
+        toast.error(res.error || "Failed to approve request.");
+        return;
+      }
       toast.success("Leave request approved successfully.");
       router.refresh();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to approve request.";
-      toast.error(message);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to approve request.");
     } finally {
       setLoadingId(null);
     }
@@ -83,14 +86,17 @@ export function LeaveTable({ requests }: LeaveTableProps) {
     }
     setLoadingId(rejectId);
     try {
-      await rejectLeaveRequest(rejectId, rejectionReason);
+      const res = await rejectLeaveRequest(rejectId, rejectionReason);
+      if (!res.success) {
+        toast.error(res.error || "Failed to reject request.");
+        return;
+      }
       toast.success("Leave request rejected successfully.");
       setRejectOpen(false);
       setRejectionReason("");
       router.refresh();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reject request.";
-      toast.error(message);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reject request.");
     } finally {
       setLoadingId(null);
     }

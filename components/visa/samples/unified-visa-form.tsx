@@ -147,7 +147,11 @@ export const DOC_REQUIREMENTS: Record<string, { title: string; reqs: DocReq[] }>
     title: "Leave Approval Letter",
     reqs: [
       { field: "applicant_name", label: "Applicant Name" },
-      { field: "job_title", label: "Job Title" },
+      {
+        field: "job_title",
+        label: "Job Title",
+        check: (p) => p.employment_type === "self_employed" || Boolean(p.job_title?.trim()),
+      },
       {
         field: "company_name",
         label: "Company Name",
@@ -294,6 +298,7 @@ export function UnifiedVisaForm() {
     purpose_of_visit: "a Tourist visa. I am writing to inform you of my planned itinerary for my upcoming tourist visit to Toronto, Canada",
     activities_highlights: "exploring iconic landmarks, cultural centers, parks, and downtown attractions",
 
+    has_family_members: false,
     familyMembers: [],
     days: [],
 
@@ -305,7 +310,7 @@ export function UnifiedVisaForm() {
     business_nature: "",
     registration_number: "",
     signatory_name: "",
-    signatory_designation: "",
+    signatory_designation: "HR Manager",
     signatory_contact_info: "",
     self_signatory_name: "",
     self_signatory_designation: "Company Secretary",
@@ -875,7 +880,7 @@ export function UnifiedVisaForm() {
                 </TabsTrigger>
                 <TabsTrigger value="family" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
                   <Users className="size-3.5" />
-                  Family ({profile.familyMembers.length})
+                  Family ({profile.has_family_members ? profile.familyMembers.filter((m) => m.name?.trim()).length : 0})
                 </TabsTrigger>
               </TabsList>
 
@@ -1167,12 +1172,20 @@ export function UnifiedVisaForm() {
                         <Label htmlFor="signatory_name" className="text-xs font-medium">Employer Signatory Name</Label>
                         <Input id="signatory_name" name="signatory_name" value={profile.signatory_name} onChange={handleInputChange} placeholder="e.g. NANCY PETERS" className="h-9 text-xs" />
                       </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="signatory_designation" className="text-xs font-medium">Employer Signatory Title / Position</Label>
+                        <Input id="signatory_designation" name="signatory_designation" value={profile.signatory_designation} onChange={handleInputChange} placeholder="e.g. HR Manager / Managing Director" className="h-9 text-xs" />
+                      </div>
                     </>
                   ) : (
                     <>
                       <div className="space-y-1.5">
                         <Label htmlFor="business_name" className="text-xs font-medium">Registered Business Name</Label>
                         <Input id="business_name" name="business_name" value={profile.business_name || profile.company_name} onChange={handleInputChange} placeholder="e.g. Apex Skincare & Beauty Ltd" className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="job_title" className="text-xs font-medium">Applicant Position / Role in Business</Label>
+                        <Input id="job_title" name="job_title" value={profile.job_title} onChange={handleInputChange} placeholder="e.g. Managing Director / CEO / Principal Partner" className="h-9 text-xs" />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="business_nature" className="text-xs font-medium">Nature of Business / Industry</Label>
@@ -1349,44 +1362,93 @@ export function UnifiedVisaForm() {
               </TabsContent>
 
               {/* FAMILY MEMBERS TAB */}
-              <TabsContent value="family" className="space-y-3 pt-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Accompanying Family Members</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addFamilyMember} className="gap-1 text-xs h-7">
-                    <Plus className="size-3" /> Add Family Member
-                  </Button>
+              <TabsContent value="family" className="space-y-4 pt-1">
+                {/* ACCOMPANYING FAMILY TOGGLE */}
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="space-y-0.5 pr-2">
+                    <Label htmlFor="has_family_members" className="text-xs font-semibold cursor-pointer">
+                      Accompanying Family Members
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      {profile.has_family_members
+                        ? "Toggle on: Applicant is travelling with family (letters will declare companions and use plural narratives)."
+                        : "Toggle off: Applicant is travelling solo (letters will strictly use singular 'I / my' narratives and omit companion clauses)."}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      id="has_family_members"
+                      name="has_family_members"
+                      checked={profile.has_family_members ?? false}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setProfile((prev) => ({
+                          ...prev,
+                          has_family_members: checked,
+                          familyMembers: checked && prev.familyMembers.length === 0
+                            ? [{ relationship: "Spouse", name: "", passport_number: "", visa_details: "" }]
+                            : prev.familyMembers,
+                        }));
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
                 </div>
 
-                {profile.familyMembers.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic py-2">No family members added. (Applicant traveling solo).</p>
-                ) : (
-                  profile.familyMembers.map((member, index) => (
-                    <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-2 border rounded-lg">
-                      <div className="sm:col-span-3">
-                        <Select value={member.relationship} onValueChange={(val) => handleFamilyChange(index, "relationship", val)}>
-                          <SelectTrigger className="w-full h-8 text-xs">
-                            <SelectValue placeholder="Relationship" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Husband">Husband</SelectItem>
-                            <SelectItem value="Wife">Wife</SelectItem>
-                            <SelectItem value="Child">Child</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="sm:col-span-4">
-                        <Input className="h-8 text-xs" value={member.name} onChange={(e) => handleFamilyChange(index, "name", e.target.value)} placeholder="Full Name" />
-                      </div>
-                      <div className="sm:col-span-4">
-                        <Input className="h-8 text-xs" value={member.passport_number} onChange={(e) => handleFamilyChange(index, "passport_number", e.target.value)} placeholder="Passport Number" />
-                      </div>
-                      <div className="sm:col-span-1 flex justify-end">
-                        <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeFamilyMember(index)}>
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
+                {profile.has_family_members ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-1 border-b">
+                      <Label className="text-xs font-medium">Family Members Traveling with Applicant</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={addFamilyMember} className="gap-1 text-xs h-7">
+                        <Plus className="size-3" /> Add Family Member
+                      </Button>
                     </div>
-                  ))
+
+                    {profile.familyMembers.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-2">Click "Add Family Member" above to add companions.</p>
+                    ) : (
+                      profile.familyMembers.map((member, index) => (
+                        <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-2 border rounded-lg bg-card">
+                          <div className="sm:col-span-3">
+                            <Select value={member.relationship} onValueChange={(val) => handleFamilyChange(index, "relationship", val)}>
+                              <SelectTrigger className="w-full h-8 text-xs">
+                                <SelectValue placeholder="Relationship" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Spouse">Spouse</SelectItem>
+                                <SelectItem value="Husband">Husband</SelectItem>
+                                <SelectItem value="Wife">Wife</SelectItem>
+                                <SelectItem value="Child">Child</SelectItem>
+                                <SelectItem value="Parent">Parent</SelectItem>
+                                <SelectItem value="Sibling">Sibling</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="sm:col-span-4">
+                            <Input className="h-8 text-xs" value={member.name} onChange={(e) => handleFamilyChange(index, "name", e.target.value)} placeholder="Full Name" />
+                          </div>
+                          <div className="sm:col-span-4">
+                            <Input className="h-8 text-xs" value={member.passport_number} onChange={(e) => handleFamilyChange(index, "passport_number", e.target.value)} placeholder="Passport Number" />
+                          </div>
+                          <div className="sm:col-span-1 flex justify-end">
+                            <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeFamilyMember(index)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-lg border border-dashed text-center space-y-1 bg-muted/10">
+                    <p className="text-xs font-medium text-foreground">Traveling Solo</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Toggle switch on above if the applicant will be accompanied by family members or a spouse on this trip.
+                    </p>
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
