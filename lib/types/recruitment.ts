@@ -89,7 +89,7 @@ export interface InterviewRubric {
     availability_to_resume: string;
     salary_expectation: string;
     recommended_salary: string;
-    recommendation: "RECOMMEND FOR OFFER" | "KEEP IN VIEW" | "REJECT" | string;
+    recommendation: "RECOMMENDED" | "KEEP IN VIEW" | "NOT RECOMMENDED" | string;
     nysc_status: string;
     accommodation: string;
   };

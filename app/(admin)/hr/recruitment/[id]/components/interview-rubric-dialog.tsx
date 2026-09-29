@@ -115,7 +115,7 @@ export function InterviewRubricDialog({
   const [availabilityToResume, setAvailabilityToResume] = useState("");
   const [salaryExpectation, setSalaryExpectation] = useState("");
   const [recommendedSalary, setRecommendedSalary] = useState("");
-  const [recommendation, setRecommendation] = useState("RECOMMEND FOR OFFER");
+  const [recommendation, setRecommendation] = useState("RECOMMENDED");
   const [nyscStatus, setNyscStatus] = useState("");
   const [accommodation, setAccommodation] = useState("NOT NEEDED");
 
@@ -169,7 +169,7 @@ export function InterviewRubricDialog({
       setAvailabilityToResume(existing.logistics?.availability_to_resume || "");
       setSalaryExpectation(existing.logistics?.salary_expectation || "");
       setRecommendedSalary(existing.logistics?.recommended_salary || "");
-      setRecommendation(existing.logistics?.recommendation || "RECOMMEND FOR OFFER");
+      setRecommendation(existing.logistics?.recommendation || "RECOMMENDED");
       setNyscStatus(existing.logistics?.nysc_status || "");
       setAccommodation(existing.logistics?.accommodation || "NOT NEEDED");
     } else {
@@ -202,7 +202,7 @@ export function InterviewRubricDialog({
       setAvailabilityToResume("");
       setSalaryExpectation("");
       setRecommendedSalary("");
-      setRecommendation("RECOMMEND FOR OFFER");
+      setRecommendation("RECOMMENDED");
       setNyscStatus("");
       setAccommodation("NOT NEEDED");
     }
@@ -680,14 +680,14 @@ export function InterviewRubricDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="RECOMMEND FOR OFFER" className="text-xs font-medium text-emerald-600">
-                        RECOMMEND FOR OFFER
+                      <SelectItem value="RECOMMENDED" className="text-xs font-medium text-emerald-600">
+                        RECOMMENDED
                       </SelectItem>
                       <SelectItem value="KEEP IN VIEW" className="text-xs font-medium text-amber-600">
                         KEEP IN VIEW
                       </SelectItem>
-                      <SelectItem value="REJECT" className="text-xs font-medium text-rose-600">
-                        REJECT
+                      <SelectItem value="NOT RECOMMENDED" className="text-xs font-medium text-rose-600">
+                        NOT RECOMMENDED
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -944,7 +944,7 @@ export function InterviewRubricDialog({
                 {analyzing ? "Analyzing..." : "Save & Analyze with AI"}
               </Button>
 
-              {onProceedToOffer && recommendation === "RECOMMEND FOR OFFER" && (
+              {onProceedToOffer && recommendation === "RECOMMENDED" && (
                 <Button
                   type="button"
                   variant="default"

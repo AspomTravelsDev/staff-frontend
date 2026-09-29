@@ -277,85 +277,81 @@ export function AttendanceClient({
 
       <AttendanceStats stats={stats} isLoading={isPending} />
 
-      <div className="flex flex-col xl:flex-row gap-4 xl:items-center bg-card p-4 rounded-xl border">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full xl:w-auto">
-          <label className="text-sm font-medium px-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-            <Filter size={14} className="text-muted-foreground" />
-            Date Range
-          </label>
-          <DatePickerWithRange
-            date={dateRange}
-            setDate={setDateRange}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-3 bg-card p-4 rounded-xl border">
+        {/* Date Range */}
+        <label className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0">
+          <Filter size={14} className="text-muted-foreground" />
+          Date Range
+        </label>
+        <DatePickerWithRange
+          date={dateRange}
+          setDate={setDateRange}
+          disabled={isPending}
+          className="w-full sm:w-60 shrink-0"
+        />
+
+        {/* Staff Member */}
+        <label className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0">
+          <Users size={14} className="text-muted-foreground" />
+          Staff Member
+        </label>
+        <div className="w-full sm:w-48 shrink-0">
+          <Select
+            value={selectedStaff}
+            onValueChange={setSelectedStaff}
             disabled={isPending}
-            className="w-full sm:w-65"
-          />
-        </div>
-
-        <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full xl:w-auto">
-          <label className="text-sm font-medium px-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-            <Users size={14} className="text-muted-foreground" />
-            Staff Member
-          </label>
-          <div className="w-full sm:w-55">
-            <Select
-              value={selectedStaff}
-              onValueChange={setSelectedStaff}
-              disabled={isPending}
-            >
-              <SelectTrigger className="h-10 bg-background">
-                <SelectValue placeholder="All Staff" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Staff</SelectItem>
-                {employees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.firstName} {emp.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex items-center">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setDateRange(undefined);
-              setSelectedStaff("all");
-            }}
-            disabled={isPending || (!dateRange && selectedStaff === "all")}
           >
-            Reset
-          </Button>
+            <SelectTrigger className="h-10 bg-background">
+              <SelectValue placeholder="All Staff" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Staff</SelectItem>
+              {employees.map((emp) => (
+                <SelectItem key={emp.id} value={emp.id}>
+                  {emp.firstName} {emp.lastName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full xl:w-auto">
-          <label className="text-sm font-medium px-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-            Rows per page
-          </label>
-          <div className="w-full sm:w-28">
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => setPageSize(Number.parseInt(value, 10))}
-              disabled={isPending}
-            >
-              <SelectTrigger className="h-10 bg-background">
-                <SelectValue placeholder="100" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Reset */}
+        <Button
+          variant="outline"
+          onClick={() => {
+            setDateRange(undefined);
+            setSelectedStaff("all");
+          }}
+          disabled={isPending || (!dateRange && selectedStaff === "all")}
+          className="shrink-0"
+        >
+          Reset
+        </Button>
+
+        {/* Rows per page */}
+        <label className="text-sm font-medium whitespace-nowrap shrink-0">Rows per page</label>
+        <div className="w-24 shrink-0">
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => setPageSize(Number.parseInt(value, 10))}
+            disabled={isPending}
+          >
+            <SelectTrigger className="h-10 bg-background">
+              <SelectValue placeholder="100" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-2">
-          <ClockInModeToggle />
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <ClockInModeToggle compact />
           <WallQrPosterDialog />
           <TableExportButton
             data={pivotedRows}

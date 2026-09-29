@@ -149,6 +149,8 @@ export function CreateTaskDialog({
       { key: "24_hours", label: "24 Hours Before", minutes: 1440, icon: "⏰" },
       { key: "1_hour", label: "1 Hour Before", minutes: 60, icon: "🔔" },
       { key: "30_mins", label: "30 Minutes Before", minutes: 30, icon: "🚨" },
+      { key: "10_mins", label: "10 Minutes Before", minutes: 10, icon: "🚨" },
+      { key: "5_mins", label: "5 Minutes Before", minutes: 5, icon: "🚨" },
       { key: "due_now", label: "At Deadline", minutes: 0, icon: "🎯" },
     ];
 

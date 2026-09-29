@@ -178,10 +178,26 @@ export function AssignmentQueueTable({
               {selected?.staffConditionRating} —{" "}
               {selected?.staffConditionDetails}
             </p>
-            <p>
-              <span className="font-medium">Staff notes: </span>
-              {selected?.staffNotes}
-            </p>
+            {selected?.staffNotes && (
+              <p>
+                <span className="font-medium">Staff notes: </span>
+                {selected.staffNotes}
+              </p>
+            )}
+            {selected?.checklist && Object.values(selected.checklist).some((v) => v && v.trim()) && (
+              <div className="rounded-md border p-3 bg-muted/20 text-xs space-y-1.5">
+                <span className="font-semibold block text-foreground mb-1">Checklist Observations:</span>
+                <div className="grid grid-cols-2 gap-1.5 text-muted-foreground">
+                  {selected.checklist.screen && <div><strong className="text-foreground">Screen:</strong> {selected.checklist.screen}</div>}
+                  {selected.checklist.charger && <div><strong className="text-foreground">Charger:</strong> {selected.checklist.charger}</div>}
+                  {selected.checklist.buttons && <div><strong className="text-foreground">Buttons:</strong> {selected.checklist.buttons}</div>}
+                  {selected.checklist.battery && <div><strong className="text-foreground">Battery:</strong> {selected.checklist.battery}</div>}
+                  {selected.checklist.ports && <div><strong className="text-foreground">Ports:</strong> {selected.checklist.ports}</div>}
+                  {selected.checklist.cameraMic && <div><strong className="text-foreground">Camera/Mic:</strong> {selected.checklist.cameraMic}</div>}
+                  {selected.checklist.overall && <div className="col-span-2"><strong className="text-foreground">Overall:</strong> {selected.checklist.overall}</div>}
+                </div>
+              </div>
+            )}
             {mode === "compliance" && selected?.officerNotes && (
               <p>
                 <span className="font-medium">Officer notes: </span>

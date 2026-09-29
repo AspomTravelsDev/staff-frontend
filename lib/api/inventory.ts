@@ -110,6 +110,7 @@ export interface InventoryAssignment {
     complianceNotes?: string;
     complianceDecision?: InventoryAssignmentDecision;
     complianceDecidedAt?: string;
+    checklist?: Record<string, string>;
     createdAt: string;
     updatedAt: string;
     inventoryItem?: InventoryItem;
@@ -463,6 +464,7 @@ function mapAssignment(a: any): InventoryAssignment {
         complianceNotes: a.compliance_notes ?? undefined,
         complianceDecision: a.compliance_decision ?? undefined,
         complianceDecidedAt: a.compliance_decided_at ?? undefined,
+        checklist: a.checklist ?? undefined,
         createdAt: a.created_at,
         updatedAt: a.updated_at,
         inventoryItem: a.inventory_item
@@ -516,6 +518,7 @@ export async function submitInventoryAssignmentDecision(
         conditionRating?: InventoryConditionRating;
         conditionDetails?: string;
         notes: string;
+        checklist?: Record<string, string>;
     }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/my-inventory/assignments/${id}/decision`, {
@@ -523,6 +526,7 @@ export async function submitInventoryAssignmentDecision(
         condition_rating: payload.conditionRating,
         condition_details: payload.conditionDetails,
         notes: payload.notes,
+        checklist: payload.checklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit decision");
@@ -532,11 +536,12 @@ export async function submitInventoryAssignmentDecision(
 
 export async function initiateInventoryAssignment(
     itemId: string,
-    payload: { assigneeId: string; notes?: string }
+    payload: { assigneeId: string; notes?: string; checklist?: Record<string, string> }
 ): Promise<InventoryAssignment> {
     const response = await api.post<any>(`/api/admin/inventory/${itemId}/assignments`, {
         assignee_id: payload.assigneeId,
         notes: payload.notes,
+        checklist: payload.checklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate assignment");
@@ -568,11 +573,12 @@ export async function getInventoryComplianceQueue(): Promise<InventoryAssignment
 
 export async function submitInventoryOfficerDecision(
     id: string,
-    payload: { decision: InventoryAssignmentDecision; notes?: string }
+    payload: { decision: InventoryAssignmentDecision; notes?: string; checklist?: Record<string, string> }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/admin/inventory/assignments/${id}/officer-decision`, {
         decision: payload.decision,
         notes: payload.notes,
+        checklist: payload.checklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit officer decision");

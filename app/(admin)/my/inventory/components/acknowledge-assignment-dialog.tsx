@@ -27,6 +27,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,6 +49,17 @@ const formSchema = z
     conditionDetails: z.string().optional(),
     agreedToTerms: z.boolean(),
     notes: z.string().min(5, "Please provide at least 5 characters."),
+    checklist: z
+      .object({
+        screen: z.string().optional(),
+        charger: z.string().optional(),
+        buttons: z.string().optional(),
+        battery: z.string().optional(),
+        ports: z.string().optional(),
+        cameraMic: z.string().optional(),
+        overall: z.string().optional(),
+      })
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.decision === "approved") {
@@ -92,6 +104,16 @@ export function AcknowledgeAssignmentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
+  const getChecklistValues = (chk?: Record<string, string>) => ({
+    screen: chk?.screen || "",
+    charger: chk?.charger || "",
+    buttons: chk?.buttons || "",
+    battery: chk?.battery || "",
+    ports: chk?.ports || "",
+    cameraMic: chk?.cameraMic || "",
+    overall: chk?.overall || "",
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -100,6 +122,7 @@ export function AcknowledgeAssignmentDialog({
       conditionDetails: "",
       agreedToTerms: false,
       notes: "",
+      checklist: getChecklistValues(assignment?.checklist),
     },
   });
 
@@ -111,9 +134,10 @@ export function AcknowledgeAssignmentDialog({
         conditionDetails: "",
         agreedToTerms: false,
         notes: "",
+        checklist: getChecklistValues(assignment?.checklist),
       });
     }
-  }, [open, form]);
+  }, [open, form, assignment]);
 
   const decision = form.watch("decision");
 
@@ -128,6 +152,7 @@ export function AcknowledgeAssignmentDialog({
         conditionDetails:
           values.decision === "approved" ? values.conditionDetails : undefined,
         notes: values.notes,
+        checklist: values.checklist,
       });
       toast.success(
         values.decision === "approved"
@@ -261,6 +286,104 @@ export function AcknowledgeAssignmentDialog({
                     </FormItem>
                   )}
                 />
+
+                {(!item?.category || ["laptop", "phone", "gadget", "other"].includes(item.category.toLowerCase())) && (
+                  <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold">Gadget Checklist Verification</h4>
+                      <span className="text-xs text-muted-foreground">Fill N/A where not applicable</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Please inspect each item and update or confirm observations made by IT/Admin.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="checklist.screen"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Screen & Display</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. No scratches or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checklist.charger"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Charger & Cables</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Original included or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checklist.buttons"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Buttons & Keyboard</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Working fine or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checklist.battery"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Battery & Charging</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Holds charge (90%+) or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checklist.ports"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Ports & Connectivity</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. USB/Wi-Fi working or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checklist.cameraMic"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Camera, Mic & Speaker</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Tested fine or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checklist.overall"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel className="text-xs">Overall Body & Casing</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Minor dent on side or N/A" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Asset Declaration Undertaking & Rules from Form PDF */}
                 <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
