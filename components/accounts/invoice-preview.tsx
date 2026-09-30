@@ -71,8 +71,8 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
         logoSrc = "/travelatal.png";
         altText = "Travelatal Logo";
       } else if (invoice.subsidiary === "abs") {
-        logoSrc = "/abs.png";
-        altText = "ABS Logo";
+        logoSrc = "/abshealthconnect.png";
+        altText = "ABS Health Connect Logo";
       }
 
       return (
@@ -268,7 +268,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                   </span>
 
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-6">
-                    DEPOSIT
+                    PAID TO DATE
                   </span>
                   <span className="text-sm font-bold text-slate-700 tabular-nums leading-6">
                     {formatCurrency(Number(invoice.deposit)).replace("NGN", "")}
@@ -296,6 +296,17 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                 )}
               </div>
             </div>
+
+            {invoice.bank_details && (
+              <div className="mt-6 border border-slate-200 rounded-sm p-4">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                  Bank Account Details
+                </h3>
+                <p className="text-xs font-semibold text-slate-700 leading-relaxed whitespace-pre-line">
+                  {invoice.bank_details}
+                </p>
+              </div>
+            )}
             
             {/* Background block decoration from image */}
             <div className="h-10 w-full bg-slate-50 border border-slate-100 rounded-sm"></div>

@@ -47,9 +47,8 @@ export default function InvoicesPage() {
     setSheetOpen(true);
   };
 
-  const handleSaveSuccess = () => {
-    setSheetOpen(false);
-    setSelectedInvoice(null);
+  const handleSaveSuccess = (invoice?: Invoice) => {
+    if (invoice) setSelectedInvoice(invoice);
     setRefreshKey((prev) => prev + 1);
   };
 
@@ -108,10 +107,10 @@ export default function InvoicesPage() {
               cardColor="purple"
             />
             <StatsCard
-              title="Total Paid"
+              title="Payments Received"
               icon={CreditCard}
               value={formatCurrency(stats?.total_paid ?? 0)}
-              description="Total deposits collected"
+              description="Total payments recorded"
               variant="dashboard"
               cardColor="green"
             />

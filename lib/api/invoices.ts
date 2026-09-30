@@ -12,6 +12,27 @@ export interface InvoiceItem {
   amount: number;
 }
 
+export interface InvoicePayment {
+  id: string;
+  invoice_id: string;
+  amount: number;
+  payment_date: string | null;
+  payment_method: string | null;
+  reference: string | null;
+  note: string | null;
+  recorded_by_id: string | null;
+  recorded_by?: { id: string; name: string } | null;
+  created_at: string;
+}
+
+export interface NewInvoicePayment {
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  reference?: string | null;
+  note?: string | null;
+}
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -92,7 +113,9 @@ export async function getInvoice(id: string): Promise<{ success: boolean; data?:
 }
 
 export async function createInvoice(
-  data: Omit<Invoice, "id" | "created_at" | "updated_at" | "created_by_id">
+  data: Omit<Invoice, "id" | "created_at" | "updated_at" | "created_by_id"> & {
+    payments?: NewInvoicePayment[];
+  }
 ): Promise<{ success: boolean; data?: Invoice; error?: string }> {
   const response = await api.post<Invoice>("/api/invoices", data);
   if (response.success) {
@@ -149,4 +172,36 @@ export async function sendInvoiceEmail(
     return { success: true, data: response.data };
   }
   return { success: false, error: response.error?.error || "Failed to send invoice email" };
+}
+
+export async function getInvoicePayments(id: string): Promise<{
+  success: boolean;
+  data?: InvoicePayment[];
+  error?: string;
+}> {
+  const response = await api.get<InvoicePayment[]>(`/api/invoices/${id}/payments`);
+  if (response.success) return { success: true, data: response.data };
+  return { success: false, error: response.error?.error || "Failed to load payment history" };
+}
+
+export async function recordInvoicePayment(
+  id: string,
+  data: {
+    amount: number;
+    payment_date: string;
+    payment_method: string;
+    reference?: string;
+    note?: string;
+  }
+): Promise<{
+  success: boolean;
+  data?: { payment: InvoicePayment; invoice: Invoice };
+  error?: string;
+}> {
+  const response = await api.post<{ payment: InvoicePayment; invoice: Invoice }>(
+    `/api/invoices/${id}/payments`,
+    data
+  );
+  if (response.success) return { success: true, data: response.data };
+  return { success: false, error: response.error?.error || "Failed to record payment" };
 }

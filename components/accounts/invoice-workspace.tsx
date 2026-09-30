@@ -6,6 +6,7 @@ import { createInvoice, updateInvoice, sendInvoiceEmail, type Invoice, type Invo
 import { SendEmailDialog } from "./send-email-dialog";
 import type { Client } from "@/lib/api/crm-constants";
 import { InvoicePreview } from "./invoice-preview";
+import { InvoicePaymentTracker } from "./invoice-payment-tracker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -77,13 +78,13 @@ const PRESETS = {
     membership_welcome_text: "WELCOME TO THE TRAVELATAL CLUB!",
   },
   abs: {
-    company_name: "ASPOM Birth Services",
-    company_email: "info@absbirthservices.com",
-    company_website: "",
+    company_name: "ABS Health Connect",
+    company_email: "info@abshealthconnect.com",
+    company_website: "www.abshealthconnect.com",
     company_phone: "+234 903 418 5096",
-    company_address: "4th Floor Brasas’r Place, 69 Admiralty Way, Lekki Phase 1, Lagos\nSuite C7, 109 Plaza, Ademola Adetokunbo Crescent, Wuse 2, Abuja.",
-    bank_details: "",
-    terms_conditions: "All services are subject to agreement terms. For enquiries, please email info@absbirthservices.com.",
+    company_address: "4th Floor Brasas’r Place, 69 Admiralty Way, Lekki Phase 1, Lagos",
+    bank_details: "Guaranty Trust Bank\n5001709959\nABS Birth Services",
+    terms_conditions: "All services are subject to agreement terms. For enquiries, please email info@abshealthconnect.com.\n\nFor detailed terms, please visit https://abshealthconnect.com/terms",
     membership_welcome_text: "WELCOME TO THE ABS CLUB!",
   }
 };
@@ -91,11 +92,20 @@ const PRESETS = {
 interface InvoiceWorkspaceProps {
   initialInvoice: Invoice | null;
   clearInvoice: () => void;
-  onSaveSuccess?: () => void;
+  onSaveSuccess?: (invoice?: Invoice) => void;
+}
+
+interface DraftInvoicePayment {
+  amount: string;
+  payment_date: string;
+  payment_method: string;
+  reference: string;
+  note: string;
 }
 
 export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }: InvoiceWorkspaceProps) {
   const previewRef = useRef<HTMLDivElement>(null);
+  const [savedInvoice, setSavedInvoice] = useState<Invoice | null>(initialInvoice);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
@@ -123,7 +133,6 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
   const [paymentMethod, setPaymentMethod] = useState("BANK TRANSFER");
-  const [status, setStatus] = useState<"paid" | "unpaid" | "partially_paid">("unpaid");
 
   // CRM Search
   const [crmClientId, setCrmClientId] = useState<string | null>(null);
@@ -156,8 +165,14 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     }
   ]);
   const [subtotal, setSubtotal] = useState(0);
-  const [deposit, setDeposit] = useState(0);
-  const [balanceDue, setBalanceDue] = useState(0);
+  const [draftPayments, setDraftPayments] = useState<DraftInvoicePayment[]>([]);
+  const paidAmount = savedInvoice
+    ? Number(savedInvoice.deposit || 0)
+    : draftPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+  const balanceDue = subtotal - paidAmount;
+  const status = subtotal > 0 && balanceDue === 0
+    ? "paid"
+    : (paidAmount > 0 ? "partially_paid" : "unpaid");
 
   // Apply subsidiary presets
   const applyPreset = useCallback((key: keyof typeof PRESETS) => {
@@ -174,6 +189,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
 
   // Sync loaded invoice from edit triggers
   useEffect(() => {
+    setSavedInvoice(initialInvoice);
     setActiveTab("details");
     if (initialInvoice) {
       setSubsidiary(initialInvoice.subsidiary as keyof typeof PRESETS);
@@ -188,7 +204,6 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
       setIssueDate(initialInvoice.issue_date);
       setDueDate(initialInvoice.due_date);
       setPaymentMethod(initialInvoice.payment_method);
-      setStatus(initialInvoice.status);
       setCrmClientId(initialInvoice.crm_client_id);
       setClientName(initialInvoice.client_name);
       setClientEmail(initialInvoice.client_email || "");
@@ -207,9 +222,9 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
       }
 
       setItems(initialInvoice.items || []);
-      setDeposit(Number(initialInvoice.deposit));
     } else {
       // Clear form back to defaults
+      setDraftPayments([]);
       setSubsidiary("aspom");
       setCompanyName(PRESETS.aspom.company_name);
       setCompanyEmail(PRESETS.aspom.company_email);
@@ -223,7 +238,6 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
       setIssueDate(new Date().toISOString().split("T")[0]);
       setDueDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
       setPaymentMethod("BANK TRANSFER");
-      setStatus("unpaid");
 
       setCrmClientId(null);
       setClientName("");
@@ -245,7 +259,6 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           amount: 0
         }
       ]);
-      setDeposit(0);
       setInvoiceNumber("");
     }
   }, [initialInvoice]);
@@ -271,15 +284,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     });
 
     setSubtotal(sum);
-    const bal = sum - Number(deposit);
-    setBalanceDue(bal);
-
-    if (sum > 0 && bal <= 0) {
-      setStatus("paid");
-    } else if (Number(deposit) > 0 && bal > 0) {
-      setStatus("partially_paid");
-    }
-  }, [items, deposit]);
+  }, [items]);
 
   // Fetch all clients in the background on load
   useEffect(() => {
@@ -376,14 +381,18 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
   };
 
   // Save invoice details to DB
-  const handleSaveToHistory = async () => {
+  const handleSaveToHistory = async (silent = false): Promise<Invoice | null> => {
     if (!invoiceNumber.trim()) {
       toast.error("Invoice number is required");
-      return;
+      return null;
     }
     if (!clientName.trim()) {
       toast.error("Client name is required");
-      return;
+      return null;
+    }
+    if (paidAmount > subtotal) {
+      toast.error("Invoice total cannot be less than payments already recorded");
+      return null;
     }
 
     setIsSaving(true);
@@ -410,28 +419,43 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
         membership_welcome_text: hasMembership && membershipWelcomeText ? membershipWelcomeText : null,
         items,
         subtotal,
-        deposit,
+        deposit: paidAmount,
         balance_due: balanceDue,
         status,
         terms_conditions: termsConditions || null,
+        ...(!savedInvoice && draftPayments.length > 0 ? {
+          payments: draftPayments.map((payment) => ({
+            amount: Number(payment.amount),
+            payment_date: payment.payment_date,
+            payment_method: payment.payment_method,
+            reference: payment.reference.trim() || null,
+            note: payment.note.trim() || null,
+          })),
+        } : {}),
       };
 
       let response;
-      if (initialInvoice && initialInvoice.id) {
-        response = await updateInvoice(initialInvoice.id, postData);
+      if (savedInvoice && savedInvoice.id) {
+        response = await updateInvoice(savedInvoice.id, postData);
       } else {
         response = await createInvoice(postData);
       }
 
       if (response.success) {
-        toast.success(`Invoice ${invoiceNumber} saved successfully!`);
-        onSaveSuccess?.();
+        const savedInvoiceNumber = response.data?.invoice_number || invoiceNumber;
+        setInvoiceNumber(savedInvoiceNumber);
+        if (response.data) setSavedInvoice(response.data);
+        if (!silent) toast.success(`Invoice ${savedInvoiceNumber} saved successfully!`);
+        onSaveSuccess?.(response.data);
+        return response.data || null;
       } else {
         toast.error(response.error || "Failed to save invoice");
+        return null;
       }
     } catch (err) {
       console.error(err);
       toast.error("Failed to save invoice record");
+      return null;
     } finally {
       setIsSaving(false);
     }
@@ -472,25 +496,24 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
   };
 
   const handleSendEmailClick = () => {
-    if (!initialInvoice || !initialInvoice.id) {
-      toast.error("Please save the invoice to history first before emailing");
-      return;
-    }
     setEmailDialogOpen(true);
   };
 
   const handleSendEmail = async (recipient: string, customNote: string) => {
-    if (!initialInvoice || !initialInvoice.id) return;
-
     setIsSendingEmail(true);
     try {
+      // Save the current form first, including a new invoice and its initial
+      // payments, then use the persisted record for the email request.
+      const invoiceToSend = await handleSaveToHistory(true);
+      if (!invoiceToSend?.id) return;
+
       const pdfBase64 = await generatePdfBase64();
       if (!pdfBase64) {
         setIsSendingEmail(false);
         return;
       }
 
-      const response = await sendInvoiceEmail(initialInvoice.id, {
+      const response = await sendInvoiceEmail(invoiceToSend.id, {
         pdfBase64,
         to: recipient,
         customNote,
@@ -587,14 +610,15 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             {isSaving ? "Saving..." : "Save History"}
           </Button>
 
-          {/* Send via Email (Temporarily disabled pending SMTP configuration) */}
+          {/* Send via Email */}
           <Button
             variant="outline"
-            disabled={true}
-            title="Awaiting SMTP configuration"
-            className="bg-background opacity-65 flex items-center gap-1.5 cursor-not-allowed h-9 text-xs"
+            onClick={handleSendEmailClick}
+            disabled={isSendingEmail}
+            title="Save the invoice automatically before sending it by email"
+            className="bg-background flex items-center gap-1.5 h-9 text-xs"
           >
-            <Mail className="h-4 w-4 text-slate-400" />
+            <Mail className="h-4 w-4" />
             Send Email
           </Button>
 
@@ -653,7 +677,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
                 <SelectContent>
                   <SelectItem value="aspom">Aspom Travel Agency LTD</SelectItem>
                   <SelectItem value="travelatal">Travelatal Ltd</SelectItem>
-                  <SelectItem value="abs">ASPOM Birth Services</SelectItem>
+                  <SelectItem value="abs">ABS Health Connect</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -713,11 +737,13 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-600">Invoice Number</Label>
+              <Label className="text-xs font-bold text-slate-600">
+                Invoice Number{savedInvoice ? "" : " (assigned on save)"}
+              </Label>
               <Input
                 value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
                 placeholder="e.g. JUL021/2026"
+                readOnly
               />
             </div>
             <div className="space-y-1">
@@ -1001,31 +1027,17 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-600">Deposit Paid (NGN)</Label>
-                <Input
-                  type="number"
-                  value={deposit}
-                  min="0"
-                  onChange={(e) => setDeposit(parseFloat(e.target.value) || 0)}
-                  className="tabular-nums"
-                />
+                <Label className="text-xs font-bold text-slate-600">Payments Received</Label>
+                <div className="h-10 flex items-center rounded-md border bg-muted/40 px-3 text-sm font-semibold tabular-nums">
+                  NGN {paidAmount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                </div>
               </div>
 
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-600">Invoice Status</Label>
-                <Select
-                  value={status}
-                  onValueChange={(val) => setStatus(val as any)}
-                >
-                  <SelectTrigger className="bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                    <SelectItem value="partially_paid">Partially Paid</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="h-10 flex items-center rounded-md border bg-muted/40 px-3 text-sm font-medium capitalize">
+                  {status.replace("_", " ")}
+                </div>
               </div>
 
               <div className="space-y-1 text-right flex flex-col justify-end">
@@ -1035,6 +1047,62 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
                 </span>
               </div>
             </div>
+            {paidAmount > subtotal && (
+              <p className="text-xs font-medium text-destructive">
+                Invoice total cannot be less than payments already recorded. Increase the line items before saving.
+              </p>
+            )}
+
+            {!savedInvoice && (
+              <div className="space-y-3 pt-3 border-t">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-xs font-bold text-slate-600">Payments Received</Label>
+                    <p className="text-[11px] text-muted-foreground">Add payments now and they’ll be recorded when you save the invoice.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDraftPayments((current) => [...current, {
+                      amount: "",
+                      payment_date: new Date().toISOString().slice(0, 10),
+                      payment_method: "BANK TRANSFER",
+                      reference: "",
+                      note: "",
+                    }])}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add payment
+                  </Button>
+                </div>
+                {draftPayments.map((payment, index) => (
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-md border p-3">
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Amount (NGN)</Label>
+                      <Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setDraftPayments((current) => current.map((item, i) => i === index ? { ...item, amount: event.target.value } : item))} placeholder="e.g. 50000" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Payment date</Label>
+                      <Input type="date" value={payment.payment_date} onChange={(event) => setDraftPayments((current) => current.map((item, i) => i === index ? { ...item, payment_date: event.target.value } : item))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Payment method</Label>
+                      <Input value={payment.payment_method} onChange={(event) => setDraftPayments((current) => current.map((item, i) => i === index ? { ...item, payment_method: event.target.value } : item))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Reference (optional)</Label>
+                      <Input value={payment.reference} onChange={(event) => setDraftPayments((current) => current.map((item, i) => i === index ? { ...item, reference: event.target.value } : item))} placeholder="Transaction or receipt reference" />
+                    </div>
+                    <div className="sm:col-span-2 flex items-center gap-2">
+                      <Input value={payment.note} onChange={(event) => setDraftPayments((current) => current.map((item, i) => i === index ? { ...item, note: event.target.value } : item))} placeholder="Note (optional)" />
+                      <Button type="button" variant="ghost" size="icon" aria-label="Remove payment" onClick={() => setDraftPayments((current) => current.filter((_, i) => i !== index))}>
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="space-y-3 pt-3 border-t">
               <div className="space-y-1">
@@ -1056,6 +1124,14 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             </div>
           </CardContent>
         </Card>
+
+        {savedInvoice && (
+          <InvoicePaymentTracker
+            invoice={savedInvoice}
+            onInvoiceUpdated={setSavedInvoice}
+            onDataChanged={() => onSaveSuccess?.()}
+          />
+        )}
       </TabsContent>
 
       {/* Tab: Preview Sheet */}
@@ -1083,7 +1159,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             membership_welcome_text: hasMembership && membershipWelcomeText ? membershipWelcomeText : null,
             items,
             subtotal,
-            deposit,
+            deposit: paidAmount,
             balance_due: balanceDue,
             status,
             terms_conditions: termsConditions || null,

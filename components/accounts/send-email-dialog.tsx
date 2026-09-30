@@ -84,21 +84,24 @@ export function SendEmailDialog({
             />
           </div>
 
-          {/* CC Addresses Information */}
+          {/* Copy Addresses Information */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-600">CC Recipients (Copy list)</Label>
+            <Label className="text-xs font-semibold text-slate-600">Automatic Copies</Label>
             <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border rounded-lg max-h-20 overflow-y-auto select-none">
               <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-100 cursor-default">
-                account@aspomtravels.com
+                account@aspomtravels.com (live BCC)
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 cursor-default">
+                it@aspomtravels.com (test BCC)
               </Badge>
               {subsidiaryEmail && (
                 <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-100 cursor-default">
-                  {subsidiaryEmail} (brand)
+                  {subsidiaryEmail} (CC · brand)
                 </Badge>
               )}
             </div>
             <p className="text-[9px] text-muted-foreground italic leading-normal">
-              Note: A copy of this invoice email will automatically copy the finance department and the subsidiary's contact inbox.
+              Test mode is enabled by backend configuration: it sends to this recipient, BCCs IT, and suppresses live copies. Normal sends BCC Accounts and CC the subsidiary contact.
             </p>
           </div>
 

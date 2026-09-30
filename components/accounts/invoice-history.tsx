@@ -119,7 +119,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
       case "aspom":
         return "Aspom Travel Agency LTD";
       case "abs":
-        return "ASPOM Birth Services";
+        return "ABS Health Connect";
       default:
         return key;
     }
@@ -215,7 +215,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
                 <SelectItem value="all">All Subsidiaries</SelectItem>
                 <SelectItem value="aspom">Aspom Travel Agency LTD</SelectItem>
                 <SelectItem value="travelatal">Travelatal Ltd</SelectItem>
-                <SelectItem value="abs">ASPOM Birth Services</SelectItem>
+                <SelectItem value="abs">ABS Health Connect</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -276,7 +276,8 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
                   <TableHead className="font-bold">Issue Date</TableHead>
                   <TableHead className="font-bold">Due Date</TableHead>
                   <TableHead className="font-bold text-right">Total Amount</TableHead>
-                  <TableHead className="font-bold text-right">Deposit</TableHead>
+                  <TableHead className="font-bold text-right">Paid</TableHead>
+                  <TableHead className="font-bold text-right">Balance Due</TableHead>
                   <TableHead className="font-bold">Payment</TableHead>
                   <TableHead className="font-bold">Sent Status</TableHead>
                   <TableHead className="text-center font-bold w-32">Actions</TableHead>
@@ -313,6 +314,9 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-slate-500">
                         {formatCurrency(Number(invoice.deposit))}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {formatCurrency(Number(invoice.balance_due))}
                       </TableCell>
                       <TableCell>
                         <Badge
