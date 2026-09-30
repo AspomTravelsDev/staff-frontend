@@ -76,6 +76,11 @@ export function PendingClearanceHandoverSection({
               <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">
                 {assignment.inventoryItem?.serialNumber || "No serial number"}
               </p>
+              {assignment.complianceDecision === "rejected" && assignment.complianceNotes && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 line-clamp-2">
+                  Compliance requested changes: {assignment.complianceNotes}
+                </p>
+              )}
             </div>
             <Badge variant="secondary" className="text-2xs uppercase tracking-wider shrink-0">
               {assignment.inventoryItem?.category || "Device"}

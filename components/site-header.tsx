@@ -119,6 +119,10 @@ export const SiteHeader = () => {
           label = "Asset assignment awaiting officer review";
         } else if (key === "inventoryAssignmentsCompliance") {
           label = "Asset assignment awaiting compliance audit";
+        } else if (key === "inventoryClearanceOfficer") {
+          label = "Gadget return awaiting IT inspection";
+        } else if (key === "inventoryClearanceCompliance") {
+          label = "Gadget return awaiting Compliance clearance";
         } else if (key === "payrollQueue") {
           label = "Payroll runs awaiting review";
         }
@@ -126,9 +130,13 @@ export const SiteHeader = () => {
         let targetUrl = navItem.url || "#";
         if (
           key === "inventoryAssignmentsOfficer" ||
-          key === "inventoryAssignmentsCompliance"
+          key === "inventoryAssignmentsCompliance" ||
+          key === "inventoryClearanceOfficer" ||
+          key === "inventoryClearanceCompliance"
         ) {
-          targetUrl = "/admin/inventory?tab=pending-approvals";
+          targetUrl = key.startsWith("inventoryClearance")
+            ? "/admin/inventory?tab=clearance"
+            : "/admin/inventory?tab=pending-approvals";
         }
         let displayCount = 0;
         let chatItems: { conversation_id: string; sender_name: string; count: number }[] | undefined = undefined;

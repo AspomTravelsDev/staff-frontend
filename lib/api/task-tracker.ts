@@ -13,6 +13,7 @@ import type {
   ApproveTaskExtensionPayload,
   RejectTaskExtensionPayload,
   Colleague,
+  TaskTrackerComment,
 } from "@/lib/types/task-tracker";
 
 interface TaskTrackerListResponse {
@@ -73,6 +74,27 @@ export async function getTaskTrackerDashboardSummary(): Promise<ApiResponse<Task
  */
 export async function getTaskTrackerItem(id: string): Promise<ApiResponse<SingleItemResponse>> {
   return api.get<SingleItemResponse>(`/api/task-tracker/${id}`);
+}
+
+export async function getTaskTrackerComments(
+  id: string,
+): Promise<ApiResponse<{ data: TaskTrackerComment[] }>> {
+  return api.get<{ data: TaskTrackerComment[] }>(`/api/task-tracker/${id}/comments`);
+}
+
+export async function addTaskTrackerComment(
+  id: string,
+  body: string,
+): Promise<ApiResponse<{ data: TaskTrackerComment; message: string }>> {
+  const result = await api.post<{ data: TaskTrackerComment; message: string }>(
+    `/api/task-tracker/${id}/comments`,
+    { body },
+  );
+  if (result.success) {
+    revalidatePath("/my/task-tracker");
+    revalidatePath("/operations/delegated-tasks");
+  }
+  return result;
 }
 
 /**

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   InventoryAssignment,
   InventoryAssignmentDecision,
+  GadgetChecklist,
   inspectClearanceReturn,
   approveClearanceCompliance,
 } from "@/lib/api/inventory";
@@ -41,6 +42,16 @@ import { ShieldCheck, UserCheck, RotateCcw, AlertTriangle } from "lucide-react";
 
 type ClearanceQueueMode = "officer" | "compliance";
 
+const returnChecklistFields: Array<[keyof GadgetChecklist, string]> = [
+  ["screen", "Screen & Display"],
+  ["charger", "Charger & Cables"],
+  ["buttons", "Buttons & Keyboard"],
+  ["battery", "Battery & Charging"],
+  ["ports", "Ports & Connectivity"],
+  ["cameraMic", "Camera, Mic & Speaker"],
+  ["overall", "Overall Body & Casing"],
+];
+
 export function ClearanceQueueTable({
   assignments,
   mode,
@@ -54,6 +65,7 @@ export function ClearanceQueueTable({
   const [conditionDetails, setConditionDetails] = useState<string>("");
   const [damageFee, setDamageFee] = useState<string>("0");
   const [notes, setNotes] = useState("");
+  const [returnChecklist, setReturnChecklist] = useState<GadgetChecklist | undefined>();
   const [loading, setLoading] = useState(false);
 
   const openInspectionModal = (item: InventoryAssignment) => {
@@ -62,12 +74,22 @@ export function ClearanceQueueTable({
     setConditionDetails(item.returnConditionDetails || "");
     setDamageFee(item.damageAssessmentFee ? String(item.damageAssessmentFee) : "0");
     setNotes("");
+    setReturnChecklist({ ...(item.returnChecklist ?? item.staffChecklist ?? item.adminChecklist ?? item.inventoryItem?.defaultChecklist ?? {
+      screen: "", charger: "", buttons: "", battery: "", ports: "", cameraMic: "", overall: "",
+    }) });
   };
 
-  async function handleDecision(decision: InventoryAssignmentDecision) {
+  async function handleDecision(
+    decision: InventoryAssignmentDecision,
+    sendBackTo?: "staff" | "it",
+  ) {
     if (!selected) return;
     if (decision === "rejected" && notes.trim().length < 3) {
       toast.error("A note is required when rejecting clearance.");
+      return;
+    }
+    if (mode === "officer" && decision === "approved" && (!returnChecklist || Object.values(returnChecklist).some((value) => !value.trim()))) {
+      toast.error("Complete every Admin / IT final checklist field. Enter N/A for items that do not apply.");
       return;
     }
 
@@ -80,6 +102,7 @@ export function ClearanceQueueTable({
           returnConditionDetails: conditionDetails.trim() || undefined,
           damageAssessmentFee: parseFloat(damageFee) || 0,
           notes: notes.trim() || undefined,
+          returnChecklist,
         });
         toast.success(
           decision === "approved"
@@ -91,15 +114,19 @@ export function ClearanceQueueTable({
       } else {
         await approveClearanceCompliance(selected.id, {
           decision,
+          sendBackTo,
           notes: notes.trim() || undefined,
         });
         toast.success(
           decision === "approved"
             ? "Gadget clearance completed. Asset returned to storage."
-            : "Clearance sent back to IT inspection."
+            : sendBackTo === "staff"
+              ? "Clearance sent back to staff for a revised handover."
+              : "Clearance sent back to Admin/IT for another inspection."
         );
       }
       setSelected(null);
+      setReturnChecklist(undefined);
       router.refresh();
     } catch (error: any) {
       toast.error(error?.message || "Failed to process clearance decision");
@@ -178,7 +205,7 @@ export function ClearanceQueueTable({
                           Awaiting staff report
                         </span>
                       ) : (
-                        (mode === "officer" || item.status !== "cleared") && (
+                        item.status !== "cleared" && (
                           <Button
                             size="sm"
                             variant={mode === "officer" ? (item.status === "return_pending_inspection" ? "default" : "outline") : "secondary"}
@@ -198,9 +225,10 @@ export function ClearanceQueueTable({
                         )
                       )}
 
-                      {item.status === "cleared" && mode !== "officer" && (
+                      {item.status === "cleared" && (
                         <AssetClearancePdfButton
                           assignment={item}
+                          label="Generate Clearance Form"
                           allAssignments={
                             item.clearanceBatchId
                               ? assignments.filter((a) => a.clearanceBatchId === item.clearanceBatchId)
@@ -219,7 +247,7 @@ export function ClearanceQueueTable({
       </div>
 
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5 text-blue-600" />
@@ -276,6 +304,37 @@ export function ClearanceQueueTable({
                       rows={2}
                     />
                   </div>
+
+                  {selected.staffChecklist && (
+                    <section className="space-y-2 rounded-md border bg-muted/30 p-3">
+                      <p className="text-sm font-semibold">Staff final checklist</p>
+                      <div className="grid grid-cols-2 gap-1.5 text-xs text-muted-foreground">
+                        {returnChecklistFields.map(([key, label]) => (
+                          <p key={key} className={key === "overall" ? "col-span-2" : undefined}>
+                            <span className="font-medium text-foreground">{label}:</span> {selected.staffChecklist?.[key] || "—"}
+                          </p>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Admin / IT final inspection checklist</p>
+                      <p className="text-xs text-muted-foreground">This is saved as the device’s storage baseline after clearance is approved.</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {returnChecklistFields.map(([key, label]) => (
+                        <label key={key} className={key === "overall" ? "space-y-1 sm:col-span-2" : "space-y-1"}>
+                          <span className="text-xs font-medium">{label}</span>
+                          <Input
+                            value={returnChecklist?.[key] ?? ""}
+                            onChange={(event) => setReturnChecklist((current) => current ? { ...current, [key]: event.target.value } : current)}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </section>
                 </>
               ) : (
                 <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
@@ -295,12 +354,31 @@ export function ClearanceQueueTable({
                       {selected.returnConditionDetails}
                     </div>
                   )}
+                  {selected.returnChecklist && (
+                    <div className="border-t pt-2">
+                      <p className="mb-2 font-semibold">Admin / IT final inspection checklist</p>
+                      <div className="grid grid-cols-2 gap-1.5 text-xs text-muted-foreground">
+                        {returnChecklistFields.map(([key, label]) => (
+                          <p key={key} className={key === "overall" ? "col-span-2" : undefined}>
+                            <span className="font-medium text-foreground">{label}:</span> {selected.returnChecklist?.[key] || "—"}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {mode === "officer" && selected.complianceDecision === "rejected" && selected.complianceNotes && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+                  <span className="font-semibold">Compliance requested another inspection: </span>
+                  {selected.complianceNotes}
                 </div>
               )}
 
               <div className="space-y-2">
                 <Label htmlFor="notes">
-                  {mode === "officer" ? "IT Officer Inspection Notes" : "Compliance Audit Notes"}
+                  {mode === "officer" ? "IT Officer Inspection Notes" : "Compliance Audit Notes (required when sending back)"}
                 </Label>
                 <Textarea
                   id="notes"
@@ -311,7 +389,7 @@ export function ClearanceQueueTable({
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -321,14 +399,35 @@ export function ClearanceQueueTable({
                   Cancel
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => handleDecision("rejected")}
-                  disabled={loading}
-                >
-                  {mode === "officer" ? "Cancel Return" : "Send Back to IT"}
-                </Button>
+                {mode === "officer" ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => handleDecision("rejected")}
+                    disabled={loading}
+                  >
+                    Cancel Return
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleDecision("rejected", "staff")}
+                      disabled={loading}
+                    >
+                      Send Back to Staff
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => handleDecision("rejected", "it")}
+                      disabled={loading}
+                    >
+                      Send Back to Admin / IT
+                    </Button>
+                  </>
+                )}
 
                 <Button
                   type="button"

@@ -1,5 +1,6 @@
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskRecurrence = 'daily' | 'weekly' | 'monthly';
 
 export interface Colleague {
   id: string;
@@ -16,6 +17,7 @@ export interface TaskTrackerItem {
   title: string;
   description: string | null;
   due_date: string | null;
+  recurrence?: TaskRecurrence | null;
   priority: TaskPriority;
   status: TaskStatus;
   completed_at: string | null;
@@ -35,10 +37,20 @@ export interface TaskTrackerItem {
   is_overdue: boolean;
   human_due: string | null;
   is_delegated?: boolean;
+  can_comment?: boolean;
   user?: Colleague;
   assigned_by?: Colleague;
   created_at: string;
   updated_at: string;
+}
+
+export interface TaskTrackerComment {
+  id: number;
+  task_tracker_item_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  user?: Pick<Colleague, "id" | "name" | "image_url">;
 }
 
 export interface TaskTrackerStats {
@@ -70,6 +82,7 @@ export interface CreateTaskTrackerPayload {
   title: string;
   description?: string | null;
   due_date?: string | null;
+  recurrence?: TaskRecurrence | null;
   priority?: TaskPriority;
   remind_before_hours?: number;
   enable_email_reminder?: boolean;
@@ -81,6 +94,7 @@ export interface UpdateTaskTrackerPayload {
   title?: string;
   description?: string | null;
   due_date?: string | null;
+  recurrence?: TaskRecurrence | null;
   priority?: TaskPriority;
   status?: TaskStatus;
   remind_before_hours?: number;

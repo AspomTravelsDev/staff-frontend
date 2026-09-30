@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   InventoryAssignment,
   InventoryAssignmentDecision,
+  GadgetChecklist,
   submitInventoryComplianceDecision,
   submitInventoryOfficerDecision,
 } from "@/lib/api/inventory";
@@ -30,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 type QueueMode = "officer" | "compliance";
 
@@ -44,8 +46,22 @@ export function AssignmentQueueTable({
   const [selected, setSelected] = useState<InventoryAssignment | null>(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [adminChecklist, setAdminChecklist] = useState<GadgetChecklist | undefined>();
 
-  async function decide(decision: InventoryAssignmentDecision) {
+  const checklistFields: Array<[keyof GadgetChecklist, string]> = [
+    ["screen", "Screen & Display"],
+    ["charger", "Charger & Cables"],
+    ["buttons", "Buttons & Keyboard"],
+    ["battery", "Battery & Charging"],
+    ["ports", "Ports & Connectivity"],
+    ["cameraMic", "Camera, Mic & Speaker"],
+    ["overall", "Overall Body & Casing"],
+  ];
+
+  async function decide(
+    decision: InventoryAssignmentDecision,
+    sendBackTo?: "staff" | "admin_it",
+  ) {
     if (!selected) return;
     if (decision === "rejected" && notes.trim().length < 3) {
       toast.error("A note is required when rejecting.");
@@ -58,11 +74,13 @@ export function AssignmentQueueTable({
         await submitInventoryOfficerDecision(selected.id, {
           decision,
           notes: notes.trim() || undefined,
+          adminChecklist: isReturnedToOfficer ? adminChecklist : undefined,
         });
       } else {
         await submitInventoryComplianceDecision(selected.id, {
           decision,
           notes: notes.trim() || undefined,
+          sendBackTo,
         });
       }
       toast.success(
@@ -70,10 +88,13 @@ export function AssignmentQueueTable({
           ? mode === "officer"
             ? "Sent to compliance."
             : "Assignment completed."
-          : "Sent back to staff.",
+          : mode === "officer" || sendBackTo === "staff"
+            ? "Sent back to staff."
+            : "Sent back to Admin / IT.",
       );
       setSelected(null);
       setNotes("");
+      setAdminChecklist(undefined);
       router.refresh();
     } catch (error: any) {
       toast.error(error?.message || "Failed to submit decision");
@@ -81,6 +102,8 @@ export function AssignmentQueueTable({
       setLoading(false);
     }
   }
+
+  const isReturnedToOfficer = mode === "officer" && selected?.complianceDecision === "rejected";
 
   return (
     <>
@@ -136,6 +159,7 @@ export function AssignmentQueueTable({
                       onClick={() => {
                         setSelected(assignment);
                         setNotes("");
+                        setAdminChecklist(assignment.adminChecklist ? { ...assignment.adminChecklist } : undefined);
                       }}
                     >
                       Review
@@ -157,7 +181,7 @@ export function AssignmentQueueTable({
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {mode === "officer" ? "Officer review" : "Compliance review"}
@@ -168,7 +192,7 @@ export function AssignmentQueueTable({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 text-sm">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2 text-sm">
             <p>
               <span className="font-medium">Assignee: </span>
               {selected?.assignee?.name}
@@ -184,24 +208,47 @@ export function AssignmentQueueTable({
                 {selected.staffNotes}
               </p>
             )}
-            {selected?.checklist && Object.values(selected.checklist).some((v) => v && v.trim()) && (
-              <div className="rounded-md border p-3 bg-muted/20 text-xs space-y-1.5">
-                <span className="font-semibold block text-foreground mb-1">Checklist Observations:</span>
+            {([['Admin / IT assignment checklist', selected?.adminChecklist], ['Staff final checklist', selected?.staffChecklist]] as const).map(([title, checklist]) => checklist && !(isReturnedToOfficer && title.startsWith("Admin / IT")) && (
+              <div key={title} className="rounded-md border p-3 bg-muted/20 text-xs space-y-1.5">
+                <span className="font-semibold block text-foreground mb-1">{title}</span>
                 <div className="grid grid-cols-2 gap-1.5 text-muted-foreground">
-                  {selected.checklist.screen && <div><strong className="text-foreground">Screen:</strong> {selected.checklist.screen}</div>}
-                  {selected.checklist.charger && <div><strong className="text-foreground">Charger:</strong> {selected.checklist.charger}</div>}
-                  {selected.checklist.buttons && <div><strong className="text-foreground">Buttons:</strong> {selected.checklist.buttons}</div>}
-                  {selected.checklist.battery && <div><strong className="text-foreground">Battery:</strong> {selected.checklist.battery}</div>}
-                  {selected.checklist.ports && <div><strong className="text-foreground">Ports:</strong> {selected.checklist.ports}</div>}
-                  {selected.checklist.cameraMic && <div><strong className="text-foreground">Camera/Mic:</strong> {selected.checklist.cameraMic}</div>}
-                  {selected.checklist.overall && <div className="col-span-2"><strong className="text-foreground">Overall:</strong> {selected.checklist.overall}</div>}
+                  {Object.entries(checklist).map(([key, value]) => value?.trim() ? (
+                    <div key={key} className={key === "overall" ? "col-span-2" : undefined}>
+                      <strong className="text-foreground">{key === "cameraMic" ? "Camera/Mic" : key}:</strong> {value}
+                    </div>
+                  ) : null)}
                 </div>
               </div>
+            ))}
+            {isReturnedToOfficer && adminChecklist && (
+              <section className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <div>
+                  <p className="font-semibold">Edit Admin / IT checklist</p>
+                  <p className="text-xs text-muted-foreground">Changes are saved when you approve this review. The staff checklist remains unchanged.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {checklistFields.map(([key, label]) => (
+                    <label key={key} className={key === "overall" ? "col-span-2 space-y-1" : "space-y-1"}>
+                      <span className="text-xs font-medium">{label}</span>
+                      <Input
+                        value={adminChecklist[key]}
+                        onChange={(event) => setAdminChecklist((current) => current ? { ...current, [key]: event.target.value } : current)}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </section>
             )}
             {mode === "compliance" && selected?.officerNotes && (
               <p>
                 <span className="font-medium">Officer notes: </span>
                 {selected.officerNotes}
+              </p>
+            )}
+            {mode === "officer" && selected?.complianceDecision === "rejected" && selected?.complianceNotes && (
+              <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-950">
+                <span className="font-medium">Compliance sent this back: </span>
+                {selected.complianceNotes}
               </p>
             )}
             {selected && (
@@ -228,14 +275,21 @@ export function AssignmentQueueTable({
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="destructive"
-              disabled={loading}
-              onClick={() => decide("rejected")}
-            >
-              Send back to staff
-            </Button>
+          <div className="flex shrink-0 justify-end gap-2 border-t bg-background pt-3">
+            {mode === "compliance" ? (
+              <>
+                <Button variant="destructive" disabled={loading} onClick={() => decide("rejected", "staff")}>
+                  Send back to staff
+                </Button>
+                <Button variant="outline" disabled={loading} onClick={() => decide("rejected", "admin_it")}>
+                  Send back to Admin / IT
+                </Button>
+              </>
+            ) : (
+              <Button variant="destructive" disabled={loading} onClick={() => decide("rejected")}>
+                Send back to staff
+              </Button>
+            )}
             <Button disabled={loading} onClick={() => decide("approved")}>
               Approve
             </Button>

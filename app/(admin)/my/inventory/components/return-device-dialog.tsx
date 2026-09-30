@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { InventoryItem, initiateSingleReturn } from "@/lib/api/inventory";
+import { InventoryConditionRating, InventoryItem, initiateSingleReturn } from "@/lib/api/inventory";
 import { toast } from "sonner";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -28,7 +28,7 @@ export function ReturnDeviceDialog({
   onOpenChange,
   item,
 }: ReturnDeviceDialogProps) {
-  const [conditionRating, setConditionRating] = useState<string>("Good");
+  const [conditionRating, setConditionRating] = useState<InventoryConditionRating>("Good");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -37,11 +37,14 @@ export function ReturnDeviceDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (["Poor", "Broken"].includes(conditionRating) && notes.trim().length < 4) {
+      toast.error("Please describe the issue for a device rated Poor or Broken.");
+      return;
+    }
     setLoading(true);
 
     try {
-      const fullNotes = conditionRating ? `Condition: ${conditionRating}${notes ? ` — ${notes}` : ""}` : notes;
-      await initiateSingleReturn(item.id, fullNotes);
+      await initiateSingleReturn(item.id, notes, conditionRating, notes);
       toast.success(`Return initiated for ${item.name}. IT will inspect the device.`);
       onOpenChange(false);
       setNotes("");
@@ -72,7 +75,7 @@ export function ReturnDeviceDialog({
               id="conditionRating"
               className="w-full h-10 px-3 py-2 border rounded-md text-sm bg-background"
               value={conditionRating}
-              onChange={(e) => setConditionRating(e.target.value)}
+              onChange={(e) => setConditionRating(e.target.value as InventoryConditionRating)}
             >
               <option value="Excellent">Excellent</option>
               <option value="Good">Good (Working fine)</option>

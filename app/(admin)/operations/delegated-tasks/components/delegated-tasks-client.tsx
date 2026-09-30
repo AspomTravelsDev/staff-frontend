@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, type ReactNode } from "react";
 import type {
   TaskTrackerItem,
   CompanyDelegatedTaskStats,
@@ -50,11 +50,15 @@ import {
   ChevronRight,
   Rows,
   LayoutGrid,
+  MessageSquare,
 } from "lucide-react";
 import { format, isPast, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { CreateTaskDialog } from "@/app/(admin)/my/task-tracker/components/create-task-dialog";
+import { TaskCommentsDialog } from "@/app/(admin)/my/task-tracker/components/task-comments-dialog";
+import { StatsCard } from "@/components/stats-card";
 
 interface DelegatedTasksClientProps {
   initialTasks: TaskTrackerItem[];
@@ -90,6 +94,43 @@ const PRIORITY_STYLES: Record<TaskPriority, { label: string; badgeClass: string;
   },
 };
 
+function FilterStatCard({
+  active,
+  color,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  color: "emerald" | "red" | "sky" | "amber";
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const colorClass = {
+    emerald: "focus-visible:ring-emerald-500 ring-emerald-500",
+    red: "focus-visible:ring-red-500 ring-red-500",
+    sky: "focus-visible:ring-sky-500 ring-sky-500",
+    amber: "focus-visible:ring-amber-500 ring-amber-500",
+  }[color];
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className={cn("cursor-pointer rounded-xl transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2", colorClass, active && "ring-2")}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function DelegatedTasksClient({
   initialTasks,
   initialStats,
@@ -107,6 +148,8 @@ export function DelegatedTasksClient({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [isPending, startTransition] = useTransition();
+  const [quickAssignOpen, setQuickAssignOpen] = useState(false);
+  const [commentsTask, setCommentsTask] = useState<TaskTrackerItem | null>(null);
 
   // Nudge Modal State
   const [nudgeModalOpen, setNudgeModalOpen] = useState(false);
@@ -332,6 +375,13 @@ export function DelegatedTasksClient({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            size="sm"
+            onClick={() => setQuickAssignOpen(true)}
+            className="h-8 gap-1.5 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
+          >
+            <Send className="h-3.5 w-3.5" /> Quick Assign
+          </Button>
           {/* Density Switcher */}
           <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border text-xs">
             <button
@@ -378,113 +428,19 @@ export function DelegatedTasksClient({
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {/* Total Delegated */}
-        <button
-          type="button"
-          onClick={() => handleStatusFilterChange("all")}
-          className={cn(
-            "flex flex-col p-3 rounded-xl border bg-card text-left transition-all hover:border-emerald-400 cursor-pointer shadow-xs",
-            statusFilter === "all" ? "ring-2 ring-emerald-500 border-transparent" : ""
-          )}
-        >
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total</span>
-            <ListTodo className="h-4 w-4 text-emerald-600" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-foreground">{stats.total}</span>
-            <span className="text-xs text-muted-foreground">tasks</span>
-          </div>
-        </button>
-
-        {/* Overdue (Default Top Priority) */}
-        <button
-          type="button"
-          onClick={() => handleStatusFilterChange("overdue")}
-          className={cn(
-            "flex flex-col p-3 rounded-xl border bg-card text-left transition-all hover:border-red-400 cursor-pointer shadow-xs",
-            stats.overdue > 0 && "border-red-300 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20",
-            statusFilter === "overdue" ? "ring-2 ring-red-500 border-transparent" : ""
-          )}
-        >
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400">
-              Overdue
-            </span>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {stats.overdue}
-            </span>
-            <span className="text-xs text-muted-foreground">past deadline</span>
-          </div>
-        </button>
-
-        {/* Pending / Active */}
-        <button
-          type="button"
-          onClick={() => handleStatusFilterChange("pending")}
-          className={cn(
-            "flex flex-col p-3 rounded-xl border bg-card text-left transition-all hover:border-sky-400 cursor-pointer shadow-xs",
-            statusFilter === "pending" ? "ring-2 ring-sky-500 border-transparent" : ""
-          )}
-        >
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Pending</span>
-            <Clock className="h-4 w-4 text-sky-500" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-foreground">{stats.pending}</span>
-            <span className="text-xs text-muted-foreground">active</span>
-          </div>
-        </button>
-
-        {/* Due Soon (48h) */}
-        <button
-          type="button"
-          onClick={() => handleStatusFilterChange("due_soon")}
-          className={cn(
-            "flex flex-col p-3 rounded-xl border bg-card text-left transition-all hover:border-amber-400 cursor-pointer shadow-xs",
-            statusFilter === "due_soon" ? "ring-2 ring-amber-500 border-transparent" : ""
-          )}
-        >
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Due Soon</span>
-            <CalendarClock className="h-4 w-4 text-amber-500" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-              {stats.due_soon}
-            </span>
-            <span className="text-xs text-muted-foreground">in 48h</span>
-          </div>
-        </button>
-
-        {/* Pending Extensions */}
-        <button
-          type="button"
-          onClick={() => handleStatusFilterChange("pending_extensions")}
-          className={cn(
-            "flex flex-col p-3 rounded-xl border bg-card text-left transition-all hover:border-purple-400 cursor-pointer shadow-xs col-span-2 sm:col-span-1",
-            stats.pending_extensions > 0 && "border-purple-300 dark:border-purple-900 bg-purple-50/30 dark:bg-purple-950/20",
-            statusFilter === "pending_extensions" ? "ring-2 ring-purple-500 border-transparent" : ""
-          )}
-        >
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-              Extensions
-            </span>
-            <Sparkles className="h-4 w-4 text-purple-500" />
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {stats.pending_extensions}
-            </span>
-            <span className="text-xs text-muted-foreground">requests</span>
-          </div>
-        </button>
+      <div className="grid gap-4 md:grid-cols-4">
+        <FilterStatCard active={statusFilter === "all"} color="emerald" onClick={() => handleStatusFilterChange("all")}>
+          <StatsCard title="Total Delegated" icon={ListTodo} value={stats.total} description="All delegated tasks" iconClassName="text-emerald-600" className="h-full" />
+        </FilterStatCard>
+        <FilterStatCard active={statusFilter === "overdue"} color="red" onClick={() => handleStatusFilterChange("overdue")}>
+          <StatsCard title="Overdue" icon={AlertTriangle} value={stats.overdue} description="Past deadline" iconClassName="text-red-500" className="h-full" />
+        </FilterStatCard>
+        <FilterStatCard active={statusFilter === "pending"} color="sky" onClick={() => handleStatusFilterChange("pending")}>
+          <StatsCard title="Pending" icon={Clock} value={stats.pending} description="Not yet completed" iconClassName="text-sky-500" className="h-full" />
+        </FilterStatCard>
+        <FilterStatCard active={statusFilter === "due_soon"} color="amber" onClick={() => handleStatusFilterChange("due_soon")}>
+          <StatsCard title="Due Soon" icon={CalendarClock} value={stats.due_soon} description="Due within 48 hours" iconClassName="text-amber-500" className="h-full" />
+        </FilterStatCard>
       </div>
 
       {/* Filter & Search Toolbar */}
@@ -750,6 +706,21 @@ export function DelegatedTasksClient({
                     )}
 
                     {/* Nudge Button */}
+                    {task.can_comment && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setCommentsTask(task);
+                        }}
+                        className="h-7 gap-1 px-2 text-[11px] shrink-0"
+                        title="Open task discussion"
+                      >
+                        <MessageSquare className="h-3 w-3" />
+                        <span className="hidden sm:inline">Comments</span>
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -945,6 +916,24 @@ export function DelegatedTasksClient({
       )}
 
       {/* Nudge Confirmation & Message Modal */}
+      {commentsTask && (
+        <TaskCommentsDialog
+          task={commentsTask}
+          open
+          onOpenChange={(open) => !open && setCommentsTask(null)}
+        />
+      )}
+
+      <CreateTaskDialog
+        open={quickAssignOpen}
+        onOpenChange={setQuickAssignOpen}
+        requireColleague
+        onSuccess={() => {
+          void refreshTasks();
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }}
+      />
+
       <Dialog open={nudgeModalOpen} onOpenChange={setNudgeModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

@@ -343,7 +343,7 @@ export const departmentNav: NavItem[] = [
     url: "/admin/inventory",
     icon: ClipboardList,
     allowedRoles: ["admin", "it", "super", "compliance", "office-operations"],
-    badgeKey: "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance",
+    badgeKey: "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance,inventoryClearanceOfficer,inventoryClearanceCompliance",
     badgeLabel: "Pending asset assignment approvals",
   },
   // {

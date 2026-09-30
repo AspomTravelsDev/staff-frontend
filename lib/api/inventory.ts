@@ -10,6 +10,16 @@ import { api } from "./client";
 export type InventoryStatus = "Storage" | "Assigned" | "Repairs";
 export type InventoryConditionRating = "Excellent" | "Good" | "Fair" | "Poor" | "Broken";
 
+export type GadgetChecklist = {
+    screen: string;
+    charger: string;
+    buttons: string;
+    battery: string;
+    ports: string;
+    cameraMic: string;
+    overall: string;
+};
+
 export interface TechnicianDetails {
     name: string;
     phone: string;
@@ -24,6 +34,7 @@ export interface InventoryItem {
     status: InventoryStatus;
     conditionRating: InventoryConditionRating;
     conditionDetails?: string;
+    defaultChecklist?: GadgetChecklist;
     assignedTo?: string;            // Only present if status is "Assigned"
     technicianDetails?: TechnicianDetails; // Only present if status is "Repairs"
     createdAt?: string;
@@ -110,7 +121,9 @@ export interface InventoryAssignment {
     complianceNotes?: string;
     complianceDecision?: InventoryAssignmentDecision;
     complianceDecidedAt?: string;
-    checklist?: Record<string, string>;
+    adminChecklist?: GadgetChecklist;
+    staffChecklist?: GadgetChecklist;
+    returnChecklist?: GadgetChecklist;
     createdAt: string;
     updatedAt: string;
     inventoryItem?: InventoryItem;
@@ -153,6 +166,7 @@ export async function getInventory(
                 status: item.status,
                 conditionRating: item.condition_rating,
                 conditionDetails: item.condition_details,
+                defaultChecklist: item.default_checklist,
                 assignedTo: item.assigned_to,
                 technicianDetails: item.technician_details,
                 createdAt: item.created_at,
@@ -224,6 +238,7 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
             status: payload.status,
             condition_rating: payload.conditionRating,
             condition_details: payload.conditionDetails,
+            default_checklist: payload.defaultChecklist,
             notes: payload.notes,
             assigned_to: payload.assignedTo,
             technician_details: payload.technicianDetails,
@@ -242,6 +257,7 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
             status: item.status,
             conditionRating: item.condition_rating,
             conditionDetails: item.condition_details,
+            defaultChecklist: item.default_checklist,
             assignedTo: item.assigned_to,
             technicianDetails: item.technician_details,
             createdAt: item.created_at,
@@ -263,6 +279,7 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
             status: payload.status,
             condition_rating: payload.conditionRating,
             condition_details: payload.conditionDetails,
+            default_checklist: payload.defaultChecklist,
             notes: payload.notes,
             assigned_to: payload.assignedTo,
             technician_details: payload.technicianDetails,
@@ -281,6 +298,7 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
             status: item.status,
             conditionRating: item.condition_rating,
             conditionDetails: item.condition_details,
+            defaultChecklist: item.default_checklist,
             assignedTo: item.assigned_to,
             technicianDetails: item.technician_details,
             createdAt: item.created_at,
@@ -368,6 +386,7 @@ export async function getMyInventory(): Promise<InventoryItem[]> {
             status: item.status,
             conditionRating: item.condition_rating,
             conditionDetails: item.condition_details,
+            defaultChecklist: item.default_checklist,
             assignedTo: item.assigned_to,
             technicianDetails: item.technician_details,
             createdAt: item.created_at,
@@ -464,7 +483,9 @@ function mapAssignment(a: any): InventoryAssignment {
         complianceNotes: a.compliance_notes ?? undefined,
         complianceDecision: a.compliance_decision ?? undefined,
         complianceDecidedAt: a.compliance_decided_at ?? undefined,
-        checklist: a.checklist ?? undefined,
+        adminChecklist: a.admin_checklist ?? a.checklist ?? undefined,
+        staffChecklist: a.staff_checklist ?? undefined,
+        returnChecklist: a.return_checklist ?? undefined,
         createdAt: a.created_at,
         updatedAt: a.updated_at,
         inventoryItem: a.inventory_item
@@ -476,11 +497,19 @@ function mapAssignment(a: any): InventoryAssignment {
                   status: a.inventory_item.status,
                   conditionRating: a.inventory_item.condition_rating,
                   conditionDetails: a.inventory_item.condition_details,
+                  defaultChecklist: a.inventory_item.default_checklist ?? undefined,
                   assignedTo: a.inventory_item.assigned_to,
               }
             : undefined,
         assignee: a.assignee
-            ? { id: a.assignee.id, name: a.assignee.name, role: a.assignee.role, department: a.assignee.department }
+            ? {
+                  id: a.assignee.id,
+                  name: a.assignee.name,
+                  role: a.assignee.role,
+                  department: a.assignee.department,
+                  phone: a.assignee.phone ?? null,
+                  mobile_phone: a.assignee.mobile_phone ?? null,
+              }
             : undefined,
         initiator: a.initiator
             ? { id: a.initiator.id, name: a.initiator.name }
@@ -518,7 +547,7 @@ export async function submitInventoryAssignmentDecision(
         conditionRating?: InventoryConditionRating;
         conditionDetails?: string;
         notes: string;
-        checklist?: Record<string, string>;
+        staffChecklist?: GadgetChecklist;
     }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/my-inventory/assignments/${id}/decision`, {
@@ -526,7 +555,7 @@ export async function submitInventoryAssignmentDecision(
         condition_rating: payload.conditionRating,
         condition_details: payload.conditionDetails,
         notes: payload.notes,
-        checklist: payload.checklist,
+        staff_checklist: payload.staffChecklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit decision");
@@ -536,12 +565,12 @@ export async function submitInventoryAssignmentDecision(
 
 export async function initiateInventoryAssignment(
     itemId: string,
-    payload: { assigneeId: string; notes?: string; checklist?: Record<string, string> }
+    payload: { assigneeId: string; notes?: string; adminChecklist?: GadgetChecklist }
 ): Promise<InventoryAssignment> {
     const response = await api.post<any>(`/api/admin/inventory/${itemId}/assignments`, {
         assignee_id: payload.assigneeId,
         notes: payload.notes,
-        checklist: payload.checklist,
+        admin_checklist: payload.adminChecklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate assignment");
@@ -573,12 +602,13 @@ export async function getInventoryComplianceQueue(): Promise<InventoryAssignment
 
 export async function submitInventoryOfficerDecision(
     id: string,
-    payload: { decision: InventoryAssignmentDecision; notes?: string; checklist?: Record<string, string> }
+    payload: { decision: InventoryAssignmentDecision; notes?: string; checklist?: Record<string, string>; adminChecklist?: GadgetChecklist }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/admin/inventory/assignments/${id}/officer-decision`, {
         decision: payload.decision,
         notes: payload.notes,
         checklist: payload.checklist,
+        admin_checklist: payload.adminChecklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit officer decision");
@@ -588,11 +618,12 @@ export async function submitInventoryOfficerDecision(
 
 export async function submitInventoryComplianceDecision(
     id: string,
-    payload: { decision: InventoryAssignmentDecision; notes?: string }
+    payload: { decision: InventoryAssignmentDecision; notes?: string; sendBackTo?: "staff" | "admin_it" }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/admin/inventory/assignments/${id}/compliance-decision`, {
         decision: payload.decision,
         notes: payload.notes,
+        send_back_to: payload.sendBackTo,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit compliance decision");
@@ -613,10 +644,14 @@ export async function getInventoryItemAssignments(itemId: string): Promise<Inven
 
 export async function initiateSingleReturn(
     itemId: string,
-    notes?: string
+    notes?: string,
+    conditionRating?: InventoryConditionRating | "Broken",
+    conditionDetails?: string
 ): Promise<InventoryAssignment> {
     const response = await api.post<any>(`/api/my-inventory/assignments/${itemId}/return`, {
         notes,
+        condition_rating: conditionRating,
+        condition_details: conditionDetails,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate device return");
@@ -657,6 +692,7 @@ export async function inspectClearanceReturn(
         returnConditionDetails?: string;
         damageAssessmentFee?: number;
         notes?: string;
+        returnChecklist?: GadgetChecklist;
     }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/admin/inventory/clearance/${id}/inspect`, {
@@ -665,6 +701,7 @@ export async function inspectClearanceReturn(
         return_condition_details: payload.returnConditionDetails,
         damage_assessment_fee: payload.damageAssessmentFee ?? 0,
         notes: payload.notes,
+        return_checklist: payload.returnChecklist,
     });
     if (!response.success) {
         throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit clearance inspection");
@@ -685,10 +722,11 @@ export async function getClearanceComplianceQueue(): Promise<InventoryAssignment
 
 export async function approveClearanceCompliance(
     id: string,
-    payload: { decision: InventoryAssignmentDecision; notes?: string }
+    payload: { decision: InventoryAssignmentDecision; sendBackTo?: "staff" | "it"; notes?: string }
 ): Promise<InventoryAssignment> {
     const response = await api.patch<any>(`/api/admin/inventory/clearance/${id}/compliance-decision`, {
         decision: payload.decision,
+        send_back_to: payload.sendBackTo,
         notes: payload.notes,
     });
     if (!response.success) {
@@ -702,6 +740,7 @@ export interface ClearanceHandoverItemDeclaration {
     conditionRating: InventoryConditionRating | "Broken";
     conditionDetails?: string;
     notes?: string;
+    staffChecklist: GadgetChecklist;
 }
 
 export interface SubmitClearanceHandoverPayload {
@@ -725,6 +764,7 @@ export async function submitClearanceHandover(
             condition_rating: d.conditionRating,
             condition_details: d.conditionDetails,
             notes: d.notes,
+            staff_checklist: d.staffChecklist,
         })),
         condition_rating: payload.conditionRating,
         condition_details: payload.conditionDetails,

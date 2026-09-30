@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -73,11 +74,14 @@ export function ReportIssueDialog({
     setIsSubmitting(true);
     try {
       await updateMyInventory(item.id, {
-        status: item.status, // Keep current status
+        status: values.conditionRating === "Broken" ? "Repairs" : item.status,
         conditionRating: values.conditionRating,
         conditionDetails: values.conditionDetails,
         notes: values.notes,
       });
+      toast.success(values.conditionRating === "Broken"
+        ? "Repair report submitted. The device remains assigned to you until IT records receipt."
+        : "Observation logged. IT can review the reported condition.");
       onOpenChange(false);
       router.refresh();
       form.reset();

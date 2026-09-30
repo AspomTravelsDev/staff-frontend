@@ -20,6 +20,7 @@ import {
   Loader2,
   Camera,
   RotateCcw,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,11 +101,9 @@ export function AttendanceScanClient({
   const [justClockedIn, setJustClockedIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Auto-clock-in on scan landing
+  // Automatically submit once when the office QR opens this page.
   const hasAutoTriggered = useRef(false);
-  const [isAutoClockingIn, setIsAutoClockingIn] = useState(
-    !initialStatus?.clock_in_at
-  );
+  const [isAutoClockingIn, setIsAutoClockingIn] = useState(!initialStatus?.clock_in_at);
 
   // Live Lagos time update
   useEffect(() => {
@@ -143,35 +142,27 @@ export function AttendanceScanClient({
 
       const deviceData = getDeviceSignature();
 
-      // Quick fetch location & IP with 2s timeout so GPS never delays clock-in
+      // QR attendance requires GPS, so wait for a location fix before submitting.
       let resolvedLoc = location;
       let resolvedIp = clientIp;
 
-      if (!resolvedLoc || !resolvedIp) {
+      if (!resolvedLoc) {
         setIsLocating(true);
-        const timeoutPromise = new Promise<{ loc?: LocationData; ip?: string }>(
-          (resolve) =>
-            setTimeout(() => resolve({ loc: undefined, ip: undefined }), 2000)
-        );
-
-        const fetchPromise = Promise.allSettled([
-          getGPSLocation(),
-          getPublicIP(),
-        ]).then(([gpsRes, ipRes]) => ({
-          loc: gpsRes.status === "fulfilled" ? gpsRes.value : undefined,
-          ip: ipRes.status === "fulfilled" ? ipRes.value : undefined,
-        }));
-
-        const result = await Promise.race([fetchPromise, timeoutPromise]);
-        if (result.loc) {
-          resolvedLoc = result.loc;
-          setLocation(result.loc);
+        try {
+          resolvedLoc = await getGPSLocation();
+          setLocation(resolvedLoc);
+        } catch {
+          const message = "Location isn't available. Allow location access and scan the office QR again.";
+          setErrorMessage(message);
+          toast.error(message);
+          return;
+        } finally {
+          setIsLocating(false);
         }
-        if (result.ip) {
-          resolvedIp = result.ip;
-          setClientIp(result.ip);
-        }
-        setIsLocating(false);
+      }
+      if (!resolvedIp) {
+        resolvedIp = await getPublicIP().catch(() => undefined);
+        if (resolvedIp) setClientIp(resolvedIp);
       }
 
       // Explicitly pass qr_scan = true to backend
@@ -201,10 +192,11 @@ export function AttendanceScanClient({
     }
   };
 
-  // 1-step automatic clock-in when landing on this scan page
+  // Scanning the printed QR opens this route and starts the location check.
   useEffect(() => {
     if (!hasAutoTriggered.current && !status?.clock_in_at) {
       hasAutoTriggered.current = true;
+      setIsAutoClockingIn(true);
       handleClockIn(true);
     }
   }, []);
@@ -224,7 +216,28 @@ export function AttendanceScanClient({
   const handleClockOut = async (isQrScan: boolean = true) => {
     try {
       setIsSubmitting(true);
-      const response = await clockOut(location, clientIp, isQrScan);
+      setErrorMessage(null);
+
+      // Clock-out can happen long after the page loaded, so don't rely on the
+      // location captured during clock-in (or an empty initial page state).
+      setIsLocating(true);
+      let resolvedLocation: LocationData;
+      try {
+        resolvedLocation = await getGPSLocation();
+        setLocation(resolvedLocation);
+      } catch {
+        const message = "Location isn't available. Allow location access and try scanning the office QR again.";
+        setErrorMessage(message);
+        toast.error(message);
+        return;
+      } finally {
+        setIsLocating(false);
+      }
+
+      const resolvedIp = clientIp || await getPublicIP().catch(() => undefined);
+      if (resolvedIp) setClientIp(resolvedIp);
+
+      const response = await clockOut(resolvedLocation, resolvedIp, isQrScan);
 
       if (response.success) {
         setStatus(response.data.data);
@@ -251,35 +264,48 @@ export function AttendanceScanClient({
   const isClockedOut = Boolean(status && status.clock_out_at);
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-50 via-slate-100/50 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col items-center justify-start p-4 sm:p-6 md:p-8">
+    <div className="relative isolate min-h-dvh overflow-hidden bg-linear-to-b from-slate-50 via-slate-100/50 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col items-center justify-start px-4 py-5 sm:px-6 sm:py-8">
+      <div aria-hidden="true" className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
       {/* Brand Header */}
-      <div className="w-full max-w-md flex items-center justify-between py-3 mb-2">
+      <div className="w-full max-w-xl flex items-center justify-between py-2 mb-5">
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md font-bold text-sm">
+          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md font-bold text-sm ring-4 ring-primary/10">
             AT
           </div>
           <div>
             <h1 className="font-bold text-sm tracking-tight">Aspom Travels</h1>
-            <p className="text-[11px] text-muted-foreground font-medium">
-              Attendance Verification
-            </p>
+            <p className="text-[11px] text-muted-foreground font-medium">Attendance center</p>
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refreshStatus}
-          className="h-8 px-2 text-muted-foreground hover:text-foreground"
-          title="Refresh status"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button asChild variant="ghost" size="sm" className="h-9 gap-1.5 px-2.5 text-muted-foreground hover:text-foreground">
+            <Link href="/dashboard" title="Return to the staff portal">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs font-medium">Portal</span>
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={refreshStatus}
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+            title="Refresh attendance status"
+            aria-label="Refresh attendance status"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
-      <div className="w-full max-w-md space-y-4">
+      <main className="w-full max-w-xl space-y-5">
+        <div className="px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Staff attendance</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Clock in and out</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Verify your office presence and view today&apos;s attendance status.</p>
+        </div>
         {/* User Card & Digital Clock */}
-        <Card className="border-border/60 shadow-xs backdrop-blur-sm overflow-hidden">
+        <Card className="border-border/70 shadow-sm backdrop-blur-sm overflow-hidden rounded-2xl">
           <div className="h-2 bg-linear-to-r from-primary via-indigo-500 to-sky-400" />
           <CardHeader className="p-4 sm:p-5 pb-3">
             <div className="flex items-center justify-between">
@@ -451,7 +477,7 @@ export function AttendanceScanClient({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Recording Clock Out...</span>
+                      <span>{isLocating ? "Getting Location..." : "Recording Clock Out..."}</span>
                     </>
                   ) : (
                     <>
@@ -592,13 +618,13 @@ export function AttendanceScanClient({
         )}
 
         {/* Security & Anti-Proxy Notice */}
-        <div className="p-3 rounded-xl bg-muted/30 border border-muted/60 text-center">
+        <div className="p-3.5 rounded-xl bg-background/70 border border-border/70 text-center shadow-xs">
           <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             Device signature & physical office QR ensure authentic attendance.
           </p>
         </div>
-      </div>
+      </main>
 
       {/* In-App Camera Scanner Modal */}
       <CameraQrScanner

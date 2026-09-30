@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InventoryItem, InventoryItemPayload } from "@/lib/api/inventory";
+import { EMPTY_GADGET_CHECKLIST, GadgetChecklistFields } from "@/components/inventory/gadget-checklist-fields";
 
 import {
   Dialog,
@@ -39,6 +40,10 @@ const formSchema = z
     status: z.enum(["Storage", "Assigned", "Repairs"]),
     conditionRating: z.enum(["Excellent", "Good", "Fair", "Poor", "Broken"]),
     conditionDetails: z.string().optional(),
+    defaultChecklist: z.object({
+      screen: z.string().min(1, "Enter a value or N/A"), charger: z.string().min(1, "Enter a value or N/A"), buttons: z.string().min(1, "Enter a value or N/A"),
+      battery: z.string().min(1, "Enter a value or N/A"), ports: z.string().min(1, "Enter a value or N/A"), cameraMic: z.string().min(1, "Enter a value or N/A"), overall: z.string().min(1, "Enter a value or N/A"),
+    }),
     notes: z.string().optional(),
     assignedTo: z.string().optional(),
     technicianDetails: z
@@ -101,6 +106,7 @@ export function ManageInventoryDialog({
       status: initialData?.status || "Storage",
       conditionRating: initialData?.conditionRating || "Good",
       conditionDetails: initialData?.conditionDetails || "",
+      defaultChecklist: { ...EMPTY_GADGET_CHECKLIST, ...initialData?.defaultChecklist },
       notes: "",
       assignedTo: initialData?.assignedTo || "",
       technicianDetails: {
@@ -121,6 +127,7 @@ export function ManageInventoryDialog({
         status: initialData.status || "Storage",
         conditionRating: initialData.conditionRating || "Good",
         conditionDetails: initialData.conditionDetails || "",
+        defaultChecklist: { ...EMPTY_GADGET_CHECKLIST, ...initialData.defaultChecklist },
         notes: "",
         assignedTo: initialData.assignedTo || "",
         technicianDetails: {
@@ -138,6 +145,7 @@ export function ManageInventoryDialog({
         status: "Storage",
         conditionRating: "Good",
         conditionDetails: "",
+        defaultChecklist: { ...EMPTY_GADGET_CHECKLIST },
         notes: "",
         assignedTo: "",
         technicianDetails: {
@@ -161,6 +169,7 @@ export function ManageInventoryDialog({
         status: values.status,
         conditionRating: values.conditionRating,
         conditionDetails: values.conditionDetails,
+        defaultChecklist: values.defaultChecklist,
         notes: values.notes,
       };
       if (values.status === "Repairs") {
@@ -182,7 +191,7 @@ export function ManageInventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-125">
+      <DialogContent className="sm:max-w-125 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Asset" : "Add New Asset"}
@@ -331,6 +340,12 @@ export function ManageInventoryDialog({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <GadgetChecklistFields
+              name="defaultChecklist"
+              title="Device Feature Checklist"
+              description="Record the device baseline when it enters inventory. These details prefill Admin/IT checks during assignment."
             />
 
             <FormField

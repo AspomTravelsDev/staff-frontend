@@ -60,6 +60,12 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     lineHeight: 1.5,
   },
+  staffContactLine: {
+    fontSize: 10,
+    marginTop: -6,
+    marginBottom: 10,
+    color: "#334155",
+  },
   bold: {
     fontFamily: "Times-Bold",
   },
@@ -88,6 +94,27 @@ const styles = StyleSheet.create({
   colModel: { width: "26%" },
   colSerial: { width: "24%", fontFamily: "Times-Bold" },
   colState: { width: "24%", textAlign: "left" },
+  checklistSection: {
+    border: "0.8pt solid #64748b",
+    padding: 7,
+    marginBottom: 12,
+  },
+  checklistTitle: {
+    fontSize: 10.5,
+    fontFamily: "Times-Bold",
+    color: "#0f172a",
+    marginBottom: 5,
+  },
+  checklistGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  checklistEntry: {
+    width: "50%",
+    paddingRight: 6,
+    paddingBottom: 3,
+    fontSize: 9,
+  },
   undertakingHeader: {
     fontSize: 11.5,
     fontFamily: "Times-Bold",
@@ -210,6 +237,10 @@ export function AssetFormPdfDocument({
   const rawRole = mainAssignment?.assignee?.role;
   const assigneeRole = getRoleLabel(rawRole) || rawRole || "Staff Member";
   const assigneeDept = mainAssignment?.assignee?.department || "";
+  const staffPhoneNumbers = [
+    mainAssignment?.assignee?.phone?.trim(),
+    mainAssignment?.assignee?.mobile_phone?.trim(),
+  ].filter((phone, index, phones): phone is string => Boolean(phone) && phones.indexOf(phone) === index);
   const formattedDate = formatPdfDate(mainAssignment?.createdAt || new Date());
 
   const displayItems = [...itemsList];
@@ -235,6 +266,9 @@ export function AssetFormPdfDocument({
               : ""}
           </Text>{" "}
           has been allotted the following asset to work.
+        </Text>
+        <Text style={styles.staffContactLine}>
+          Staff phone: {staffPhoneNumbers.length ? staffPhoneNumbers.join(" / ") : "—"}
         </Text>
 
         {/* Assets Table */}
@@ -270,6 +304,40 @@ export function AssetFormPdfDocument({
             </View>
           ))}
         </View>
+
+        <Text style={styles.undertakingHeader}>Staff Device Checklist (Final Inspection)</Text>
+        {displayItems.map((item, idx) => {
+          const checklist = item.staffChecklist;
+          const labels: Record<string, string> = {
+            screen: "Screen & Display",
+            charger: "Charger & Cables",
+            buttons: "Buttons & Keyboard",
+            battery: "Battery & Charging",
+            ports: "Ports & Connectivity",
+            cameraMic: "Camera, Mic & Speaker",
+            overall: "Overall Body & Casing",
+          };
+          const entries = Object.entries(labels).filter(([key]) => checklist?.[key as keyof typeof checklist]?.trim());
+          return (
+            <View key={`staff-checklist-${item.id || idx}`} style={styles.checklistSection}>
+              <Text style={styles.checklistTitle}>
+                {item.inventoryItem?.name || "Device"} — S/N {item.inventoryItem?.serialNumber || "—"}
+              </Text>
+              {entries.length > 0 ? (
+                <View style={styles.checklistGrid}>
+                  {entries.map(([key, label]) => (
+                    <Text key={key} style={styles.checklistEntry}>
+                      <Text style={styles.bold}>{label}: </Text>
+                      {checklist?.[key as keyof typeof checklist]}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.checklistEntry}>Staff checklist not recorded.</Text>
+              )}
+            </View>
+          );
+        })}
 
         {/* Undertaking Heading */}
         <Text style={styles.undertakingHeader}>List of Asset Allotted</Text>

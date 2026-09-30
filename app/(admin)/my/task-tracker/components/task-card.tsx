@@ -28,6 +28,8 @@ import {
   Flag,
   Loader2,
   Sparkles,
+  MessageSquare,
+  Repeat,
 } from "lucide-react";
 import { format, isPast, isToday, isTomorrow, formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +38,7 @@ import { computeTaskTimeline } from "@/lib/utils/task-timeline";
 import { approveTaskExtension } from "@/lib/api/task-tracker";
 import { RequestExtensionDialog } from "./request-extension-dialog";
 import { DeclineExtensionDialog } from "./decline-extension-dialog";
+import { TaskCommentsDialog } from "./task-comments-dialog";
 import { toast } from "sonner";
 
 interface TaskCardProps {
@@ -60,6 +63,7 @@ export function TaskCard({
   const [approvingExt, setApprovingExt] = useState(false);
   const [requestExtOpen, setRequestExtOpen] = useState(false);
   const [declineExtOpen, setDeclineExtOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   const isCompleted = task.status === "completed";
   const dueDate = task.due_date ? new Date(task.due_date) : null;
@@ -258,6 +262,12 @@ export function TaskCard({
                 {task.title}
               </h3>
               {getPriorityPill()}
+              {task.recurrence && (
+                <Badge variant="outline" className="inline-flex items-center gap-1 text-[11px] font-medium">
+                  <Repeat className="h-3 w-3" />
+                  Repeats {task.recurrence}
+                </Badge>
+              )}
 
               {/* Delegation Badges */}
               {view === "assigned_by_me" && task.user && (
@@ -356,6 +366,20 @@ export function TaskCard({
                 </div>
               )}
             </div>
+
+            {task.is_delegated && (
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 px-2 text-xs"
+                  onClick={() => setCommentsOpen(true)}
+                >
+                  <MessageSquare className="h-3.5 w-3.5" /> Discuss task
+                </Button>
+              </div>
+            )}
 
             {/* Contextual Extension Banners */}
             {/* 1. Assigner Context: Pending Extension Review Action Card */}
@@ -546,6 +570,9 @@ export function TaskCard({
       </div>
 
       {/* Extension Dialogs */}
+      {task.is_delegated && (
+        <TaskCommentsDialog task={task} open={commentsOpen} onOpenChange={setCommentsOpen} />
+      )}
       {requestExtOpen && (
         <RequestExtensionDialog
           open={requestExtOpen}

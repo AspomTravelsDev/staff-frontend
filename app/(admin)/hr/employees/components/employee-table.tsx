@@ -50,6 +50,7 @@ import { EditUserDialog } from "./edit-user-dialog";
 import { DeactivateUserDialog } from "./deactivate-user-dialog";
 import { InitiateFullClearanceDialog } from "@/app/(admin)/admin/inventory/components/initiate-full-clearance-dialog";
 import { formatLagosDate } from "@/lib/utils/attendance";
+import { formatEmployeeDuration } from "@/lib/utils/employee-duration";
 import {
   getRoleLabel,
   USER_EXIT_TYPE_LABELS,
@@ -178,6 +179,7 @@ export function EmployeeTable({
                 Date Joined {renderSortIcon("joinDate")}
               </div>
             </TableHead>
+            <TableHead>Staff Duration</TableHead>
             <TableHead
               className="cursor-pointer hover:text-foreground transition-colors group"
               onClick={() => handleSort("status")}
@@ -192,7 +194,7 @@ export function EmployeeTable({
         <TableBody>
           {sorted.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No employees found.
               </TableCell>
             </TableRow>
@@ -239,6 +241,9 @@ export function EmployeeTable({
                 </TableCell>
                 <TableCell>
                   {employee.joinDate ? formatLagosDate(employee.joinDate) : "-"}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm">
+                  {formatEmployeeDuration(employee.joinDate, employee.status, employee.exit_date)}
                 </TableCell>
                 <TableCell>
                   {employee.status === "Active" ? (

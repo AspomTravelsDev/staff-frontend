@@ -30,7 +30,7 @@ import {
   updateTaskTrackerItem,
   getTaskTrackerColleagues,
 } from "@/lib/api/task-tracker";
-import type { TaskTrackerItem, TaskPriority, Colleague } from "@/lib/types/task-tracker";
+import type { TaskTrackerItem, TaskPriority, TaskRecurrence, Colleague } from "@/lib/types/task-tracker";
 import { toast } from "sonner";
 import {
   Bell,
@@ -50,6 +50,7 @@ interface CreateTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   taskToEdit?: TaskTrackerItem | null;
   onSuccess: (task: TaskTrackerItem) => void;
+  requireColleague?: boolean;
 }
 
 export function CreateTaskDialog({
@@ -57,6 +58,7 @@ export function CreateTaskDialog({
   onOpenChange,
   taskToEdit,
   onSuccess,
+  requireColleague = false,
 }: CreateTaskDialogProps) {
   const [loading, setLoading] = useState(false);
   const [colleagues, setColleagues] = useState<Colleague[]>([]);
@@ -67,6 +69,7 @@ export function CreateTaskDialog({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [recurrence, setRecurrence] = useState<TaskRecurrence | "none">("none");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [remindBeforeHours, setRemindBeforeHours] = useState<number>(24);
   const [enableEmail, setEnableEmail] = useState(true);
@@ -100,10 +103,11 @@ export function CreateTaskDialog({
         setDueDate("");
       }
       setPriority(taskToEdit.priority || "medium");
+      setRecurrence(taskToEdit.recurrence || "none");
       setRemindBeforeHours(taskToEdit.remind_before_hours ?? 24);
       setEnableEmail(taskToEdit.enable_email_reminder ?? true);
       setEnablePush(taskToEdit.enable_push_reminder ?? true);
-      setAssigneeId(taskToEdit.user_id || "self");
+      setAssigneeId(taskToEdit.is_delegated ? taskToEdit.user_id : "self");
     } else {
       setTitle("");
       setDescription("");
@@ -112,13 +116,14 @@ export function CreateTaskDialog({
       tomorrow.setHours(12, 0, 0, 0);
       setDueDate(format(tomorrow, "yyyy-MM-dd'T'HH:mm"));
       setPriority("medium");
+      setRecurrence("none");
       setRemindBeforeHours(24);
       setEnableEmail(true);
       setEnablePush(true);
-      setAssigneeId("self");
+      setAssigneeId(requireColleague ? "" : "self");
       setColleagueSearch("");
     }
-  }, [taskToEdit, open]);
+  }, [taskToEdit, open, requireColleague]);
 
   const filteredColleagues = useMemo(() => {
     if (!colleagueSearch.trim()) return colleagues;
@@ -172,6 +177,14 @@ export function CreateTaskDialog({
       toast.error("Please enter a task title.");
       return;
     }
+    if (requireColleague && (!assigneeId || assigneeId === "self")) {
+      toast.error("Select a colleague to assign this task to.");
+      return;
+    }
+    if (assigneeId === "self" && recurrence !== "none" && !dueDate) {
+      toast.error("Set a deadline before making this task recurring.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -179,6 +192,7 @@ export function CreateTaskDialog({
         title: title.trim(),
         description: description.trim() || null,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        recurrence: assigneeId === "self" && recurrence !== "none" ? recurrence : null,
         priority,
         remind_before_hours: Number(remindBeforeHours),
         enable_email_reminder: enableEmail,
@@ -288,7 +302,7 @@ export function CreateTaskDialog({
                     </div>
                   </div>
 
-                  <SelectItem value="self">
+                  {!requireColleague && <SelectItem value="self">
                     <div className="flex items-center gap-2 py-0.5">
                       <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
                         <User className="h-3.5 w-3.5" />
@@ -298,7 +312,7 @@ export function CreateTaskDialog({
                         <p className="text-[11px] text-muted-foreground">Personal deliverable</p>
                       </div>
                     </div>
-                  </SelectItem>
+                  </SelectItem>}
 
                   {loadingColleagues ? (
                     <div className="p-4 text-xs text-center text-muted-foreground flex items-center justify-center gap-2">
@@ -408,6 +422,24 @@ export function CreateTaskDialog({
                 </Select>
               </div>
             </div>
+
+            {assigneeId === "self" && !requireColleague && (
+              <div className="grid gap-2">
+                <Label htmlFor="task-recurrence" className="text-sm font-medium">Repeat task</Label>
+                <Select value={recurrence} onValueChange={(value: TaskRecurrence | "none") => setRecurrence(value)}>
+                  <SelectTrigger id="task-recurrence"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Does not repeat</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+                {recurrence !== "none" && (
+                  <p className="text-xs text-muted-foreground">After you complete this task, the next occurrence will be created with a new due date and reminders.</p>
+                )}
+              </div>
+            )}
 
             {/* Dynamic Smart Reminders Schedule */}
             <div className="rounded-xl border border-border/80 bg-slate-50/50 dark:bg-slate-900/30 p-4 space-y-3.5">

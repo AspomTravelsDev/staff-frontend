@@ -147,46 +147,60 @@ export function ClockInWidget() {
   return (
     <div id="tour-clock-widget" className="flex items-center gap-1.5 sm:gap-3">
       {isClockedIn ? (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              id="tour-clock-out-btn"
-              disabled={loading}
-              variant="destructive"
-              size="sm"
-              className="gap-1.5 h-8 px-2.5 sm:px-3"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="text-xs font-bold uppercase tracking-wider">
-                {loading ? (
-                  "Clocking Out..."
-                ) : (
-                  <>
-                    <span className="hidden sm:inline">Clock Out</span>
-                    <span className="sm:hidden">Out</span>
-                  </>
-                )}
-              </span>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmation</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to clock out for today?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleClockOut}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        mode === "qrcode" ? (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 px-2.5 sm:px-3 border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Link href="/attendance/scan" title="Scan the office QR code to clock out">
+              <QrCode className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold uppercase tracking-wider">Scan QR</span>
+            </Link>
+          </Button>
+        ) : (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                id="tour-clock-out-btn"
+                disabled={loading}
+                variant="destructive"
+                size="sm"
+                className="gap-1.5 h-8 px-2.5 sm:px-3"
               >
-                Confirm Clock Out
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {loading ? (
+                    "Clocking Out..."
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Clock Out</span>
+                      <span className="sm:hidden">Out</span>
+                    </>
+                  )}
+                </span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmation</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to clock out for today?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClockOut}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Confirm Clock Out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )
       ) : status?.clock_out_at ? (
         <Badge
           id="tour-clock-completed-badge"

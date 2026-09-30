@@ -124,6 +124,26 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     color: "#0f172a",
   },
+  returnChecklistSection: {
+    border: "0.8pt solid #64748b",
+    padding: 6,
+    marginBottom: 8,
+  },
+  returnChecklistTitle: {
+    fontSize: 9.5,
+    fontFamily: "Times-Bold",
+    marginBottom: 4,
+  },
+  returnChecklistGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  returnChecklistEntry: {
+    width: "50%",
+    paddingRight: 6,
+    paddingBottom: 2,
+    fontSize: 8.5,
+  },
   commentBox: {
     minHeight: 24,
     marginBottom: 8,
@@ -410,6 +430,41 @@ export function AssetClearancePdfDocument({
             );
           })}
         </View>
+
+        {/* Admin / IT final device status after physical inspection */}
+        <Text style={styles.sectionTitle}>ADMIN / IT FINAL GADGET STATUS AFTER INSPECTION</Text>
+        {itemsToDisplay.map((item, idx) => {
+          const checklist = item.returnChecklist;
+          const labels: Record<string, string> = {
+            screen: "Screen & Display",
+            charger: "Charger & Cables",
+            buttons: "Buttons & Keyboard",
+            battery: "Battery & Charging",
+            ports: "Ports & Connectivity",
+            cameraMic: "Camera, Mic & Speaker",
+            overall: "Overall Body & Casing",
+          };
+          const entries = Object.entries(labels).filter(([key]) => checklist?.[key as keyof typeof checklist]?.trim());
+          return (
+            <View key={`return-checklist-${item.id || idx}`} style={styles.returnChecklistSection}>
+              <Text style={styles.returnChecklistTitle}>
+                {item.inventoryItem?.name || "Device"} — S/N {item.inventoryItem?.serialNumber || "—"}
+              </Text>
+              {entries.length ? (
+                <View style={styles.returnChecklistGrid}>
+                  {entries.map(([key, label]) => (
+                    <Text key={key} style={styles.returnChecklistEntry}>
+                      <Text style={{ fontFamily: "Times-Bold" }}>{label}: </Text>
+                      {checklist?.[key as keyof typeof checklist]}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.returnChecklistEntry}>Admin / IT final checklist not recorded.</Text>
+              )}
+            </View>
+          );
+        })}
 
         {/* Clearance Box with Checkmark if Cleared */}
         <View style={styles.clearanceGrid}>

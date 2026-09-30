@@ -170,7 +170,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     ? Number(savedInvoice.deposit || 0)
     : draftPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const balanceDue = subtotal - paidAmount;
-  const status = subtotal > 0 && balanceDue === 0
+  const status: Invoice["status"] = subtotal > 0 && balanceDue === 0
     ? "paid"
     : (paidAmount > 0 ? "partially_paid" : "unpaid");
 
@@ -599,7 +599,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           <Button
             variant="outline"
             disabled={isSaving || isExporting || isSendingEmail}
-            onClick={handleSaveToHistory}
+            onClick={() => void handleSaveToHistory()}
             className="bg-background transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer h-9 text-xs"
           >
             {isSaving ? (

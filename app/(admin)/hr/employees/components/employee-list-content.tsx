@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import type { Employee, EmployeeStats } from "@/lib/api/employees";
 import { TableExportButton } from "@/components/ui/table-export-button";
 import { formatLagosDate } from "@/lib/utils/attendance";
+import { formatEmployeeDuration } from "@/lib/utils/employee-duration";
 import {
   type RoleOption,
   USER_EXIT_TYPE_LABELS,
@@ -110,6 +111,10 @@ export function EmployeeListContent({
       header: "Date Joined",
       key: (emp: Employee) =>
         emp.joinDate ? formatLagosDate(emp.joinDate) : "-",
+    },
+    {
+      header: "Staff Duration",
+      key: (emp: Employee) => formatEmployeeDuration(emp.joinDate, emp.status, emp.exit_date),
     },
     { header: "Status", key: (emp: Employee) => emp.status || "" },
     {

@@ -7,6 +7,7 @@ import {
   InventoryAssignment,
   submitClearanceHandover,
   InventoryConditionRating,
+  GadgetChecklist,
 } from "@/lib/api/inventory";
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -41,7 +43,22 @@ interface ItemReport {
   conditionRating: InventoryConditionRating | "Broken";
   conditionDetails: string;
   notes: string;
+  staffChecklist: GadgetChecklist;
 }
+
+const emptyChecklist: GadgetChecklist = {
+  screen: "", charger: "", buttons: "", battery: "", ports: "", cameraMic: "", overall: "",
+};
+
+const checklistFields: Array<[keyof GadgetChecklist, string]> = [
+  ["screen", "Screen & Display"],
+  ["charger", "Charger & Cables"],
+  ["buttons", "Buttons & Keyboard"],
+  ["battery", "Battery & Charging"],
+  ["ports", "Ports & Connectivity"],
+  ["cameraMic", "Camera, Mic & Speaker"],
+  ["overall", "Overall Body & Casing"],
+];
 
 export function ClearanceHandoverDialog({
   open,
@@ -63,6 +80,7 @@ export function ClearanceHandoverDialog({
           conditionRating: "Good",
           conditionDetails: "",
           notes: "",
+          staffChecklist: { ...(a.staffChecklist ?? a.adminChecklist ?? a.inventoryItem?.defaultChecklist ?? emptyChecklist) },
         };
       });
       setReports(initial);
@@ -115,6 +133,10 @@ export function ClearanceHandoverDialog({
         toast.error(`Please provide details of issues for ${a.inventoryItem?.name || "device"} (rated ${rep.conditionRating}).`);
         return;
       }
+      if (rep && checklistFields.some(([key]) => !rep.staffChecklist[key]?.trim())) {
+        toast.error(`Complete every staff checklist field for ${a.inventoryItem?.name || "device"}. Enter N/A for items that do not apply.`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -124,6 +146,7 @@ export function ClearanceHandoverDialog({
         conditionRating: r.conditionRating,
         conditionDetails: r.conditionDetails.trim() || undefined,
         notes: r.notes.trim() || undefined,
+        staffChecklist: r.staffChecklist,
       }));
 
       await submitClearanceHandover({
@@ -169,6 +192,7 @@ export function ClearanceHandoverDialog({
                   conditionRating: "Good",
                   conditionDetails: "",
                   notes: "",
+                  staffChecklist: assignment.staffChecklist ?? assignment.adminChecklist ?? assignment.inventoryItem?.defaultChecklist ?? emptyChecklist,
                 };
 
                 return (
@@ -197,6 +221,43 @@ export function ClearanceHandoverDialog({
                         {assignment.initiateNotes}
                       </div>
                     )}
+
+                    {assignment.adminChecklist && (
+                      <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                        <p className="mb-2 font-semibold">Admin / IT assignment checklist</p>
+                        <div className="grid grid-cols-2 gap-1.5 text-muted-foreground">
+                          {checklistFields.map(([key, label]) => (
+                            <p key={key} className={key === "overall" ? "col-span-2" : undefined}>
+                              <span className="font-medium text-foreground">{label}:</span> {assignment.adminChecklist?.[key] || "—"}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <div>
+                        <p className="text-sm font-semibold">Staff final device checklist</p>
+                        <p className="text-xs text-muted-foreground">Update the checklist to reflect the device’s condition at handover.</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {checklistFields.map(([key, label]) => (
+                          <label key={key} className={key === "overall" ? "space-y-1 sm:col-span-2" : "space-y-1"}>
+                            <span className="text-xs font-medium">{label}</span>
+                            <Input
+                              value={rep.staffChecklist[key]}
+                              onChange={(e) => setReports((current) => ({
+                                ...current,
+                                [assignment.id]: {
+                                  ...rep,
+                                  staffChecklist: { ...rep.staffChecklist, [key]: e.target.value },
+                                },
+                              }))}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1.5">
