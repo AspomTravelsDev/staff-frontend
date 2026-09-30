@@ -56,7 +56,8 @@ export async function login(
         device_fingerprint?: string;
         device_name?: string;
     },
-    skip_clock_in?: boolean
+    skip_clock_in?: boolean,
+    remember_me = false,
 ): Promise<ApiResponse<AuthResponse>> {
     return api.post<AuthResponse>("/api/login", {
         email,
@@ -64,7 +65,8 @@ export async function login(
         location,
         client_ip,
         ...(deviceData || {}),
-        ...(skip_clock_in !== undefined ? { skip_clock_in } : {})
+        ...(skip_clock_in !== undefined ? { skip_clock_in } : {}),
+        remember_me,
     });
 }
 

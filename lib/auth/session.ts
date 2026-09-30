@@ -16,12 +16,20 @@ const COOKIE_OPTIONS = {
 /**
  * Set auth session (token + user data)
  */
-export async function setSession(token: string, user: User | LoginUser): Promise<void> {
+export async function setSession(
+    token: string,
+    user: User | LoginUser,
+    rememberMe = false,
+): Promise<void> {
     const cookieStore = await cookies();
-
-    cookieStore.set(AUTH_COOKIE_NAME, token, COOKIE_OPTIONS);
-    cookieStore.set(USER_COOKIE_NAME, JSON.stringify(user), {
+    const cookieOptions = {
         ...COOKIE_OPTIONS,
+        maxAge: rememberMe ? 7 * 24 * 60 * 60 : COOKIE_OPTIONS.maxAge,
+    };
+
+    cookieStore.set(AUTH_COOKIE_NAME, token, cookieOptions);
+    cookieStore.set(USER_COOKIE_NAME, JSON.stringify(user), {
+        ...cookieOptions,
         httpOnly: false, // Allow client-side access to user data if needed
     });
 }

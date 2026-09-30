@@ -58,6 +58,7 @@ export async function loginAction(
     const skipClockIn =
         !ATTENDANCE_CONFIG.isLoginAutoClockInEnabled() ||
         formData.get("skip_clock_in") === "true";
+    const rememberMe = formData.get("remember") === "on" || formData.get("remember") === "true";
 
     // Call API
     const result = await login(
@@ -66,7 +67,8 @@ export async function loginAction(
         skipClockIn ? undefined : rawData.location,
         rawData.client_ip,
         rawData.deviceData,
-        skipClockIn
+        skipClockIn,
+        rememberMe
     );
 
     if (!result.success) {
@@ -76,7 +78,7 @@ export async function loginAction(
     }
 
     // Store token and user in cookies
-    await setSession(result.data.token, result.data.user);
+    await setSession(result.data.token, result.data.user, rememberMe);
 
     const redirectPath = formData.get("redirect") as string;
     const destination =

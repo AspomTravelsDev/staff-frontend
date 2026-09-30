@@ -196,7 +196,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
               htmlFor="remember"
               className="text-sm font-normal text-muted-foreground"
             >
-              Remember me
+              Keep me signed in on this personal device (7 days)
             </Label>
           </div>
           <Link
