@@ -84,7 +84,7 @@ const PRESETS = {
     company_phone: "+234 903 418 5096",
     company_address: "4th Floor Brasas’r Place, 69 Admiralty Way, Lekki Phase 1, Lagos",
     bank_details: "Guaranty Trust Bank\n5001709959\nABS Birth Services",
-    terms_conditions: "All services are subject to agreement terms. For enquiries, please email info@abshealthconnect.com.\n\nFor detailed terms, please visit https://abshealthconnect.com/terms",
+    terms_conditions: "A refund may be requested within 24 hours of payment provided work has not commenced. Once work has commenced, all service fees are non-refundable. Urgent services are non-refundable. Payments made to third parties are subject to their own refund policies.\n\nFor full terms, visit https://abshealthconnect.com/terms. For enquiries, email info@abshealthconnect.com.",
     membership_welcome_text: "WELCOME TO THE ABS CLUB!",
   }
 };

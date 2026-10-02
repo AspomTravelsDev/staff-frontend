@@ -154,9 +154,9 @@ export function ClockInWidget() {
             size="sm"
             className="gap-1.5 h-8 px-2.5 sm:px-3 border-primary/30 text-primary hover:bg-primary/5"
           >
-            <Link href="/attendance/scan" title="Scan the office QR code to clock out">
+            <Link href="/attendance/scan?action=clock_out" title="Scan the office QR code to clock out">
               <QrCode className="h-3.5 w-3.5" />
-              <span className="text-xs font-bold uppercase tracking-wider">Scan QR</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Clock Out</span>
             </Link>
           </Button>
         ) : (
@@ -246,12 +246,12 @@ export function ClockInWidget() {
               disabled={loading}
               onClick={() => setScannerOpen(true)}
               className="gap-1.5 h-8 px-2 sm:px-2.5 border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all text-primary cursor-pointer"
-              title="Scan wall QR code with camera"
+              title="Scan the office QR code to clock in"
             >
               <QrCode className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs font-bold uppercase tracking-wider">
                 <span className={mode === "qrcode" ? "" : "hidden sm:inline"}>
-                  Scan QR
+                  Clock In
                 </span>
               </span>
             </Button>

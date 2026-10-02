@@ -103,6 +103,7 @@ export function AttendanceScanClient({
 
   // Automatically submit once when the office QR opens this page.
   const hasAutoTriggered = useRef(false);
+  const clockOutScanRequested = useRef(false);
   const [isAutoClockingIn, setIsAutoClockingIn] = useState(!initialStatus?.clock_in_at);
 
   // Live Lagos time update
@@ -193,6 +194,14 @@ export function AttendanceScanClient({
   };
 
   // Scanning the printed QR opens this route and starts the location check.
+  useEffect(() => {
+    const requestedClockOut = new URLSearchParams(window.location.search).get("action") === "clock_out";
+    if (requestedClockOut && status && !status.clock_out_at) {
+      clockOutScanRequested.current = true;
+      setScannerOpen(true);
+    }
+  }, []);
+
   useEffect(() => {
     if (!hasAutoTriggered.current && !status?.clock_in_at) {
       hasAutoTriggered.current = true;
@@ -470,7 +479,10 @@ export function AttendanceScanClient({
 
               <CardContent className="p-4 sm:p-5 pt-0 space-y-3">
                 <Button
-                  onClick={() => handleClockOut(true)}
+                  onClick={() => {
+                    clockOutScanRequested.current = true;
+                    setScannerOpen(true);
+                  }}
                   disabled={isSubmitting}
                   className="w-full h-12 text-sm font-bold uppercase tracking-wider gap-2 shadow-md cursor-pointer bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all active:scale-[0.98]"
                 >
@@ -482,7 +494,7 @@ export function AttendanceScanClient({
                   ) : (
                     <>
                       <LogOut className="h-4 w-4" />
-                      <span>Clock Out For The Day</span>
+                      <span>Scan Office QR to Clock Out</span>
                     </>
                   )}
                 </Button>
@@ -631,9 +643,31 @@ export function AttendanceScanClient({
         open={scannerOpen}
         onOpenChange={setScannerOpen}
         isSubmitting={isSubmitting}
-        onScanSuccess={async () => {
-          toast.success("Office QR Code verified! Clocking you in...");
-          await handleClockIn(true);
+        onScanSuccess={async (scannedCode) => {
+          let isOfficeQr = false;
+          try {
+            const scannedUrl = new URL(scannedCode);
+            isOfficeQr = scannedUrl.origin === window.location.origin &&
+              scannedUrl.pathname === "/attendance/scan";
+          } catch {
+            isOfficeQr = false;
+          }
+
+          if (!isOfficeQr) {
+            setErrorMessage("That isn’t the office attendance QR code. Scan the code on the office poster.");
+            setScannerOpen(false);
+            clockOutScanRequested.current = false;
+            return;
+          }
+
+          if (clockOutScanRequested.current && isClockedIn) {
+            clockOutScanRequested.current = false;
+            toast.success("Office QR code confirmed. Getting your location...");
+            await handleClockOut(true);
+          } else {
+            toast.success("Office QR Code verified! Clocking you in...");
+            await handleClockIn(true);
+          }
           setScannerOpen(false);
         }}
       />
