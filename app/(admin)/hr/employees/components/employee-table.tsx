@@ -42,7 +42,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Employee } from "@/lib/api/employees";
-import { updateUserStatusAction, deleteUserAction } from "../actions";
+import { updateUserStatusAction, deleteUserAction, retryEmailRestrictionAction } from "../actions";
+import { notifyEmailRestriction } from "@/components/company-email-notice";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
@@ -113,6 +114,7 @@ export function EmployeeTable({
     const result = await updateUserStatusAction(employee.id, newStatus);
 
     if (result.success) {
+      notifyEmailRestriction(result.emailRestriction);
       toast.success(
         `${employee.firstName} ${employee.lastName} has been ${newStatus ? "activated" : "deactivated"}.`,
       );
@@ -139,6 +141,15 @@ export function EmployeeTable({
     }
 
     setIsDeleting(false);
+  };
+
+  const handleRetryEmail = async (employee: Employee) => {
+    setUpdatingId(employee.id);
+    try {
+      const result = await retryEmailRestrictionAction(employee.id, employee.status === "Active");
+      if (result.success) notifyEmailRestriction(result.emailRestriction);
+      else toast.error(result.error || "Could not retry email restriction");
+    } finally { setUpdatingId(null); }
   };
 
   return (
@@ -219,6 +230,12 @@ export function EmployeeTable({
                     <span className="text-xs text-muted-foreground">
                       {employee.email}
                     </span>
+                    {employee.email_restriction && <span
+                      className={`text-[11px] ${["failed", "partial"].includes(employee.email_restriction.status) ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
+                      title={`${employee.email_restriction.email}: ${employee.email_restriction.message}`}
+                    >
+                      {employee.email_restriction.status === "restored" ? "Email login & sending restored" : employee.email_restriction.status === "restricted" ? "Email login & sending restricted" : employee.email_restriction.status === "partial" ? `Email ${employee.email_restriction.action === "restore" ? "restoration" : "restriction"} incomplete — retry needed` : employee.email_restriction.status === "failed" ? `Email ${employee.email_restriction.action === "restore" ? "restoration" : "restriction"} failed — retry needed` : "Email update skipped"}
+                    </span>}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -301,6 +318,9 @@ export function EmployeeTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      {employee.email_restriction && (["failed", "partial"].includes(employee.email_restriction.status) || (employee.status === "Active" && employee.email_restriction.status === "restricted")) && <DropdownMenuItem onClick={() => handleRetryEmail(employee)}>
+                        <ShieldAlert className="mr-2 h-4 w-4" />Retry Email {employee.status === "Active" ? "Restoration" : "Restriction"}
+                      </DropdownMenuItem>}
                       <DropdownMenuItem
                         onClick={() => setEditingEmployee(employee)}
                       >
@@ -318,7 +338,7 @@ export function EmployeeTable({
                         <DropdownMenuItem
                           onClick={() => handleStatusToggle(employee)}
                         >
-                          <UserCheck className="mr-2 h-4 w-4" /> Make Active
+                          <UserCheck className="mr-2 h-4 w-4" />Make Active & Restore Email
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem

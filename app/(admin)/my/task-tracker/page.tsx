@@ -8,11 +8,13 @@ export const metadata = {
   description: "Track personal tasks with deadlines and automated reminders.",
 };
 
-export default async function TaskTrackerPage() {
+export default async function TaskTrackerPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const response = await getTaskTrackerItems().catch(() => ({
+  const params = await searchParams;
+  const initialView = params.view === "assigned_by_me" ? "assigned_by_me" : "assigned_to_me";
+  const response = await getTaskTrackerItems({ view: initialView }).catch(() => ({
     success: false as const,
     error: { code: "500", error: "Failed to load tasks" },
   }));
@@ -24,6 +26,8 @@ export default async function TaskTrackerPage() {
 
   return (
     <TaskTrackerClient
+      key={initialView}
+      initialView={initialView}
       initialTasks={initialTasks}
       initialStats={initialStats}
     />

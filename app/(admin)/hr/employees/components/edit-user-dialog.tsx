@@ -28,6 +28,7 @@ import { Loader2 } from "lucide-react";
 import { type RoleOption, USER_EXIT_TYPE_LABELS, type UserExitType } from "@/types/user-types";
 import { formatLagosDateForInput } from "@/lib/utils/attendance";
 import { Textarea } from "@/components/ui/textarea";
+import { CompanyEmailNotice, notifyEmailRestriction } from "@/components/company-email-notice";
 
 interface EditUserDialogProps {
   employee: Employee | null;
@@ -163,6 +164,7 @@ export function EditUserDialog({
     setIsPending(false);
 
     if (result.success) {
+      notifyEmailRestriction(result.emailRestriction);
       toast.success(`${data.name} has been updated successfully.`);
       onOpenChange(false);
     } else {
@@ -428,8 +430,11 @@ export function EditUserDialog({
               <Label htmlFor="is_active">Active</Label>
             </div>
 
+            {watch("is_active") && employee.status === "Inactive" && <CompanyEmailNotice restoring />}
+
             {!watch("is_active") && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3.5 space-y-3">
+                <CompanyEmailNotice />
                 <div className="text-xs font-semibold uppercase tracking-wider text-destructive">
                   Separation / Exit Details
                 </div>

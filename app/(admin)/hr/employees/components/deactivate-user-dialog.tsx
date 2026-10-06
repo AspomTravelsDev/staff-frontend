@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { Loader2, ShieldAlert, UserX } from "lucide-react";
 import { USER_EXIT_TYPE_LABELS, UserExitType } from "@/types/user-types";
 import { useRouter } from "next/navigation";
+import { CompanyEmailNotice, notifyEmailRestriction } from "@/components/company-email-notice";
 
 interface DeactivateUserDialogProps {
   employee: Employee | null;
@@ -97,6 +98,7 @@ export function DeactivateUserDialog({
       });
 
       if (result.success) {
+        notifyEmailRestriction(result.emailRestriction);
         if (initiateClearance) {
           try {
             const clearanceNotes = `Offboarding (${USER_EXIT_TYPE_LABELS[data.exit_type] || "Separated"} effective ${data.exit_date}): ${data.exit_reason.trim() || "Staff exit"}`;
@@ -110,8 +112,8 @@ export function DeactivateUserDialog({
                 },
               }
             );
-          } catch (clearanceErr: any) {
-            const msg = clearanceErr?.message || "";
+          } catch (clearanceErr) {
+            const msg = clearanceErr instanceof Error ? clearanceErr.message : "";
             if (msg.toLowerCase().includes("no assigned devices")) {
               toast.success(
                 `${employee.firstName} marked as inactive. (No assigned company devices found in Inventory).`
@@ -145,7 +147,7 @@ export function DeactivateUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2 text-destructive">
             <div className="p-2 rounded-full bg-destructive/10">
@@ -163,6 +165,7 @@ export function DeactivateUserDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+          <CompanyEmailNotice />
           {/* Separation Type */}
           <div className="grid gap-2">
             <Label htmlFor="exit_type">

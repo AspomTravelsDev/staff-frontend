@@ -1,5 +1,7 @@
 "use client";
 
+import { formatReadableDate } from "@/lib/utils/readable-date";
+
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -38,7 +40,6 @@ import {
   Loader2,
   Calendar,
   User,
-  Users,
   Search,
   Sparkles,
   Zap,
@@ -166,7 +167,7 @@ export function CreateTaskDialog({
         ...m,
         isInherited,
         triggerDate,
-        formattedTime: format(triggerDate, "MMM d, h:mm a"),
+        formattedTime: formatReadableDate(triggerDate),
       };
     });
   }, [dueDate]);
@@ -223,8 +224,8 @@ export function CreateTaskDialog({
           toast.error(res.error.error || "Failed to create task");
         }
       }
-    } catch (err: any) {
-      toast.error(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

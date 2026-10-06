@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Clock, LogOut, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   clockIn,
   clockOut,
-  getTodayStatus,
-  type ClockInRecord,
 } from "@/lib/api/clock-in";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -23,44 +21,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { getDeviceSignature } from "@/lib/utils/device-fingerprint";
 import { useClockInMode } from "@/hooks/use-clock-in-mode";
 import { CameraQrScanner } from "@/components/attendance/camera-qr-scanner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTodayAttendance } from "@/hooks/use-today-attendance";
 
 export function ClockInWidget() {
   const router = useRouter();
   const { isButtonEnabled, isQrCodeEnabled, mode } = useClockInMode();
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<ClockInRecord | null>(null);
-  const [isFetched, setIsFetched] = useState(false);
+  const { status, updateStatus, isPending, isError, refetch } = useTodayAttendance();
   const [scannerOpen, setScannerOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const response = await getTodayStatus();
-        if (response.success) {
-          setStatus(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch clock-in status:", error);
-      } finally {
-        setIsFetched(true);
-      }
-    };
-
-    fetchStatus();
-  }, []);
 
   const handleClockIn = async (isQrScan: boolean = false) => {
     try {
@@ -86,7 +59,7 @@ export function ClockInWidget() {
       const response = await clockIn(location, client_ip, deviceData, isQrScan);
       if (response.success) {
         toast.success(response.data.message || "Successfully clocked in");
-        setStatus(response.data.data);
+        await updateStatus(response.data.data);
         router.refresh();
       } else {
         toast.error(response.error?.error || "Failed to clock in");
@@ -122,7 +95,7 @@ export function ClockInWidget() {
       const response = await clockOut(location, client_ip);
       if (response.success) {
         toast.success("Successfully clocked out");
-        setStatus(response.data.data);
+        await updateStatus(response.data.data);
         router.refresh();
         if (response.data.data.duration_minutes) {
           const hours = Math.floor(response.data.data.duration_minutes / 60);
@@ -140,7 +113,10 @@ export function ClockInWidget() {
     }
   };
 
-  if (!isFetched) return null;
+  if (isPending) return null;
+  if (isError && !status) {
+    return <Button variant="outline" size="sm" onClick={() => refetch()}>Retry attendance status</Button>;
+  }
 
   const isClockedIn = status && !status.clock_out_at;
 
@@ -276,7 +252,7 @@ export function ClockInWidget() {
         open={scannerOpen}
         onOpenChange={setScannerOpen}
         isSubmitting={loading}
-        onScanSuccess={async (scannedCode) => {
+        onScanSuccess={async () => {
           toast.success("Office QR Code verified! Clocking you in...");
           await handleClockIn(true);
           setScannerOpen(false);

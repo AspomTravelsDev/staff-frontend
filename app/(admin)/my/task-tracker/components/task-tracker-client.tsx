@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
-import type { TaskTrackerItem, TaskTrackerStats, TaskPriority } from "@/lib/types/task-tracker";
+import { useState, useTransition, useMemo, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import type { TaskTrackerItem, TaskTrackerStats } from "@/lib/types/task-tracker";
 import {
   getTaskTrackerItems,
   toggleTaskTrackerItem,
   deleteTaskTrackerItem,
 } from "@/lib/api/task-tracker";
-import { TaskCard } from "./task-card";
+import { TasksTable } from "./tasks-table";
+import { isActiveTask } from "./task-workflow-controls";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { TaskTrackerTour, TaskTrackerTourButton } from "./task-tracker-tour";
 import { Button } from "@/components/ui/button";
+import { StatsCard } from "@/components/stats-card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -21,61 +23,73 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Plus,
-  Search,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  ListTodo,
-  CalendarCheck2,
-  XCircle,
-  FilterX,
-  User,
-  Users,
-} from "lucide-react";
+import { Plus, Search, RefreshCw, ListTodo, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface TaskTrackerClientProps {
+  initialView?: "assigned_to_me" | "assigned_by_me";
   initialTasks: TaskTrackerItem[];
   initialStats: TaskTrackerStats;
 }
 
 export function TaskTrackerClient({
+  initialView = "assigned_to_me",
   initialTasks,
   initialStats,
 }: TaskTrackerClientProps) {
   const queryClient = useQueryClient();
-  const [activeView, setActiveView] = useState<"assigned_to_me" | "assigned_by_me">("assigned_to_me");
+  const searchParams = useSearchParams();
+  const urlView = searchParams.get("view") === "assigned_by_me" ? "assigned_by_me" : "assigned_to_me";
+  const [activeView, setActiveView] = useState<"assigned_to_me" | "assigned_by_me">(initialView);
+  const viewRef = useRef(initialView);
+  const requestRef = useRef(0);
   const [tasks, setTasks] = useState<TaskTrackerItem[]>(initialTasks);
   const [stats, setStats] = useState<TaskTrackerStats>(initialStats);
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("pending");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<TaskTrackerItem | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Re-fetch tasks whenever filters change on server or locally
-  const refreshTasks = async (overrideView?: "assigned_to_me" | "assigned_by_me") => {
-    const viewToUse = overrideView ?? activeView;
+  const refreshTasks = useCallback(async (overrideView?: "assigned_to_me" | "assigned_by_me") => {
+    const viewToUse = overrideView ?? viewRef.current;
+    const request = ++requestRef.current;
     try {
       const res = await getTaskTrackerItems({ view: viewToUse });
+      if (request !== requestRef.current || viewToUse !== viewRef.current) return;
       if (res.success) {
         setTasks(res.data.data);
         setStats(res.data.stats);
         queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      }
+      } else toast.error("Could not load deliverables. Please refresh and try again.");
     } catch {
-      // silently handle or fallback
+      toast.error("Could not load deliverables. Please refresh and try again.");
     }
-  };
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (urlView === viewRef.current) return;
+    viewRef.current = urlView;
+    startTransition(async () => {
+      setActiveView(urlView);
+      setTasks([]);
+      setActiveTab("pending");
+      await refreshTasks(urlView);
+    });
+  }, [urlView, refreshTasks]);
 
   const handleViewChange = (newView: "assigned_to_me" | "assigned_by_me") => {
+    viewRef.current = newView;
     setActiveView(newView);
-    setActiveTab("all");
+    setTasks([]);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", newView);
+    window.history.replaceState(null, "", url);
+    setActiveTab("pending");
     startTransition(async () => {
       await refreshTasks(newView);
     });
@@ -83,21 +97,6 @@ export function TaskTrackerClient({
 
   // Quick toggle status
   const handleToggle = async (id: string) => {
-    // Optimistic update
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          const nextStatus = t.status === "completed" ? "pending" : "completed";
-          return {
-            ...t,
-            status: nextStatus,
-            completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
-          };
-        }
-        return t;
-      })
-    );
-
     try {
       const res = await toggleTaskTrackerItem(id);
       if (res.success) {
@@ -115,7 +114,6 @@ export function TaskTrackerClient({
 
   // Delete task
   const handleDelete = async (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       const res = await deleteTaskTrackerItem(id);
       if (res.success) {
@@ -153,12 +151,14 @@ export function TaskTrackerClient({
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       // Tab filter
-      if (activeTab === "pending" && task.status === "completed") return false;
+      if (activeTab === "pending" && !isActiveTask(task)) return false;
+      if (activeTab === "submitted" && task.status !== "submitted") return false;
+      if (activeTab === "cancelled" && task.status !== "cancelled") return false;
       if (activeTab === "completed" && task.status !== "completed") return false;
       if (activeTab === "overdue" && (!task.is_overdue || task.status === "completed"))
         return false;
       if (activeTab === "due_soon") {
-        if (task.status === "completed" || !task.due_date) return false;
+        if (!isActiveTask(task) || !task.due_date) return false;
         const due = new Date(task.due_date);
         const now = new Date();
         const fortyEightHours = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -183,337 +183,66 @@ export function TaskTrackerClient({
     });
   }, [tasks, activeTab, priorityFilter, searchQuery]);
 
-  return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Tour guides */}
-      <TaskTrackerTour />
 
-      {/* Header */}
-      <div
-        id="tour-task-tracker-header"
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4"
-      >
-        <div>
-          <div className="flex items-center gap-2">
-            <CalendarCheck2 className="h-7 w-7 text-emerald-600" />
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Task Tracker & Deadlines
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {activeView === "assigned_by_me"
-              ? "Deliverables you delegated to colleagues across the company. Track progress and completion in real time."
-              : "Personal deliverables with automated web push & email deadline reminders."}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <TaskTrackerTourButton />
-          <Button
-            id="tour-add-task-btn"
-            onClick={handleOpenCreate}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5 shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Task</span>
-          </Button>
-        </div>
+  return <div className="flex flex-col gap-4 w-full">
+    <TaskTrackerTour />
+    <div id="tour-task-tracker-header" className="flex flex-wrap items-center justify-between gap-3">
+      <div><h1 className="text-2xl font-semibold">Task Tracker</h1><p className="text-sm text-muted-foreground mt-1">Your deadlines in one place.</p></div>
+      <div className="flex items-center gap-2">
+        <TaskTrackerTourButton />
+        <Button variant="ghost" size="sm" disabled={isPending} onClick={() => startTransition(async () => { await refreshTasks(); })}><RefreshCw className="h-4 w-4" />Refresh</Button>
+        <Button id="tour-add-task-btn" size="sm" onClick={handleOpenCreate}><Plus className="h-4 w-4" />Add task</Button>
       </div>
-
-      {/* Top View Switcher: Assigned to Me vs Assigned by Me */}
-      <div id="tour-view-switcher" className="flex items-center gap-2 border-b pb-3">
-        <button
-          id="tour-view-my-deliverables"
-          type="button"
-          data-active={activeView === "assigned_to_me" ? "true" : "false"}
-          onClick={() => handleViewChange("assigned_to_me")}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer",
-            activeView === "assigned_to_me"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-          )}
-        >
-          <User className="h-4 w-4" />
-          <span>My Deliverables</span>
-          {stats.assigned_to_me_count !== undefined && (
-            <Badge
-              variant={activeView === "assigned_to_me" ? "secondary" : "outline"}
-              className={cn(
-                "ml-1 text-xs px-1.5 py-0 h-4 font-bold",
-                activeView === "assigned_to_me" ? "bg-white/25 text-white border-transparent" : ""
-              )}
-            >
-              {stats.assigned_to_me_count}
-            </Badge>
-          )}
-        </button>
-
-        <button
-          id="tour-view-delegated"
-          type="button"
-          data-active={activeView === "assigned_by_me" ? "true" : "false"}
-          onClick={() => handleViewChange("assigned_by_me")}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer",
-            activeView === "assigned_by_me"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-          )}
-        >
-          <Users className="h-4 w-4" />
-          <span>Delegated to Colleagues</span>
-          {stats.assigned_by_me_count !== undefined && (
-            <Badge
-              variant={activeView === "assigned_by_me" ? "secondary" : "outline"}
-              className={cn(
-                "ml-1 text-xs px-1.5 py-0 h-4 font-bold",
-                activeView === "assigned_by_me" ? "bg-white/25 text-white border-transparent" : ""
-              )}
-            >
-              {stats.assigned_by_me_count}
-            </Badge>
-          )}
-        </button>
-      </div>
-
-      {/* Stats Summary Cards */}
-      <div
-        id="tour-task-stats"
-        className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4"
-      >
-        {/* Active Pending */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("pending")}
-          className={cn(
-            "flex flex-col p-4 rounded-xl border text-left transition-all hover:border-slate-400 bg-card cursor-pointer",
-            activeTab === "pending" && "ring-2 ring-emerald-500 border-emerald-500"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Active Tasks
-            </span>
-            <ListTodo className="h-4 w-4 text-emerald-600" />
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold text-foreground">
-            {stats.pending}
-          </div>
-          <span className="text-[11px] text-muted-foreground mt-0.5">Tasks in progress</span>
-        </button>
-
-        {/* Due Soon (48h) */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("due_soon")}
-          className={cn(
-            "flex flex-col p-4 rounded-xl border text-left transition-all hover:border-amber-400 bg-card cursor-pointer",
-            activeTab === "due_soon" && "ring-2 ring-amber-500 border-amber-500",
-            stats.due_soon > 0 && "bg-amber-50/40 dark:bg-amber-950/20"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-              Due in 48h
-            </span>
-            <Clock className="h-4 w-4 text-amber-600" />
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold text-amber-700 dark:text-amber-400">
-            {stats.due_soon}
-          </div>
-          <span className="text-[11px] text-muted-foreground mt-0.5">Approaching deadline</span>
-        </button>
-
-        {/* Overdue */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("overdue")}
-          className={cn(
-            "flex flex-col p-4 rounded-xl border text-left transition-all hover:border-rose-400 bg-card cursor-pointer",
-            activeTab === "overdue" && "ring-2 ring-rose-500 border-rose-500",
-            stats.overdue > 0 && "bg-rose-50/40 dark:bg-rose-950/20"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400">
-              Overdue
-            </span>
-            <AlertTriangle className="h-4 w-4 text-rose-600" />
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold text-rose-700 dark:text-rose-400">
-            {stats.overdue}
-          </div>
-          <span className="text-[11px] text-muted-foreground mt-0.5">Action needed</span>
-        </button>
-
-        {/* Completed */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("completed")}
-          className={cn(
-            "flex flex-col p-4 rounded-xl border text-left transition-all hover:border-slate-400 bg-card cursor-pointer",
-            activeTab === "completed" && "ring-2 ring-emerald-500 border-emerald-500"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Completed
-            </span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-bold text-foreground">
-            {stats.completed}
-          </div>
-          <span className="text-[11px] text-muted-foreground mt-0.5">Finished deliverables</span>
-        </button>
-      </div>
-
-      {/* Filters Bar */}
-      <div
-        id="tour-task-filters"
-        className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-muted/30 p-3 rounded-xl border"
-      >
-        {/* Tab filters */}
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full md:w-auto"
-        >
-          <TabsList className="grid grid-cols-5 w-full md:w-auto h-9">
-            <TabsTrigger value="all" className="text-xs">
-              All ({stats.total})
-            </TabsTrigger>
-            <TabsTrigger value="pending" className="text-xs">
-              Pending ({stats.pending})
-            </TabsTrigger>
-            <TabsTrigger value="due_soon" className="text-xs">
-              Due Soon
-            </TabsTrigger>
-            <TabsTrigger value="overdue" className="text-xs">
-              Overdue
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="text-xs">
-              Completed
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Search and Priority filters */}
-        <div className="flex items-center gap-2">
-          {/* Priority dropdown */}
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px] h-9 text-xs bg-background">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="urgent">Urgent Only</SelectItem>
-              <SelectItem value="high">High Priority</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low Priority</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Search box */}
-          <div className="relative flex-1 md:w-56">
-            <Search className="h-3.5 w-3.5 absolute left-2.5 top-3 text-muted-foreground" />
-            <Input
-              placeholder={activeView === "assigned_by_me" ? "Search tasks or colleague..." : "Search deliverables..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-7 h-9 text-xs bg-background"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Task List */}
-      <div id="tour-task-list" className="space-y-3">
-        {filteredTasks.length > 0 ? (
-          filteredTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              view={activeView}
-              onToggle={handleToggle}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onTaskUpdated={handleTaskUpdated}
-            />
-          ))
-        ) : (
-          <div className="text-center py-16 px-4 rounded-xl border border-dashed bg-muted/10 space-y-3">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
-              {searchQuery || priorityFilter !== "all" || activeTab !== "all" ? (
-                <FilterX className="h-6 w-6" />
-              ) : activeView === "assigned_by_me" ? (
-                <Users className="h-6 w-6" />
-              ) : (
-                <CalendarCheck2 className="h-6 w-6" />
-              )}
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">
-                {searchQuery || priorityFilter !== "all" || activeTab !== "all"
-                  ? "No tasks match your filters"
-                  : activeView === "assigned_by_me"
-                  ? "No delegated tasks yet"
-                  : "No personal deliverables recorded yet"}
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                {searchQuery || priorityFilter !== "all" || activeTab !== "all"
-                  ? "Try resetting your search query or selecting another status tab."
-                  : activeView === "assigned_by_me"
-                  ? "You haven't delegated any tasks to colleagues yet. Click 'Add Task' to assign deliverables with deadlines."
-                  : "Keep on top of your deliverables. Add a task with a deadline to receive timely push and email alerts."}
-              </p>
-            </div>
-            {searchQuery || priorityFilter !== "all" || activeTab !== "all" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setPriorityFilter("all");
-                  setActiveTab("all");
-                }}
-                className="text-xs cursor-pointer"
-              >
-                Clear Filters
-              </Button>
-            ) : (
-              <Button
-                onClick={handleOpenCreate}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold gap-1.5 cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                {activeView === "assigned_by_me" ? "Assign Task to Colleague" : "Add Your First Task"}
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Create / Edit Dialog */}
-      <CreateTaskDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        taskToEdit={taskToEdit}
-        onSuccess={() => {
-          refreshTasks();
-        }}
-      />
     </div>
-  );
+    <div id="tour-view-switcher" className="space-y-2">
+      <Tabs value={activeView} onValueChange={value => handleViewChange(value as "assigned_to_me" | "assigned_by_me")}>
+        <TabsList aria-label="Choose whose tasks to view">
+          <TabsTrigger value="assigned_to_me">My tasks</TabsTrigger>
+          <TabsTrigger value="assigned_by_me">Tasks I assigned</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <p className="text-sm text-muted-foreground">{activeView === "assigned_to_me" ? "Your personal tasks and tasks others assigned to you." : "Tasks you assigned to colleagues. Track their progress and review their work."}</p>
+    </div>
+    <div id="tour-task-stats" className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label={activeView === "assigned_to_me" ? "My tasks summary" : "Tasks I assigned summary"}>
+      {[
+        { title: "Active", value: stats.pending, filter: "pending", icon: ListTodo, color: "text-primary" },
+        { title: "Due in 48 hours", value: stats.due_soon, filter: "due_soon", icon: Clock, color: "text-orange-600 dark:text-orange-400" },
+        { title: "Overdue", value: stats.overdue, filter: "overdue", icon: AlertTriangle, color: "text-destructive" },
+        { title: "Completed", value: stats.completed, filter: "completed", icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400" },
+      ].map(stat => <button key={stat.filter} type="button" disabled={isPending} onClick={() => setActiveTab(stat.filter)} aria-pressed={activeTab === stat.filter} aria-label={`Show ${stat.title.toLowerCase()} tasks (${stat.value})`} className="rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+        <StatsCard title={stat.title} value={stat.value} icon={stat.icon} iconClassName={stat.color} className="h-full gap-2 shadow-none transition-colors hover:bg-muted/40" />
+      </button>)}
+    </div>
+    <div id="tour-task-filters" className="flex flex-wrap items-center gap-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="pending" className="text-xs">Active ({stats.pending})</TabsTrigger>
+          <TabsTrigger value="submitted" className="text-xs">Review ({stats.submitted ?? 0})</TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs">Completed ({stats.completed})</TabsTrigger>
+          <TabsTrigger value="all" className="text-xs">All ({stats.total})</TabsTrigger>
+          {["due_soon", "overdue", "cancelled"].includes(activeTab) && <TabsTrigger value={activeTab} className="text-xs">{activeTab === "due_soon" ? "Due soon" : activeTab === "overdue" ? "Overdue" : "Cancelled"}</TabsTrigger>}
+        </TabsList>
+      </Tabs>
+      <div className="relative min-w-[180px] flex-1">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input aria-label="Search tasks" placeholder="Search tasks or colleague…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 pl-8" />
+      </div>
+      <Button variant={showFilters || priorityFilter !== "all" ? "secondary" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="task-extra-filters">Filters</Button>
+    </div>
+    {showFilters && <div id="task-extra-filters" className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+      <Select value={activeTab} onValueChange={setActiveTab}>
+        <SelectTrigger className="w-[170px] h-9" aria-label="Task status or deadline"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value="pending">Active</SelectItem><SelectItem value="submitted">Awaiting review</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="all">All tasks</SelectItem><SelectItem value="due_soon">Due in 48 hours</SelectItem><SelectItem value="overdue">Overdue</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent>
+      </Select>
+      <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+        <SelectTrigger className="w-[150px] h-9" aria-label="Priority"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value="all">All priorities</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="low">Low</SelectItem></SelectContent>
+      </Select>
+      <Button variant="ghost" size="sm" onClick={() => { setActiveTab("pending"); setPriorityFilter("all"); setSearchQuery(""); }}>Reset</Button>
+    </div>}
+    <div id="tour-task-list" aria-busy={isPending}>
+      {isPending ? <p className="py-8 text-center text-sm text-muted-foreground">Loading tasks…</p> : <TasksTable tasks={filteredTasks} allTasks={tasks} view={activeView} onToggle={handleToggle} onEdit={handleEdit} onDelete={handleDelete} onUpdated={handleTaskUpdated} />}
+    </div>
+    <CreateTaskDialog open={dialogOpen} onOpenChange={setDialogOpen} taskToEdit={taskToEdit} onSuccess={() => { void refreshTasks(); }} />
+  </div>;
 }

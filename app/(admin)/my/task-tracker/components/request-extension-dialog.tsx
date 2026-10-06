@@ -1,5 +1,7 @@
 "use client";
 
+import { formatReadableDate } from "@/lib/utils/readable-date";
+
 import { useState } from "react";
 import { format } from "date-fns";
 import {
@@ -36,7 +38,7 @@ export function RequestExtensionDialog({
 
   // Default proposed deadline: tomorrow or 2 days after current due date
   const defaultNextDate = () => {
-    const base = task.due_date ? new Date(task.due_date) : new Date();
+    const base = new Date(Math.max(task.due_date ? new Date(task.due_date).getTime() : 0, Date.now()));
     base.setDate(base.getDate() + 2);
     base.setHours(17, 0, 0, 0);
     return format(base, "yyyy-MM-dd'T'HH:mm");
@@ -58,7 +60,12 @@ export function RequestExtensionDialog({
       return;
     }
 
-    const proposedIso = new Date(proposedDate).toISOString();
+    const proposed = new Date(proposedDate);
+    if (Number.isNaN(proposed.getTime()) || proposed <= new Date()) {
+      toast.error("Choose a deadline in the future.");
+      return;
+    }
+    const proposedIso = proposed.toISOString();
     if (task.due_date && new Date(proposedIso) <= new Date(task.due_date)) {
       toast.error("Proposed deadline must be later than the current deadline.");
       return;
@@ -80,8 +87,8 @@ export function RequestExtensionDialog({
       } else {
         toast.error(res.error?.error || "Failed to request deadline extension");
       }
-    } catch (err: any) {
-      toast.error(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -111,7 +118,7 @@ export function RequestExtensionDialog({
               {task.due_date && (
                 <div className="flex items-center gap-1.5 text-muted-foreground pt-1">
                   <Calendar className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Current Deadline: <strong className="text-foreground">{format(new Date(task.due_date), "MMM d, yyyy 'at' h:mm a")}</strong></span>
+                  <span>Current Deadline: <strong className="text-foreground">{formatReadableDate(task.due_date)}</strong></span>
                 </div>
               )}
             </div>

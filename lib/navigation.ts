@@ -243,6 +243,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["social-media", "super"],
   },
   {
+    title: "Content Collections",
+    url: "/social-media/content-collections",
+    icon: Megaphone,
+    allowedRoles: ["social-media", "super"],
+  },
+  {
     title: "Ad Compliance Checker",
     url: "/social-media/compliance",
     icon: ShieldCheck,
@@ -408,6 +414,13 @@ export const departmentNav: NavItem[] = [
  */
 export const personalNav: NavItem[] = [
   {
+    title: "My Content Ideas",
+    url: "/my/content-ideas",
+    icon: Megaphone,
+    badgeKey: "contentIdeas",
+    badgeLabel: "Content assignments to complete",
+  },
+  {
     title: "HR Updates",
     url: "",
     icon: Users,
@@ -427,7 +440,7 @@ export const personalNav: NavItem[] = [
       {
         title: "Task Tracker",
         url: "/my/task-tracker",
-        badgeKey: "assignedTasks",
+        badgeKey: "assignedTasks,taskUpdates",
         badgeLabel: "Tasks assigned to you",
       },
       {

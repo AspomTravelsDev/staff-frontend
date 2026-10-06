@@ -177,11 +177,12 @@ export const SiteHeader = () => {
           label,
           url: targetUrl,
           items: chatItems,
+          taskItems: typeof count === "object" && count !== null ? count.task_items : undefined,
         };
       }
       return acc;
     },
-    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[] }>,
+    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[] }>,
   );
 
   const totalNotifications =
@@ -282,6 +283,12 @@ export const SiteHeader = () => {
                       ) : (
                         Object.entries(visibleNotifications).map(
                           ([key, data]) => {
+                            if (key === "taskUpdates" && data.taskItems?.length) {
+                              return data.taskItems.map(task => <Link key={`task-${task.task_id}`} href={`/my/task-tracker?view=${task.view}&task=${encodeURIComponent(task.task_id)}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0">
+                                <div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{task.body}</p></div>
+                                <span className="shrink-0 rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600">{task.count}</span>
+                              </Link>);
+                            }
                             if (key === "chatMessages" && data.items && data.items.length > 0) {
                               return data.items.map((chatItem) => (
                                 <Link

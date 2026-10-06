@@ -3,13 +3,14 @@
 import { api } from "./client";
 import { getCurrentUser as getSessionUser } from "@/lib/auth/session";
 import { PaginatedResponse } from "./types";
-import type { User, UserExitType } from "@/types/user-types";
+import type { User, UserExitType, EmailRestriction } from "@/types/user-types";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface Employee {
+    email_restriction?: EmailRestriction | null;
     id: string;
     staff_id: string;
     tax_id: string | null;
@@ -75,6 +76,7 @@ function mapUserToEmployee(user: User): Employee {
     const lastName = nameParts.slice(1).join(" ") || "";
 
     return {
+        email_restriction: user.email_restriction,
         id: user.id,
         staff_id: user.staff_id,
         tax_id: user.tax_id,
@@ -236,14 +238,26 @@ export async function updateUserStatus(
             ? { is_active: statusData }
             : statusData;
 
-    const result = await api.patch<UsersApiResponse>(`/api/users/${userId}`, payload);
+    const result = await api.patch<{ data: User }>(`/api/users/${userId}`, payload);
 
     if (!result.success) {
         throw new Error(result.error.error);
     }
 
     // Backend returns the updated user in the same response format
-    return result.data.data[0];
+    return result.data.data;
+}
+
+export async function retryEmailRestriction(userId: string): Promise<EmailRestriction> {
+    const result = await api.post<{ data: EmailRestriction }>(`/api/users/${userId}/restrict-email`);
+    if (!result.success) throw new Error(result.error.error);
+    return result.data.data;
+}
+
+export async function retryEmailRestoration(userId: string): Promise<EmailRestriction> {
+    const result = await api.post<{ data: EmailRestriction }>(`/api/users/${userId}/restore-email`);
+    if (!result.success) throw new Error(result.error.error);
+    return result.data.data;
 }
 
 /**

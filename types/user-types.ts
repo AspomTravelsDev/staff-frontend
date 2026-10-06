@@ -165,6 +165,7 @@ export const USER_EXIT_TYPE_LABELS: Record<UserExitType, string> = {
 };
 
 export interface User {
+    email_restriction?: EmailRestriction | null;
     id: string;
     staff_id: string;
     tax_id: string | null;
@@ -189,6 +190,16 @@ export interface User {
     dob: string | null;
     contract_type: "full_time" | "part_time" | "contract" | "nysc" | "intern" | null;
     is_department_account: boolean;
+}
+
+export interface EmailRestriction {
+    status: "restricted" | "restored" | "partial" | "failed" | "skipped";
+    action?: "restrict" | "restore";
+    email: string;
+    login_restricted: boolean;
+    sending_restricted: boolean;
+    message: string;
+    checked_at: string;
 }
 
 export interface LoginUser {

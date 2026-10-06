@@ -1,5 +1,7 @@
 "use client";
 
+import { formatReadableDate } from "@/lib/utils/readable-date";
+
 import { useState, useTransition, useMemo, type ReactNode } from "react";
 import type {
   TaskTrackerItem,
@@ -52,12 +54,13 @@ import {
   LayoutGrid,
   MessageSquare,
 } from "lucide-react";
-import { format, isPast, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { CreateTaskDialog } from "@/app/(admin)/my/task-tracker/components/create-task-dialog";
 import { TaskCommentsDialog } from "@/app/(admin)/my/task-tracker/components/task-comments-dialog";
+import { TaskWorkflowControls, TaskSubmissionDetails, isActiveTask, taskStatusLabels } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
+import { DelegatedTasksTour, DelegatedTasksTourButton } from "./delegated-tasks-tour";
 import { StatsCard } from "@/components/stats-card";
 
 interface DelegatedTasksClientProps {
@@ -160,27 +163,24 @@ export function DelegatedTasksClient({
   // Re-fetch tasks from server
   const refreshTasks = async () => {
     try {
-      const res = await getCompanyDelegatedTasks({
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        priority: priorityFilter !== "all" ? priorityFilter : undefined,
-        department: departmentFilter !== "all" ? departmentFilter : undefined,
-        search: searchQuery || undefined,
-      });
+      const res = await getCompanyDelegatedTasks();
 
       if (res.success) {
         setTasks(res.data.data);
         setStats(res.data.stats);
         queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        return true;
       }
+      toast.error("Could not load deliverables. Please try again.");
     } catch {
       toast.error("Failed to refresh tasks");
     }
+    return false;
   };
 
   const handleRefresh = () => {
     startTransition(async () => {
-      await refreshTasks();
-      toast.success("Tasks refreshed");
+      if (await refreshTasks()) toast.success("Tasks refreshed");
     });
   };
 
@@ -217,8 +217,7 @@ export function DelegatedTasksClient({
       // Department filter
       if (departmentFilter !== "all") {
         const assigneeDept = task.user?.department;
-        const assignerDept = task.assigned_by?.department;
-        if (assigneeDept !== departmentFilter && assignerDept !== departmentFilter) {
+        if (assigneeDept !== departmentFilter) {
           return false;
         }
       }
@@ -228,16 +227,17 @@ export function DelegatedTasksClient({
         return task.status === "completed";
       }
       if (statusFilter === "pending") {
-        return task.status !== "completed";
+        return isActiveTask(task);
       }
+      if (["submitted", "cancelled", "changes_requested", "in_progress"].includes(statusFilter)) return task.status === statusFilter;
       if (statusFilter === "overdue") {
         return task.status !== "completed" && task.is_overdue;
       }
       if (statusFilter === "pending_extensions") {
-        return task.extension_status === "pending";
+        return isActiveTask(task) && task.extension_status === "pending";
       }
       if (statusFilter === "due_soon") {
-        if (task.status === "completed" || !task.due_date) return false;
+        if (!isActiveTask(task) || !task.due_date) return false;
         const due = new Date(task.due_date);
         const now = new Date();
         const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -249,6 +249,9 @@ export function DelegatedTasksClient({
 
     // Default Sorting: Overdue first -> Pending (closest deadline first) -> Completed lower
     return list.sort((a, b) => {
+      const rank = (task: TaskTrackerItem) => isActiveTask(task) ? 0 : task.status === "submitted" ? 1 : task.status === "completed" ? 2 : 3;
+      const rankDifference = rank(a) - rank(b);
+      if (rankDifference) return rankDifference;
       const aCompleted = a.status === "completed";
       const bCompleted = b.status === "completed";
 
@@ -356,8 +359,9 @@ export function DelegatedTasksClient({
 
   return (
     <div className="flex flex-col gap-5 w-full">
+      <DelegatedTasksTour />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+      <div id="tour-delegated-header" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
@@ -375,7 +379,9 @@ export function DelegatedTasksClient({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <DelegatedTasksTourButton />
           <Button
+            id="tour-delegated-assign"
             size="sm"
             onClick={() => setQuickAssignOpen(true)}
             className="h-8 gap-1.5 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
@@ -428,7 +434,7 @@ export function DelegatedTasksClient({
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div id="tour-delegated-stats" className="grid gap-4 md:grid-cols-5">
         <FilterStatCard active={statusFilter === "all"} color="emerald" onClick={() => handleStatusFilterChange("all")}>
           <StatsCard title="Total Delegated" icon={ListTodo} value={stats.total} description="All delegated tasks" iconClassName="text-emerald-600" className="h-full" />
         </FilterStatCard>
@@ -436,15 +442,18 @@ export function DelegatedTasksClient({
           <StatsCard title="Overdue" icon={AlertTriangle} value={stats.overdue} description="Past deadline" iconClassName="text-red-500" className="h-full" />
         </FilterStatCard>
         <FilterStatCard active={statusFilter === "pending"} color="sky" onClick={() => handleStatusFilterChange("pending")}>
-          <StatsCard title="Pending" icon={Clock} value={stats.pending} description="Not yet completed" iconClassName="text-sky-500" className="h-full" />
+          <StatsCard title="Active" icon={Clock} value={stats.pending} description="Open work, including overdue" iconClassName="text-sky-500" className="h-full" />
         </FilterStatCard>
         <FilterStatCard active={statusFilter === "due_soon"} color="amber" onClick={() => handleStatusFilterChange("due_soon")}>
           <StatsCard title="Due Soon" icon={CalendarClock} value={stats.due_soon} description="Due within 48 hours" iconClassName="text-amber-500" className="h-full" />
         </FilterStatCard>
+        <FilterStatCard active={statusFilter === "submitted"} color="sky" onClick={() => handleStatusFilterChange("submitted")}>
+          <StatsCard title="Awaiting Review" icon={CheckCircle2} value={stats.submitted ?? 0} description="Submitted to assigners" className="h-full" />
+        </FilterStatCard>
       </div>
 
       {/* Filter & Search Toolbar */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 p-2.5 bg-muted/40 rounded-xl border">
+      <div id="tour-delegated-filters" className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 p-2.5 bg-muted/40 rounded-xl border">
         {/* Search */}
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -478,6 +487,9 @@ export function DelegatedTasksClient({
               <SelectItem value="pending">Pending / Active</SelectItem>
               <SelectItem value="due_soon">Due Soon (48h)</SelectItem>
               <SelectItem value="pending_extensions">Extension Requested</SelectItem>
+              <SelectItem value="submitted">Awaiting Review</SelectItem>
+              <SelectItem value="changes_requested">Changes Requested</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
               <SelectItem value="completed">Completed (Lower)</SelectItem>
             </SelectContent>
           </Select>
@@ -576,7 +588,7 @@ export function DelegatedTasksClient({
       </div>
 
       {/* Task List */}
-      <div className="space-y-2">
+      <div id="tour-delegated-list" className="space-y-2">
         {paginatedTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-center rounded-xl border border-dashed bg-muted/20">
             <div className="p-3 rounded-full bg-muted mb-3">
@@ -602,10 +614,9 @@ export function DelegatedTasksClient({
         ) : (
           paginatedTasks.map((task) => {
             const isCompleted = task.status === "completed";
-            const dueDate = task.due_date ? new Date(task.due_date) : null;
-            const isOverdue = !isCompleted && dueDate ? isPast(dueDate) : false;
+            const isOverdue = task.is_overdue;
             const priorityInfo = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.medium;
-            const hasPendingExtension = task.extension_status === "pending";
+            const hasPendingExtension = isActiveTask(task) && task.extension_status === "pending";
             const isExpanded = viewDensity === "comfortable" || !!expandedTaskIds[task.id];
 
             return (
@@ -620,7 +631,7 @@ export function DelegatedTasksClient({
                 )}
               >
                 {/* Main Compact Row */}
-                <div className="flex items-center justify-between gap-2.5 px-3 py-2 sm:py-2.5">
+                <div className="flex flex-col items-stretch gap-2.5 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:py-2.5">
                   {/* Left: Indicator + Priority + Title */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     {/* Status Icon */}
@@ -645,15 +656,22 @@ export function DelegatedTasksClient({
                     </Badge>
 
                     {/* Title */}
+                    <div className="min-w-0 flex-1">
                     <span
                       className={cn(
-                        "font-medium text-xs sm:text-sm text-foreground truncate",
+                        "block font-medium text-xs sm:text-sm text-foreground truncate",
                         isCompleted && "line-through text-muted-foreground font-normal"
                       )}
                       title={task.title}
                     >
                       {task.title}
                     </span>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground break-words">
+                      Assigned <time dateTime={task.created_at} title={formatReadableDate(task.created_at)}>{formatReadableDate(task.created_at, { includeTime: false })}</time>
+                      {" · "}Department: {task.user?.department || "Not specified"}
+                    </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{task.status === "completed" ? "Accepted" : taskStatusLabels[task.status]}</Badge>
 
                     {/* Extension Badge on Row */}
                     {hasPendingExtension && (
@@ -680,7 +698,7 @@ export function DelegatedTasksClient({
                   </div>
 
                   {/* Right: Deadline Badge + Nudge + Expand Chevron */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
                     {/* Due Date Indicator */}
                     {task.due_date ? (
                       <div
@@ -692,13 +710,13 @@ export function DelegatedTasksClient({
                             ? "bg-muted text-muted-foreground border-transparent"
                             : "bg-muted/60 text-foreground border-muted"
                         )}
-                        title={format(new Date(task.due_date), "MMM d, yyyy h:mm a")}
+                        title={formatReadableDate(task.due_date)}
                       >
                         <Calendar className="h-3 w-3" />
                         <span>
                           {isOverdue && !isCompleted
-                            ? `Overdue (${formatDistanceToNow(new Date(task.due_date))})`
-                            : format(new Date(task.due_date), "MMM d")}
+                            ? `Overdue · ${formatReadableDate(task.due_date)}`
+                            : formatReadableDate(task.due_date)}
                         </span>
                       </div>
                     ) : (
@@ -724,7 +742,7 @@ export function DelegatedTasksClient({
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={isCompleted}
+                      disabled={!isActiveTask(task)}
                       onClick={(e) => handleOpenNudge(task, e)}
                       className={cn(
                         "h-7 px-2 text-[11px] font-semibold gap-1 transition-all shrink-0",
@@ -762,6 +780,8 @@ export function DelegatedTasksClient({
                 {/* Expanded Details Drawer */}
                 {isExpanded && (
                   <div className="px-3 pb-3 pt-1 border-t bg-muted/15 space-y-2.5 text-xs text-muted-foreground animate-in fade-in-50 duration-150">
+                    <TaskSubmissionDetails task={task} />
+                    <TaskWorkflowControls task={task} onUpdated={updated => { setTasks(current => current.map(t => t.id === updated.id ? updated : t)); void refreshTasks(); }} />
                     {/* Full Description if present */}
                     {task.description ? (
                       <div className="space-y-1">
@@ -787,7 +807,7 @@ export function DelegatedTasksClient({
                           {task.extension_requested_due_date && (
                             <span>
                               Requested Date:{" "}
-                              <strong>{format(new Date(task.extension_requested_due_date), "MMM d, yyyy h:mm a")}</strong>
+                              <strong>{formatReadableDate(task.extension_requested_due_date)}</strong>
                             </span>
                           )}
                           {task.extension_reason && (
@@ -838,10 +858,9 @@ export function DelegatedTasksClient({
 
                       {/* Timestamps */}
                       <div className="flex items-center gap-3 text-[11px] self-end sm:self-auto">
-                        <span>Created: {format(new Date(task.created_at), "MMM d, yyyy")}</span>
                         {task.completed_at && (
                           <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                            ✓ Completed {format(new Date(task.completed_at), "MMM d, yyyy h:mm a")}
+                            ✓ Completed {formatReadableDate(task.completed_at)}
                           </span>
                         )}
                       </div>
@@ -956,7 +975,7 @@ export function DelegatedTasksClient({
                   <span>Assignee: <strong>{taskToNudge.user?.name}</strong></span>
                   {taskToNudge.due_date && (
                     <span>
-                      • Due: {format(new Date(taskToNudge.due_date), "MMM d, yyyy h:mm a")}
+                      • Due: {formatReadableDate(taskToNudge.due_date)}
                     </span>
                   )}
                 </div>

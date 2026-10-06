@@ -38,7 +38,6 @@ import {
 import {
   clockIn,
   clockOut,
-  getTodayStatus,
   type ClockInRecord,
   type LocationData,
 } from "@/lib/api/clock-in";
@@ -48,6 +47,7 @@ import { LatePermissionRequestModal } from "@/components/late-permission-request
 import { useUser } from "@/providers/user-provider";
 import { toast } from "sonner";
 import { CameraQrScanner } from "@/components/attendance/camera-qr-scanner";
+import { useTodayAttendance } from "@/hooks/use-today-attendance";
 
 function playSuccessChime() {
   try {
@@ -89,7 +89,7 @@ export function AttendanceScanClient({
   const router = useRouter();
   const { user } = useUser();
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [status, setStatus] = useState<ClockInRecord | null>(initialStatus);
+  const { status, updateStatus, refetch } = useTodayAttendance(initialStatus);
   const [currentTime, setCurrentTime] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>("");
 
@@ -170,7 +170,7 @@ export function AttendanceScanClient({
       const response = await clockIn(resolvedLoc, resolvedIp, deviceData, isQrScan);
 
       if (response.success) {
-        setStatus(response.data.data);
+        await updateStatus(response.data.data);
         setJustClockedIn(true);
         playSuccessChime();
         toast.success(response.data.message || "Clock-in recorded successfully!");
@@ -212,14 +212,8 @@ export function AttendanceScanClient({
 
   // Refetch status manually
   const refreshStatus = async () => {
-    try {
-      const res = await getTodayStatus();
-      if (res.success) {
-        setStatus(res.data.data);
-      }
-    } catch (e) {
-      console.error("Failed to refresh status:", e);
-    }
+    const result = await refetch();
+    if (result.isError) toast.error("Unable to refresh attendance status. Please try again.");
   };
 
   const handleClockOut = async (isQrScan: boolean = true) => {
@@ -249,7 +243,7 @@ export function AttendanceScanClient({
       const response = await clockOut(resolvedLocation, resolvedIp, isQrScan);
 
       if (response.success) {
-        setStatus(response.data.data);
+        await updateStatus(response.data.data);
         playSuccessChime();
         toast.success("Clock-out recorded successfully via Wall QR!");
         router.refresh();

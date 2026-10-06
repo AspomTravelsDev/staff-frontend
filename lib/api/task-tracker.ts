@@ -16,6 +16,38 @@ import type {
   TaskTrackerComment,
 } from "@/lib/types/task-tracker";
 
+export async function runTaskWorkflow(id: string, payload: {
+  action: "start" | "submit" | "accept" | "request_changes" | "cancel" | "reopen";
+  note?: string;
+  url?: string | null;
+}): Promise<ApiResponse<SingleItemResponse>> {
+  const result = await api.post<SingleItemResponse>(`/api/task-tracker/${id}/workflow`, payload);
+  if (result.success) {
+    revalidatePath("/my/task-tracker");
+    revalidatePath("/operations/delegated-tasks");
+    revalidatePath("/dashboard");
+  }
+  return result;
+}
+
+export async function getTaskHistory(id: string): Promise<ApiResponse<{ data: {
+  id: number;
+  type: string;
+  details: Record<string, unknown>;
+  created_at: string;
+  user?: { name: string } | null;
+}[] }>> {
+  return api.get(`/api/task-tracker/${id}/history`);
+}
+
+export async function getTaskUpdateReceipt(id: string, kind?: "comment") {
+  return api.get<{ latest_id: number | null }>(`/api/task-tracker/${id}/update-receipt${kind ? "?kind=comment" : ""}`);
+}
+
+export async function markTaskUpdatesViewed(id: string, throughId: number, kind?: "comment") {
+  return api.post<{ message: string }>(`/api/task-tracker/${id}/updates/mark-viewed`, { through_id: throughId, kind });
+}
+
 interface TaskTrackerListResponse {
   data: TaskTrackerItem[];
   stats: TaskTrackerStats;
@@ -107,6 +139,7 @@ export async function createTaskTrackerItem(
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
 }
@@ -122,6 +155,7 @@ export async function updateTaskTrackerItem(
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
 }
@@ -134,6 +168,7 @@ export async function toggleTaskTrackerItem(id: string): Promise<ApiResponse<Sin
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
 }
@@ -146,6 +181,7 @@ export async function deleteTaskTrackerItem(id: string): Promise<ApiResponse<{ m
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
 }
@@ -161,6 +197,7 @@ export async function requestTaskExtension(
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
 }
@@ -176,6 +213,7 @@ export async function approveTaskExtension(
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
   }
   return result;
 }
@@ -191,6 +229,7 @@ export async function rejectTaskExtension(
   if (result.success) {
     revalidatePath("/my/task-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/operations/delegated-tasks");
     revalidatePath("/operations/delegated-tasks");
   }
   return result;

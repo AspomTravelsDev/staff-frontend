@@ -1,7 +1,8 @@
 "use client";
 
+import { formatReadableDate } from "@/lib/utils/readable-date";
+
 import { useState } from "react";
-import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -52,8 +53,8 @@ export function DeclineExtensionDialog({
       } else {
         toast.error(res.error?.error || "Failed to decline extension request");
       }
-    } catch (err: any) {
-      toast.error(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export function DeclineExtensionDialog({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Proposed Deadline:</span>
                   <span className="font-mono font-semibold text-amber-700 dark:text-amber-300">
-                    {format(new Date(task.extension_requested_due_date), "MMM d, yyyy 'at' h:mm a")}
+                    {formatReadableDate(task.extension_requested_due_date)}
                   </span>
                 </div>
               )}

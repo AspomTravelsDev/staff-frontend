@@ -30,12 +30,7 @@ export default async function DelegatedTasksPage({ searchParams }: PageProps) {
 
   const params = await searchParams;
 
-  const response = await getCompanyDelegatedTasks({
-    status: params?.status,
-    priority: params?.priority,
-    department: params?.department,
-    search: params?.search,
-  }).catch(() => ({
+  const response = await getCompanyDelegatedTasks().catch(() => ({
     success: false as const,
     error: { code: "500", error: "Failed to load delegated deliverables" },
   }));

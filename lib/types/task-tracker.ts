@@ -1,5 +1,5 @@
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'submitted' | 'changes_requested';
 export type TaskRecurrence = 'daily' | 'weekly' | 'monthly';
 
 export interface Colleague {
@@ -21,6 +21,15 @@ export interface TaskTrackerItem {
   priority: TaskPriority;
   status: TaskStatus;
   completed_at: string | null;
+  original_due_date?: string | null;
+  submitted_at?: string | null;
+  submission_due_date?: string | null;
+  submission_note?: string | null;
+  submission_url?: string | null;
+  review_feedback?: string | null;
+  can_manage?: boolean;
+  can_submit?: boolean;
+  can_review?: boolean;
   remind_before_hours: number;
   enable_email_reminder: boolean;
   enable_push_reminder: boolean;
@@ -59,6 +68,7 @@ export interface TaskTrackerStats {
   due_soon: number;
   overdue: number;
   completed: number;
+  submitted?: number;
   assigned_by_me_count?: number;
   assigned_to_me_count?: number;
 }
@@ -76,6 +86,7 @@ export interface CompanyDelegatedTaskStats {
   overdue: number;
   pending_extensions: number;
   completed: number;
+  submitted?: number;
 }
 
 export interface CreateTaskTrackerPayload {
