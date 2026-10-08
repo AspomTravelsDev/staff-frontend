@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { userHasAnyRole } from "@/types/user-types";
@@ -14,6 +15,7 @@ export const metadata = {
 };
 
 export default async function AwardStaffPage() {
+  return renderDataPage(async () => {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -105,4 +107,6 @@ export default async function AwardStaffPage() {
       <AwardsTable awards={awards} />
     </div>
   );
+
+  }, "Unable to load staff awards");
 }

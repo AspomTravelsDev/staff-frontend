@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { TaskTrackerItem, TaskTrackerStats } from "@/lib/types/task-tracker";
 import {
   getTaskTrackerItems,
-  toggleTaskTrackerItem,
+  updateTaskTrackerItem,
   deleteTaskTrackerItem,
 } from "@/lib/api/task-tracker";
 import { TasksTable } from "./tasks-table";
@@ -95,13 +95,16 @@ export function TaskTrackerClient({
     });
   };
 
-  // Quick toggle status
-  const handleToggle = async (id: string) => {
+  // Apply the requested status so repeated completion cannot reopen a task.
+  const handleToggle = async (id: string, status: "pending" | "completed") => {
+    const task = tasks.find(task => task.id === id);
+    if (!task || task.is_delegated) return false;
     try {
-      const res = await toggleTaskTrackerItem(id);
+      const res = await updateTaskTrackerItem(id, { status });
       if (res.success) {
         toast.success(res.data.message || "Task updated");
         await refreshTasks();
+        return true;
       } else {
         toast.error("Failed to update status");
         await refreshTasks();
@@ -110,6 +113,7 @@ export function TaskTrackerClient({
       toast.error("Failed to update status");
       await refreshTasks();
     }
+    return false;
   };
 
   // Delete task
@@ -195,7 +199,7 @@ export function TaskTrackerClient({
       </div>
     </div>
     <div id="tour-view-switcher" className="space-y-2">
-      <Tabs value={activeView} onValueChange={value => handleViewChange(value as "assigned_to_me" | "assigned_by_me")}>
+      <Tabs value={activeView} onValueChange={(value: string) => handleViewChange(value as "assigned_to_me" | "assigned_by_me")}>
         <TabsList aria-label="Choose whose tasks to view">
           <TabsTrigger value="assigned_to_me">My tasks</TabsTrigger>
           <TabsTrigger value="assigned_by_me">Tasks I assigned</TabsTrigger>

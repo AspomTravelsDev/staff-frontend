@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
@@ -6,6 +7,7 @@ import { AppraisalTable } from "./components/appraisal-table";
 import { getPerformanceData } from "./queries";
 
 export default async function Page() {
+  return renderDataPage(async () => {
   const { appraisals, stats } = await getPerformanceData();
 
   return (
@@ -32,4 +34,5 @@ export default async function Page() {
       <AppraisalTable appraisals={appraisals} />
     </div>
   );
+  }, "Unable to load your performance reviews");
 }

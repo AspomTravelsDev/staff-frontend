@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { 
   getInvoices, 
   deleteInvoice, 
@@ -346,6 +347,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
                             <ExternalLink className="h-3 w-3" />
                             Open
                           </Button>
+                          {Number(invoice.balance_due) > 0 && <Button variant="ghost" size="sm" className="h-8 text-xs" asChild><Link href={`/accounts/payment-links?invoice=${invoice.id}`}>Payment link</Link></Button>}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button

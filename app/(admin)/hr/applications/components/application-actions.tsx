@@ -56,7 +56,7 @@ export function ApplicationActions({ id, step }: ApplicationActionsProps) {
       {
         loading: "Deleting application...",
         success: "Application deleted",
-        error: "Failed to delete application",
+        error: (error: unknown) => error instanceof Error ? error.message : "Failed to delete application",
       },
     );
   };

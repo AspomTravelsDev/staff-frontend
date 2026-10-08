@@ -28,13 +28,13 @@ import {
   itGuideSchema,
   type ITGuideFormValues,
 } from "@/lib/validations/it-guides";
-import { ITGuideItem } from "@/lib/api/it-guides";
+import { updateITGuide, type ITGuideItem } from "@/lib/api/it-guides";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 interface ITGuideFormProps {
   initialData?: ITGuideItem | null;
-  onSubmit: (values: ITGuideFormValues) => Promise<void>;
+  onSubmit?: (values: ITGuideFormValues) => Promise<void>;
 }
 
 export function ITGuideForm({ initialData, onSubmit }: ITGuideFormProps) {
@@ -55,7 +55,13 @@ export function ITGuideForm({ initialData, onSubmit }: ITGuideFormProps) {
   const handleSubmit = async (values: ITGuideFormValues) => {
     setIsLoading(true);
     try {
-      await onSubmit(values);
+      if (initialData) {
+        await updateITGuide(initialData.id, values);
+      } else if (onSubmit) {
+        await onSubmit(values);
+      } else {
+        throw new Error("Unable to save this guide. Please reopen the form.");
+      }
       toast.success(
         values.status === "published"
           ? "Guide published successfully!"

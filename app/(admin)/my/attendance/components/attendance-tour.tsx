@@ -65,7 +65,7 @@ const ATTENDANCE_TOUR_STEPS: DriveStep[] = [
     popover: {
       title: "Attendance Logs & Requests",
       description:
-        "Inspect your historical check-in and check-out logs with duration and verification details, or toggle to the 'My Late Requests' tab to check approval statuses.",
+        "Inspect your historical check-in and check-out logs with duration and verification details. Departures after 8 PM Lagos time show an After 8 PM badge; your actual clock-out time is kept. You can also toggle to the 'My Late Requests' tab to check approval statuses.",
       side: "top",
       align: "start",
     },

@@ -2,7 +2,7 @@
 
 import { formatReadableDate } from "@/lib/utils/readable-date";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { getTaskHistory, runTaskWorkflow } from "@/lib/api/task-tracker";
 import type { TaskTrackerItem } from "@/lib/types/task-tracker";
@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 type Action = Parameters<typeof runTaskWorkflow>[1]["action"];
 interface HistoryEvent { id: number; type: string; details: Record<string, unknown>; created_at: string; user?: { name: string } | null }
 const labels: Record<Action, string> = { start: "Start work", submit: "Submit deliverable", accept: "Accept deliverable", request_changes: "Request changes", cancel: "Cancel task", reopen: "Reopen task" };
+const dialogLabels: Record<Action, string> = { ...labels, submit: "Confirm work submission", accept: "Confirm task completion" };
+const confirmLabels: Record<Action, string> = { ...labels, submit: "Confirm submission", accept: "Confirm completion" };
 export const taskStatusLabels: Record<TaskTrackerItem["status"], string> = {
   pending: "Pending", in_progress: "In progress", submitted: "Awaiting review",
   changes_requested: "Changes requested", completed: "Completed", cancelled: "Cancelled",
@@ -63,6 +65,7 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
   const [note, setNote] = useState("");
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -81,24 +84,27 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
   }, [historyOpen, task.id]);
   const openAction = (next: Action) => { setNote(""); setUrl(""); setAction(next); };
   const startWork = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const res = await runTaskWorkflow(task.id, { action: "start" });
       if (res.success) { onUpdated(res.data.data); toast.success("Work started"); }
       else toast.error(res.error.error || "Could not start work");
     } catch { toast.error("Could not start work. Please try again."); }
-    finally { setSaving(false); }
+    finally { savingRef.current = false; setSaving(false); }
   };
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!action) return;
+    if (!action || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const res = await runTaskWorkflow(task.id, { action, note: note.trim(), url: url.trim() || null });
       if (res.success) { onUpdated(res.data.data); setAction(null); toast.success(res.data.message || "Task updated"); }
       else toast.error(res.error?.error || "Could not update task");
     } catch { toast.error("Could not update task. Please try again."); }
-    finally { setSaving(false); }
+    finally { savingRef.current = false; setSaving(false); }
   };
   const controls = <>
     {task.can_submit && isActiveTask(task) && <>
@@ -117,12 +123,12 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
     {renderControls ? renderControls(controls) : controls}
     <Dialog open={action !== null} onOpenChange={open => { if (!open && !saving) setAction(null); }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{action ? labels[action] : "Task action"}</DialogTitle><DialogDescription>{task.title}. {action === "submit" ? "Explain what you delivered. Your assigner will review it." : action === "accept" ? "Accepting records completion. Timeliness uses the submission time, so review delays do not count against staff." : action === "cancel" ? "Cancellation keeps the task and its history for accountability." : "This action will be recorded in the shared history."}</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{action ? dialogLabels[action] : "Task action"}</DialogTitle><DialogDescription><strong className="break-words">{task.title}</strong>. {action === "submit" ? "Confirm that your work is ready for review. Add a completion note below. The task will be completed once your assigner accepts it." : action === "accept" ? `Accept ${task.user?.name ? `${task.user.name}'s submitted work` : "the submitted work"} and mark this task as completed? Timeliness uses the submission time, so review delays do not count against staff.` : action === "cancel" ? "Cancellation keeps the task and its history for accountability." : "This action will be recorded in the shared history."}</DialogDescription></DialogHeader>
         <form onSubmit={save} className="space-y-4">
           <div className="space-y-2"><Label htmlFor={`note-${task.id}`}>{action === "submit" ? "Completion note" : "Feedback / note"}{action === "submit" || action === "request_changes" ? " (required)" : " (optional)"}</Label>
             <Textarea id={`note-${task.id}`} value={note} onChange={e => setNote(e.target.value)} required={action === "submit" || action === "request_changes"} maxLength={5000} disabled={saving} /></div>
           {action === "submit" && <div className="space-y-2"><Label htmlFor={`url-${task.id}`}>Work link (optional)</Label><Input id={`url-${task.id}`} type="url" placeholder="https://…" value={url} onChange={e => setUrl(e.target.value)} pattern="https?://.*" maxLength={2000} disabled={saving} /></div>}
-          <DialogFooter><Button type="button" variant="outline" disabled={saving} onClick={() => setAction(null)}>Back</Button><Button disabled={saving || ((action === "submit" || action === "request_changes") && !note.trim())}>{saving ? "Saving…" : action ? labels[action] : "Save"}</Button></DialogFooter>
+          <DialogFooter><Button type="button" variant="outline" disabled={saving} onClick={() => setAction(null)}>Back</Button><Button disabled={saving || ((action === "submit" || action === "request_changes") && !note.trim())}>{saving ? "Saving…" : action ? confirmLabels[action] : "Save"}</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

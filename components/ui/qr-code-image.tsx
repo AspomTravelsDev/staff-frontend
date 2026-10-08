@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
 interface QRCodeImageProps {
@@ -9,6 +8,7 @@ interface QRCodeImageProps {
   size?: number;
   className?: string;
   alt?: string;
+  onReady?: (imageUrl: string) => void;
 }
 
 export function QRCodeImage({
@@ -16,6 +16,7 @@ export function QRCodeImage({
   size = 280,
   className = "",
   alt = "QR Code",
+  onReady,
 }: QRCodeImageProps) {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -46,7 +47,7 @@ export function QRCodeImage({
         width={size}
         height={size}
         className="w-full h-full object-contain"
-        onLoad={() => setLoading(false)}
+        onLoad={() => { setLoading(false); onReady?.(currentSrc); }}
         onError={() => {
           if (!hasError) {
             setHasError(true);

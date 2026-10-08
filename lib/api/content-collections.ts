@@ -1,49 +1,40 @@
-"use server";
+// The server returns serializable results; errors are reconstructed in the caller.
+import * as actions from "./content-collections.actions";
+import { callAction, type ActionData } from "./action-result";
+export type * from "./content-collections.actions";
 
-import { api, type ApiResponse } from "./client";
-import type { ContentCollection, ContentAssignment, ContentDraft, ContentIdea, ContentStaff } from "@/types/content-collections";
-
-async function unwrap<T>(result: ApiResponse<{ data: T }>): Promise<T> {
-  if (!result.success) throw new Error(result.error.error);
-  return result.data.data;
+export async function getContentCollections(...args: Parameters<typeof actions.getContentCollections>): Promise<ActionData<Awaited<ReturnType<typeof actions.getContentCollections>>>> {
+  return callAction(() => actions.getContentCollections(...args));
 }
 
-export async function getContentCollections() {
-  return unwrap(await api.get<{ data: ContentCollection[] }>("/api/social-media/content-collections"));
+export async function getContentStaff(...args: Parameters<typeof actions.getContentStaff>): Promise<ActionData<Awaited<ReturnType<typeof actions.getContentStaff>>>> {
+  return callAction(() => actions.getContentStaff(...args));
 }
 
-export async function getContentStaff() {
-  return unwrap(await api.get<{ data: ContentStaff[] }>("/api/social-media/content-collections/staff"));
+export async function saveContentCollection(...args: Parameters<typeof actions.saveContentCollection>): Promise<ActionData<Awaited<ReturnType<typeof actions.saveContentCollection>>>> {
+  return callAction(() => actions.saveContentCollection(...args));
 }
 
-export async function saveContentCollection(draft: ContentDraft, id?: string) {
-  return unwrap(id
-    ? await api.patch<{ data: ContentCollection }>(`/api/social-media/content-collections/${id}`, draft)
-    : await api.post<{ data: ContentCollection }>("/api/social-media/content-collections", draft));
+export async function publishContentCollection(...args: Parameters<typeof actions.publishContentCollection>): Promise<ActionData<Awaited<ReturnType<typeof actions.publishContentCollection>>>> {
+  return callAction(() => actions.publishContentCollection(...args));
 }
 
-export async function publishContentCollection(id: string) {
-  return unwrap(await api.post<{ data: ContentCollection }>(`/api/social-media/content-collections/${id}/publish`));
+export async function changeContentDeadline(...args: Parameters<typeof actions.changeContentDeadline>): Promise<ActionData<Awaited<ReturnType<typeof actions.changeContentDeadline>>>> {
+  return callAction(() => actions.changeContentDeadline(...args));
 }
 
-export async function changeContentDeadline(id: string, deadline: string) {
-  return unwrap(await api.patch<{ data: ContentCollection }>(`/api/social-media/content-collections/${id}`, { deadline }));
+export async function addContentAssignment(...args: Parameters<typeof actions.addContentAssignment>): Promise<ActionData<Awaited<ReturnType<typeof actions.addContentAssignment>>>> {
+  return callAction(() => actions.addContentAssignment(...args));
 }
 
-export async function addContentAssignment(id: string, assignment: ContentDraft['assignments'][number]) {
-  return unwrap(await api.post<{ data: ContentCollection }>(`/api/social-media/content-collections/${id}/assignments`, assignment));
+export async function updateContentAssignment(...args: Parameters<typeof actions.updateContentAssignment>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateContentAssignment>>>> {
+  return callAction(() => actions.updateContentAssignment(...args));
 }
 
-export async function updateContentAssignment(id: string, assignmentId: string, changes: { brief: string; required_count: number }) {
-  return unwrap(await api.patch<{ data: ContentCollection }>(`/api/social-media/content-collections/${id}/assignments/${assignmentId}`, changes));
+export async function getMyContentAssignments(...args: Parameters<typeof actions.getMyContentAssignments>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMyContentAssignments>>>> {
+  return callAction(() => actions.getMyContentAssignments(...args));
 }
 
-export async function getMyContentAssignments() {
-  return unwrap(await api.get<{ data: ContentAssignment[] }>("/api/my/content-ideas"));
-}
-
-export async function saveContentIdea(assignmentId: string, idea: { title: string; description: string }, id?: string) {
-  return unwrap(id
-    ? await api.patch<{ data: ContentIdea }>(`/api/content-assignments/${assignmentId}/ideas/${id}`, idea)
-    : await api.post<{ data: ContentIdea }>(`/api/content-assignments/${assignmentId}/ideas`, idea));
+export async function saveContentIdea(...args: Parameters<typeof actions.saveContentIdea>): Promise<ActionData<Awaited<ReturnType<typeof actions.saveContentIdea>>>> {
+  return callAction(() => actions.saveContentIdea(...args));
 }

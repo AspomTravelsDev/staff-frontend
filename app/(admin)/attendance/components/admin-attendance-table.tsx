@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AttendanceClockOut } from "@/components/attendance/attendance-clock-out";
 import { Button } from "@/components/ui/button";
 import {
   ClockInRecord,
@@ -19,7 +20,6 @@ import {
   removeClockInProxyFlag,
 } from "@/lib/api/clock-in";
 import {
-  isLate,
   formatLagosTime,
   formatLagosDate,
   getAttendanceStatusInfo,
@@ -425,7 +425,6 @@ export function AdminAttendanceTable({
               </TableRow>
             ) : (
               pagedHistory.map((record) => {
-                const late = isLate(record.clock_in_at);
                 const user = record.user;
                 const method = record.location_method || "ip";
                 const isGps = method === "gps";
@@ -451,9 +450,7 @@ export function AdminAttendanceTable({
                     <TableCell>{formatLagosDate(record.clock_in_at)}</TableCell>
                     <TableCell>{formatLagosTime(record.clock_in_at)}</TableCell>
                     <TableCell>
-                      {record.clock_out_at
-                        ? formatLagosTime(record.clock_out_at)
-                        : "-"}
+                      <AttendanceClockOut record={record} />
                     </TableCell>
 
                     <TableCell>

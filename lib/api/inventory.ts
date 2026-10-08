@@ -1,783 +1,104 @@
-"use server";
+// The server returns serializable results; errors are reconstructed in the caller.
+import * as actions from "./inventory.actions";
+import { callAction, type ActionData } from "./action-result";
+export type * from "./inventory.actions";
 
-import { PaginatedResponse } from "./types";
-import { api } from "./client";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export type InventoryStatus = "Storage" | "Assigned" | "Repairs";
-export type InventoryConditionRating = "Excellent" | "Good" | "Fair" | "Poor" | "Broken";
-
-export type GadgetChecklist = {
-    screen: string;
-    charger: string;
-    buttons: string;
-    battery: string;
-    ports: string;
-    cameraMic: string;
-    overall: string;
-};
-
-export interface TechnicianDetails {
-    name: string;
-    phone: string;
-    address: string;
+export async function getInventory(...args: Parameters<typeof actions.getInventory>): Promise<ActionData<Awaited<ReturnType<typeof actions.getInventory>>>> {
+  return callAction(() => actions.getInventory(...args));
 }
 
-export interface InventoryItem {
-    id: string;
-    name: string;
-    category: "Laptop" | "Phone" | "Gadget" | "Other";
-    serialNumber: string;
-    status: InventoryStatus;
-    conditionRating: InventoryConditionRating;
-    conditionDetails?: string;
-    defaultChecklist?: GadgetChecklist;
-    assignedTo?: string;            // Only present if status is "Assigned"
-    technicianDetails?: TechnicianDetails; // Only present if status is "Repairs"
-    createdAt?: string;
-    updatedAt?: string;
-    history?: InventoryHistory[];
-    openAssignment?: InventoryAssignment | null;
+export async function getInventoryStats(...args: Parameters<typeof actions.getInventoryStats>): Promise<ActionData<Awaited<ReturnType<typeof actions.getInventoryStats>>>> {
+  return callAction(() => actions.getInventoryStats(...args));
 }
 
-export interface InventoryHistory {
-    id: string;
-    inventoryItemId: string;
-    status: InventoryStatus;
-    conditionRating: InventoryConditionRating;
-    conditionDetails?: string;
-    notes?: string;
-    assignedTo?: string;
-    assignedToName?: string;
-    technicianDetails?: TechnicianDetails;
-    changedBy: string;
-    changerName?: string;
-    createdAt: string;
+export async function createInventoryItem(...args: Parameters<typeof actions.createInventoryItem>): Promise<ActionData<Awaited<ReturnType<typeof actions.createInventoryItem>>>> {
+  return callAction(() => actions.createInventoryItem(...args));
 }
 
-export interface InventoryStats {
-    totalDevices: number;
-    inStorage: number;
-    assigned: number;
-    inRepairs: number;
+export async function updateInventoryItem(...args: Parameters<typeof actions.updateInventoryItem>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateInventoryItem>>>> {
+  return callAction(() => actions.updateInventoryItem(...args));
 }
 
-export interface InventoryFilters {
-    page?: number;
-    limit?: number;
-    search?: string;
-    category?: string;
-    status?: InventoryStatus;
-    conditionRating?: InventoryConditionRating;
+export async function deleteInventoryItem(...args: Parameters<typeof actions.deleteInventoryItem>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteInventoryItem>>>> {
+  return callAction(() => actions.deleteInventoryItem(...args));
 }
 
-export type InventoryItemPayload = Omit<InventoryItem, "id" | "createdAt" | "updatedAt" | "history" | "openAssignment"> & { notes?: string };
-
-export type InventoryAssignmentStatus =
-    | "pending_staff"
-    | "pending_officer"
-    | "pending_compliance"
-    | "return_pending_staff"
-    | "return_pending_inspection"
-    | "return_pending_compliance"
-    | "completed"
-    | "cleared"
-    | "cancelled";
-
-export type InventoryAssignmentType = "assignment" | "single_return" | "full_clearance";
-
-export type InventoryAssignmentDecision = "approved" | "rejected";
-
-export interface InventoryAssignmentUser {
-    id: string;
-    name: string;
-    role?: string;
-    department?: string;
-    phone?: string | null;
-    mobile_phone?: string | null;
+export async function getInventoryHistory(...args: Parameters<typeof actions.getInventoryHistory>): Promise<ActionData<Awaited<ReturnType<typeof actions.getInventoryHistory>>>> {
+  return callAction(() => actions.getInventoryHistory(...args));
 }
 
-export interface InventoryAssignment {
-    id: string;
-    inventoryItemId: string;
-    type?: InventoryAssignmentType;
-    clearanceBatchId?: string;
-    status: InventoryAssignmentStatus;
-    initiateNotes?: string;
-    staffConditionRating?: InventoryConditionRating;
-    staffConditionDetails?: string;
-    staffNotes?: string;
-    staffDecision?: InventoryAssignmentDecision;
-    staffDecidedAt?: string;
-    returnConditionRating?: InventoryConditionRating | "Broken" | "Lost";
-    returnConditionDetails?: string;
-    damageAssessmentFee?: number;
-    officerNotes?: string;
-    officerDecision?: InventoryAssignmentDecision;
-    officerDecidedAt?: string;
-    complianceNotes?: string;
-    complianceDecision?: InventoryAssignmentDecision;
-    complianceDecidedAt?: string;
-    adminChecklist?: GadgetChecklist;
-    staffChecklist?: GadgetChecklist;
-    returnChecklist?: GadgetChecklist;
-    createdAt: string;
-    updatedAt: string;
-    inventoryItem?: InventoryItem;
-    assignee?: InventoryAssignmentUser;
-    initiator?: InventoryAssignmentUser;
-    officer?: InventoryAssignmentUser;
-    complianceOfficer?: InventoryAssignmentUser;
+export async function logInventoryInspection(...args: Parameters<typeof actions.logInventoryInspection>): Promise<ActionData<Awaited<ReturnType<typeof actions.logInventoryInspection>>>> {
+  return callAction(() => actions.logInventoryInspection(...args));
 }
 
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-export async function getInventory(
-    filters: InventoryFilters = {}
-): Promise<PaginatedResponse<InventoryItem>> {
-
-    try {
-        const queryParams = new URLSearchParams();
-        if (filters.page) queryParams.set("page", filters.page.toString());
-        if (filters.limit) queryParams.set("limit", filters.limit.toString());
-        if (filters.search) queryParams.set("search", filters.search);
-        if (filters.category) queryParams.set("category", filters.category);
-        if (filters.status) queryParams.set("status", filters.status);
-        if (filters.conditionRating) queryParams.set("condition_rating", filters.conditionRating);
-
-        const response = await api.get<any>(`/api/admin/inventory?${queryParams.toString()}`);
-
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to fetch inventory");
-        }
-
-        return {
-            items: response.data.items.map((item: any) => ({
-                id: item.id.toString(),
-                name: item.name,
-                category: item.category,
-                serialNumber: item.serial_number,
-                status: item.status,
-                conditionRating: item.condition_rating,
-                conditionDetails: item.condition_details,
-                defaultChecklist: item.default_checklist,
-                assignedTo: item.assigned_to,
-                technicianDetails: item.technician_details,
-                createdAt: item.created_at,
-                updatedAt: item.updated_at,
-                openAssignment: mapOpenAssignment(item.open_assignment),
-                history: item.history?.map((h: any) => ({
-                    id: h.id.toString(),
-                    inventoryItemId: h.inventory_item_id.toString(),
-                    status: h.status,
-                    conditionRating: h.condition_rating,
-                    conditionDetails: h.condition_details,
-                    notes: h.notes,
-                    assignedTo: h.assigned_to,
-                    assignedToName: h.assigned_to_user?.name,
-                    technicianDetails: h.technician_details,
-                    changedBy: h.changed_by,
-                    changerName: h.changer?.name,
-                    createdAt: h.created_at,
-                })) || [],
-            })),
-            pagination: response.data.pagination,
-        };
-    } catch (error) {
-        console.error("Error fetching live inventory", error);
-        return { items: [], pagination: { page: 1, limit: 10, total: 0, total_pages: 0 } };
-    }
+export async function getMyInventory(...args: Parameters<typeof actions.getMyInventory>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMyInventory>>>> {
+  return callAction(() => actions.getMyInventory(...args));
 }
 
-export async function getInventoryStats(
-    filters: InventoryFilters = {}
-): Promise<InventoryStats> {
-
-
-    try {
-        const queryParams = new URLSearchParams();
-        if (filters.category) queryParams.set("category", filters.category);
-        if (filters.status) queryParams.set("status", filters.status);
-        if (filters.conditionRating) queryParams.set("condition_rating", filters.conditionRating);
-
-        const response = await api.get<any>(`/api/admin/inventory/stats?${queryParams.toString()}`);
-
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to fetch stats");
-        }
-
-        return {
-            totalDevices: response.data.totalDevices || 0,
-            inStorage: response.data.inStorage || 0,
-            assigned: response.data.assigned || 0,
-            inRepairs: response.data.inRepairs || 0,
-        };
-    } catch (error) {
-        console.error("Error fetching inventory stats:", error);
-        return {
-            totalDevices: 0,
-            inStorage: 0,
-            assigned: 0,
-            inRepairs: 0
-        };
-    }
+export async function updateMyInventory(...args: Parameters<typeof actions.updateMyInventory>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateMyInventory>>>> {
+  return callAction(() => actions.updateMyInventory(...args));
 }
 
-export async function createInventoryItem(payload: InventoryItemPayload): Promise<InventoryItem> {
-    try {
-        const response = await api.post<any>("/api/admin/inventory", {
-            name: payload.name,
-            category: payload.category,
-            serial_number: payload.serialNumber,
-            status: payload.status,
-            condition_rating: payload.conditionRating,
-            condition_details: payload.conditionDetails,
-            default_checklist: payload.defaultChecklist,
-            notes: payload.notes,
-            assigned_to: payload.assignedTo,
-            technician_details: payload.technicianDetails,
-        });
-
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to create inventory item");
-        }
-
-        const item = response.data;
-        return {
-            id: item.id.toString(),
-            name: item.name,
-            category: item.category,
-            serialNumber: item.serial_number,
-            status: item.status,
-            conditionRating: item.condition_rating,
-            conditionDetails: item.condition_details,
-            defaultChecklist: item.default_checklist,
-            assignedTo: item.assigned_to,
-            technicianDetails: item.technician_details,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at,
-        };
-    } catch (error) {
-        console.error("Error creating inventory item", error);
-        throw error;
-    }
+export async function getMyInventoryHistory(...args: Parameters<typeof actions.getMyInventoryHistory>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMyInventoryHistory>>>> {
+  return callAction(() => actions.getMyInventoryHistory(...args));
 }
 
-export async function updateInventoryItem(id: string, payload: Partial<InventoryItemPayload>): Promise<InventoryItem> {
-
-    try {
-        const response = await api.patch<any>(`/api/admin/inventory/${id}`, {
-            name: payload.name,
-            category: payload.category,
-            serial_number: payload.serialNumber,
-            status: payload.status,
-            condition_rating: payload.conditionRating,
-            condition_details: payload.conditionDetails,
-            default_checklist: payload.defaultChecklist,
-            notes: payload.notes,
-            assigned_to: payload.assignedTo,
-            technician_details: payload.technicianDetails,
-        });
-
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to update inventory item");
-        }
-
-        const item = response.data;
-        return {
-            id: item.id.toString(),
-            name: item.name,
-            category: item.category,
-            serialNumber: item.serial_number,
-            status: item.status,
-            conditionRating: item.condition_rating,
-            conditionDetails: item.condition_details,
-            defaultChecklist: item.default_checklist,
-            assignedTo: item.assigned_to,
-            technicianDetails: item.technician_details,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at,
-        };
-    } catch (error) {
-        console.error(`Error updating inventory item ${id}`, error);
-        throw error;
-    }
+export async function getMyInventoryAssignments(...args: Parameters<typeof actions.getMyInventoryAssignments>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMyInventoryAssignments>>>> {
+  return callAction(() => actions.getMyInventoryAssignments(...args));
 }
 
-export async function deleteInventoryItem(id: string): Promise<void> {
-
-    try {
-        const response = await api.delete<any>(`/api/admin/inventory/${id}`);
-
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to delete inventory item");
-        }
-    } catch (error) {
-        console.error(`Error deleting inventory item ${id}`, error);
-        throw error;
-    }
+export async function submitInventoryAssignmentDecision(...args: Parameters<typeof actions.submitInventoryAssignmentDecision>): Promise<ActionData<Awaited<ReturnType<typeof actions.submitInventoryAssignmentDecision>>>> {
+  return callAction(() => actions.submitInventoryAssignmentDecision(...args));
 }
 
-export async function getInventoryHistory(id: string): Promise<PaginatedResponse<InventoryHistory>> {
-    try {
-        const response = await api.get<any>(`/api/admin/inventory/${id}/history`);
-        if (!response.success) throw new Error("Failed to fetch history");
-
-        return {
-            items: response.data.data.map((h: any) => ({
-                id: h.id.toString(),
-                inventoryItemId: h.inventory_item_id.toString(),
-                status: h.status,
-                conditionRating: h.condition_rating,
-                conditionDetails: h.condition_details,
-                notes: h.notes,
-                assignedTo: h.assigned_to,
-                assignedToName: h.assigned_to_user?.name,
-                technicianDetails: h.technician_details,
-                changedBy: h.changed_by,
-                changerName: h.changer?.name,
-                createdAt: h.created_at,
-            })),
-            pagination: {
-                page: response.data.current_page,
-                limit: response.data.per_page,
-                total: response.data.total,
-                total_pages: response.data.last_page,
-            }
-        };
-    } catch (error) {
-        console.error("Error fetching inventory history", error);
-        return { items: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } };
-    }
+export async function initiateInventoryAssignment(...args: Parameters<typeof actions.initiateInventoryAssignment>): Promise<ActionData<Awaited<ReturnType<typeof actions.initiateInventoryAssignment>>>> {
+  return callAction(() => actions.initiateInventoryAssignment(...args));
 }
 
-export async function logInventoryInspection(id: string, payload: { conditionRating: InventoryConditionRating, conditionDetails?: string, notes?: string }): Promise<void> {
-    try {
-        const response = await api.post<any>(`/api/admin/inventory/${id}/inspect`, {
-            condition_rating: payload.conditionRating,
-            condition_details: payload.conditionDetails,
-            notes: payload.notes,
-        });
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to log inspection");
-        }
-    } catch (error) {
-        console.error("Error logging inspection", error);
-        throw error;
-    }
+export async function getInventoryOfficerQueue(...args: Parameters<typeof actions.getInventoryOfficerQueue>): Promise<ActionData<Awaited<ReturnType<typeof actions.getInventoryOfficerQueue>>>> {
+  return callAction(() => actions.getInventoryOfficerQueue(...args));
 }
 
-export async function getMyInventory(): Promise<InventoryItem[]> {
-    try {
-        const response = await api.get<any>("/api/my-inventory");
-        if (!response.success) throw new Error("Failed to fetch personal inventory");
-
-        return response.data.map((item: any) => ({
-            id: item.id.toString(),
-            name: item.name,
-            category: item.category,
-            serialNumber: item.serial_number,
-            status: item.status,
-            conditionRating: item.condition_rating,
-            conditionDetails: item.condition_details,
-            defaultChecklist: item.default_checklist,
-            assignedTo: item.assigned_to,
-            technicianDetails: item.technician_details,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at,
-            openAssignment: mapOpenAssignment(item.open_assignment),
-        }));
-    } catch (error) {
-        console.error("Error fetching my inventory", error);
-        return [];
-    }
+export async function getInventoryComplianceQueue(...args: Parameters<typeof actions.getInventoryComplianceQueue>): Promise<ActionData<Awaited<ReturnType<typeof actions.getInventoryComplianceQueue>>>> {
+  return callAction(() => actions.getInventoryComplianceQueue(...args));
 }
 
-export async function updateMyInventory(id: string, payload: { status?: InventoryStatus, conditionRating?: InventoryConditionRating, conditionDetails?: string, notes: string }): Promise<void> {
-    try {
-        const response = await api.patch<any>(`/api/my-inventory/${id}`, {
-            status: payload.status,
-            condition_rating: payload.conditionRating,
-            condition_details: payload.conditionDetails,
-            notes: payload.notes,
-        });
-        if (!response.success) throw new Error("Failed to update asset status");
-    } catch (error) {
-        console.error("Error updating my inventory", error);
-        throw error;
-    }
+export async function submitInventoryOfficerDecision(...args: Parameters<typeof actions.submitInventoryOfficerDecision>): Promise<ActionData<Awaited<ReturnType<typeof actions.submitInventoryOfficerDecision>>>> {
+  return callAction(() => actions.submitInventoryOfficerDecision(...args));
 }
 
-export async function getMyInventoryHistory(
-    id: string,
-    params?: { page?: number; limit?: number }
-): Promise<PaginatedResponse<InventoryHistory>> {
-    try {
-        const query = new URLSearchParams();
-        if (params?.page) query.append("page", params.page.toString());
-        if (params?.limit) query.append("limit", params.limit.toString());
-
-        const response = await api.get<any>(`/api/my-inventory/${id}/history?${query}`);
-
-        if (!response.success) {
-            throw new Error(response.error?.error || "Failed to fetch inventory history");
-        }
-
-        return {
-            items: response.data.data.map((h: any) => ({
-                id: h.id.toString(),
-                inventoryItemId: h.inventory_item_id.toString(),
-                status: h.status,
-                conditionRating: h.condition_rating,
-                conditionDetails: h.condition_details,
-                notes: h.notes,
-                assignedTo: h.assigned_to,
-                assignedToName: h.assigned_to_user?.name,
-                technicianDetails: h.technician_details,
-                changedBy: h.changed_by,
-                changerName: h.changer?.name,
-                createdAt: h.created_at,
-            })),
-            pagination: {
-                page: response.data.current_page,
-                limit: response.data.per_page,
-                total: response.data.total,
-                total_pages: response.data.last_page,
-            }
-        };
-    } catch (error) {
-        console.error("Error fetching my inventory history", error);
-        return { items: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } };
-    }
+export async function submitInventoryComplianceDecision(...args: Parameters<typeof actions.submitInventoryComplianceDecision>): Promise<ActionData<Awaited<ReturnType<typeof actions.submitInventoryComplianceDecision>>>> {
+  return callAction(() => actions.submitInventoryComplianceDecision(...args));
 }
 
-// ============================================================================
-// Assignment acknowledgement mappers & API
-// ============================================================================
-
-function mapAssignment(a: any): InventoryAssignment {
-    return {
-        id: a.id.toString(),
-        inventoryItemId: a.inventory_item_id?.toString(),
-        type: a.type ?? "assignment",
-        clearanceBatchId: a.clearance_batch_id ?? undefined,
-        status: a.status,
-        initiateNotes: a.initiate_notes ?? undefined,
-        staffConditionRating: a.staff_condition_rating ?? undefined,
-        staffConditionDetails: a.staff_condition_details ?? undefined,
-        staffNotes: a.staff_notes ?? undefined,
-        staffDecision: a.staff_decision ?? undefined,
-        staffDecidedAt: a.staff_decided_at ?? undefined,
-        returnConditionRating: a.return_condition_rating ?? undefined,
-        returnConditionDetails: a.return_condition_details ?? undefined,
-        damageAssessmentFee: a.damage_assessment_fee ? parseFloat(a.damage_assessment_fee) : 0,
-        officerNotes: a.officer_notes ?? undefined,
-        officerDecision: a.officer_decision ?? undefined,
-        officerDecidedAt: a.officer_decided_at ?? undefined,
-        complianceNotes: a.compliance_notes ?? undefined,
-        complianceDecision: a.compliance_decision ?? undefined,
-        complianceDecidedAt: a.compliance_decided_at ?? undefined,
-        adminChecklist: a.admin_checklist ?? a.checklist ?? undefined,
-        staffChecklist: a.staff_checklist ?? undefined,
-        returnChecklist: a.return_checklist ?? undefined,
-        createdAt: a.created_at,
-        updatedAt: a.updated_at,
-        inventoryItem: a.inventory_item
-            ? {
-                  id: a.inventory_item.id.toString(),
-                  name: a.inventory_item.name,
-                  category: a.inventory_item.category,
-                  serialNumber: a.inventory_item.serial_number,
-                  status: a.inventory_item.status,
-                  conditionRating: a.inventory_item.condition_rating,
-                  conditionDetails: a.inventory_item.condition_details,
-                  defaultChecklist: a.inventory_item.default_checklist ?? undefined,
-                  assignedTo: a.inventory_item.assigned_to,
-              }
-            : undefined,
-        assignee: a.assignee
-            ? {
-                  id: a.assignee.id,
-                  name: a.assignee.name,
-                  role: a.assignee.role,
-                  department: a.assignee.department,
-                  phone: a.assignee.phone ?? null,
-                  mobile_phone: a.assignee.mobile_phone ?? null,
-              }
-            : undefined,
-        initiator: a.initiator
-            ? { id: a.initiator.id, name: a.initiator.name }
-            : undefined,
-        officer: a.officer
-            ? { id: a.officer.id, name: a.officer.name }
-            : undefined,
-        complianceOfficer: a.compliance_officer
-            ? { id: a.compliance_officer.id, name: a.compliance_officer.name }
-            : undefined,
-    };
+export async function getInventoryItemAssignments(...args: Parameters<typeof actions.getInventoryItemAssignments>): Promise<ActionData<Awaited<ReturnType<typeof actions.getInventoryItemAssignments>>>> {
+  return callAction(() => actions.getInventoryItemAssignments(...args));
 }
 
-function mapOpenAssignment(a: any): InventoryAssignment | null {
-    if (!a) return null;
-    return mapAssignment(a);
+export async function initiateSingleReturn(...args: Parameters<typeof actions.initiateSingleReturn>): Promise<ActionData<Awaited<ReturnType<typeof actions.initiateSingleReturn>>>> {
+  return callAction(() => actions.initiateSingleReturn(...args));
 }
 
-export async function getMyInventoryAssignments(pendingOnly = false): Promise<InventoryAssignment[]> {
-    try {
-        const query = pendingOnly ? "?pending_only=1" : "";
-        const response = await api.get<any>(`/api/my-inventory/assignments${query}`);
-        if (!response.success) throw new Error("Failed to fetch assignments");
-        return (response.data.data || []).map(mapAssignment);
-    } catch (error) {
-        console.error("Error fetching my inventory assignments", error);
-        return [];
-    }
+export async function initiateFullClearance(...args: Parameters<typeof actions.initiateFullClearance>): Promise<ActionData<Awaited<ReturnType<typeof actions.initiateFullClearance>>>> {
+  return callAction(() => actions.initiateFullClearance(...args));
 }
 
-export async function submitInventoryAssignmentDecision(
-    id: string,
-    payload: {
-        decision: InventoryAssignmentDecision;
-        conditionRating?: InventoryConditionRating;
-        conditionDetails?: string;
-        notes: string;
-        staffChecklist?: GadgetChecklist;
-    }
-): Promise<InventoryAssignment> {
-    const response = await api.patch<any>(`/api/my-inventory/assignments/${id}/decision`, {
-        decision: payload.decision,
-        condition_rating: payload.conditionRating,
-        condition_details: payload.conditionDetails,
-        notes: payload.notes,
-        staff_checklist: payload.staffChecklist,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit decision");
-    }
-    return mapAssignment(response.data.data);
+export async function getClearanceOfficerQueue(...args: Parameters<typeof actions.getClearanceOfficerQueue>): Promise<ActionData<Awaited<ReturnType<typeof actions.getClearanceOfficerQueue>>>> {
+  return callAction(() => actions.getClearanceOfficerQueue(...args));
 }
 
-export async function initiateInventoryAssignment(
-    itemId: string,
-    payload: { assigneeId: string; notes?: string; adminChecklist?: GadgetChecklist }
-): Promise<InventoryAssignment> {
-    const response = await api.post<any>(`/api/admin/inventory/${itemId}/assignments`, {
-        assignee_id: payload.assigneeId,
-        notes: payload.notes,
-        admin_checklist: payload.adminChecklist,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate assignment");
-    }
-    return mapAssignment(response.data.data);
+export async function inspectClearanceReturn(...args: Parameters<typeof actions.inspectClearanceReturn>): Promise<ActionData<Awaited<ReturnType<typeof actions.inspectClearanceReturn>>>> {
+  return callAction(() => actions.inspectClearanceReturn(...args));
 }
 
-export async function getInventoryOfficerQueue(): Promise<InventoryAssignment[]> {
-    try {
-        const response = await api.get<any>("/api/admin/inventory/assignments/officer-queue");
-        if (!response.success) throw new Error("Failed to fetch officer queue");
-        return (response.data.data || []).map(mapAssignment);
-    } catch (error) {
-        console.error("Error fetching officer queue", error);
-        return [];
-    }
+export async function getClearanceComplianceQueue(...args: Parameters<typeof actions.getClearanceComplianceQueue>): Promise<ActionData<Awaited<ReturnType<typeof actions.getClearanceComplianceQueue>>>> {
+  return callAction(() => actions.getClearanceComplianceQueue(...args));
 }
 
-export async function getInventoryComplianceQueue(): Promise<InventoryAssignment[]> {
-    try {
-        const response = await api.get<any>("/api/admin/inventory/assignments/compliance-queue");
-        if (!response.success) throw new Error("Failed to fetch compliance queue");
-        return (response.data.data || []).map(mapAssignment);
-    } catch (error) {
-        console.error("Error fetching compliance queue", error);
-        return [];
-    }
+export async function approveClearanceCompliance(...args: Parameters<typeof actions.approveClearanceCompliance>): Promise<ActionData<Awaited<ReturnType<typeof actions.approveClearanceCompliance>>>> {
+  return callAction(() => actions.approveClearanceCompliance(...args));
 }
 
-export async function submitInventoryOfficerDecision(
-    id: string,
-    payload: { decision: InventoryAssignmentDecision; notes?: string; checklist?: Record<string, string>; adminChecklist?: GadgetChecklist }
-): Promise<InventoryAssignment> {
-    const response = await api.patch<any>(`/api/admin/inventory/assignments/${id}/officer-decision`, {
-        decision: payload.decision,
-        notes: payload.notes,
-        checklist: payload.checklist,
-        admin_checklist: payload.adminChecklist,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit officer decision");
-    }
-    return mapAssignment(response.data.data);
+export async function submitClearanceHandover(...args: Parameters<typeof actions.submitClearanceHandover>): Promise<ActionData<Awaited<ReturnType<typeof actions.submitClearanceHandover>>>> {
+  return callAction(() => actions.submitClearanceHandover(...args));
 }
-
-export async function submitInventoryComplianceDecision(
-    id: string,
-    payload: { decision: InventoryAssignmentDecision; notes?: string; sendBackTo?: "staff" | "admin_it" }
-): Promise<InventoryAssignment> {
-    const response = await api.patch<any>(`/api/admin/inventory/assignments/${id}/compliance-decision`, {
-        decision: payload.decision,
-        notes: payload.notes,
-        send_back_to: payload.sendBackTo,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit compliance decision");
-    }
-    return mapAssignment(response.data.data);
-}
-
-export async function getInventoryItemAssignments(itemId: string): Promise<InventoryAssignment[]> {
-    try {
-        const response = await api.get<any>(`/api/admin/inventory/${itemId}/assignments`);
-        if (!response.success) throw new Error("Failed to fetch item assignments");
-        return (response.data.data || []).map(mapAssignment);
-    } catch (error) {
-        console.error("Error fetching item assignments", error);
-        return [];
-    }
-}
-
-export async function initiateSingleReturn(
-    itemId: string,
-    notes?: string,
-    conditionRating?: InventoryConditionRating | "Broken",
-    conditionDetails?: string
-): Promise<InventoryAssignment> {
-    const response = await api.post<any>(`/api/my-inventory/assignments/${itemId}/return`, {
-        notes,
-        condition_rating: conditionRating,
-        condition_details: conditionDetails,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate device return");
-    }
-    return mapAssignment(response.data.data);
-}
-
-export async function initiateFullClearance(
-    assigneeId: string,
-    notes?: string
-): Promise<InventoryAssignment[]> {
-    const response = await api.post<any>("/api/admin/inventory/clearance/full", {
-        assignee_id: assigneeId,
-        notes,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to initiate full clearance");
-    }
-    return (response.data.data || []).map(mapAssignment);
-}
-
-export async function getClearanceOfficerQueue(): Promise<InventoryAssignment[]> {
-    try {
-        const response = await api.get<any>("/api/admin/inventory/clearance/officer-queue");
-        if (!response.success) throw new Error("Failed to fetch clearance officer queue");
-        return (response.data.data || []).map(mapAssignment);
-    } catch (error) {
-        console.error("Error fetching clearance officer queue", error);
-        return [];
-    }
-}
-
-export async function inspectClearanceReturn(
-    id: string,
-    payload: {
-        decision: InventoryAssignmentDecision;
-        returnConditionRating: string;
-        returnConditionDetails?: string;
-        damageAssessmentFee?: number;
-        notes?: string;
-        returnChecklist?: GadgetChecklist;
-    }
-): Promise<InventoryAssignment> {
-    const response = await api.patch<any>(`/api/admin/inventory/clearance/${id}/inspect`, {
-        decision: payload.decision,
-        return_condition_rating: payload.returnConditionRating,
-        return_condition_details: payload.returnConditionDetails,
-        damage_assessment_fee: payload.damageAssessmentFee ?? 0,
-        notes: payload.notes,
-        return_checklist: payload.returnChecklist,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to submit clearance inspection");
-    }
-    return mapAssignment(response.data.data);
-}
-
-export async function getClearanceComplianceQueue(): Promise<InventoryAssignment[]> {
-    try {
-        const response = await api.get<any>("/api/admin/inventory/clearance/compliance-queue");
-        if (!response.success) throw new Error("Failed to fetch clearance compliance queue");
-        return (response.data.data || []).map(mapAssignment);
-    } catch (error) {
-        console.error("Error fetching clearance compliance queue", error);
-        return [];
-    }
-}
-
-export async function approveClearanceCompliance(
-    id: string,
-    payload: { decision: InventoryAssignmentDecision; sendBackTo?: "staff" | "it"; notes?: string }
-): Promise<InventoryAssignment> {
-    const response = await api.patch<any>(`/api/admin/inventory/clearance/${id}/compliance-decision`, {
-        decision: payload.decision,
-        send_back_to: payload.sendBackTo,
-        notes: payload.notes,
-    });
-    if (!response.success) {
-        throw new Error((response.error as any)?.message || response.error?.error || "Failed to approve clearance compliance");
-    }
-    return mapAssignment(response.data.data);
-}
-
-export interface ClearanceHandoverItemDeclaration {
-    assignmentId: string;
-    conditionRating: InventoryConditionRating | "Broken";
-    conditionDetails?: string;
-    notes?: string;
-    staffChecklist: GadgetChecklist;
-}
-
-export interface SubmitClearanceHandoverPayload {
-    assignmentIds?: string[];
-    assignmentId?: string;
-    declarations?: ClearanceHandoverItemDeclaration[];
-    conditionRating?: InventoryConditionRating | "Broken";
-    conditionDetails?: string;
-    notes?: string;
-    handoverNotes?: string;
-}
-
-export async function submitClearanceHandover(
-    payload: SubmitClearanceHandoverPayload
-): Promise<InventoryAssignment[]> {
-    const response = await api.post<any>("/api/my-inventory/clearance/handover", {
-        assignment_ids: payload.assignmentIds ? payload.assignmentIds.map((id) => Number(id)) : undefined,
-        assignment_id: payload.assignmentId ? Number(payload.assignmentId) : undefined,
-        declarations: payload.declarations?.map((d) => ({
-            assignment_id: Number(d.assignmentId),
-            condition_rating: d.conditionRating,
-            condition_details: d.conditionDetails,
-            notes: d.notes,
-            staff_checklist: d.staffChecklist,
-        })),
-        condition_rating: payload.conditionRating,
-        condition_details: payload.conditionDetails,
-        notes: payload.notes,
-        handover_notes: payload.handoverNotes,
-    });
-    if (!response.success) {
-        throw new Error(
-            (response.error as any)?.message ||
-                response.error?.error ||
-                "Failed to submit clearance handover"
-        );
-    }
-    return (response.data.data || []).map(mapAssignment);
-}
-

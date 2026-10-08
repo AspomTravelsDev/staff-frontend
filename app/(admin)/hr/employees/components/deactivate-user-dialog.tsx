@@ -103,26 +103,31 @@ export function DeactivateUserDialog({
           try {
             const clearanceNotes = `Offboarding (${USER_EXIT_TYPE_LABELS[data.exit_type] || "Separated"} effective ${data.exit_date}): ${data.exit_reason.trim() || "Staff exit"}`;
             const clearanceRes = await initiateFullClearance(employee.id, clearanceNotes);
-            toast.success(
-              `${employee.firstName} marked inactive. Initiated gadget clearance for ${clearanceRes.length} device(s).`,
-              {
-                action: {
-                  label: "View Inventory",
-                  onClick: () => router.push("/admin/inventory"),
-                },
-              }
-            );
-          } catch (clearanceErr) {
-            const msg = clearanceErr instanceof Error ? clearanceErr.message : "";
-            if (msg.toLowerCase().includes("no assigned devices")) {
+            if (clearanceRes.success && clearanceRes.data.length > 0) {
               toast.success(
-                `${employee.firstName} marked as inactive. (No assigned company devices found in Inventory).`
+                `${employee.firstName} marked inactive. Initiated gadget clearance for ${clearanceRes.data.length} device(s).`,
+                {
+                  action: {
+                    label: "View Inventory",
+                    onClick: () => router.push("/admin/inventory"),
+                  },
+                }
+              );
+            } else if (clearanceRes.success || clearanceRes.error.code === "NO_ASSIGNED_DEVICES") {
+              toast.success(
+                `${employee.firstName} marked as inactive. No assigned company devices to clear.`
               );
             } else {
-              toast.success(
-                `${employee.firstName} marked as inactive. Note: Clearance not started (${msg}).`
+              toast.warning(
+                `${employee.firstName} marked as inactive. Device clearance could not be started: ${clearanceRes.error.error}`,
+                { action: { label: "View Inventory", onClick: () => router.push("/admin/inventory") } }
               );
             }
+          } catch {
+            toast.warning(
+              `${employee.firstName} marked as inactive. Could not confirm device clearance. Please check Inventory before retrying.`,
+              { action: { label: "View Inventory", onClick: () => router.push("/admin/inventory") } }
+            );
           }
         } else {
           toast.success(

@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getMyInventory } from "@/lib/api/inventory";
 import { MyAssetsList } from "./components/my-assets-list";
 import { Laptop, ArrowLeft } from "lucide-react";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export default async function MyAssetsPage() {
+  return renderDataPage(async () => {
   const assets = await getMyInventory();
 
   return (
@@ -37,4 +39,6 @@ export default async function MyAssetsPage() {
       </div>
     </div>
   );
+
+  }, "Unable to load your assigned devices");
 }

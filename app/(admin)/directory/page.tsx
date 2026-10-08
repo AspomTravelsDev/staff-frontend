@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getEmployees } from "@/lib/api/employees";
 import { getDepartmentalContacts } from "@/lib/api/departmental-contacts";
 import { DirectoryClient } from "./client";
@@ -8,6 +9,7 @@ export const metadata = {
 };
 
 export default async function DirectoryPage() {
+  return renderDataPage(async () => {
     // We fetch employees without pagination for the directory, so we can filter client-side.
     // getEmployees with no page works, but defaults to limit 20. Let's pass a huge limit or just use the client to fetch more inside if needed. 
     // Actually, getEmployees uses client-side pagination from a full payload in backend. So limit 1000 will get all.
@@ -26,4 +28,6 @@ export default async function DirectoryPage() {
             />
         </div>
     );
+
+  }, "Unable to load the staff directory");
 }

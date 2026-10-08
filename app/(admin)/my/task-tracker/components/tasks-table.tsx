@@ -10,18 +10,27 @@ import { isActiveTask, taskStatusLabels } from "./task-workflow-controls";
 import { TaskRowActions } from "./task-row-actions";
 import { TaskDetailsSheet } from "./task-details-sheet";
 import { TaskCommentsDialog } from "./task-comments-dialog";
+import { TaskDeadlineTimeline } from "./task-deadline-timeline";
+import { TaskCompletionDialog } from "@/components/tasks/task-completion-dialog";
 
 interface Props {
   tasks: TaskTrackerItem[];
   allTasks: TaskTrackerItem[];
   view: "assigned_to_me" | "assigned_by_me";
-  onToggle: (id: string) => Promise<void>;
+  onToggle: (id: string, status: "pending" | "completed") => Promise<boolean>;
   onDelete: (id: string) => Promise<void>;
   onEdit: (task: TaskTrackerItem) => void;
   onUpdated: (task: TaskTrackerItem) => void;
 }
 
 export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, onUpdated }: Props) {
+  const [timelineNow, setTimelineNow] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () => setTimelineNow(Date.now());
+    const initial = setTimeout(update, 0);
+    const timer = setInterval(update, 60_000);
+    return () => { clearTimeout(initial); clearInterval(timer); };
+  }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const linkedTaskId = searchParams.get("task");
@@ -29,8 +38,9 @@ export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, 
   useEffect(() => { startTransition(() => setSelectedId(linkedTaskId)); }, [linkedTaskId]);
   const [commentsTask, setCommentsTask] = useState<TaskTrackerItem | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [completionTask, setCompletionTask] = useState<TaskTrackerItem | null>(null);
   const selected = allTasks.find(t => t.id === selectedId) ?? null;
-  const toggle = async (id: string) => { setBusyId(id); try { await onToggle(id); } finally { setBusyId(null); } };
+  const toggle = async (id: string, status: "pending" | "completed") => { setBusyId(id); try { return await onToggle(id, status); } finally { setBusyId(null); } };
   const remove = async (task: TaskTrackerItem) => {
     if (!confirm(`Delete "${task.title}"?`)) return;
     setBusyId(task.id);
@@ -59,17 +69,19 @@ export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, 
             <TableCell className="text-xs max-w-[200px] whitespace-normal">
               {task.is_overdue && <p className="font-medium text-rose-600">Overdue</p>}
               <span>{task.due_date ? formatReadableDate(task.due_date) : "No deadline"}</span>
+              <TaskDeadlineTimeline task={task} now={timelineNow} />
             </TableCell>
             <TableCell><Badge variant="outline" className="font-normal whitespace-nowrap">{task.is_delegated && task.status === "completed" ? "Accepted" : taskStatusLabels[task.status]}</Badge></TableCell>
             <TableCell className="px-4">
               <div className="flex items-center justify-end gap-1.5">
-                <TaskRowActions task={task} busy={busyId === task.id} onDetails={() => setSelectedId(task.id)} onComment={() => setCommentsTask(task)} onEdit={() => onEdit(task)} onToggle={() => { void toggle(task.id); }} onDelete={() => { void remove(task); }} onUpdated={onUpdated} />
+                <TaskRowActions task={task} busy={busyId === task.id} onDetails={() => setSelectedId(task.id)} onComment={() => setCommentsTask(task)} onEdit={() => onEdit(task)} onToggle={() => { if (task.status === "completed") void toggle(task.id, "pending"); else setCompletionTask(task); }} onDelete={() => { void remove(task); }} onUpdated={onUpdated} />
               </div>
             </TableCell>
           </TableRow>;
         })}</TableBody>
       </Table>
     </div>
+    <TaskCompletionDialog task={completionTask} onClose={() => setCompletionTask(null)} onConfirm={() => completionTask ? toggle(completionTask.id, "completed") : Promise.resolve(false)} />
     <TaskDetailsSheet key={selectedId ?? "closed"} task={selected} onClose={() => { setSelectedId(null); if (linkedTaskId) { const params = new URLSearchParams(searchParams); params.delete("task"); router.replace(`/my/task-tracker?${params}`, { scroll: false }); } }} />
     {commentsTask && <TaskCommentsDialog task={commentsTask} open onOpenChange={open => { if (!open) setCommentsTask(null); }} />}
   </>;

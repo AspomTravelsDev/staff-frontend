@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getMyAwards } from "@/lib/api/awards";
@@ -19,6 +20,7 @@ export const metadata = {
 };
 
 export default async function MyAwardsPage() {
+  return renderDataPage(async () => {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -99,4 +101,6 @@ export default async function MyAwardsPage() {
       </div>
     </div>
   );
+
+  }, "Unable to load your awards");
 }

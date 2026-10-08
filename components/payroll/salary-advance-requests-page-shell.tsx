@@ -1,3 +1,4 @@
+import { DataLoadError } from "@/components/data-load-error";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RequestFilters } from "@/components/payroll/request-filters";
 import {
@@ -51,6 +52,7 @@ export async function SalaryAdvanceRequestsPageShell({
   showCreateDialog?: boolean;
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
+  let loadFailed = false;
   let requests: SalaryAdvanceRequestRecord[] = [];
   let summary: RequestSummary = {
     total_requested_amount: 0,
@@ -79,6 +81,7 @@ export async function SalaryAdvanceRequestsPageShell({
       requests = response.data ?? [];
       summary = response.summary ?? summary;
     } catch (error) {
+      loadFailed = true;
       console.error(
         "[Salary Advance Requests] Failed to fetch personal requests:",
         error,
@@ -107,12 +110,15 @@ export async function SalaryAdvanceRequestsPageShell({
       requests = response.data ?? [];
       summary = response.summary ?? summary;
     } catch (error) {
+      loadFailed = true;
       console.error(
         "[Salary Advance Requests] Failed to fetch role queue:",
         error,
       );
     }
   }
+
+  if (loadFailed) return <DataLoadError title={`Unable to load ${title.toLowerCase()}`} />;
 
   return (
     <div className="space-y-6">

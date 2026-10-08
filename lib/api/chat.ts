@@ -1,105 +1,40 @@
-"use server";
+// The server returns serializable results; errors are reconstructed in the caller.
+import * as actions from "./chat.actions";
+import { callAction, type ActionData } from "./action-result";
+export type * from "./chat.actions";
 
-import { api } from "./client";
-import type {
-    Conversation,
-    Message,
-    PaginatedMessagesResponse,
-    AttachmentDownloadResponse,
-} from "@/types/chat";
-
-export async function fetchAuthToken(): Promise<string | null> {
-    const { getAuthToken } = await import("@/lib/auth/session");
-    return getAuthToken();
+export async function fetchAuthToken(...args: Parameters<typeof actions.fetchAuthToken>): Promise<ActionData<Awaited<ReturnType<typeof actions.fetchAuthToken>>>> {
+  return callAction(() => actions.fetchAuthToken(...args));
 }
 
-export async function getConversations(): Promise<Conversation[]> {
-    const result = await api.get<{ data: Conversation[] }>("/api/conversations");
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to fetch conversations");
-    }
-    return result.data.data;
+export async function getConversations(...args: Parameters<typeof actions.getConversations>): Promise<ActionData<Awaited<ReturnType<typeof actions.getConversations>>>> {
+  return callAction(() => actions.getConversations(...args));
 }
 
-export async function createConversation(participantId: string): Promise<Conversation> {
-    const result = await api.post<{ message: string; data: Conversation }>("/api/conversations", {
-        participant_id: participantId,
-    });
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to create conversation");
-    }
-    return result.data.data;
+export async function createConversation(...args: Parameters<typeof actions.createConversation>): Promise<ActionData<Awaited<ReturnType<typeof actions.createConversation>>>> {
+  return callAction(() => actions.createConversation(...args));
 }
 
-export async function getMessages(
-    conversationId: string,
-    page = 1
-): Promise<PaginatedMessagesResponse> {
-    const result = await api.get<PaginatedMessagesResponse>(
-        `/api/conversations/${conversationId}/messages?page=${page}`
-    );
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to fetch messages");
-    }
-    return result.data;
+export async function getMessages(...args: Parameters<typeof actions.getMessages>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMessages>>>> {
+  return callAction(() => actions.getMessages(...args));
 }
 
-export async function sendMessage(formData: FormData): Promise<Message> {
-    const conversationId = formData.get("conversation_id") as string;
-    if (!conversationId) {
-        throw new Error("Conversation ID is required");
-    }
-    formData.delete("conversation_id");
-
-    const result = await api.post<{ message: string; data: Message }>(
-        `/api/conversations/${conversationId}/messages`,
-        formData
-    );
-
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to send message");
-    }
-    return result.data.data;
+export async function sendMessage(...args: Parameters<typeof actions.sendMessage>): Promise<ActionData<Awaited<ReturnType<typeof actions.sendMessage>>>> {
+  return callAction(() => actions.sendMessage(...args));
 }
 
-export async function markAsRead(conversationId: string): Promise<void> {
-    const result = await api.post<{ message: string }>(
-        `/api/conversations/${conversationId}/read`
-    );
-    if (!result.success) {
-        console.warn("Failed to mark conversation as read:", result.error.error);
-    }
+export async function markAsRead(...args: Parameters<typeof actions.markAsRead>): Promise<ActionData<Awaited<ReturnType<typeof actions.markAsRead>>>> {
+  return callAction(() => actions.markAsRead(...args));
 }
 
-export async function updateMessage(messageId: string, body: string): Promise<Message> {
-    const result = await api.patch<{ message: string; data: Message }>(
-        `/api/messages/${messageId}`,
-        { body }
-    );
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to update message");
-    }
-    return result.data.data;
+export async function updateMessage(...args: Parameters<typeof actions.updateMessage>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateMessage>>>> {
+  return callAction(() => actions.updateMessage(...args));
 }
 
-export async function deleteMessage(messageId: string): Promise<Message> {
-    const result = await api.delete<{ message: string; data: Message }>(
-        `/api/messages/${messageId}`
-    );
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to delete message");
-    }
-    return result.data.data;
+export async function deleteMessage(...args: Parameters<typeof actions.deleteMessage>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteMessage>>>> {
+  return callAction(() => actions.deleteMessage(...args));
 }
 
-export async function getAttachmentDownloadUrl(attachmentId: string): Promise<string> {
-    const result = await api.get<AttachmentDownloadResponse>(
-        `/api/conversations/attachments/${attachmentId}/download`
-    );
-    if (!result.success) {
-        throw new Error(result.error.error || "Failed to get attachment download link");
-    }
-
-    const downloadUrl = result.data.data.download_url;
-    return `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
+export async function getAttachmentDownloadUrl(...args: Parameters<typeof actions.getAttachmentDownloadUrl>): Promise<ActionData<Awaited<ReturnType<typeof actions.getAttachmentDownloadUrl>>>> {
+  return callAction(() => actions.getAttachmentDownloadUrl(...args));
 }

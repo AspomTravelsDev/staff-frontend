@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TaskTrackerItem, TaskTrackerDashboardStats } from "@/lib/types/task-tracker";
-import { toggleTaskTrackerItem } from "@/lib/api/task-tracker";
+import { getTaskTrackerDashboardSummary, updateTaskTrackerItem } from "@/lib/api/task-tracker";
+import { TaskCompletionDialog } from "@/components/tasks/task-completion-dialog";
+import { TaskWorkflowControls, isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
 import { computeTaskTimeline } from "@/lib/utils/task-timeline";
 import {
   CalendarClock,
@@ -42,31 +44,58 @@ export function UpcomingTasksWidget({
   const [tasks, setTasks] = useState<TaskTrackerItem[]>(initialTasks);
   const [stats, setStats] = useState<TaskTrackerDashboardStats>(initialStats);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [completionTask, setCompletionTask] = useState<TaskTrackerItem | null>(null);
 
-  const handleToggle = async (id: string, title: string) => {
-    setTogglingId(id);
-    // Optimistically remove or mark task
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    setStats((prev) => ({
-      ...prev,
-      total_pending: Math.max(0, prev.total_pending - 1),
-    }));
-
+  const refreshDashboard = async () => {
     try {
-      const res = await toggleTaskTrackerItem(id);
+      const res = await getTaskTrackerDashboardSummary();
       if (res.success) {
-        toast.success(`Completed "${title}"`);
+        setTasks(res.data.data);
+        setStats(res.data.stats);
+      }
+    } catch { /* Keep the successful task update if the summary cannot refresh. */ }
+  };
+
+  const removeTask = (task: TaskTrackerItem) => {
+    setTasks(prev => prev.filter(t => t.id !== task.id));
+    const due = task.due_date ? Date.parse(task.due_date) : NaN;
+    const now = Date.now();
+    const dueSoon = due >= now && due <= now + 48 * 60 * 60 * 1000;
+    setStats(prev => ({
+      total_pending: Math.max(0, prev.total_pending - 1),
+      overdue: Math.max(0, prev.overdue - (task.is_overdue ? 1 : 0)),
+      due_soon: Math.max(0, prev.due_soon - (dueSoon ? 1 : 0)),
+    }));
+  };
+
+  const handleTaskUpdated = (task: TaskTrackerItem) => {
+    if (isActiveTask(task)) setTasks(prev => prev.map(t => t.id === task.id ? task : t));
+    else {
+      const previous = tasks.find(t => t.id === task.id);
+      if (previous) removeTask(previous);
+    }
+    void refreshDashboard();
+  };
+
+  const handleComplete = async () => {
+    if (!completionTask || completionTask.is_delegated || togglingId) return false;
+    setTogglingId(completionTask.id);
+    try {
+      const res = await updateTaskTrackerItem(completionTask.id, { status: "completed" });
+      if (res.success) {
+        removeTask(completionTask);
+        toast.success(res.data.message || `Completed "${completionTask.title}"`);
+        await refreshDashboard();
+        return true;
       } else {
-        toast.error("Failed to update task");
-        // rollback
-        setTasks(initialTasks);
+        toast.error(res.error.error || "Failed to update task");
       }
     } catch {
       toast.error("Failed to update task");
-      setTasks(initialTasks);
     } finally {
       setTogglingId(null);
     }
+    return false;
   };
 
   return (
@@ -125,7 +154,6 @@ export function UpcomingTasksWidget({
           <div className="space-y-3.5">
             {tasks.map((task) => {
               const timeline = computeTaskTimeline(task.created_at, task.due_date);
-              const isBusy = togglingId === task.id;
 
               return (
                 <div
@@ -140,13 +168,13 @@ export function UpcomingTasksWidget({
                   {/* Top row: Checkbox, Title, Priority, Remaining Badge */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                      <Checkbox
+                      {task.is_delegated ? <TaskWorkflowControls task={task} compact showHistory={false} onUpdated={handleTaskUpdated} /> : <Checkbox
                         checked={false}
-                        disabled={isBusy}
-                        onCheckedChange={() => handleToggle(task.id, task.title)}
+                        disabled={togglingId !== null}
+                        onCheckedChange={(checked: boolean | "indeterminate") => { if (checked === true) setCompletionTask(task); }}
                         className="mt-0.5 h-4 w-4 rounded border-muted-foreground/50 data-[state=checked]:bg-emerald-600 transition-transform active:scale-90"
                         aria-label={`Mark task ${task.title} complete`}
-                      />
+                      />}
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-semibold text-sm text-foreground tracking-tight break-words">
@@ -270,6 +298,7 @@ export function UpcomingTasksWidget({
           </div>
         )}
       </CardContent>
+      <TaskCompletionDialog task={completionTask} onClose={() => setCompletionTask(null)} onConfirm={handleComplete} />
     </Card>
   );
 }

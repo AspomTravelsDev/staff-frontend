@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
 import { formatLagosDate } from "@/lib/utils/attendance";
 
 export default async function AdminDashboardPage() {
+  return renderDataPage(async () => {
   const applications = await getApplications();
 
   // Opening this page clears "new onboarding completions" notifications.
@@ -206,4 +208,6 @@ export default async function AdminDashboardPage() {
       </Card>
     </div>
   );
+
+  }, "Unable to load onboarding applications");
 }

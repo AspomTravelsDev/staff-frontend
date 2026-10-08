@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPwaPrompt() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -42,7 +44,7 @@ export function InstallPwaPrompt() {
     };
   }, []);
 
-  if (isStandalone || isDismissed || !deferredPrompt) {
+  if (pathname === "/pay" || pathname.startsWith("/pay/") || isStandalone || isDismissed || !deferredPrompt) {
     return null;
   }
 

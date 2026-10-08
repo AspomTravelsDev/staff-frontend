@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getITGuides } from "@/lib/api/it-guides";
 import {
   Search,
@@ -35,6 +36,7 @@ export default async function ITInformationDeskPage({
 }: {
   searchParams: Promise<{ category?: string }>;
 }) {
+  return renderDataPage(async () => {
   const { category: activeCategory } = await searchParams;
 
   const { items: guides } = await getITGuides({
@@ -205,4 +207,6 @@ export default async function ITInformationDeskPage({
       </section>
     </div>
   );
+
+  }, "Unable to load IT guides");
 }

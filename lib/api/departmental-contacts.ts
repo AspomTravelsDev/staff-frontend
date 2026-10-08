@@ -1,58 +1,20 @@
-"use server";
+// The server returns serializable results; errors are reconstructed in the caller.
+import * as actions from "./departmental-contacts.actions";
+import { callAction, type ActionData } from "./action-result";
+export type * from "./departmental-contacts.actions";
 
-import { api } from "./client";
-
-export interface DepartmentalContact {
-    id: string;
-    department: string;
-    contact_name: string;
-    email: string | null;
-    phone: string | null;
-    description: string | null;
-    created_at: string;
-    updated_at: string;
+export async function getDepartmentalContacts(...args: Parameters<typeof actions.getDepartmentalContacts>): Promise<ActionData<Awaited<ReturnType<typeof actions.getDepartmentalContacts>>>> {
+  return callAction(() => actions.getDepartmentalContacts(...args));
 }
 
-interface DepartmentalContactsApiResponse {
-    message: string;
-    code: string;
-    data: DepartmentalContact[];
+export async function createDepartmentalContact(...args: Parameters<typeof actions.createDepartmentalContact>): Promise<ActionData<Awaited<ReturnType<typeof actions.createDepartmentalContact>>>> {
+  return callAction(() => actions.createDepartmentalContact(...args));
 }
 
-export async function getDepartmentalContacts(): Promise<DepartmentalContact[]> {
-    const result = await api.get<DepartmentalContactsApiResponse>("/api/departmental-contacts");
-    
-    if (!result.success) {
-        throw new Error(result.error?.error || "Failed to fetch departmental contacts");
-    }
-
-    return result.data.data;
+export async function updateDepartmentalContact(...args: Parameters<typeof actions.updateDepartmentalContact>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateDepartmentalContact>>>> {
+  return callAction(() => actions.updateDepartmentalContact(...args));
 }
 
-export async function createDepartmentalContact(data: Partial<DepartmentalContact>): Promise<DepartmentalContact> {
-    const result = await api.post<{ message: string; code: string; data: DepartmentalContact }>("/api/departmental-contacts", data);
-    
-    if (!result.success) {
-        throw new Error(result.error?.error || "Failed to create departmental contact");
-    }
-
-    return result.data.data;
-}
-
-export async function updateDepartmentalContact(id: string, data: Partial<DepartmentalContact>): Promise<DepartmentalContact> {
-    const result = await api.patch<{ message: string; code: string; data: DepartmentalContact }>(`/api/departmental-contacts/${id}`, data);
-    
-    if (!result.success) {
-        throw new Error(result.error?.error || "Failed to update departmental contact");
-    }
-
-    return result.data.data;
-}
-
-export async function deleteDepartmentalContact(id: string): Promise<void> {
-    const result = await api.delete<{ message: string; code: string }>(`/api/departmental-contacts/${id}`);
-    
-    if (!result.success) {
-        throw new Error(result.error?.error || "Failed to delete departmental contact");
-    }
+export async function deleteDepartmentalContact(...args: Parameters<typeof actions.deleteDepartmentalContact>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteDepartmentalContact>>>> {
+  return callAction(() => actions.deleteDepartmentalContact(...args));
 }

@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import {
@@ -11,6 +12,7 @@ import { AssetFormPdfButton } from "@/components/inventory/asset-form-pdf-button
 import { ShieldCheck } from "lucide-react";
 
 export default async function MyInventoryPage() {
+  return renderDataPage(async () => {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -68,4 +70,6 @@ export default async function MyInventoryPage() {
       <MyInventoryTable items={myItems} assignments={allAssignments} />
     </div>
   );
+
+  }, "Unable to load your inventory");
 }

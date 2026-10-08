@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getITGuide, markITGuideAsRead } from "@/lib/api/it-guides";
 import { notFound } from "next/navigation";
 import {
@@ -28,6 +29,7 @@ interface ITGuideDetailPageProps {
 export default async function ITGuideDetailPage({
   params,
 }: ITGuideDetailPageProps) {
+  return renderDataPage(async () => {
   const { slug } = await params;
   const guide = await getITGuide(slug);
 
@@ -150,4 +152,6 @@ export default async function ITGuideDetailPage({
       </article>
     </div>
   );
+
+  }, "Unable to load this IT guide");
 }

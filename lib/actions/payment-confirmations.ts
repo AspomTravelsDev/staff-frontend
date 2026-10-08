@@ -48,6 +48,7 @@ export async function assignPaymentConfirmationAction(id: string, assignedTo: st
     if (result.success) {
         revalidatePath("/my/payment");
         revalidatePath("/accounts/confirmation");
+        revalidatePath("/my/assigned-deals");
     }
     
     return result;

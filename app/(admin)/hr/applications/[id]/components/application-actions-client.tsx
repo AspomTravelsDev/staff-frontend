@@ -116,7 +116,7 @@ export function ApplicationActionsClient({
       toast.success("Application deleted successfully");
       router.push("/hr/applications");
     } catch (error) {
-      toast.error("Failed to delete application");
+      toast.error(error instanceof Error ? error.message : "Failed to delete application");
       console.error(error);
     } finally {
       setIsDeleting(false);
@@ -130,7 +130,7 @@ export function ApplicationActionsClient({
       toast.success("Documents generated successfully");
       router.refresh(); // Refresh to show new documents in preview
     } catch (error) {
-      toast.error("Failed to generate documents");
+      toast.error(error instanceof Error ? error.message : "Failed to generate documents");
       console.error(error);
     } finally {
       setIsGenerating(false);
@@ -156,7 +156,7 @@ export function ApplicationActionsClient({
       setReminderNote("");
       router.refresh();
     } catch (error) {
-      toast.error("Failed to send reminder email");
+      toast.error(error instanceof Error ? error.message : "Failed to send reminder email");
       console.error(error);
     } finally {
       setIsSendingReminder(false);
@@ -187,7 +187,7 @@ export function ApplicationActionsClient({
       setCorrectionNote("");
       router.refresh();
     } catch (error) {
-      toast.error("Failed to request correction");
+      toast.error(error instanceof Error ? error.message : "Failed to request correction");
       console.error(error);
     } finally {
       setIsSubmittingCorrection(false);

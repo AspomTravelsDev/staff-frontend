@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { notFound } from "next/navigation";
+import { notFound, unstable_rethrow } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getApplication } from "@/lib/api/hr";
+import { ExpectedActionError } from "@/lib/api/action-result";
+import { DataLoadError } from "@/components/data-load-error";
 import { CopyLinkButton } from "./components/copy-link-button";
 import { DocumentPreviews } from "./components/document-previews";
 import { ApplicationActionsClient } from "./components/application-actions-client";
@@ -25,8 +27,11 @@ export default async function ApplicationDetailPage({
   let application;
   try {
     application = await getApplication(id);
-  } catch {
-    notFound();
+  } catch (error) {
+    unstable_rethrow(error);
+    if (error instanceof ExpectedActionError && error.code === "HTTP_404") notFound();
+    console.error("Failed to load onboarding application:", error);
+    return <DataLoadError title="Unable to load this application" />;
   }
 
   if (!application) {

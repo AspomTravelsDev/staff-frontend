@@ -5,6 +5,7 @@ import { getClients } from "@/lib/api/crm";
 import { createInvoice, updateInvoice, sendInvoiceEmail, type Invoice, type InvoiceItem } from "@/lib/api/invoices";
 import { SendEmailDialog } from "./send-email-dialog";
 import type { Client } from "@/lib/api/crm-constants";
+import { INVOICE_PRESETS as PRESETS } from "@/lib/constants/invoice-branding";
 import { InvoicePreview } from "./invoice-preview";
 import { InvoicePaymentTracker } from "./invoice-payment-tracker";
 import { Input } from "@/components/ui/input";
@@ -56,38 +57,7 @@ const INVOICE_ITEM_PRESETS = [
   "Consultation Fee",
 ];
 
-const PRESETS = {
-  aspom: {
-    company_name: "Aspom Travel Agency LTD",
-    company_email: "info@aspomtravels.com",
-    company_website: "https://aspomtravels.com",
-    company_phone: "+234 816 654 9711, +234 908 334 5178",
-    company_address: "4th Floor Brasas’r Place, 69 Admiralty Way, Lekki Phase 1 100242, Lagos",
-    bank_details: "",
-    terms_conditions: "All flight ticket bookings are subject to airline rules and availability. Visa application fees are non-refundable once submitted to the embassy.\nRefund processing takes 14-21 working days in line with carrier guidelines.\n\nFor detailed terms of use, please visit https://aspomtravels.com/term-of-use/",
-    membership_welcome_text: "WELCOME TO THE ASPOM CLUB!",
-  },
-  travelatal: {
-    company_name: "TRAVELATAL LTD",
-    company_email: "info@travelatal.com",
-    company_website: "www.travelatal.com",
-    company_phone: "",
-    company_address: "",
-    bank_details: "Sterling Bank\nAcct Name: Travelatal Ltd\nAcct Number: 1029384756",
-    terms_conditions: "Visa Fee Payment is subject to change due to the exchange rate. Cancellation before 24hrs - All fees are refunded.\nCancellation after 24hrs - non-refundable. Cancellation due to Visa denial is non-refundable.\nApplication submission is subject to Embassy. Opening Available appointment date is subject to Embassy Opening.\n\nFor detailed terms, please visit https://travelatal.com/terms",
-    membership_welcome_text: "WELCOME TO THE TRAVELATAL CLUB!",
-  },
-  abs: {
-    company_name: "ABS Health Connect",
-    company_email: "info@abshealthconnect.com",
-    company_website: "www.abshealthconnect.com",
-    company_phone: "+234 903 418 5096",
-    company_address: "4th Floor Brasas’r Place, 69 Admiralty Way, Lekki Phase 1, Lagos",
-    bank_details: "Guaranty Trust Bank\n5001709959\nABS Birth Services",
-    terms_conditions: "A refund may be requested within 24 hours of payment provided work has not commenced. Once work has commenced, all service fees are non-refundable. Urgent services are non-refundable. Payments made to third parties are subject to their own refund policies.\n\nFor full terms, visit https://abshealthconnect.com/terms. For enquiries, email info@abshealthconnect.com.",
-    membership_welcome_text: "WELCOME TO THE ABS CLUB!",
-  }
-};
+
 
 interface InvoiceWorkspaceProps {
   initialInvoice: Invoice | null;
@@ -259,20 +229,12 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           amount: 0
         }
       ]);
-      setInvoiceNumber("");
-    }
-  }, [initialInvoice]);
-
-  // Generate a random invoice number if empty
-  useEffect(() => {
-    if (!invoiceNumber && !initialInvoice) {
       const date = new Date();
       const month = date.toLocaleString("default", { month: "short" }).toUpperCase();
       const code = Math.floor(100 + Math.random() * 900);
-      const year = date.getFullYear();
-      setInvoiceNumber(`${month}${code}/${year}`);
+      setInvoiceNumber(`${month}${code}/${date.getFullYear()}`);
     }
-  }, [invoiceNumber, initialInvoice]);
+  }, [initialInvoice]);
 
   // Financial auto-calculations
   useEffect(() => {
@@ -398,7 +360,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     setIsSaving(true);
     try {
       const postData = {
-        invoice_number: invoiceNumber,
+        invoice_number: invoiceNumber.trim(),
         subsidiary,
         company_name: companyName,
         company_email: companyEmail || null,
@@ -738,12 +700,12 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-600">
-                Invoice Number{savedInvoice ? "" : " (assigned on save)"}
+                Invoice Number
               </Label>
               <Input
                 value={invoiceNumber}
                 placeholder="e.g. JUL021/2026"
-                readOnly
+                onChange={(event) => setInvoiceNumber(event.target.value)}
               />
             </div>
             <div className="space-y-1">

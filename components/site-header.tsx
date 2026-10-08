@@ -178,11 +178,12 @@ export const SiteHeader = () => {
           url: targetUrl,
           items: chatItems,
           taskItems: typeof count === "object" && count !== null ? count.task_items : undefined,
+          paymentItems: typeof count === "object" && count !== null ? count.payment_items : undefined,
         };
       }
       return acc;
     },
-    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[] }>,
+    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[]; paymentItems?: { id: string; title: string; message: string; count: number; url: string }[] }>,
   );
 
   const totalNotifications =
@@ -283,6 +284,8 @@ export const SiteHeader = () => {
                       ) : (
                         Object.entries(visibleNotifications).map(
                           ([key, data]) => {
+                            if (data.paymentItems?.length) return data.paymentItems.map(payment => <Link key={`payment-${payment.id}`} href={payment.url} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0"><div className="min-w-0"><p className="truncate text-sm font-medium">{payment.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{payment.message}</p></div><span className="shrink-0 rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600">{payment.count}</span></Link>);
+                            if (key === "paymentLinkAttention") return <Link key={key} href="/accounts/payment-links?status=needs_attention" className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b"><span className="text-sm">Payments needing Accounts attention</span><span className="text-xs font-semibold">{data.count}</span></Link>;
                             if (key === "taskUpdates" && data.taskItems?.length) {
                               return data.taskItems.map(task => <Link key={`task-${task.task_id}`} href={`/my/task-tracker?view=${task.view}&task=${encodeURIComponent(task.task_id)}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0">
                                 <div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{task.body}</p></div>

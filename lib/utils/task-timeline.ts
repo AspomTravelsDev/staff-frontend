@@ -1,4 +1,5 @@
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistance } from "date-fns";
+import type { TaskTrackerItem } from "@/lib/types/task-tracker";
 
 export interface TaskTimeline {
   hasDeadline: boolean;
@@ -18,9 +19,10 @@ export interface TaskTimeline {
  */
 export function computeTaskTimeline(
   createdAtStr: string,
-  dueDateStr: string | null
+  dueDateStr: string | null,
+  now: number = Date.now()
 ): TaskTimeline {
-  if (!dueDateStr) {
+  if (!dueDateStr || !Number.isFinite(Date.parse(dueDateStr)) || !Number.isFinite(Date.parse(createdAtStr))) {
     const createdDate = new Date(createdAtStr);
     return {
       hasDeadline: false,
@@ -37,24 +39,22 @@ export function computeTaskTimeline(
 
   const created = new Date(createdAtStr).getTime();
   const due = new Date(dueDateStr).getTime();
-  const now = Date.now();
 
   const isOverdue = now >= due;
   const remainingMs = due - now;
-  const totalMs = Math.max(1000 * 60, due - created); // at least 1 minute
+  const totalMs = Math.max(1, due - created);
 
   let percent = 0;
   if (isOverdue) {
     percent = 100;
   } else {
     const elapsed = Math.max(0, now - created);
-    // Give at least 3% width so the start indicator is nicely visible, capped at 99% until reached
-    percent = Math.min(99, Math.max(3, Math.round((elapsed / totalMs) * 100)));
+    percent = Math.min(99, Math.max(0, Math.round((elapsed / totalMs) * 100)));
   }
 
   let remainingText = "";
   if (isOverdue) {
-    remainingText = `Overdue by ${formatDistanceToNow(due)}`;
+    remainingText = `Overdue by ${formatDistance(due, now)}`;
   } else {
     const diffSeconds = Math.floor(remainingMs / 1000);
     const diffMinutes = Math.floor(diffSeconds / 60);
@@ -103,4 +103,24 @@ export function computeTaskTimeline(
     dueShortFormatted: isNaN(dueDate.getTime()) ? "Due" : format(dueDate, "MMM d, yyyy"),
     colorScheme,
   };
+}
+
+/** Stop the clock when work is submitted/completed, so review delays do not count against staff. */
+export function computeTaskDeadlineTimeline(task: TaskTrackerItem, now: number): TaskTimeline | null {
+  if (task.status === "cancelled") return null;
+  const submitted = task.is_delegated && ["submitted", "completed"].includes(task.status);
+  const finishedAt = submitted ? task.submitted_at : task.status === "completed" ? task.completed_at : null;
+  const frozenAt = finishedAt ? Date.parse(finishedAt) : NaN;
+  if (["submitted", "completed"].includes(task.status) && !Number.isFinite(frozenAt)) return null;
+  const deadline = submitted ? task.submission_due_date ?? task.due_date : task.due_date;
+  const timeline = computeTaskTimeline(task.created_at, deadline, Number.isFinite(frozenAt) ? frozenAt : now);
+  if (!timeline.hasDeadline) return null;
+  if (Number.isFinite(frozenAt)) {
+    const late = frozenAt > Date.parse(deadline!);
+    timeline.remainingText = `${submitted ? "Submitted" : "Completed"} ${late ? "late" : "on time"}`;
+    timeline.isOverdue = late;
+    timeline.isDueSoon = false;
+    timeline.colorScheme = late ? "rose" : "emerald";
+  }
+  return timeline;
 }

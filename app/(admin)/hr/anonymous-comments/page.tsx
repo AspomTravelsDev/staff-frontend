@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getAnonymousComments, markAnonymousCommentsViewed } from "@/lib/api/anonymous-comments";
 import { AnonymousCommentsClient } from "./components/anonymous-comments-client";
 
@@ -7,6 +8,7 @@ export const metadata = {
 };
 
 export default async function HRAnonymousCommentsPage() {
+  return renderDataPage(async () => {
   const comments = await getAnonymousComments();
   // Mark comments as viewed so that the notification badge clears
   await markAnonymousCommentsViewed().catch(() => {});
@@ -25,4 +27,6 @@ export default async function HRAnonymousCommentsPage() {
       <AnonymousCommentsClient initialComments={comments} />
     </div>
   );
+
+  }, "Unable to load anonymous feedback");
 }

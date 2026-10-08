@@ -1,7 +1,7 @@
-import { getITGuide, updateITGuide } from "@/lib/api/it-guides";
+import { renderDataPage } from "@/lib/api/render-data-page";
+import { getITGuide } from "@/lib/api/it-guides";
 import { ITGuideForm } from "../../components/it-guide-form";
 import { notFound } from "next/navigation";
-import { type ITGuideFormValues } from "@/lib/validations/it-guides";
 
 interface EditITGuidePageProps {
   params: {
@@ -12,17 +12,13 @@ interface EditITGuidePageProps {
 export default async function EditITGuidePage({
   params,
 }: EditITGuidePageProps) {
+  return renderDataPage(async () => {
   const { id } = await params;
   const guide = await getITGuide(id);
 
   if (!guide) {
     notFound();
   }
-
-  const handleSubmit = async (values: ITGuideFormValues) => {
-    "use server";
-    await updateITGuide(id, values);
-  };
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
@@ -33,7 +29,9 @@ export default async function EditITGuidePage({
         </p>
       </div>
 
-      <ITGuideForm initialData={guide} onSubmit={handleSubmit} />
+      <ITGuideForm initialData={guide} />
     </div>
   );
+
+  }, "Unable to load this IT guide");
 }

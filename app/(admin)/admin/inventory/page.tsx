@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import {
@@ -28,6 +29,7 @@ interface InventoryPageProps {
 export default async function InventoryPage({
   searchParams,
 }: InventoryPageProps) {
+  return renderDataPage(async () => {
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!user) {
@@ -115,5 +117,6 @@ export default async function InventoryPage({
       />
     </div>
   );
-}
 
+  }, "Unable to load inventory and approvals");
+}

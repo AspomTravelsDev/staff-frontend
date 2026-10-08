@@ -1,148 +1,28 @@
-"use server";
+// The server returns serializable results; errors are reconstructed in the caller.
+import * as actions from "./it-guides.actions";
+import { callAction, type ActionData } from "./action-result";
+export type * from "./it-guides.actions";
 
-import { api } from "./client";
-import type { PaginatedResponse } from "./types";
-import { revalidatePath } from "next/cache";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export type ITGuideStatus = "draft" | "published";
-
-export interface ITGuideItem {
-    id: string;
-    slug: string;
-    title: string;
-    excerpt: string | null;
-    content: string;
-    author_id: string;
-    author_name: string;
-    category: string | null;
-    status: ITGuideStatus;
-    published_at: string | null;
-    created_at: string;
-    updated_at: string;
-    readers?: {
-        id: string;
-        name: string;
-        image_url: string | null;
-    }[];
+export async function getITGuides(...args: Parameters<typeof actions.getITGuides>): Promise<ActionData<Awaited<ReturnType<typeof actions.getITGuides>>>> {
+  return callAction(() => actions.getITGuides(...args));
 }
 
-export interface CreateITGuidePayload {
-    title: string;
-    excerpt?: string | null;
-    content: string;
-    category?: string | null;
-    status?: ITGuideStatus;
+export async function getITGuide(...args: Parameters<typeof actions.getITGuide>): Promise<ActionData<Awaited<ReturnType<typeof actions.getITGuide>>>> {
+  return callAction(() => actions.getITGuide(...args));
 }
 
-export interface ITGuideFilters {
-    page?: number;
-    limit?: number;
-    status?: ITGuideStatus;
-    category?: string;
+export async function createITGuide(...args: Parameters<typeof actions.createITGuide>): Promise<ActionData<Awaited<ReturnType<typeof actions.createITGuide>>>> {
+  return callAction(() => actions.createITGuide(...args));
 }
 
-// ============================================================================
-// API Functions
-// ============================================================================
-
-/**
- * Get paginated IT guides
- */
-export async function getITGuides(
-    filters: ITGuideFilters = {}
-): Promise<PaginatedResponse<ITGuideItem>> {
-    const params = new URLSearchParams();
-    if (filters.page) params.append("page", filters.page.toString());
-    if (filters.limit) params.append("limit", filters.limit.toString());
-    if (filters.status) params.append("status", filters.status);
-    if (filters.category) params.append("category", filters.category);
-
-    const result = await api.get<{
-        data: ITGuideItem[];
-        pagination: PaginatedResponse<ITGuideItem>["pagination"];
-    }>(`/api/it-guides?${params.toString()}`);
-
-    if (!result.success) {
-        return {
-            items: [],
-            pagination: { page: 1, limit: 10, total: 0, total_pages: 0 },
-        };
-    }
-
-    return {
-        items: result.data.data,
-        pagination: result.data.pagination,
-    };
+export async function updateITGuide(...args: Parameters<typeof actions.updateITGuide>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateITGuide>>>> {
+  return callAction(() => actions.updateITGuide(...args));
 }
 
-/**
- * Fetch a single IT guide by ID or Slug
- */
-export async function getITGuide(idOrSlug: string): Promise<ITGuideItem | null> {
-    const result = await api.get<{ guide: ITGuideItem }>(`/api/it-guides/${idOrSlug}`);
-    if (!result.success) return null;
-    return result.data.guide;
+export async function deleteITGuide(...args: Parameters<typeof actions.deleteITGuide>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteITGuide>>>> {
+  return callAction(() => actions.deleteITGuide(...args));
 }
 
-/**
- * Create a new IT guide
- */
-export async function createITGuide(
-    payload: CreateITGuidePayload
-): Promise<ITGuideItem> {
-    const result = await api.post<{ guide: ITGuideItem }>(
-        "/api/it-guides",
-        payload
-    );
-    if (!result.success) throw new Error(result.error.error);
-    revalidatePath("/admin/it-desk");
-    revalidatePath("/my/it");
-    return result.data.guide;
-}
-
-/**
- * Update an IT guide
- */
-export async function updateITGuide(
-    id: string,
-    payload: Partial<CreateITGuidePayload>
-): Promise<ITGuideItem> {
-    const result = await api.put<{ guide: ITGuideItem }>(
-        `/api/it-guides/${id}`,
-        payload
-    );
-    if (!result.success) throw new Error(result.error.error);
-    revalidatePath("/admin/it-desk");
-    revalidatePath("/my/it");
-    revalidatePath(`/my/it/${result.data.guide.slug}`);
-    return result.data.guide;
-}
-
-/**
- * Delete an IT guide
- */
-export async function deleteITGuide(id: string): Promise<void> {
-    const result = await api.delete<{ message: string }>(
-        `/api/it-guides/${id}`
-    );
-    if (!result.success) throw new Error(result.error.error);
-    revalidatePath("/admin/it-desk");
-    revalidatePath("/my/it");
-}
-
-/**
- * Mark an IT guide as read for the current user
- */
-export async function markITGuideAsRead(id: string): Promise<void> {
-    const result = await api.post<{ message: string }>(`/api/it-guides/${id}/mark-read`, {});
-    if (result.success) {
-        revalidatePath("/my/it");
-        revalidatePath("/admin/it-desk");
-        // We might not know the slug here, but normally this is called from the detail page
-        // which will have the slug. However, revalidatePath works with the path.
-    }
+export async function markITGuideAsRead(...args: Parameters<typeof actions.markITGuideAsRead>): Promise<ActionData<Awaited<ReturnType<typeof actions.markITGuideAsRead>>>> {
+  return callAction(() => actions.markITGuideAsRead(...args));
 }

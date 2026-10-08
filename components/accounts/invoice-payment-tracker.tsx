@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { getInvoicePayments, recordInvoicePayment, type Invoice, type InvoicePayment } from "@/lib/api/invoices";
 
 interface InvoicePaymentTrackerProps {
@@ -213,6 +214,7 @@ export function InvoicePaymentTracker({ invoice, onInvoiceUpdated, onDataChanged
                     <p className="text-sm font-semibold">
                       {payment.payment_date || "Date not recorded"}
                       {payment.payment_method ? ` · ${payment.payment_method}` : ""}
+                      {payment.payment_method === "Paystack (test)" && <Badge variant="secondary" className="ml-2">Test payment</Badge>}
                     </p>
                     {(payment.reference || payment.note) && (
                       <p className="text-xs text-muted-foreground break-words">

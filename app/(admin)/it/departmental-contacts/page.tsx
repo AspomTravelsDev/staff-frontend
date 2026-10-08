@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { getDepartmentalContacts } from "@/lib/api/departmental-contacts";
 import { DepartmentalContactsClient } from "./client";
 
@@ -7,6 +8,7 @@ export const metadata = {
 };
 
 export default async function DepartmentalContactsPage() {
+  return renderDataPage(async () => {
     const initialContacts = await getDepartmentalContacts();
 
     return (
@@ -23,4 +25,6 @@ export default async function DepartmentalContactsPage() {
             <DepartmentalContactsClient initialContacts={initialContacts} />
         </div>
     );
+
+  }, "Unable to load departmental contacts");
 }

@@ -1,3 +1,4 @@
+import { DataLoadError } from "@/components/data-load-error";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoanRequestDialog } from "@/components/payroll/loan-request-dialog";
 import { LoanRequestsTable } from "@/components/payroll/loan-requests-table";
@@ -51,6 +52,7 @@ export async function LoanRequestsPageShell({
   showCreateDialog?: boolean;
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
+  let loadFailed = false;
   let requests: LoanRequestRecord[] = [];
   let summary: RequestSummary = {
     total_requested_amount: 0,
@@ -79,6 +81,7 @@ export async function LoanRequestsPageShell({
       requests = response.data ?? [];
       summary = response.summary ?? summary;
     } catch (error) {
+      loadFailed = true;
       console.error(
         "[Loan Requests] Failed to fetch personal requests:",
         error,
@@ -107,9 +110,12 @@ export async function LoanRequestsPageShell({
       requests = response.data ?? [];
       summary = response.summary ?? summary;
     } catch (error) {
+      loadFailed = true;
       console.error("[Loan Requests] Failed to fetch role queue:", error);
     }
   }
+
+  if (loadFailed) return <DataLoadError title={`Unable to load ${title.toLowerCase()}`} />;
 
   return (
     <div className="space-y-6">

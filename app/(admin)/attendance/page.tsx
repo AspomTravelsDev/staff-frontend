@@ -15,6 +15,7 @@ export default async function GlobalAttendancePage(props: {
   const to = typeof searchParams.to === "string" ? searchParams.to : undefined;
   const userId =
     typeof searchParams.user_id === "string" ? searchParams.user_id : "all";
+  const lateClockOutsOnly = searchParams.clock_out === "late";
   const page =
     typeof searchParams.page === "string"
       ? Math.max(1, Number.parseInt(searchParams.page, 10) || 1)
@@ -24,12 +25,12 @@ export default async function GlobalAttendancePage(props: {
       ? Math.max(1, Number.parseInt(searchParams.page_size, 10) || 100)
       : 100;
   const [historyRes, statsRes, employeesRes] = await Promise.all([
-    getAllClockInsForFilters(from, to, userId).catch(() => []),
-    getAllClockInStats(from, to, userId).catch((e) => ({
+    getAllClockInsForFilters(from, to, userId, 100, lateClockOutsOnly).catch(() => []),
+    getAllClockInStats(from, to, userId, lateClockOutsOnly).catch(() => ({
       success: false,
       data: null,
     })),
-    getEmployees({ limit: 500, status: "Active" }).catch((e) => ({
+    getEmployees({ limit: 500, status: "Active" }).catch(() => ({
       items: [],
     })),
   ]);
@@ -39,12 +40,14 @@ export default async function GlobalAttendancePage(props: {
 
   return (
     <AttendanceClient
+      key={JSON.stringify([from, to, userId, lateClockOutsOnly])}
       history={historyRes}
       stats={stats}
       employees={employees}
       initialFrom={from}
       initialTo={to}
       initialUserId={userId}
+      initialLateClockOutsOnly={lateClockOutsOnly}
       initialPage={page}
       initialPageSize={pageSize}
     />

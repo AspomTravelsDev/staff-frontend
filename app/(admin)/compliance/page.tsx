@@ -1,3 +1,4 @@
+import { renderDataPage } from "@/lib/api/render-data-page";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { userHasAnyRole } from "@/types/user-types";
@@ -34,6 +35,7 @@ interface PageProps {
 }
 
 export default async function CompliancePage({ searchParams }: PageProps) {
+  return renderDataPage(async () => {
   const user = await getCurrentUser();
   const params = await searchParams;
 
@@ -110,4 +112,6 @@ export default async function CompliancePage({ searchParams }: PageProps) {
       />
     </div>
   );
+
+  }, "Unable to load compliance records");
 }

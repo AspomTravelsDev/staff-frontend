@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { logoutAction } from "./actions/auth";
 import { AlertCircle, ArrowRight, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
@@ -16,15 +15,6 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("Application error:", error);
-
-    const performLogout = async () => {
-      try {
-        await logoutAction();
-      } catch (err) {
-        console.error("Failed to auto-logout:", err);
-      }
-    };
-    // performLogout();
   }, [error]);
 
   return (
@@ -39,8 +29,7 @@ export default function Error({
             Something went wrong
           </h1>
           <p className="text-muted-foreground">
-            We've encountered an unexpected error. For your security, we have
-            cleared your session.
+            We couldn&apos;t load this page. Please try again.
           </p>
         </div>
 

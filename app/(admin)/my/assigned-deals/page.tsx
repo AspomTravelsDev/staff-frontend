@@ -1,10 +1,11 @@
 import { Suspense } from "react";
+import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentConfirmationsTable } from "@/components/payment/payment-confirmations-table";
+import { AssignedDealsReadReceipt } from "@/components/payment/assigned-deals-read-receipt";
 import {
   getPaymentConfirmations,
-  markAssignedDealsNotificationsAsRead,
   type PaymentConfirmationFilters,
 } from "@/lib/api/payment-confirmations";
 
@@ -19,7 +20,7 @@ function formatCurrency(value: number) {
 export default async function MyAssignedDealsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; deal?: string }>;
 }) {
   const sp = await searchParams;
   const allowedStatuses = ["pending", "approved", "rejected"] as const;
@@ -28,18 +29,14 @@ export default async function MyAssignedDealsPage({
   ) as PaymentConfirmationFilters["status"] | undefined;
   const page = parseInt(sp.page || "1");
 
-  // Mark assigned deal notifications viewed so the badge clears immediately
-  try {
-    await markAssignedDealsNotificationsAsRead();
-  } catch (err) {
-    // Ignore error
-  }
+  const dealId = sp.deal && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sp.deal) ? sp.deal : undefined;
 
   const confirmationsData = await getPaymentConfirmations({
-    status,
-    page,
+    status: dealId ? undefined : status,
+    page: dealId ? 1 : page,
     limit: 50,
     assigned: true,
+    confirmation_id: dealId,
   });
 
   const confirmations = confirmationsData?.data ?? [];
@@ -99,12 +96,14 @@ export default async function MyAssignedDealsPage({
 
   return (
     <div className="space-y-6">
+      <AssignedDealsReadReceipt confirmationIds={confirmations.map(item => item.id)} throughId={confirmationsData.assignment_notifications_through_id} />
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Assigned Deals</h1>
         <p className="text-muted-foreground">
           View and track all payment confirmation deals that have been assigned to you.
         </p>
+        {dealId && <Link href="/my/assigned-deals" className="mt-2 inline-block text-sm text-primary underline">View all assigned deals</Link>}
       </div>
 
       {/* Stats Cards */}

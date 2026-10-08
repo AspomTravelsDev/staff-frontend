@@ -8,6 +8,7 @@ export interface ClockInRecord {
     user_id: string;
     clock_in_at: string;
     clock_out_at: string | null;
+    is_late_clock_out?: boolean;
     duration_minutes: number | null;
     is_clocked_in?: boolean; // Sometimes returned by /today
     location_method?: "gps" | "ip" | "exempt" | "disabled" | "qrcode";
@@ -44,6 +45,8 @@ export interface ClockInSummary {
     on_time?: number;
     late_arrivals?: number;
     late_permitted?: number;
+    late_clock_outs?: number;
+    late_clock_out_staff?: number;
     this_week: number;
     this_month: number;
     average_duration_minutes: number;
@@ -198,7 +201,8 @@ export async function getAllClockIns(
     to?: string,
     userId?: string,
     page = 1,
-    perPage = 50
+    perPage = 50,
+    lateClockOutsOnly = false
 ): Promise<ApiResponse<PaginatedClockInResponse>> {
     const params = new URLSearchParams();
     if (from) params.append("from", from);
@@ -206,6 +210,7 @@ export async function getAllClockIns(
     if (userId && userId !== "all") params.append("user_id", userId);
     params.append("page", page.toString());
     params.append("per_page", perPage.toString());
+    if (lateClockOutsOnly) params.append("clock_out", "late");
 
     return api.get<PaginatedClockInResponse>(`/api/admin/attendance?${params.toString()}`);
 }
@@ -219,9 +224,10 @@ export async function getAllClockInsForFilters(
     from?: string,
     to?: string,
     userId?: string,
-    perPage = 100
+    perPage = 100,
+    lateClockOutsOnly = false
 ): Promise<ClockInRecord[]> {
-    const firstResponse = await getAllClockIns(from, to, userId, 1, perPage);
+    const firstResponse = await getAllClockIns(from, to, userId, 1, perPage, lateClockOutsOnly);
 
     if (!firstResponse.success || !firstResponse.data) {
         return [];
@@ -240,7 +246,7 @@ export async function getAllClockInsForFilters(
     );
 
     const pageResults = await Promise.all(
-        remainingPages.map((page) => getAllClockIns(from, to, userId, page, perPage))
+        remainingPages.map((page) => getAllClockIns(from, to, userId, page, perPage, lateClockOutsOnly))
     );
 
     const records = [...firstPage];
@@ -261,12 +267,14 @@ export async function getAllClockInsForFilters(
 export async function getAllClockInStats(
     from?: string,
     to?: string,
-    userId?: string
+    userId?: string,
+    lateClockOutsOnly = false
 ): Promise<ApiResponse<StandardResponse<ClockInSummary>>> {
     const params = new URLSearchParams();
     if (from) params.append("from", from);
     if (to) params.append("to", to);
     if (userId && userId !== "all") params.append("user_id", userId);
+    if (lateClockOutsOnly) params.append("clock_out", "late");
 
     return api.get<StandardResponse<ClockInSummary>>(`/api/admin/attendance/stats?${params.toString()}`);
 }
@@ -334,7 +342,7 @@ export async function submitLatePermissionRequest(payload: {
 export async function getMyLatePermissionRequests(
     page = 1
 ): Promise<ApiResponse<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>> {
-    return api.get<StandardResponse<any>>(`/api/late-permission-requests/my?page=${page}`);
+    return api.get<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>(`/api/late-permission-requests/my?page=${page}`);
 }
 
 /**
@@ -355,7 +363,7 @@ export async function getLatePermissionReviewQueue(filters?: {
     if (filters?.to) params.append("to", filters.to);
     if (filters?.page) params.append("page", String(filters.page));
 
-    return api.get<StandardResponse<any>>(`/api/late-permission-requests?${params.toString()}`);
+    return api.get<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>(`/api/late-permission-requests?${params.toString()}`);
 }
 
 /**

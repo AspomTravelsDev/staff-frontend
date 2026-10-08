@@ -65,13 +65,19 @@ export function InitiateFullClearanceDialog({
 
     try {
       const res = await initiateFullClearance(selectedStaffId, notes);
-      toast.success(`Full offboarding clearance initiated for ${res.length} assigned device(s).`);
+      if (!res.success) {
+        if (res.error.code === "NO_ASSIGNED_DEVICES") toast.info("No assigned company devices to clear for this staff member.");
+        else toast.error(res.error.error || "Failed to initiate full clearance.");
+        return;
+      }
+      if (res.data.length === 0) toast.info("No assigned company devices to clear for this staff member.");
+      else toast.success(`Full offboarding clearance initiated for ${res.data.length} assigned device(s).`);
       onOpenChange(false);
       setSelectedStaffId("");
       setNotes("");
       router.refresh();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to initiate full clearance.");
+    } catch {
+      toast.error("Could not confirm device clearance. Please refresh Inventory before retrying.");
     } finally {
       setLoading(false);
     }

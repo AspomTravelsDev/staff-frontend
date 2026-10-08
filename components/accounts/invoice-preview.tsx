@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import type { Invoice } from "@/lib/api/invoices";
+import { INVOICE_LOGOS } from "@/lib/constants/invoice-branding";
 
 interface InvoicePreviewProps {
   invoice: Omit<Invoice, "id" | "created_at" | "updated_at" | "created_by_id">;
@@ -64,14 +65,12 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
 
     // Render Company Logo
     const renderLogo = () => {
-      let logoSrc = "/aspom-logo.png";
+      const logoSrc = INVOICE_LOGOS[invoice.subsidiary] || INVOICE_LOGOS.aspom;
       let altText = "ASPOM Logo";
 
       if (invoice.subsidiary === "travelatal") {
-        logoSrc = "/travelatal.png";
         altText = "Travelatal Logo";
       } else if (invoice.subsidiary === "abs") {
-        logoSrc = "/abshealthconnect.png";
         altText = "ABS Health Connect Logo";
       }
 

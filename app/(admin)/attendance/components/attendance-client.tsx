@@ -36,6 +36,7 @@ interface AttendanceClientProps {
   initialFrom?: string;
   initialTo?: string;
   initialUserId?: string;
+  initialLateClockOutsOnly?: boolean;
   initialPage?: number;
   initialPageSize?: number;
 }
@@ -47,6 +48,7 @@ export function AttendanceClient({
   initialFrom,
   initialTo,
   initialUserId,
+  initialLateClockOutsOnly = false,
   initialPage = 1,
   initialPageSize = 100,
 }: AttendanceClientProps) {
@@ -69,6 +71,7 @@ export function AttendanceClient({
     initialUserId || "all",
   );
   const [pageSize, setPageSize] = useState<number>(initialPageSize);
+  const [clockOutFilter, setClockOutFilter] = useState(initialLateClockOutsOnly ? "late" : "all");
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -113,6 +116,9 @@ export function AttendanceClient({
     }
 
     const pageSizeValue = pageSize.toString();
+    if (clockOutFilter === "late") {
+      if (params.get("clock_out") !== "late") { params.set("clock_out", "late"); hasChanges = true; }
+    } else if (params.has("clock_out")) { params.delete("clock_out"); hasChanges = true; }
     if (params.get("page_size") !== pageSizeValue) {
       params.set("page_size", pageSizeValue);
       hasChanges = true;
@@ -131,6 +137,7 @@ export function AttendanceClient({
     dateRange,
     selectedStaff,
     pageSize,
+    clockOutFilter,
     searchParams,
     pathname,
     router,
@@ -138,7 +145,7 @@ export function AttendanceClient({
   ]);
 
   // Create a map of date_userId to track status (using earliest clock-in time)
-  const attendanceMap = new Map<string, { clockInTime: number; status: "Early" | "Late" | "Late (Permitted)" }>();
+  const attendanceMap = new Map<string, { clockInTime: number; status: "Early" | "Late" | "Late (Permitted)"; lateClockOutAt?: string }>();
   history.forEach((record) => {
     const dateStr = formatLagosDateForInput(record.clock_in_at);
     if (!dateStr) return;
@@ -152,8 +159,11 @@ export function AttendanceClient({
     }
 
     const existing = attendanceMap.get(key);
+    const lateClockOutAt = record.is_late_clock_out && record.clock_out_at ? record.clock_out_at : existing?.lateClockOutAt;
     if (!existing || clockInTime < existing.clockInTime) {
-      attendanceMap.set(key, { clockInTime, status });
+      attendanceMap.set(key, { clockInTime, status, lateClockOutAt });
+    } else if (lateClockOutAt) {
+      existing.lateClockOutAt = lateClockOutAt;
     }
   });
 
@@ -214,7 +224,7 @@ export function AttendanceClient({
   }
 
   // Generate rows for each day in range
-  const pivotedRows: any[] = [];
+  const pivotedRows: Record<string, string>[] = [];
   if (startStr && endStr) {
     const [sYear, sMonth, sDay] = startStr.split("-").map(Number);
     const [eYear, eMonth, eDay] = endStr.split("-").map(Number);
@@ -235,7 +245,7 @@ export function AttendanceClient({
       const formattedDate = `${dStr}/${m}/${shortYear}`;
       const dayName = daysOfWeek[curr.getDay()];
 
-      const row: any = {
+      const row: Record<string, string> = {
         day: dayName,
         date: formattedDate,
       };
@@ -243,7 +253,7 @@ export function AttendanceClient({
       exportEmployees.forEach((emp) => {
         const key = `${dateKey}_${emp.id}`;
         const record = attendanceMap.get(key);
-        row[emp.id] = record ? record.status : "Absent";
+        row[emp.id] = record ? `${record.status}${record.lateClockOutAt ? `; clocked out ${formatLagosDate(record.lateClockOutAt)} at ${formatLagosTime(record.lateClockOutAt)} (After 8 PM)` : ""}` : "Absent";
       });
 
       pivotedRows.push(row);
@@ -251,7 +261,7 @@ export function AttendanceClient({
     }
   }
 
-  const exportColumns: ExportColumn<any>[] = [
+  const exportColumns: ExportColumn<Record<string, string>>[] = [
     {
       header: "Day",
       key: "day",
@@ -262,8 +272,18 @@ export function AttendanceClient({
     },
     ...exportEmployees.map((emp) => ({
       header: emp.name,
-      key: (row: any) => row[emp.id] || "Absent",
+      key: (row: Record<string, string>) => row[emp.id] || "Absent",
     })),
+  ];
+
+  const lateClockOutExportColumns: ExportColumn<ClockInRecord>[] = [
+    { header: "Staff", key: record => record.user?.name || record.user_id },
+    { header: "Email", key: record => record.user?.email || "" },
+    { header: "Attendance date", key: record => formatLagosDate(record.clock_in_at) },
+    { header: "Clock in (Lagos)", key: record => formatLagosTime(record.clock_in_at) },
+    { header: "Clock-out date", key: record => formatLagosDate(record.clock_out_at || "") },
+    { header: "Clock out (Lagos)", key: record => formatLagosTime(record.clock_out_at || "") },
+    { header: "Clock-out flag", key: () => "After 8 PM" },
   ];
 
   return (
@@ -315,14 +335,26 @@ export function AttendanceClient({
           </Select>
         </div>
 
+        <label htmlFor="attendance-clock-out-filter" className="text-sm font-medium whitespace-nowrap shrink-0">Clock-outs</label>
+        <div className="w-full sm:w-48 shrink-0">
+          <Select value={clockOutFilter} onValueChange={setClockOutFilter} disabled={isPending}>
+            <SelectTrigger id="attendance-clock-out-filter" className="h-10 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All records</SelectItem>
+              <SelectItem value="late">Late clock-outs</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Reset */}
         <Button
           variant="outline"
           onClick={() => {
             setDateRange(undefined);
             setSelectedStaff("all");
+            setClockOutFilter("all");
           }}
-          disabled={isPending || (!dateRange && selectedStaff === "all")}
+          disabled={isPending || (!dateRange && selectedStaff === "all" && clockOutFilter === "all")}
           className="shrink-0"
         >
           Reset
@@ -353,11 +385,15 @@ export function AttendanceClient({
         <div className="flex items-center gap-2 shrink-0">
           <ClockInModeToggle compact />
           <WallQrPosterDialog />
-          <TableExportButton
-            data={pivotedRows}
-            columns={exportColumns}
-            filename={`Attendance_Export_${format(new Date(), "yyyy_MM_dd")}`}
-          />
+          <fieldset disabled={isPending}>
+          {clockOutFilter === "late" ? <TableExportButton
+            data={history} columns={lateClockOutExportColumns}
+            filename={`Late_Clock_Outs_${formatLagosDateForInput(new Date())}`}
+          /> : <TableExportButton
+            data={pivotedRows} columns={exportColumns}
+            filename={`Attendance_Export_${formatLagosDateForInput(new Date())}`}
+          />}
+          </fieldset>
         </div>
       </div>
 

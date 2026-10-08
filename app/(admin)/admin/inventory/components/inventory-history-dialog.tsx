@@ -41,6 +41,7 @@ export function InventoryHistoryDialog({
 }: InventoryHistoryDialogProps) {
   const [history, setHistory] = useState<InventoryHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && item) {
@@ -51,11 +52,14 @@ export function InventoryHistoryDialog({
   const loadHistory = async () => {
     if (!item) return;
     setIsLoading(true);
+    setLoadError(null);
+    setHistory([]);
     try {
       const response = await fetchHistoryFn(item.id);
       setHistory(response.items);
     } catch (error) {
       console.error("Failed to load history", error);
+      setLoadError(error instanceof Error ? error.message : "Unable to load asset history. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -233,6 +237,11 @@ export function InventoryHistoryDialog({
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
               <p>Loading timeline...</p>
+            </div>
+          ) : loadError ? (
+            <div role="alert" className="space-y-3 py-8 text-center">
+              <p className="text-sm text-destructive">{loadError}</p>
+              <button type="button" onClick={loadHistory} className="text-sm font-medium underline">Try again</button>
             </div>
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

@@ -1,7 +1,7 @@
 "use client";
 
 import { StatsCard } from "@/components/stats-card";
-import { Clock, CalendarCheck, AlertTriangle, Trophy } from "lucide-react";
+import { Clock, CalendarCheck, AlertTriangle, Trophy, Moon } from "lucide-react";
 import { ClockInSummary } from "@/lib/api/clock-in";
 
 interface AttendanceStatsProps {
@@ -11,15 +11,11 @@ interface AttendanceStatsProps {
 
 export function AttendanceStats({ stats, isLoading }: AttendanceStatsProps) {
   const totalClockIns = stats ? stats.total_clock_ins.toString() : "0";
-  const onTimeDays =
-    stats && "on_time" in stats ? (stats as any).on_time.toString() : "0";
-  const lateDays =
-    stats && "late_arrivals" in stats
-      ? (stats as any).late_arrivals.toString()
-      : "0";
+  const onTimeDays = String(stats?.on_time ?? 0);
+  const lateDays = String(stats?.late_arrivals ?? 0);
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-busy={isLoading}>
       <StatsCard
         title="Total Records"
         icon={Clock}
@@ -43,6 +39,14 @@ export function AttendanceStats({ stats, isLoading }: AttendanceStatsProps) {
         description="Arrivals after 9:05 AM"
         variant="dashboard"
         cardColor="red"
+      />
+      <StatsCard
+        title="Late Clock-outs"
+        icon={Moon}
+        value={String(stats?.late_clock_outs ?? 0)}
+        description={`${stats?.late_clock_out_staff ?? 0} staff · After 8 PM Lagos time`}
+        variant="dashboard"
+        cardColor="orange"
       />
       <StatsCard
         title="Early Bird Recognition"

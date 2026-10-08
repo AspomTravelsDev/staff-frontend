@@ -1,6 +1,8 @@
 import { getApplications } from "@/lib/api/hr";
 import type { OnboardingApplication } from "@/lib/types/hr";
 import { ItOnboardingClient } from "./components/it-onboarding-client";
+import { DataLoadError } from "@/components/data-load-error";
+import { unstable_rethrow } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,9 @@ export default async function ItOnboardingPage() {
   try {
     applications = await getApplications();
   } catch (error) {
+    unstable_rethrow(error);
     console.error("Failed to fetch applications for IT provisioning:", error);
+    return <DataLoadError title="Unable to load onboarding applications" />;
   }
 
   return (

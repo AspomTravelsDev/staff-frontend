@@ -45,6 +45,8 @@ export default function ChatPage() {
             if (user) {
                 setCurrentUserId(user.id);
             }
+        }).catch(() => {
+            toast.error("Unable to load your chat account. Please refresh and try again.");
         });
 
         loadConversations();

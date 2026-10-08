@@ -1,4 +1,5 @@
-import { getITGuides, deleteITGuide } from "@/lib/api/it-guides";
+import { renderDataPage } from "@/lib/api/render-data-page";
+import { getITGuides } from "@/lib/api/it-guides";
 import {
   Plus,
   Search,
@@ -32,16 +33,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { revalidatePath } from "next/cache";
 
 export default async function ITDeskManagementPage() {
+  return renderDataPage(async () => {
   const { items: guides } = await getITGuides({ limit: 100 });
-
-  async function handleDelete(id: string) {
-    "use server";
-    await deleteITGuide(id);
-    revalidatePath("/admin/it-desk");
-  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -227,4 +222,6 @@ export default async function ITDeskManagementPage() {
       </div>
     </div>
   );
+
+  }, "Unable to load IT guides");
 }

@@ -179,7 +179,9 @@ export function ChatWindow({
 
     if (conversation) {
       fetchInitialMessages(conversation.id);
-      markAsRead(conversation.id);
+      void markAsRead(conversation.id).catch((error) => {
+        console.error("Failed to mark conversation as read:", error);
+      });
 
       // Reverb WebSocket setup
       const echo = getEchoInstance();

@@ -1,264 +1,68 @@
-"use server";
+// The server returns serializable results; errors are reconstructed in the caller.
+import * as actions from "./hr.actions";
+import { callAction, type ActionData } from "./action-result";
+export type * from "./hr.actions";
 
-import { api, apiClient } from "./client";
-import { revalidatePath } from "next/cache";
-import type { OnboardingApplication, CreateApplicationRequest } from "@/lib/types/hr";
-import type { ContactVerificationStatus } from "@/lib/types/form-data";
-
-// ─── Authenticated endpoints (HR/Super admin) ───
-
-export async function getApplications(): Promise<OnboardingApplication[]> {
-    const response = await api.get<{ data: OnboardingApplication[] }>("/api/onboarding-applications");
-    if (!response.success) throw new Error(response.error.error);
-    return response.data.data;
+export async function getApplications(...args: Parameters<typeof actions.getApplications>): Promise<ActionData<Awaited<ReturnType<typeof actions.getApplications>>>> {
+  return callAction(() => actions.getApplications(...args));
 }
 
-export async function markOnboardingNotificationsViewed(): Promise<void> {
-    const response = await api.post<{ message: string }>("/api/onboarding/notifications/mark-viewed");
-    if (!response.success) throw new Error(response.error.error);
+export async function markOnboardingNotificationsViewed(...args: Parameters<typeof actions.markOnboardingNotificationsViewed>): Promise<ActionData<Awaited<ReturnType<typeof actions.markOnboardingNotificationsViewed>>>> {
+  return callAction(() => actions.markOnboardingNotificationsViewed(...args));
 }
 
-export async function getApplication(id: string): Promise<OnboardingApplication> {
-    const response = await api.get<{ data: OnboardingApplication }>(`/api/onboarding-applications/${id}`);
-    if (!response.success) throw new Error(response.error.error);
-    return response.data.data;
+export async function getApplication(...args: Parameters<typeof actions.getApplication>): Promise<ActionData<Awaited<ReturnType<typeof actions.getApplication>>>> {
+  return callAction(() => actions.getApplication(...args));
 }
 
-export async function createApplication(data: CreateApplicationRequest): Promise<OnboardingApplication> {
-    const response = await api.post<{ data: OnboardingApplication }>("/api/onboarding-applications", data);
-    if (!response.success) throw new Error(response.error.error);
-    revalidatePath("/hr/applications");
-    return response.data.data;
+export async function createApplication(...args: Parameters<typeof actions.createApplication>): Promise<ActionData<Awaited<ReturnType<typeof actions.createApplication>>>> {
+  return callAction(() => actions.createApplication(...args));
 }
 
-export async function deleteApplication(id: string): Promise<void> {
-    const response = await api.delete<{ message: string }>(`/api/onboarding-applications/${id}`);
-    if (!response.success) throw new Error(response.error.error);
-    revalidatePath("/hr/applications");
+export async function deleteApplication(...args: Parameters<typeof actions.deleteApplication>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteApplication>>>> {
+  return callAction(() => actions.deleteApplication(...args));
 }
 
-export async function sendInvite(id: string): Promise<void> {
-    const response = await api.post<{ message: string }>(`/api/onboarding-applications/${id}/send-invite`);
-    if (!response.success) throw new Error(response.error.error || "Failed to send invitation email");
+export async function sendInvite(...args: Parameters<typeof actions.sendInvite>): Promise<ActionData<Awaited<ReturnType<typeof actions.sendInvite>>>> {
+  return callAction(() => actions.sendInvite(...args));
 }
 
-export async function sendOnboardingReminder(
-    id: string,
-    payload: { note: string }
-): Promise<void> {
-    const response = await api.post<{ message: string }>(
-        `/api/onboarding-applications/${id}/send-reminder`,
-        payload,
-    );
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to send reminder email");
-    }
+export async function sendOnboardingReminder(...args: Parameters<typeof actions.sendOnboardingReminder>): Promise<ActionData<Awaited<ReturnType<typeof actions.sendOnboardingReminder>>>> {
+  return callAction(() => actions.sendOnboardingReminder(...args));
 }
 
-export type OnboardingCorrectionReason =
-    | "unsigned_documents"
-    | "missing_required_pages"
-    | "missing_supporting_documents"
-    | "invalid_document_quality"
-    | "mismatched_information"
-    | "other";
-
-export async function requestOnboardingCorrection(
-    id: string,
-    payload: { reason: OnboardingCorrectionReason; note: string }
-): Promise<void> {
-    const response = await api.post<{ message: string }>(
-        `/api/onboarding-applications/${id}/request-correction`,
-        payload,
-    );
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to request correction");
-    }
+export async function requestOnboardingCorrection(...args: Parameters<typeof actions.requestOnboardingCorrection>): Promise<ActionData<Awaited<ReturnType<typeof actions.requestOnboardingCorrection>>>> {
+  return callAction(() => actions.requestOnboardingCorrection(...args));
 }
 
-export async function toggleAddressVerification(
-    id: string,
-    verified?: boolean
-): Promise<OnboardingApplication> {
-    const response = await api.patch<{ message: string; data: OnboardingApplication }>(
-        `/api/onboarding-applications/${id}/verify-address`,
-        verified !== undefined ? { verified } : {}
-    );
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to update address verification");
-    }
-    return response.data.data;
+export async function toggleAddressVerification(...args: Parameters<typeof actions.toggleAddressVerification>): Promise<ActionData<Awaited<ReturnType<typeof actions.toggleAddressVerification>>>> {
+  return callAction(() => actions.toggleAddressVerification(...args));
 }
 
-export async function updateContactVerification(
-    id: string,
-    payload: {
-        contact: "guarantor" | "referee";
-        index?: number;
-        status: ContactVerificationStatus;
-    },
-): Promise<OnboardingApplication> {
-    const response = await api.patch<{ message: string; data: OnboardingApplication }>(
-        `/api/onboarding-applications/${id}/verify-contact`,
-        payload,
-    );
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to update contact verification");
-    }
-    return response.data.data;
+export async function updateContactVerification(...args: Parameters<typeof actions.updateContactVerification>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateContactVerification>>>> {
+  return callAction(() => actions.updateContactVerification(...args));
 }
 
-export interface ProvisionCorporateEmailRequest {
-    email_username?: string;
-    password?: string;
-    send_portal_invite?: boolean;
-    send_credentials_email?: boolean;
-    role?: string;
-    department?: string;
-    staff_id?: string;
-    date_joined?: string;
-    is_supervisor?: boolean;
-    is_department_account?: boolean;
+export async function provisionCorporateEmail(...args: Parameters<typeof actions.provisionCorporateEmail>): Promise<ActionData<Awaited<ReturnType<typeof actions.provisionCorporateEmail>>>> {
+  return callAction(() => actions.provisionCorporateEmail(...args));
 }
 
-export interface ProvisionCorporateEmailResponse {
-    application: OnboardingApplication;
-    corporate_email: string;
-    temporary_password: string;
-    portal_invite_sent: boolean;
-    credentials_email_sent: boolean;
-    invite_url?: string;
+export async function resendPortalInvite(...args: Parameters<typeof actions.resendPortalInvite>): Promise<ActionData<Awaited<ReturnType<typeof actions.resendPortalInvite>>>> {
+  return callAction(() => actions.resendPortalInvite(...args));
 }
 
-export async function provisionCorporateEmail(
-    id: string,
-    payload?: ProvisionCorporateEmailRequest
-): Promise<ProvisionCorporateEmailResponse> {
-    const response = await api.post<{
-        message: string;
-        data: ProvisionCorporateEmailResponse;
-    }>(`/api/onboarding-applications/${id}/provision-email`, payload || {});
-
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to provision corporate email");
-    }
-
-    revalidatePath(`/hr/applications/${id}`);
-    revalidatePath("/hr/applications");
-    revalidatePath("/it/onboarding");
-    return response.data.data;
+export async function checkCpanelEmail(...args: Parameters<typeof actions.checkCpanelEmail>): Promise<ActionData<Awaited<ReturnType<typeof actions.checkCpanelEmail>>>> {
+  return callAction(() => actions.checkCpanelEmail(...args));
 }
 
-export interface ResendOnboardingEmailsRequest {
-    send_portal_invite?: boolean;
-    send_credentials_email?: boolean;
-    password?: string;
-    role?: string;
-    department?: string;
+export async function getPublicApplication(...args: Parameters<typeof actions.getPublicApplication>): Promise<ActionData<Awaited<ReturnType<typeof actions.getPublicApplication>>>> {
+  return callAction(() => actions.getPublicApplication(...args));
 }
 
-export interface ResendOnboardingEmailsResponse {
-    message: string;
-    invite_url?: string;
-    cpanel_check?: {
-        exists: boolean;
-        configured: boolean;
-        email?: string;
-        auto_created?: boolean;
-    };
-    portal_invite_sent?: boolean;
-    credentials_email_sent?: boolean;
+export async function savePublicFormStep(...args: Parameters<typeof actions.savePublicFormStep>): Promise<ActionData<Awaited<ReturnType<typeof actions.savePublicFormStep>>>> {
+  return callAction(() => actions.savePublicFormStep(...args));
 }
 
-export async function resendPortalInvite(
-    id: string,
-    payload?: ResendOnboardingEmailsRequest
-): Promise<ResendOnboardingEmailsResponse> {
-    const response = await api.post<ResendOnboardingEmailsResponse>(
-        `/api/onboarding-applications/${id}/resend-portal-invite`,
-        payload || {}
-    );
-
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to resend onboarding emails");
-    }
-
-    revalidatePath(`/hr/applications/${id}`);
-    revalidatePath("/hr/applications");
-    revalidatePath("/it/onboarding");
-    return response.data;
+export async function submitPublicApplication(...args: Parameters<typeof actions.submitPublicApplication>): Promise<ActionData<Awaited<ReturnType<typeof actions.submitPublicApplication>>>> {
+  return callAction(() => actions.submitPublicApplication(...args));
 }
-
-export async function checkCpanelEmail(
-    id: string
-): Promise<{
-    corporate_email: string;
-    cpanel_check: {
-        exists: boolean;
-        configured: boolean;
-        email?: string;
-        account?: any;
-        error?: string;
-    };
-    provisioned_at?: string;
-}> {
-    const response = await api.get<{
-        corporate_email: string;
-        cpanel_check: {
-            exists: boolean;
-            configured: boolean;
-            email?: string;
-            account?: any;
-            error?: string;
-        };
-        provisioned_at?: string;
-    }>(`/api/onboarding-applications/${id}/check-cpanel-email`);
-
-    if (!response.success) {
-        throw new Error(response.error.error || "Failed to check cPanel email status");
-    }
-
-    return response.data;
-}
-
-// ─── Public endpoints (applicant portal — no auth) ───
-
-export async function getPublicApplication(id: string): Promise<OnboardingApplication> {
-    const response = await apiClient<{ data: OnboardingApplication }>(`/api/public/onboarding-applications/${id}`, {
-        skipAuth: true,
-    });
-    if (!response.success) throw new Error(response.error.error);
-    return response.data.data;
-}
-
-export async function savePublicFormStep(
-    id: string,
-    step: number,
-    stepData: Record<string, unknown>
-): Promise<OnboardingApplication> {
-    const response = await apiClient<{ data: OnboardingApplication }>(`/api/public/onboarding-applications/${id}`, {
-        method: "PUT",
-        skipAuth: true,
-        body: { step, step_data: stepData },
-    });
-    if (!response.success) throw new Error(response.error.error);
-    return response.data.data;
-}
-
-export async function submitPublicApplication(
-    id: string,
-    stepData?: Record<string, unknown>
-): Promise<OnboardingApplication> {
-    const response = await apiClient<{ data: OnboardingApplication }>(
-        `/api/public/onboarding-applications/${id}/submit`,
-        {
-            method: "POST",
-            skipAuth: true,
-            body: stepData ? { step_data: stepData } : undefined,
-        }
-    );
-    if (!response.success) throw new Error(response.error.error);
-    return response.data.data;
-}
-
-

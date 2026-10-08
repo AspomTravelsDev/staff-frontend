@@ -75,6 +75,7 @@ export const departmentNav: NavItem[] = [
     icon: FileText,
     allowedRoles: ["account"],
   },
+  { title: "Payment Links", url: "/accounts/payment-links", icon: CreditCard, allowedRoles: ["account"], badgeKey: "paymentLinkUpdates,paymentLinkAttention", badgeLabel: "Payment requests needing attention" },
   {
     title: "Expenses Management",
     url: "/accounts/expenses",
@@ -481,11 +482,12 @@ export const personalNav: NavItem[] = [
         badgeKey: "myPaymentUpdates",
         badgeLabel: "New status updates",
       },
+      { title: "My Payment Links", url: "/my/payment-links", badgeKey: "myPaymentLinkUpdates", badgeLabel: "Payment link updates" },
       {
         title: "Assigned Deals",
         url: "/my/assigned-deals",
         badgeKey: "myAssignedDeals",
-        badgeLabel: "Deals needing attention",
+        badgeLabel: "New deal assignments",
       },
       {
         title: "Expenses",

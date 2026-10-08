@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export type AttendanceStatus = "on-time" | "late" | "flagged" | "absent" | "placeholder";
+export type AttendanceStatus = "on-time" | "late" | "late-permitted" | "flagged" | "absent" | "placeholder";
 
 interface AttendanceStatusBlocksProps {
   statuses: AttendanceStatus[];
@@ -12,6 +12,7 @@ interface AttendanceStatusBlocksProps {
  * GitHub-style attendance visualization with square blocks
  * - Green: On time
  * - Orange: Late
+ * - Indigo: Late (Permitted)
  * - Red: Flagged proxy
  * - Gray: Absent/No data
  */
@@ -42,6 +43,8 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
         return "bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-500";
       case "late":
         return "bg-orange-500 dark:bg-orange-600 hover:bg-orange-600 dark:hover:bg-orange-500";
+      case "late-permitted":
+        return "bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-500";
       case "flagged":
         return "bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500";
       case "absent":
@@ -58,6 +61,8 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
         return "On time";
       case "late":
         return "Late";
+      case "late-permitted":
+        return "Late (Permitted)";
       case "flagged":
         return "Flagged (Proxy)";
       case "absent":
@@ -94,6 +99,10 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
           <div className="flex items-center gap-1">
             <div className="h-2 w-2 rounded-sm bg-orange-500" />
             <span>Late</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-sm bg-indigo-500" />
+            <span>Late (Permitted)</span>
           </div>
           {statuses.includes("flagged") && (
             <div className="flex items-center gap-1">

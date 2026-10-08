@@ -33,7 +33,7 @@ import { AnonymousCommentDialog } from "@/components/dashboard/anonymous-comment
 import { LatePermissionRequestModal } from "@/components/late-permission-request-modal";
 
 import { getAllAwards, getMyAwards } from "@/lib/api/awards";
-import { isLate } from "@/lib/utils/attendance";
+import { getAttendanceStatusInfo } from "@/lib/utils/attendance";
 import { getInitials } from "@/lib/utils";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
@@ -143,15 +143,8 @@ export default async function Page() {
         return "absent" as AttendanceStatus;
       }
 
-      if (record.is_flagged_proxy) {
-        return "flagged" as AttendanceStatus;
-      }
-
-      if (isLate(record.clock_in_at)) {
-        return "late" as AttendanceStatus;
-      }
-
-      return "on-time" as AttendanceStatus;
+      const { status } = getAttendanceStatusInfo(record);
+      return status === "proxy" ? "flagged" : status;
     });
   }
 

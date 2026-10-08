@@ -10,6 +10,7 @@ export type NotificationCountValue =
           latest_id?: string | null;
           items?: { conversation_id: string; sender_name: string; count: number }[];
           task_items?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[];
+          payment_items?: { id: string; title: string; message: string; count: number; url: string }[];
       };
 
 type NotificationCounts = Record<string, NotificationCountValue>;

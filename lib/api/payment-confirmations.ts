@@ -13,6 +13,7 @@ export interface ListPagination {
 export interface ListResponse<T> {
     data: T[];
     pagination: ListPagination;
+    assignment_notifications_through_id?: number | null;
 }
 
 export interface OutstandingPayment {
@@ -78,6 +79,7 @@ export interface PaymentConfirmationFilters {
     limit?: number;
     status?: 'pending' | 'approved' | 'rejected';
     assigned?: boolean;
+    confirmation_id?: string;
 }
 
 interface PaymentConfirmationsResponse {
@@ -100,6 +102,7 @@ export async function getPaymentConfirmations(
     if (filters.assigned !== undefined) {
         queryParams.set("assigned", filters.assigned ? "1" : "0");
     }
+    if (filters.confirmation_id) queryParams.set("confirmation_id", filters.confirmation_id);
 
     const response = await api.get<ListResponse<PaymentConfirmation>>(
         `/api/payment-confirmations?${queryParams.toString()}`
@@ -189,7 +192,10 @@ export async function markPaymentNotificationsAsRead(): Promise<boolean> {
     return response.success;
 }
 
-export async function markAssignedDealsNotificationsAsRead(): Promise<boolean> {
-    const response = await api.post<any>("/api/payment-confirmations/notifications/mark-assigned-viewed");
+export async function markAssignedDealsNotificationsAsRead(confirmationIds: string[], throughId: number): Promise<boolean> {
+    const response = await api.post<unknown>("/api/payment-confirmations/notifications/mark-assigned-viewed", {
+        confirmation_ids: confirmationIds,
+        through_id: throughId,
+    });
     return response.success;
 }
