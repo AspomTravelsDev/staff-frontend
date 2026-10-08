@@ -1,4 +1,4 @@
-const CACHE_NAME = "aspom-portal-cache-v3";
+const CACHE_NAME = "aspom-portal-cache-v4";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
@@ -29,22 +29,30 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch listener with offline fallback for navigation requests
+// Only document navigation needs an offline fallback. Uploads, server actions,
+// API calls, and Next.js data requests use the browser's normal networking.
 self.addEventListener("fetch", (event) => {
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(async () => {
-        const cache = await caches.open(CACHE_NAME);
-        return cache.match(OFFLINE_URL);
-      })
-    );
+  if (
+    event.request.method !== "GET" ||
+    event.request.mode !== "navigate" ||
+    new URL(event.request.url).origin !== self.location.origin
+  ) {
     return;
   }
 
-  // Pass-through for other requests
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    fetch(event.request).catch(async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        const offlinePage = await cache.match(OFFLINE_URL);
+        if (offlinePage) return offlinePage;
+      } catch {
+        // Storage can be unavailable; still return a valid response.
+      }
+      return new Response("You are offline. Reconnect and reload this page.", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
     })
   );
 });

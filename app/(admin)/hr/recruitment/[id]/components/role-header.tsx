@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import { updateRecruitmentRole } from "@/lib/api/recruitment";
 import { UploadCvDialog } from "./upload-cv-dialog";
 import { EditInstructionsDialog } from "./edit-instructions-dialog";
 import { RecruitmentRoleTourButton } from "./recruitment-role-tour";
+import { RoleActions } from "../../components/role-actions";
 import { toast } from "sonner";
 
 interface RoleHeaderProps {
@@ -46,20 +47,18 @@ interface RoleHeaderProps {
 export function RoleHeader({ role, stats }: RoleHeaderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [currentStatus, setCurrentStatus] = useState<RoleStatus>(role.status);
+  const currentStatus = role.status;
 
   const acceptedCount = stats?.accepted ?? role.accepted_count ?? 0;
   const isFilled = acceptedCount >= role.openings_count;
 
   const handleStatusChange = async (newStatus: RoleStatus) => {
     if (newStatus === currentStatus) return;
-    setCurrentStatus(newStatus);
 
     startTransition(async () => {
       try {
         const res = await updateRecruitmentRole(role.id, { status: newStatus });
         if (!res.success) {
-          setCurrentStatus(role.status);
           toast.error(res.error || "Failed to update campaign status.");
           return;
         }
@@ -71,9 +70,8 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
             : "Campaign resumed and is now active."
         );
         router.refresh();
-      } catch (err: any) {
-        setCurrentStatus(role.status);
-        toast.error(err?.message || "Failed to update campaign status.");
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to update campaign status.");
       }
     });
   };
@@ -174,7 +172,7 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
             <span className="text-xs text-muted-foreground font-medium">Status:</span>
             <Select
               value={currentStatus}
-              onValueChange={(val: any) => handleStatusChange(val as RoleStatus)}
+              onValueChange={(val) => handleStatusChange(val as RoleStatus)}
               disabled={isPending}
             >
               <SelectTrigger className="h-7 w-[110px] text-xs border-0 shadow-none focus:ring-0 px-2 py-0">
@@ -202,8 +200,9 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
             <EditInstructionsDialog role={role} />
           </div>
           <div id="tour-upload-cv">
-            <UploadCvDialog roleId={role.id} roleTitle={role.title} />
+            <UploadCvDialog roleId={role.id} roleTitle={role.title} disabled={currentStatus === "closed"} />
           </div>
+          <RoleActions role={role} redirectOnDelete disabled={isPending} />
         </div>
       </div>
 

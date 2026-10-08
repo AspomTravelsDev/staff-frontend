@@ -41,6 +41,7 @@ import { useRouter } from "next/navigation";
 import { CandidateEvaluationSheet } from "./candidate-evaluation-sheet";
 import { AcceptOnboardModal } from "./accept-onboard-modal";
 import { InterviewRubricDialog } from "./interview-rubric-dialog";
+import { DeleteCandidateDialog } from "./delete-candidate-dialog";
 
 interface CandidatesTableProps {
   candidates: RecruitmentCandidate[];
@@ -562,6 +563,7 @@ export function CandidatesTable({
                             Resend Offer
                           </Button>
                         )}
+                        <DeleteCandidateDialog candidate={candidate} roleId={roleId} />
                       </div>
                     </TableCell>
                   </TableRow>

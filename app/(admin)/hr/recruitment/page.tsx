@@ -3,6 +3,7 @@ import { getAllHrRequests } from "@/lib/api/hr-requests";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RolesTable } from "./components/roles-table";
 import { CreateRoleDialog } from "./components/create-role-dialog";
+import { StandaloneRubricDialog } from "./components/standalone-rubric-dialog";
 import { Briefcase, Users, UserCheck, Clock } from "lucide-react";
 import { RecruitmentHubTour, RecruitmentHubTourButton } from "./components/recruitment-hub-tour";
 
@@ -41,8 +42,11 @@ export default async function RecruitmentPage() {
             Manage candidate pipelines, analyze CVs with AI against custom criteria, and bridge hired candidates into onboarding.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <RecruitmentHubTourButton />
+          <div id="tour-create-rubric">
+            <StandaloneRubricDialog />
+          </div>
           <div id="tour-create-role">
             <CreateRoleDialog hrRequests={hrRequests} />
           </div>

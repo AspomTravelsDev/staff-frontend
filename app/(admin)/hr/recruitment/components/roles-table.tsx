@@ -14,8 +14,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, Users, CheckCircle2, UserCheck } from "lucide-react";
+import { ArrowRight, Users, CheckCircle2 } from "lucide-react";
 import type { RecruitmentRole } from "@/lib/types/recruitment";
+import { RoleActions } from "./role-actions";
 
 interface RolesTableProps {
   roles: RecruitmentRole[];
@@ -178,12 +179,15 @@ export function RolesTable({ roles }: RolesTableProps) {
                       {format(new Date(role.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild size="sm" variant="default" className="gap-1">
-                        <Link href={`/hr/recruitment/${role.id}`}>
-                          Manage
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button asChild size="sm" variant="default" className="gap-1">
+                          <Link href={`/hr/recruitment/${role.id}`}>
+                            Manage
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                        <RoleActions role={role} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

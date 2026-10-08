@@ -41,6 +41,16 @@ const RECRUITMENT_HUB_TOUR_STEPS: DriveStep[] = [
     },
   },
   {
+    element: "#tour-create-rubric",
+    popover: {
+      title: "Quick Interview Rubric",
+      description:
+        "Create an interview rubric for an applicant who is not in the portal. Fill in their details, scores, and interview notes, then download the PDF without uploading a CV or creating a recruitment role.",
+      side: "bottom",
+      align: "end",
+    },
+  },
+  {
     element: "#tour-roles-table",
     popover: {
       title: "Campaigns Directory & Management",

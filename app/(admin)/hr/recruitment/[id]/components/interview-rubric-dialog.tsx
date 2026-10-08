@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -32,8 +31,6 @@ import {
   Award,
   FileText,
   DollarSign,
-  Calendar,
-  Check,
   Download,
   TrendingUp,
   CheckCircle2,
@@ -54,22 +51,35 @@ import type {
 import { saveCandidateRubricAction, analyzeInterviewAction } from "@/lib/api/recruitment";
 import { toast } from "sonner";
 
-interface InterviewRubricDialogProps {
-  candidate: RecruitmentCandidate | null;
-  roleTitle: string;
-  roleDepartment: string;
-  roleId: string;
+interface RubricDialogControls {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onProceedToOffer?: (candidate: RecruitmentCandidate) => void;
   onCandidateUpdated?: (candidate: RecruitmentCandidate) => void;
 }
 
+type InterviewRubricDialogProps = RubricDialogControls & (
+  | {
+      standalone: true;
+      candidate?: null;
+      roleTitle?: string;
+      roleDepartment?: string;
+      roleId?: string;
+    }
+  | {
+      standalone?: false;
+      candidate: RecruitmentCandidate | null;
+      roleTitle: string;
+      roleDepartment: string;
+      roleId: string;
+    }
+);
+
 export function InterviewRubricDialog({
-  candidate,
-  roleTitle,
-  roleDepartment,
-  roleId,
+  candidate = null,
+  roleTitle = "",
+  roleId = "",
+  standalone = false,
   open,
   onOpenChange,
   onProceedToOffer,
@@ -78,6 +88,7 @@ export function InterviewRubricDialog({
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const pdfDocumentRef = useRef<HTMLDivElement>(null);
   const [postInterviewEvaluation, setPostInterviewEvaluation] = useState<PostInterviewEvaluation | null>(
     candidate?.post_interview_evaluation || null
   );
@@ -90,20 +101,20 @@ export function InterviewRubricDialog({
 
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerDesignation, setReviewerDesignation] = useState("HR Officer");
-  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewDate, setInterviewDate] = useState(() => standalone ? format(new Date(), "do MMMM yyyy") : "");
 
   // Assessment Scores
   const [scores, setScores] = useState<Omit<RubricAssessmentScores, "total_score">>({
-    cultural_fit: 3,
-    career_motivation: 4,
-    teamwork: 4,
-    technical_skills: 3,
-    leadership_capabilities: 3,
-    self_awareness: 3,
-    critical_thinking: 4,
-    social_skills: 3,
-    communication: 3,
-    test_score: 5,
+    cultural_fit: standalone ? 0 : 3,
+    career_motivation: standalone ? 0 : 4,
+    teamwork: standalone ? 0 : 4,
+    technical_skills: standalone ? 0 : 3,
+    leadership_capabilities: standalone ? 0 : 3,
+    self_awareness: standalone ? 0 : 3,
+    critical_thinking: standalone ? 0 : 4,
+    social_skills: standalone ? 0 : 3,
+    communication: standalone ? 0 : 3,
+    test_score: standalone ? 0 : 5,
   });
 
   // Qualitative Fields
@@ -115,7 +126,7 @@ export function InterviewRubricDialog({
   const [availabilityToResume, setAvailabilityToResume] = useState("");
   const [salaryExpectation, setSalaryExpectation] = useState("");
   const [recommendedSalary, setRecommendedSalary] = useState("");
-  const [recommendation, setRecommendation] = useState("RECOMMENDED");
+  const [recommendation, setRecommendation] = useState(standalone ? "KEEP IN VIEW" : "RECOMMENDED");
   const [nyscStatus, setNyscStatus] = useState("");
   const [accommodation, setAccommodation] = useState("NOT NEEDED");
 
@@ -283,8 +294,8 @@ export function InterviewRubricDialog({
       };
       onCandidateUpdated?.(updatedCandidate);
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to save interview rubric.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save interview rubric.");
     } finally {
       setSaving(false);
     }
@@ -328,8 +339,8 @@ export function InterviewRubricDialog({
       } else {
         toast.success("Interview rubric saved & analyzed by AI!");
       }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to save rubric or analyze with AI.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save rubric or analyze with AI.");
     } finally {
       setSaving(false);
       setAnalyzing(false);
@@ -337,7 +348,12 @@ export function InterviewRubricDialog({
   };
 
   const handleDownloadPdf = async () => {
-    const element = document.getElementById("interview-rubric-pdf-document");
+    if (standalone && (!applicantName.trim() || !roleAppliedFor.trim())) {
+      toast.error("Enter the applicant's name and role applied for before downloading.");
+      return;
+    }
+
+    const element = pdfDocumentRef.current;
     if (!element) {
       toast.error("Rubric document element not found.");
       return;
@@ -381,7 +397,7 @@ export function InterviewRubricDialog({
     }
   };
 
-  if (!candidate) return null;
+  if (!candidate && !standalone) return null;
 
   const assessmentItems: Array<{
     key: keyof typeof scores;
@@ -414,11 +430,15 @@ export function InterviewRubricDialog({
               <div>
                 <DialogTitle className="text-xl font-bold flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary" />
-                  Interview Rubric Form
+                  {standalone ? "Create Interview Rubric" : "Interview Rubric Form"}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  Evaluate <strong className="text-foreground">{candidate.name}</strong> for the position of{" "}
-                  <strong className="text-foreground">{roleTitle}</strong>.
+                  {standalone ? (
+                    <>Fill in the applicant details and interview assessment, then download the PDF. This rubric is not saved in the portal.</>
+                  ) : (
+                    <>Evaluate <strong className="text-foreground">{candidate?.name}</strong> for the position of{" "}
+                    <strong className="text-foreground">{roleTitle}</strong>.</>
+                  )}
                 </DialogDescription>
               </div>
 
@@ -441,9 +461,10 @@ export function InterviewRubricDialog({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-muted/30 p-3.5 rounded-lg border">
                 <div className="space-y-1 sm:col-span-2">
-                  <Label htmlFor="applicant_name" className="text-xs">Candidate Name</Label>
+                  <Label htmlFor="applicant_name" className="text-xs">{standalone ? "Applicant Name *" : "Candidate Name"}</Label>
                   <Input
                     id="applicant_name"
+                    required={standalone}
                     value={applicantName}
                     onChange={(e) => setApplicantName(e.target.value)}
                     placeholder="Candidate full name"
@@ -463,9 +484,10 @@ export function InterviewRubricDialog({
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="role_applied" className="text-xs">Role Applied For</Label>
+                  <Label htmlFor="role_applied" className="text-xs">Role Applied For{standalone && " *"}</Label>
                   <Input
                     id="role_applied"
+                    required={standalone}
                     value={roleAppliedFor}
                     onChange={(e) => setRoleAppliedFor(e.target.value)}
                     placeholder="Role applied for"
@@ -505,6 +527,17 @@ export function InterviewRubricDialog({
                     className="h-8 text-xs bg-background"
                   />
                 </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="interview_date" className="text-xs">Interview Date</Label>
+                  <Input
+                    id="interview_date"
+                    value={interviewDate}
+                    onChange={(e) => setInterviewDate(e.target.value)}
+                    placeholder="e.g. 8th October 2026"
+                    className="h-8 text-xs bg-background"
+                  />
+                </div>
               </div>
             </div>
 
@@ -535,7 +568,7 @@ export function InterviewRubricDialog({
                             (Max {item.max})
                           </span>
                         </div>
-                        {item.aiSuggest !== undefined && (
+                        {!standalone && item.aiSuggest !== undefined && (
                           <div className="flex items-center gap-1 text-[10px] text-primary">
                             <Sparkles className="h-2.5 w-2.5" />
                             <span>AI suggested: {item.aiSuggest}</span>
@@ -567,7 +600,7 @@ export function InterviewRubricDialog({
                             type="number"
                             min={0}
                             max={item.max}
-                            value={currentVal}
+                            value={standalone && currentVal === 0 ? "" : currentVal}
                             onChange={(e) => handleScoreChange(item.key, parseInt(e.target.value) || 0)}
                             className="w-16 h-8 text-center text-xs font-bold"
                           />
@@ -724,7 +757,7 @@ export function InterviewRubricDialog({
             </div>
 
             {/* Section 5: Post-Interview AI Synthesis & Debrief */}
-            <div className="space-y-3">
+            {!standalone && <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -861,7 +894,7 @@ export function InterviewRubricDialog({
                   <div className="space-y-0.5 text-center sm:text-left">
                     <p className="font-medium text-foreground">AI Post-Interview Analysis Not Run Yet</p>
                     <p className="text-muted-foreground text-[11px]">
-                      Click "Save & Analyze with AI" below to synthesize interview scores, evaluate CV gap resolutions, and verify hiring readiness.
+                      Click &quot;Save &amp; Analyze with AI&quot; below to synthesize interview scores, evaluate CV gap resolutions, and verify hiring readiness.
                     </p>
                   </div>
                   <Button
@@ -877,11 +910,11 @@ export function InterviewRubricDialog({
                   </Button>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
 
           {/* Action Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t pt-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-between gap-3 border-t pt-4">
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -909,9 +942,10 @@ export function InterviewRubricDialog({
                 disabled={saving || analyzing}
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {standalone ? "Close" : "Cancel"}
               </Button>
 
+              {!standalone && <>
               <Button
                 type="button"
                 variant="outline"
@@ -961,6 +995,7 @@ export function InterviewRubricDialog({
                   {saving || analyzing ? "Analyzing with AI..." : "Proceed to Offer"}
                 </Button>
               )}
+              </>}
             </div>
           </div>
         </div>
@@ -976,7 +1011,7 @@ export function InterviewRubricDialog({
           style={{ top: 0, left: "-9999px", width: "800px", zIndex: -100 }}
         >
           <div
-            id="interview-rubric-pdf-document"
+            ref={pdfDocumentRef}
             style={{ width: "800px", backgroundColor: "#ffffff", color: "#000000" }}
             className="bg-white text-black p-8 font-sans"
           >
@@ -1002,12 +1037,12 @@ export function InterviewRubricDialog({
 
             {/* Section 1: APPLICANT'S INFORMATION */}
             <div className="mb-4">
-              <div className="font-bold text-xs uppercase mb-1 text-black">Applicant's Information</div>
+              <div className="font-bold text-xs uppercase mb-1 text-black">Applicant&apos;s Information</div>
               <table className="w-full border-collapse border border-black text-xs text-black">
                 <tbody>
                   <tr>
                     <td className="border border-black p-2 font-bold bg-gray-100 w-1/4 uppercase">Name</td>
-                    <td className="border border-black p-2 uppercase font-medium">{applicantName || candidate.name}</td>
+                    <td className="border border-black p-2 uppercase font-medium">{applicantName || candidate?.name || "—"}</td>
                   </tr>
                   <tr>
                     <td className="border border-black p-2 font-bold bg-gray-100 w-1/4 uppercase">Age</td>
@@ -1027,7 +1062,7 @@ export function InterviewRubricDialog({
 
             {/* Section 2: REVIEWER'S INFORMATION */}
             <div className="mb-4">
-              <div className="font-bold text-xs uppercase mb-1 text-black">Reviewer's Information</div>
+              <div className="font-bold text-xs uppercase mb-1 text-black">Reviewer&apos;s Information</div>
               <table className="w-full border-collapse border border-black text-xs text-black">
                 <tbody>
                   <tr>

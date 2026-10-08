@@ -22,9 +22,10 @@ interface UploadCvDialogProps {
   roleId: string;
   roleTitle: string;
   trigger?: React.ReactNode;
+  disabled?: boolean;
 }
 
-export function UploadCvDialog({ roleId, roleTitle, trigger }: UploadCvDialogProps) {
+export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }: UploadCvDialogProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +74,10 @@ export function UploadCvDialog({ roleId, roleTitle, trigger }: UploadCvDialogPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (disabled) {
+      toast.error("Reopen this recruitment role before uploading another CV.");
+      return;
+    }
     if (!file) {
       toast.error("Please select a CV document to upload.");
       return;
@@ -115,9 +120,9 @@ export function UploadCvDialog({ roleId, roleTitle, trigger }: UploadCvDialogPro
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild disabled={disabled}>
         {trigger || (
-          <Button className="gap-2">
+          <Button className="gap-2" disabled={disabled}>
             <UploadCloud className="h-4 w-4" />
             Upload Candidate CV
           </Button>

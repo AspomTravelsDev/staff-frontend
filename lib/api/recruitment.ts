@@ -27,6 +27,7 @@ export type RecruitmentActionResult<T = any> = {
   success: boolean;
   data?: T;
   error?: string;
+  errorCode?: string;
 };
 
 export async function createRecruitmentRole(data: {
@@ -74,6 +75,24 @@ export async function deleteRecruitmentRole(id: string): Promise<RecruitmentActi
     return { success: false, error: response.error?.error || "Failed to delete recruitment role" };
   }
   revalidatePath("/hr/recruitment");
+  revalidatePath("/hr/staff-requests");
+  return { success: true };
+}
+
+export async function deleteRecruitmentCandidate(
+  candidateId: string,
+  roleId: string
+): Promise<RecruitmentActionResult<void>> {
+  const response = await api.delete(`/api/recruitment/roles/${roleId}/candidates/${candidateId}`);
+  if (!response.success) {
+    return {
+      success: false,
+      error: response.error.error || "Failed to delete recruitment candidate",
+      errorCode: response.error.code,
+    };
+  }
+  revalidatePath(`/hr/recruitment/${roleId}`);
+  revalidatePath("/hr/recruitment");
   return { success: true };
 }
 
@@ -86,7 +105,17 @@ export async function uploadCandidateCv(
     formData
   );
   if (!response.success) {
-    return { success: false, error: response.error?.error || "Failed to upload candidate CV" };
+    // Keep the backend code visible in the server-action response, and log no
+    // credentials, candidate details, CV contents, or raw upstream response.
+    console.error("[Recruitment CV upload failed]", {
+      roleId,
+      code: response.error.code,
+    });
+    return {
+      success: false,
+      error: response.error?.error || "Failed to upload candidate CV",
+      errorCode: response.error.code,
+    };
   }
   revalidatePath(`/hr/recruitment/${roleId}`);
   revalidatePath("/hr/recruitment");

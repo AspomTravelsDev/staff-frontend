@@ -45,6 +45,7 @@ import {
 import type { RecruitmentCandidate, CandidateStatus } from "@/lib/types/recruitment";
 import { updateCandidateStatus, reanalyzeCandidate } from "@/lib/api/recruitment";
 import { toast } from "sonner";
+import { DeleteCandidateDialog } from "./delete-candidate-dialog";
 
 interface CandidateEvaluationSheetProps {
   candidate: RecruitmentCandidate | null;
@@ -221,7 +222,7 @@ export function CandidateEvaluationSheet({
           </div>
 
           {/* Actions row */}
-          <div className="flex items-center justify-between pt-3 gap-2">
+          <div className="flex flex-wrap items-center justify-between pt-3 gap-2">
             <div className="flex items-center gap-2">
               <Select value={status} onValueChange={(v) => handleStatusChange(v as CandidateStatus)}>
                 <SelectTrigger className="h-9 w-[160px] text-xs capitalize font-medium">
@@ -305,6 +306,7 @@ export function CandidateEvaluationSheet({
                 Hired • Onboarding Completed
               </Badge>
             )}
+            <DeleteCandidateDialog candidate={candidate} roleId={roleId} onDeleted={() => onOpenChange(false)} />
           </div>
         </SheetHeader>
 

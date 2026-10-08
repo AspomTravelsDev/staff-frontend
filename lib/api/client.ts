@@ -100,6 +100,28 @@ export async function apiClient<T>(
         }
 
         if (!response.ok) {
+            const isRecruitmentUpload =
+                fetchOptions.method === "POST" &&
+                /^\/api\/recruitment\/roles\/[^/]+\/candidates$/.test(endpoint);
+            const isUpstreamUploadBlock = isRecruitmentUpload && response.status === 403 && data === null;
+            const responseErrorCode = isUpstreamUploadBlock
+                ? "UPLOAD_BLOCKED_BY_HOSTING"
+                : data?.code || `HTTP_${response.status}`;
+
+            if (isRecruitmentUpload) {
+                // Distinguish Laravel authorization from an upstream HTML rejection.
+                // Never log the token, CV, candidate details, or response body.
+                console.error("[Recruitment CV upstream rejection]", {
+                    endpoint,
+                    status: response.status,
+                    code: responseErrorCode,
+                    contentType: response.headers.get("content-type"),
+                    server: response.headers.get("server"),
+                    hcdnRequestId: response.headers.get("x-hcdn-request-id"),
+                    hasAuthToken: Boolean(token),
+                });
+            }
+
             // Handle 401 Unauthorized globally (only for true session expiration)
             if (response.status === 401 && data?.code === "UNAUTHENTICATED" && !endpoint.includes("/login")) {
                 if (typeof window !== "undefined") {
@@ -119,7 +141,9 @@ export async function apiClient<T>(
                 };
             }
 
-            let errorMessage = data?.message || data?.error;
+            let errorMessage = isUpstreamUploadBlock
+                ? "The hosting server blocked the CV upload. Please contact IT support."
+                : data?.message || data?.error;
             if (data?.details && typeof data.details === "string" && data.details.trim() && data.details !== errorMessage) {
                 errorMessage = `${errorMessage} (${data.details.trim()})`;
             }
@@ -153,7 +177,7 @@ export async function apiClient<T>(
                 success: false,
                 error: {
                     error: errorMessage,
-                    code: data?.code || `HTTP_${response.status}`,
+                    code: responseErrorCode,
                 },
             };
         }

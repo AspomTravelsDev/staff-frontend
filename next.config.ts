@@ -3,9 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      // CVs can be 15 MB; allow room for multipart form fields and headers.
+      bodySizeLimit: "20mb",
     },
-    proxyClientMaxBodySize: "10mb",
+    proxyClientMaxBodySize: "20mb",
   },
   images: {
     remotePatterns: [
