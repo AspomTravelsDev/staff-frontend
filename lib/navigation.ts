@@ -293,7 +293,7 @@ export const departmentNav: NavItem[] = [
     title: "Recruitment",
     url: "/hr/recruitment",
     icon: Briefcase,
-    allowedRoles: ["hr", "super"],
+    allowedRoles: ["hr", "super", "mp", "md"],
   },
   {
     title: "Late Permission Requests",
