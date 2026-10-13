@@ -17,6 +17,7 @@ import { getTaskTrackerDashboardSummary, updateTaskTrackerItem } from "@/lib/api
 import { TaskCompletionDialog } from "@/components/tasks/task-completion-dialog";
 import { TaskWorkflowControls, isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
 import { computeTaskTimeline } from "@/lib/utils/task-timeline";
+import { getTaskStatusLabel } from "@/lib/utils/task-status";
 import {
   CalendarClock,
   ArrowRight,
@@ -191,6 +192,7 @@ export function UpcomingTasksWidget({
                           >
                             {task.priority}
                           </span>
+                          <Badge variant="outline" className="max-w-[180px] whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge>
                         </div>
 
                         {task.description && (

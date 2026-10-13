@@ -35,20 +35,20 @@ export default async function RecruitmentPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div id="tour-recruitment-header" className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
+      <div id="tour-recruitment-header" className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-bold tracking-tight">Recruitment & Hiring</h1>
           <p className="text-muted-foreground mt-1">
             Manage candidate pipelines, analyze CVs with AI against custom criteria, and bridge hired candidates into onboarding.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <RecruitmentHubTourButton />
-          <div id="tour-create-rubric">
-            <StandaloneRubricDialog />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center xl:shrink-0 xl:flex-nowrap">
+          <RecruitmentHubTourButton className="h-10 w-full sm:w-auto" />
+          <div id="tour-create-rubric" className="w-full sm:w-auto">
+            <StandaloneRubricDialog className="h-10 w-full sm:w-auto" />
           </div>
-          <div id="tour-create-role">
-            <CreateRoleDialog hrRequests={hrRequests} />
+          <div id="tour-create-role" className="w-full sm:w-auto">
+            <CreateRoleDialog hrRequests={hrRequests} triggerClassName="h-10 w-full sm:w-auto" />
           </div>
         </div>
       </div>

@@ -55,6 +55,7 @@ function rubricControl(props = { standalone: true, open: true, onOpenChange() {}
   const { load } = actionLoader(() => { throw new Error("Unexpected API request"); }, {
     react,
     "react/jsx-runtime": jsxRuntime,
+    "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
     "date-fns": { format: () => "8th October 2026" },
     "lucide-react": namedComponents("Save Send Loader2 Sparkles ClipboardList User Award FileText DollarSign Download TrendingUp CheckCircle2 AlertTriangle XCircle RotateCw Target ShieldCheck"),
     "@/components/ui/dialog": namedComponents("Dialog DialogContent DialogHeader DialogTitle DialogDescription"),

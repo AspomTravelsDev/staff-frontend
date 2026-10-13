@@ -12,16 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getTaskStatusLabel } from "@/lib/utils/task-status";
+import { TaskStatusDialog } from "./task-status-dialog";
+import { ReassignTaskDialog } from "./reassign-task-dialog";
+import { TaskHistoryDetails } from "./task-history-details";
 
-type Action = Parameters<typeof runTaskWorkflow>[1]["action"];
+type Action = Exclude<Parameters<typeof runTaskWorkflow>[1]["action"], "update_status">;
 interface HistoryEvent { id: number; type: string; details: Record<string, unknown>; created_at: string; user?: { name: string } | null }
-const labels: Record<Action, string> = { start: "Start work", submit: "Submit deliverable", accept: "Accept deliverable", request_changes: "Request changes", cancel: "Cancel task", reopen: "Reopen task" };
+const labels: Record<Action, string> = { start: "Start work", submit: "Submit for approval", accept: "Approve completion", request_changes: "Request changes", cancel: "Cancel task", reopen: "Reopen task" };
 const dialogLabels: Record<Action, string> = { ...labels, submit: "Confirm work submission", accept: "Confirm task completion" };
 const confirmLabels: Record<Action, string> = { ...labels, submit: "Confirm submission", accept: "Confirm completion" };
-export const taskStatusLabels: Record<TaskTrackerItem["status"], string> = {
-  pending: "Pending", in_progress: "In progress", submitted: "Awaiting review",
-  changes_requested: "Changes requested", completed: "Completed", cancelled: "Cancelled",
-};
+export { taskStatusLabels } from "@/lib/utils/task-status";
 export function isActiveTask(task: TaskTrackerItem) {
   return ["pending", "in_progress", "changes_requested"].includes(task.status);
 }
@@ -46,9 +47,9 @@ export function TaskSubmissionDetails({ task, compact = false }: { task: TaskTra
       </div>
       <div className="space-y-1">
         <dt className="text-muted-foreground">Status</dt>
-        <dd><Badge variant="outline">{task.status === "completed" ? "Accepted" : taskStatusLabels[task.status]}</Badge></dd>
+        <dd><Badge variant="outline" className="whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge></dd>
       </div>
-    </dl> : <Badge variant="outline">{taskStatusLabels[task.status]}</Badge>}
+    </dl> : <Badge variant="outline">{getTaskStatusLabel(task)}</Badge>}
     {task.submitted_at && <div className="rounded-md border bg-muted/20 p-3 space-y-1">
       <p className="font-medium">Submitted {formatReadableDate(task.submitted_at)}</p>
       <p className="text-muted-foreground">{!task.submission_due_date || new Date(task.submitted_at) <= new Date(task.submission_due_date) ? "Submitted on time" : "Submitted past deadline"}</p>
@@ -62,6 +63,9 @@ export function TaskSubmissionDetails({ task, compact = false }: { task: TaskTra
 
 export function TaskWorkflowControls({ task, onUpdated, compact = false, showHistory = true, renderControls }: { task: TaskTrackerItem; onUpdated: (task: TaskTrackerItem) => void; compact?: boolean; showHistory?: boolean; renderControls?: (controls: ReactNode) => ReactNode }) {
   const [action, setAction] = useState<Action | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const canUpdateStatus = task.can_submit || (!task.is_delegated && task.can_manage);
   const [note, setNote] = useState("");
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
@@ -107,20 +111,26 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
     finally { savingRef.current = false; setSaving(false); }
   };
   const controls = <>
+    {!compact && task.can_reassign && <Button size="sm" variant={renderControls ? "ghost" : "outline"} disabled={saving} onClick={() => setReassignOpen(true)}>Reassign task</Button>}
+    {canUpdateStatus && isActiveTask(task) && <>
+      {task.status === "pending" && <Button size="sm" variant={renderControls ? "ghost" : compact ? "default" : "outline"} disabled={saving} onClick={startWork}>{saving ? "Starting…" : compact ? "Start" : task.is_delegated ? "Accept task" : "Start task"}</Button>}
+      {!compact && <Button size="sm" variant={renderControls ? "ghost" : "outline"} disabled={saving} onClick={() => setStatusOpen(true)}>Update status</Button>}
+    </>}
     {task.can_submit && isActiveTask(task) && <>
-      {task.status === "pending" && <Button size="sm" variant={renderControls ? "ghost" : compact ? "default" : "outline"} disabled={saving} onClick={startWork}>{saving ? "Starting…" : compact ? "Begin" : "Begin work"}</Button>}
-      {(!compact || task.status !== "pending") && <Button size="sm" variant={renderControls ? "ghost" : "default"} onClick={() => openAction("submit")}>Submit work</Button>}
+      {(!compact || task.status !== "pending") && <Button size="sm" variant={renderControls ? "ghost" : "default"} onClick={() => openAction("submit")}>Submit for approval</Button>}
     </>}
     {!compact && task.can_review && task.status === "submitted" && <>
-      <Button size="sm" variant={renderControls ? "ghost" : "default"} onClick={() => openAction("accept")}>Accept deliverable</Button>
+      <Button size="sm" variant={renderControls ? "ghost" : "default"} onClick={() => openAction("accept")}>Approve completion</Button>
       <Button size="sm" variant={renderControls ? "ghost" : "outline"} onClick={() => openAction("request_changes")}>Request changes</Button>
     </>}
-    {!compact && task.is_delegated && task.can_manage && !["completed", "cancelled"].includes(task.status) && <Button size="sm" variant={renderControls ? "ghost" : "outline"} onClick={() => openAction("cancel")}>Cancel task</Button>}
-    {!compact && task.is_delegated && task.can_manage && ["completed", "cancelled"].includes(task.status) && <Button size="sm" variant={renderControls ? "ghost" : "outline"} onClick={() => openAction("reopen")}>Reopen task</Button>}
+    {!compact && (task.is_delegated || !!task.reassignments_count) && task.can_manage && !["completed", "cancelled"].includes(task.status) && <Button size="sm" variant={renderControls ? "ghost" : "outline"} onClick={() => openAction("cancel")}>Cancel task</Button>}
+    {!compact && task.can_manage && ((task.is_delegated && ["completed", "cancelled"].includes(task.status)) || (!!task.reassignments_count && task.status === "cancelled")) && <Button size="sm" variant={renderControls ? "ghost" : "outline"} onClick={() => openAction("reopen")}>Reopen task</Button>}
     {!compact && showHistory && <Button size="sm" variant="ghost" onClick={() => setHistoryOpen(true)}>History</Button>}
   </>;
   return <div className="flex flex-wrap gap-2" data-tour="task-workflow" onClick={e => e.stopPropagation()}>
     {renderControls ? renderControls(controls) : controls}
+    {statusOpen && <TaskStatusDialog task={task} open onOpenChange={setStatusOpen} onUpdated={onUpdated} />}
+    {reassignOpen && <ReassignTaskDialog task={task} open onOpenChange={setReassignOpen} onUpdated={onUpdated} />}
     <Dialog open={action !== null} onOpenChange={open => { if (!open && !saving) setAction(null); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>{action ? dialogLabels[action] : "Task action"}</DialogTitle><DialogDescription><strong className="break-words">{task.title}</strong>. {action === "submit" ? "Confirm that your work is ready for review. Add a completion note below. The task will be completed once your assigner accepts it." : action === "accept" ? `Accept ${task.user?.name ? `${task.user.name}'s submitted work` : "the submitted work"} and mark this task as completed? Timeliness uses the submission time, so review delays do not count against staff.` : action === "cancel" ? "Cancellation keeps the task and its history for accountability." : "This action will be recorded in the shared history."}</DialogDescription></DialogHeader>
@@ -138,7 +148,7 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
         {loadingHistory ? <p>Loading history…</p> : historyError ? <p role="alert">Could not load history. Close and reopen to retry.</p> : history.length === 0 ? <p>No recorded changes yet.</p> : history.map(event => <article key={event.id} className="border-l-2 pl-3 space-y-1 text-sm">
           <p className="font-semibold capitalize">{event.type.replaceAll("_", " ")}</p>
           <p className="text-xs text-muted-foreground">{event.user?.name || "Staff member"} · {formatReadableDate(event.created_at)}</p>
-          {Object.entries(event.details || {}).filter(([key, value]) => value != null && !["before", "after"].includes(key)).map(([key, value]) => <p key={key} className="whitespace-pre-wrap break-words text-xs"><strong className="capitalize">{key.replaceAll("_", " ")}: </strong>{Array.isArray(value) ? value.join(", ") : typeof value === "string" && /deadline/.test(key) && !Number.isNaN(Date.parse(value)) ? formatReadableDate(value) : String(value)}</p>)}
+          <TaskHistoryDetails type={event.type} details={event.details} />
         </article>)}
       </DialogContent>
     </Dialog>

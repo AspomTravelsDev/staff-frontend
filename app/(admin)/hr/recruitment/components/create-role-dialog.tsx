@@ -27,17 +27,20 @@ import { createRecruitmentRole } from "@/lib/api/recruitment";
 import { PLATFORM_DEPARTMENTS } from "@/lib/utils/role-department";
 import { CriteriaPillsInput } from "./criteria-pills-input";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface CreateRoleDialogProps {
   hrRequests?: any[];
   preselectedRequestId?: string;
   trigger?: React.ReactNode;
+  triggerClassName?: string;
 }
 
 export function CreateRoleDialog({
   hrRequests = [],
   preselectedRequestId,
   trigger,
+  triggerClassName,
 }: CreateRoleDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -108,7 +111,7 @@ export function CreateRoleDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button className="gap-2">
+          <Button className={cn("gap-2", triggerClassName)}>
             <Plus className="h-4 w-4" />
             Create Recruitment Role
           </Button>

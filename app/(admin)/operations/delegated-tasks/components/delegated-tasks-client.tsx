@@ -59,7 +59,8 @@ import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { CreateTaskDialog } from "@/app/(admin)/my/task-tracker/components/create-task-dialog";
 import { TaskCommentsDialog } from "@/app/(admin)/my/task-tracker/components/task-comments-dialog";
-import { TaskWorkflowControls, TaskSubmissionDetails, isActiveTask, taskStatusLabels } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
+import { TaskWorkflowControls, TaskSubmissionDetails, isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
+import { getTaskStatusLabel } from "@/lib/utils/task-status";
 import { DelegatedTasksTour, DelegatedTasksTourButton } from "./delegated-tasks-tour";
 import { StatsCard } from "@/components/stats-card";
 
@@ -204,7 +205,8 @@ export function DelegatedTasksClient({
         const matchesDesc = (task.description || "").toLowerCase().includes(query);
         const matchesAssignee = (task.user?.name || "").toLowerCase().includes(query);
         const matchesAssigner = (task.assigned_by?.name || "").toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDesc && !matchesAssignee && !matchesAssigner) {
+        const matchesStatus = (task.custom_status || "").toLowerCase().includes(query);
+        if (!matchesTitle && !matchesDesc && !matchesAssignee && !matchesAssigner && !matchesStatus) {
           return false;
         }
       }
@@ -345,7 +347,8 @@ export function DelegatedTasksClient({
       });
 
       if (res.success) {
-        toast.success(res.data.message || `Nudge reminder sent to ${taskToNudge.user?.name || "assignee"}`);
+        if (res.data.email_sent) toast.success(res.data.message);
+        else toast.warning(res.data.message);
         setNudgeModalOpen(false);
       } else {
         toast.error(res.error?.error || "Failed to send nudge notification");
@@ -448,7 +451,7 @@ export function DelegatedTasksClient({
           <StatsCard title="Due Soon" icon={CalendarClock} value={stats.due_soon} description="Due within 48 hours" iconClassName="text-amber-500" className="h-full" />
         </FilterStatCard>
         <FilterStatCard active={statusFilter === "submitted"} color="sky" onClick={() => handleStatusFilterChange("submitted")}>
-          <StatsCard title="Awaiting Review" icon={CheckCircle2} value={stats.submitted ?? 0} description="Submitted to assigners" className="h-full" />
+          <StatsCard title="Awaiting Approval" icon={CheckCircle2} value={stats.submitted ?? 0} description="Submitted to assigners" className="h-full" />
         </FilterStatCard>
       </div>
 
@@ -487,7 +490,7 @@ export function DelegatedTasksClient({
               <SelectItem value="pending">Pending / Active</SelectItem>
               <SelectItem value="due_soon">Due Soon (48h)</SelectItem>
               <SelectItem value="pending_extensions">Extension Requested</SelectItem>
-              <SelectItem value="submitted">Awaiting Review</SelectItem>
+              <SelectItem value="submitted">Awaiting Approval</SelectItem>
               <SelectItem value="changes_requested">Changes Requested</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
               <SelectItem value="completed">Completed (Lower)</SelectItem>
@@ -671,7 +674,7 @@ export function DelegatedTasksClient({
                       {" · "}Department: {task.user?.department || "Not specified"}
                     </p>
                     </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{task.status === "completed" ? "Accepted" : taskStatusLabels[task.status]}</Badge>
+                    <Badge variant="outline" className="text-[10px] max-w-[180px] whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge>
 
                     {/* Extension Badge on Row */}
                     {hasPendingExtension && (
@@ -750,7 +753,7 @@ export function DelegatedTasksClient({
                           ? "border-red-300 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
                           : "text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                       )}
-                      title="Send Web Push Reminder to Assignee"
+                      title="Send email and portal reminder to assignee"
                     >
                       <Bell className="h-3 w-3" />
                       <span className="hidden sm:inline">Nudge</span>
@@ -953,7 +956,7 @@ export function DelegatedTasksClient({
         }}
       />
 
-      <Dialog open={nudgeModalOpen} onOpenChange={setNudgeModalOpen}>
+      <Dialog open={nudgeModalOpen} onOpenChange={open => { if (!isNudging) setNudgeModalOpen(open); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -961,7 +964,7 @@ export function DelegatedTasksClient({
               <span>Nudge Assignee</span>
             </DialogTitle>
             <DialogDescription>
-              Send a real-time web push reminder directly to the assignee regarding this deliverable.
+              Send the assigned staff member a reminder by email and portal notification.
             </DialogDescription>
           </DialogHeader>
 
@@ -982,10 +985,13 @@ export function DelegatedTasksClient({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">
+                <label htmlFor="operations-nudge-message" className="text-xs font-semibold text-foreground">
                   Custom Follow-up Note (Optional)
                 </label>
                 <Textarea
+                  id="operations-nudge-message"
+                  maxLength={500}
+                  disabled={isNudging}
                   placeholder="e.g., Please provide an update on this deliverable before the management review..."
                   value={customNudgeMessage}
                   onChange={(e) => setCustomNudgeMessage(e.target.value)}
@@ -993,7 +999,7 @@ export function DelegatedTasksClient({
                   className="text-xs sm:text-sm"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Leave blank to send standard Office Operations reminder.
+                  Leave blank to send a standard reminder with your name and the task deadline.
                 </p>
               </div>
             </div>

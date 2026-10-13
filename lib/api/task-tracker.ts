@@ -17,7 +17,9 @@ import type {
 } from "@/lib/types/task-tracker";
 
 export async function runTaskWorkflow(id: string, payload: {
-  action: "start" | "submit" | "accept" | "request_changes" | "cancel" | "reopen";
+  action: "start" | "update_status" | "submit" | "accept" | "request_changes" | "cancel" | "reopen";
+  status?: "pending" | "in_progress";
+  custom_status?: string | null;
   note?: string;
   url?: string | null;
 }): Promise<ApiResponse<SingleItemResponse>> {
@@ -38,6 +40,20 @@ export async function getTaskHistory(id: string): Promise<ApiResponse<{ data: {
   user?: { name: string } | null;
 }[] }>> {
   return api.get(`/api/task-tracker/${id}/history`);
+}
+
+export async function reassignTask(id: string, payload: {
+  assigned_to_user_id: string;
+  previous_user_id: string;
+  note?: string;
+}): Promise<ApiResponse<SingleItemResponse>> {
+  const result = await api.post<SingleItemResponse>(`/api/task-tracker/${id}/reassign`, payload);
+  if (result.success) {
+    revalidatePath("/my/task-tracker");
+    revalidatePath("/operations/delegated-tasks");
+    revalidatePath("/dashboard");
+  }
+  return result;
 }
 
 export async function getTaskUpdateReceipt(id: string, kind?: "comment") {
@@ -202,6 +218,19 @@ export async function requestTaskExtension(
   return result;
 }
 
+/** Extend the current user's personal task deadline. */
+export async function extendTaskDeadline(
+  id: string,
+  payload: RequestTaskExtensionPayload,
+): Promise<ApiResponse<SingleItemResponse>> {
+  const result = await api.post<SingleItemResponse>(`/api/task-tracker/${id}/extend-deadline`, payload);
+  if (result.success) {
+    revalidatePath("/my/task-tracker");
+    revalidatePath("/dashboard");
+  }
+  return result;
+}
+
 /**
  * Approve a deadline extension request (Assigner)
  */
@@ -255,11 +284,11 @@ export async function getCompanyDelegatedTasks(filters?: {
 }
 
 /**
- * Nudge task assignee with a real-time reminder notification (Office Operations)
+ * Send an email and portal reminder as the task's assigner or Operations.
  */
 export async function nudgeTaskAssignee(
   id: string,
   payload: { message?: string } = {}
-): Promise<ApiResponse<{ message: string }>> {
-  return api.post<{ message: string }>(`/api/task-tracker/${id}/nudge`, payload);
+): Promise<ApiResponse<{ message: string; email_sent: boolean }>> {
+  return api.post<{ message: string; email_sent: boolean }>(`/api/task-tracker/${id}/nudge`, payload);
 }

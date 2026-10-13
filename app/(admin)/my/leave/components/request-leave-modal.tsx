@@ -35,10 +35,10 @@ interface RequestLeaveModalProps {
 
 const leaveTypes = [
   { value: "Annual", label: "Annual Leave", badge: "Confirmed staff only" },
-  { value: "Casual", label: "Casual Leave", badge: "Emergency / Exhausted Annual" },
+  { value: "Casual", label: "Casual Leave", badge: "Independent of annual leave balance" },
   { value: "Emergency", label: "Emergency Leave", badge: "Urgent family matter" },
   { value: "Sick", label: "Sick Leave", badge: "Max 3 instances / 12 days" },
-  { value: "Exam/Study", label: "Exam / Study Leave", badge: "Max 5 days (min 2 mos tenure)" },
+  { value: "Exam/Study", label: "Exam / Study Leave", badge: "Max 5 working days" },
   { value: "Bereavement", label: "Bereavement Leave", badge: "1-2 days" },
   { value: "Maternity", label: "Maternity Leave", badge: "12 weeks (min 12 mos tenure)" },
   { value: "Unpaid", label: "Unpaid Leave", badge: "Max 5 days / year" },

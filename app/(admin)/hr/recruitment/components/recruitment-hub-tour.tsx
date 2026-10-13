@@ -6,6 +6,7 @@ import "driver.js/dist/driver.css";
 import "@/components/tour/driver-theme.css";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const RECRUITMENT_HUB_TOUR_STORAGE_KEY = "aspom_has_seen_recruitment_hub_tour_v1";
 
@@ -118,13 +119,13 @@ export function RecruitmentHubTour() {
   return null;
 }
 
-export function RecruitmentHubTourButton() {
+export function RecruitmentHubTourButton({ className }: { className?: string }) {
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={runRecruitmentHubTour}
-      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border-dashed"
+      className={cn("flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border-dashed", className)}
       title="Take an interactive tour of the Recruitment Hub"
     >
       <HelpCircle className="h-3.5 w-3.5 text-green-600" />

@@ -20,6 +20,7 @@ export interface TaskTrackerItem {
   recurrence?: TaskRecurrence | null;
   priority: TaskPriority;
   status: TaskStatus;
+  custom_status?: string | null;
   completed_at: string | null;
   original_due_date?: string | null;
   submitted_at?: string | null;
@@ -30,6 +31,8 @@ export interface TaskTrackerItem {
   can_manage?: boolean;
   can_submit?: boolean;
   can_review?: boolean;
+  can_reassign?: boolean;
+  reassignments_count?: number;
   remind_before_hours: number;
   enable_email_reminder: boolean;
   enable_push_reminder: boolean;

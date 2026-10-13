@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TaskWorkflowControls, isActiveTask } from "./task-workflow-controls";
 import { RequestExtensionDialog } from "./request-extension-dialog";
 import { DeclineExtensionDialog } from "./decline-extension-dialog";
+import { NudgeTaskDialog } from "./nudge-task-dialog";
 
 interface Props {
   task: TaskTrackerItem;
@@ -26,6 +27,7 @@ export function TaskRowActions({ task, busy, onDetails, onComment, onEdit, onTog
   const [open, setOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
+  const [nudgeOpen, setNudgeOpen] = useState(false);
   const [approving, setApproving] = useState(false);
   const active = isActiveTask(task);
   const approve = async () => {
@@ -45,19 +47,22 @@ export function TaskRowActions({ task, busy, onDetails, onComment, onEdit, onTog
         <div className="flex flex-col gap-1 [&>button]:w-full [&>button]:justify-start [&>button]:shadow-none">
           <Button size="sm" variant="ghost" onClick={onDetails}>View details and history</Button>
           {controls}
-          {!task.is_delegated && <Button size="sm" variant="ghost" disabled={busy} onClick={onToggle}>{task.status === "completed" ? "Reopen task" : "Mark complete"}</Button>}
+          {!task.is_delegated && task.status !== "cancelled" && <Button size="sm" variant="ghost" disabled={busy} onClick={onToggle}>{task.status === "completed" ? "Reopen task" : "Mark complete"}</Button>}
           {task.is_delegated && <Button size="sm" variant="ghost" onClick={onComment}>Add comment / update</Button>}
-          {task.can_submit && active && task.extension_status !== "pending" && <Button size="sm" variant="ghost" onClick={() => setRequestOpen(true)}>Request more time</Button>}
+          {!task.is_delegated && task.can_manage && active && task.due_date && <Button size="sm" variant="ghost" onClick={() => setRequestOpen(true)}>Extend deadline</Button>}
+          {task.can_submit && active && task.extension_status !== "pending" && <Button size="sm" variant="ghost" onClick={() => setRequestOpen(true)}>Request extension</Button>}
+          {task.can_review && active && <Button size="sm" variant="ghost" onClick={() => setNudgeOpen(true)}>Send nudge</Button>}
           {task.can_review && active && task.extension_status === "pending" && <>
             <Button size="sm" variant="ghost" disabled={approving} onClick={approve}>Approve extension</Button>
             <Button size="sm" variant="ghost" onClick={() => setDeclineOpen(true)}>Decline extension</Button>
           </>}
           {task.can_manage && (!task.is_delegated || active) && <Button size="sm" variant="ghost" onClick={onEdit}>Edit task</Button>}
-          {!task.is_delegated && task.can_manage && <Button size="sm" variant="ghost" disabled={busy} onClick={onDelete} className="text-destructive">Delete task</Button>}
+          {!task.is_delegated && task.can_manage && !task.reassignments_count && <Button size="sm" variant="ghost" disabled={busy} onClick={onDelete} className="text-destructive">Delete task</Button>}
         </div>
       </PopoverContent>
     </Popover>} />
     {requestOpen && <RequestExtensionDialog task={task} open onOpenChange={setRequestOpen} onSuccess={onUpdated} />}
     {declineOpen && <DeclineExtensionDialog task={task} open onOpenChange={setDeclineOpen} onSuccess={onUpdated} />}
+    {nudgeOpen && <NudgeTaskDialog task={task} open onOpenChange={setNudgeOpen} />}
   </>;
 }

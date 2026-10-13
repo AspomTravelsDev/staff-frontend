@@ -159,6 +159,9 @@ export function TaskTrackerClient({
       if (activeTab === "submitted" && task.status !== "submitted") return false;
       if (activeTab === "cancelled" && task.status !== "cancelled") return false;
       if (activeTab === "completed" && task.status !== "completed") return false;
+      if (activeTab === "not_started" && task.status !== "pending") return false;
+      if (["in_progress", "changes_requested"].includes(activeTab) && task.status !== activeTab) return false;
+      if (activeTab.startsWith("custom:") && (task.status !== "in_progress" || task.custom_status !== activeTab.slice(7))) return false;
       if (activeTab === "overdue" && (!task.is_overdue || task.status === "completed"))
         return false;
       if (activeTab === "due_soon") {
@@ -177,10 +180,11 @@ export function TaskTrackerClient({
         const q = searchQuery.toLowerCase();
         const matchesTitle = task.title.toLowerCase().includes(q);
         const matchesDesc = task.description?.toLowerCase().includes(q) ?? false;
+        const matchesStatus = task.custom_status?.toLowerCase().includes(q) ?? false;
         const matchesColleague =
           (task.user && task.user.name.toLowerCase().includes(q)) ||
           (task.assigned_by && task.assigned_by.name.toLowerCase().includes(q));
-        if (!matchesTitle && !matchesDesc && !matchesColleague) return false;
+        if (!matchesTitle && !matchesDesc && !matchesColleague && !matchesStatus) return false;
       }
 
       return true;
@@ -221,10 +225,11 @@ export function TaskTrackerClient({
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="pending" className="text-xs">Active ({stats.pending})</TabsTrigger>
-          <TabsTrigger value="submitted" className="text-xs">Review ({stats.submitted ?? 0})</TabsTrigger>
+          <TabsTrigger value="submitted" className="text-xs">Approval ({stats.submitted ?? 0})</TabsTrigger>
           <TabsTrigger value="completed" className="text-xs">Completed ({stats.completed})</TabsTrigger>
           <TabsTrigger value="all" className="text-xs">All ({stats.total})</TabsTrigger>
           {["due_soon", "overdue", "cancelled"].includes(activeTab) && <TabsTrigger value={activeTab} className="text-xs">{activeTab === "due_soon" ? "Due soon" : activeTab === "overdue" ? "Overdue" : "Cancelled"}</TabsTrigger>}
+          {(["not_started", "in_progress", "changes_requested"].includes(activeTab) || activeTab.startsWith("custom:")) && <TabsTrigger value={activeTab} className="text-xs max-w-[180px] truncate">{activeTab.startsWith("custom:") ? activeTab.slice(7) : activeTab === "not_started" ? "Pending" : activeTab === "in_progress" ? "In progress" : "Changes requested"}</TabsTrigger>}
         </TabsList>
       </Tabs>
       <div className="relative min-w-[180px] flex-1">
@@ -236,7 +241,11 @@ export function TaskTrackerClient({
     {showFilters && <div id="task-extra-filters" className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
       <Select value={activeTab} onValueChange={setActiveTab}>
         <SelectTrigger className="w-[170px] h-9" aria-label="Task status or deadline"><SelectValue /></SelectTrigger>
-        <SelectContent><SelectItem value="pending">Active</SelectItem><SelectItem value="submitted">Awaiting review</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="all">All tasks</SelectItem><SelectItem value="due_soon">Due in 48 hours</SelectItem><SelectItem value="overdue">Overdue</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent>
+        <SelectContent>
+          <SelectItem value="pending">All active</SelectItem><SelectItem value="not_started">Pending</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="changes_requested">Changes requested</SelectItem>
+          {Array.from(new Set([...tasks.filter(task => task.status === "in_progress" && task.custom_status).map(task => task.custom_status!), ...(activeTab.startsWith("custom:") ? [activeTab.slice(7)] : [])])).sort().map(status => <SelectItem key={status} value={`custom:${status}`}>{status}</SelectItem>)}
+          <SelectItem value="submitted">Awaiting approval</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="all">All tasks</SelectItem><SelectItem value="due_soon">Due in 48 hours</SelectItem><SelectItem value="overdue">Overdue</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem>
+        </SelectContent>
       </Select>
       <Select value={priorityFilter} onValueChange={setPriorityFilter}>
         <SelectTrigger className="w-[150px] h-9" aria-label="Priority"><SelectValue /></SelectTrigger>

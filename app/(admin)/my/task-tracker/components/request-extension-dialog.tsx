@@ -2,7 +2,7 @@
 
 import { formatReadableDate } from "@/lib/utils/readable-date";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Clock, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { requestTaskExtension } from "@/lib/api/task-tracker";
+import { extendTaskDeadline, requestTaskExtension } from "@/lib/api/task-tracker";
 import type { TaskTrackerItem } from "@/lib/types/task-tracker";
 
 interface RequestExtensionDialogProps {
@@ -35,6 +35,8 @@ export function RequestExtensionDialog({
   onSuccess,
 }: RequestExtensionDialogProps) {
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const personal = !task.is_delegated;
 
   // Default proposed deadline: tomorrow or 2 days after current due date
   const defaultNextDate = () => {
@@ -49,6 +51,7 @@ export function RequestExtensionDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
 
     if (!proposedDate) {
       toast.error("Please pick a proposed new deadline.");
@@ -56,7 +59,7 @@ export function RequestExtensionDialog({
     }
 
     if (!reason.trim()) {
-      toast.error("Please provide a reason for the extension request.");
+      toast.error("Please provide a reason for the extension.");
       return;
     }
 
@@ -71,50 +74,49 @@ export function RequestExtensionDialog({
       return;
     }
 
+    submitting.current = true;
     setLoading(true);
     try {
-      const res = await requestTaskExtension(task.id, {
+      const res = await (personal ? extendTaskDeadline : requestTaskExtension)(task.id, {
         requested_due_date: proposedIso,
         reason: reason.trim(),
       });
 
       if (res.success) {
-        toast.success("Deadline extension requested! Your assigner has been alerted.");
+        toast.success(personal ? "Deadline extended" : "Extension requested. Your assigner has been notified.");
         if (res.data?.data) {
           onSuccess(res.data.data);
         }
         onOpenChange(false);
       } else {
-        toast.error(res.error?.error || "Failed to request deadline extension");
+        toast.error(res.error?.error || "Could not extend the deadline. Please try again.");
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+    <Dialog open={open} onOpenChange={next => { if (!loading) onOpenChange(next); }}>
+      <DialogContent className="sm:max-w-[480px] max-h-[85dvh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Clock className="h-5 w-5 text-amber-500" />
-              Request Deadline Extension
+              {personal ? "Extend deadline" : "Request deadline extension"}
             </DialogTitle>
             <DialogDescription>
-              Submit a proposed extension for this delegated deliverable. Your assigner will receive an instant notification to review and approve.
+              {personal ? "Choose a later deadline for your personal task. The change and reason will be saved in task history." : "Propose a later deadline and explain why you need more time. Your assigner will be notified to approve or decline; the current deadline stays in place until approval."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-3">
             {/* Task summary */}
             <div className="p-3 rounded-xl bg-muted/40 border border-border/80 text-xs space-y-1">
-              <span className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
-                Task Deliverable
-              </span>
-              <p className="font-semibold text-foreground text-sm line-clamp-1">{task.title}</p>
+              <p className="font-semibold text-foreground text-sm break-words">{task.title}</p>
               {task.due_date && (
                 <div className="flex items-center gap-1.5 text-muted-foreground pt-1">
                   <Calendar className="h-3.5 w-3.5 text-amber-500" />
@@ -126,7 +128,7 @@ export function RequestExtensionDialog({
             {/* Proposed Deadline */}
             <div className="space-y-1.5">
               <Label htmlFor="proposed-date" className="text-xs font-semibold">
-                Proposed New Deadline <span className="text-rose-500">*</span>
+                {personal ? "New deadline" : "Proposed deadline"} <span className="text-rose-500">*</span>
               </Label>
               <Input
                 id="proposed-date"
@@ -134,14 +136,15 @@ export function RequestExtensionDialog({
                 value={proposedDate}
                 onChange={(e) => setProposedDate(e.target.value)}
                 required
-                className="font-mono text-xs focus-visible:ring-amber-500"
+                disabled={loading}
+                className="text-sm"
               />
             </div>
 
             {/* Reason */}
             <div className="space-y-1.5">
               <Label htmlFor="extension-reason" className="text-xs font-semibold">
-                Reason & Justification <span className="text-rose-500">*</span>
+                Reason for extension <span className="text-rose-500">*</span>
               </Label>
               <Textarea
                 id="extension-reason"
@@ -150,11 +153,13 @@ export function RequestExtensionDialog({
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
                 required
-                className="text-xs resize-none focus-visible:ring-amber-500"
+                maxLength={1000}
+                disabled={loading}
+                className="text-sm"
               />
             </div>
 
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200">
+            {!personal && <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
                 {task.assigned_by ? (
@@ -163,7 +168,7 @@ export function RequestExtensionDialog({
                   <>Your assigner will be prompted to review this request.</>
                 )}
               </span>
-            </div>
+            </div>}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -178,10 +183,10 @@ export function RequestExtensionDialog({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+              className="bg-amber-700 hover:bg-amber-800 text-white gap-1.5"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Send Request
+              {loading ? "Saving…" : personal ? "Extend deadline" : "Send request"}
             </Button>
           </DialogFooter>
         </form>

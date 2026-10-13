@@ -6,7 +6,8 @@ import type { TaskTrackerItem } from "@/lib/types/task-tracker";
 import { formatReadableDate } from "@/lib/utils/readable-date";
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { isActiveTask, taskStatusLabels } from "./task-workflow-controls";
+import { isActiveTask } from "./task-workflow-controls";
+import { getTaskStatusLabel } from "@/lib/utils/task-status";
 import { TaskRowActions } from "./task-row-actions";
 import { TaskDetailsSheet } from "./task-details-sheet";
 import { TaskCommentsDialog } from "./task-comments-dialog";
@@ -71,7 +72,7 @@ export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, 
               <span>{task.due_date ? formatReadableDate(task.due_date) : "No deadline"}</span>
               <TaskDeadlineTimeline task={task} now={timelineNow} />
             </TableCell>
-            <TableCell><Badge variant="outline" className="font-normal whitespace-nowrap">{task.is_delegated && task.status === "completed" ? "Accepted" : taskStatusLabels[task.status]}</Badge></TableCell>
+            <TableCell><Badge variant="outline" className="max-w-[180px] font-normal whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge></TableCell>
             <TableCell className="px-4">
               <div className="flex items-center justify-end gap-1.5">
                 <TaskRowActions task={task} busy={busyId === task.id} onDetails={() => setSelectedId(task.id)} onComment={() => setCommentsTask(task)} onEdit={() => onEdit(task)} onToggle={() => { if (task.status === "completed") void toggle(task.id, "pending"); else setCompletionTask(task); }} onDelete={() => { void remove(task); }} onUpdated={onUpdated} />
