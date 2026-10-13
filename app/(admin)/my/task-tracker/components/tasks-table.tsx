@@ -5,9 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { TaskTrackerItem } from "@/lib/types/task-tracker";
 import { formatReadableDate } from "@/lib/utils/readable-date";
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { isActiveTask } from "./task-workflow-controls";
-import { getTaskStatusLabel } from "@/lib/utils/task-status";
+import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { TaskRowActions } from "./task-row-actions";
 import { TaskDetailsSheet } from "./task-details-sheet";
 import { TaskCommentsDialog } from "./task-comments-dialog";
@@ -68,11 +67,10 @@ export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, 
             </TableCell>
             <TableCell className="text-xs max-w-[150px] whitespace-normal text-muted-foreground">{formatReadableDate(task.created_at, { includeTime: false })}</TableCell>
             <TableCell className="text-xs max-w-[200px] whitespace-normal">
-              {task.is_overdue && <p className="font-medium text-rose-600">Overdue</p>}
-              <span>{task.due_date ? formatReadableDate(task.due_date) : "No deadline"}</span>
               <TaskDeadlineTimeline task={task} now={timelineNow} />
+              <p className="mt-1 text-[10px] text-muted-foreground">{task.due_date ? formatReadableDate(task.due_date) : "No deadline"}</p>
             </TableCell>
-            <TableCell><Badge variant="outline" className="max-w-[180px] font-normal whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge></TableCell>
+            <TableCell><TaskStatusBadge task={task} /></TableCell>
             <TableCell className="px-4">
               <div className="flex items-center justify-end gap-1.5">
                 <TaskRowActions task={task} busy={busyId === task.id} onDetails={() => setSelectedId(task.id)} onComment={() => setCommentsTask(task)} onEdit={() => onEdit(task)} onToggle={() => { if (task.status === "completed") void toggle(task.id, "pending"); else setCompletionTask(task); }} onDelete={() => { void remove(task); }} onUpdated={onUpdated} />

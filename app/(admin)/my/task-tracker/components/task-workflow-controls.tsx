@@ -7,12 +7,11 @@ import { toast } from "sonner";
 import { getTaskHistory, runTaskWorkflow } from "@/lib/api/task-tracker";
 import type { TaskTrackerItem } from "@/lib/types/task-tracker";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getTaskStatusLabel } from "@/lib/utils/task-status";
 import { TaskStatusDialog } from "./task-status-dialog";
 import { ReassignTaskDialog } from "./reassign-task-dialog";
 import { TaskHistoryDetails } from "./task-history-details";
@@ -47,9 +46,9 @@ export function TaskSubmissionDetails({ task, compact = false }: { task: TaskTra
       </div>
       <div className="space-y-1">
         <dt className="text-muted-foreground">Status</dt>
-        <dd><Badge variant="outline" className="whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge></dd>
+        <dd><TaskStatusBadge task={task} /></dd>
       </div>
-    </dl> : <Badge variant="outline">{getTaskStatusLabel(task)}</Badge>}
+    </dl> : <TaskStatusBadge task={task} />}
     {task.submitted_at && <div className="rounded-md border bg-muted/20 p-3 space-y-1">
       <p className="font-medium">Submitted {formatReadableDate(task.submitted_at)}</p>
       <p className="text-muted-foreground">{!task.submission_due_date || new Date(task.submitted_at) <= new Date(task.submission_due_date) ? "Submitted on time" : "Submitted past deadline"}</p>

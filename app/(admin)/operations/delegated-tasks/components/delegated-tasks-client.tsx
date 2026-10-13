@@ -60,7 +60,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CreateTaskDialog } from "@/app/(admin)/my/task-tracker/components/create-task-dialog";
 import { TaskCommentsDialog } from "@/app/(admin)/my/task-tracker/components/task-comments-dialog";
 import { TaskWorkflowControls, TaskSubmissionDetails, isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
-import { getTaskStatusLabel } from "@/lib/utils/task-status";
+import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { DelegatedTasksTour, DelegatedTasksTourButton } from "./delegated-tasks-tour";
 import { StatsCard } from "@/components/stats-card";
 
@@ -276,19 +276,16 @@ export function DelegatedTasksClient({
         return aOverdue ? -1 : 1;
       }
 
-      // 3. Pending extension requests next
-      const aExt = a.extension_status === "pending";
-      const bExt = b.extension_status === "pending";
-      if (aExt !== bExt) {
-        return aExt ? -1 : 1;
-      }
-
-      // 4. Closest due date first (null deadlines at the end of active tasks)
+      // Closest due date first (null deadlines at the end of active tasks).
       if (a.due_date && b.due_date) {
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        const deadlineDifference = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        if (deadlineDifference) return deadlineDifference;
       }
-      if (a.due_date) return -1;
-      if (b.due_date) return 1;
+      if (!!a.due_date !== !!b.due_date) return a.due_date ? -1 : 1;
+
+      const priorityRank = { urgent: 0, high: 1, medium: 2, low: 3 };
+      const priorityDifference = priorityRank[a.priority] - priorityRank[b.priority];
+      if (priorityDifference) return priorityDifference;
 
       // 5. Fallback: recent created_at first
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -674,7 +671,7 @@ export function DelegatedTasksClient({
                       {" · "}Department: {task.user?.department || "Not specified"}
                     </p>
                     </div>
-                    <Badge variant="outline" className="text-[10px] max-w-[180px] whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge>
+                    <TaskStatusBadge task={task} />
 
                     {/* Extension Badge on Row */}
                     {hasPendingExtension && (

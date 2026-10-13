@@ -17,7 +17,7 @@ import { getTaskTrackerDashboardSummary, updateTaskTrackerItem } from "@/lib/api
 import { TaskCompletionDialog } from "@/components/tasks/task-completion-dialog";
 import { TaskWorkflowControls, isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
 import { computeTaskTimeline } from "@/lib/utils/task-timeline";
-import { getTaskStatusLabel } from "@/lib/utils/task-status";
+import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import {
   CalendarClock,
   ArrowRight,
@@ -115,7 +115,7 @@ export function UpcomingTasksWidget({
              
               </div>
               <CardDescription className="text-xs">
-                Real-time progress bars showing elapsed vs remaining time until deliverables are due
+                See what needs attention first, with time left until each deadline
               </CardDescription>
             </div>
           </div>
@@ -192,7 +192,7 @@ export function UpcomingTasksWidget({
                           >
                             {task.priority}
                           </span>
-                          <Badge variant="outline" className="max-w-[180px] whitespace-normal break-words">{getTaskStatusLabel(task)}</Badge>
+                          <TaskStatusBadge task={task} />
                         </div>
 
                         {task.description && (
@@ -209,10 +209,10 @@ export function UpcomingTasksWidget({
                         variant="outline"
                         className={cn(
                           "text-[11px] font-semibold gap-1 px-2.5 py-0.5 whitespace-nowrap shadow-2xs",
-                          timeline.isOverdue && "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300 animate-pulse",
-                          !timeline.isOverdue && timeline.isDueSoon && "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300",
-                          !timeline.isOverdue && !timeline.isDueSoon && timeline.hasDeadline && "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300",
-                          !timeline.hasDeadline && "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                          timeline.colorScheme === "rose" && "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300",
+                          timeline.colorScheme === "amber" && "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300",
+                          timeline.colorScheme === "emerald" && "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300",
+                          timeline.colorScheme === "slate" && "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
                         )}
                       >
                         {timeline.isOverdue ? (
@@ -225,45 +225,26 @@ export function UpcomingTasksWidget({
                     </div>
                   </div>
 
-                  {/* Visual Timeline Progress Bar */}
+                  {/* Shared seven-day deadline urgency scale */}
                   {timeline.hasDeadline ? (
                     <div className="pt-1.5 space-y-1.5 border-t border-border/40">
                       {/* Timeline Bar Track */}
-                      <div className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800/80 overflow-hidden shadow-inner">
+                      <div role="meter" aria-label={`Deadline urgency for ${task.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={timeline.urgencyPercent} aria-valuetext={timeline.remainingText} className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800/80 overflow-hidden shadow-inner">
                         <div
                           className={cn(
-                            "h-full rounded-full transition-all duration-700 ease-out",
-                            timeline.isOverdue && "bg-rose-500 animate-pulse",
-                            !timeline.isOverdue && timeline.colorScheme === "rose" && "bg-gradient-to-r from-amber-500 to-rose-500",
-                            !timeline.isOverdue && timeline.colorScheme === "amber" && "bg-gradient-to-r from-emerald-500 to-amber-500",
-                            !timeline.isOverdue && timeline.colorScheme === "emerald" && "bg-gradient-to-r from-emerald-400 to-emerald-600"
+                            "h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none",
+                            timeline.colorScheme === "rose" && "bg-rose-500",
+                            timeline.colorScheme === "amber" && "bg-amber-500",
+                            timeline.colorScheme === "emerald" && "bg-emerald-500/70",
+                            timeline.colorScheme === "slate" && "bg-slate-400/60"
                           )}
-                          style={{ width: `${timeline.percent}%` }}
+                          style={{ width: `${timeline.urgencyPercent}%` }}
                         />
                       </div>
 
-                      {/* Milestone Labels */}
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
-                        <span className="flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
-                          <span>Started: {timeline.startFormatted}</span>
-                        </span>
-
-                        <span
-                          className={cn(
-                            "text-[10px] font-mono px-2 py-0.2 rounded-full border",
-                            timeline.isOverdue
-                              ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 font-bold"
-                              : "bg-muted/50 text-muted-foreground border-border/60"
-                          )}
-                        >
-                          {timeline.isOverdue ? "100% (Deadline passed)" : `${timeline.percent}% time elapsed`}
-                        </span>
-
-                        <span className="flex items-center gap-1 font-medium text-foreground/80">
-                          <Flag className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                          <span>Due: {timeline.dueShortFormatted}</span>
-                        </span>
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Flag className="h-3 w-3 shrink-0" />
+                        <span>Due: {timeline.dueFormatted}</span>
                       </div>
                     </div>
                   ) : (

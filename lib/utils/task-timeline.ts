@@ -3,7 +3,7 @@ import type { TaskTrackerItem } from "@/lib/types/task-tracker";
 
 export interface TaskTimeline {
   hasDeadline: boolean;
-  percent: number;
+  urgencyPercent: number;
   isOverdue: boolean;
   isDueSoon: boolean;
   remainingText: string;
@@ -14,19 +14,19 @@ export interface TaskTimeline {
 }
 
 /**
- * Calculates time elapsed vs remaining time as a progress percentage
- * with human-readable labels and color scheme.
+ * Uses one seven-day urgency scale for every task, independent of assignment age.
+ * The numeric fill is for rendering only; staff see the time remaining.
  */
 export function computeTaskTimeline(
   createdAtStr: string,
   dueDateStr: string | null,
   now: number = Date.now()
 ): TaskTimeline {
-  if (!dueDateStr || !Number.isFinite(Date.parse(dueDateStr)) || !Number.isFinite(Date.parse(createdAtStr))) {
+  if (!dueDateStr || !Number.isFinite(Date.parse(dueDateStr)) || !Number.isFinite(now)) {
     const createdDate = new Date(createdAtStr);
     return {
       hasDeadline: false,
-      percent: 0,
+      urgencyPercent: 0,
       isOverdue: false,
       isDueSoon: false,
       remainingText: "No deadline set",
@@ -40,21 +40,18 @@ export function computeTaskTimeline(
   const created = new Date(createdAtStr).getTime();
   const due = new Date(dueDateStr).getTime();
 
-  const isOverdue = now >= due;
   const remainingMs = due - now;
-  const totalMs = Math.max(1, due - created);
-
-  let percent = 0;
-  if (isOverdue) {
-    percent = 100;
-  } else {
-    const elapsed = Math.max(0, now - created);
-    percent = Math.min(99, Math.max(0, Math.round((elapsed / totalMs) * 100)));
-  }
+  const isOverdue = remainingMs < 0;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const windowMs = 7 * dayMs;
+  const urgencyPercent = remainingMs <= 0 ? 100
+    : Math.min(99, Math.max(8, Math.round((1 - remainingMs / windowMs) * 100)));
 
   let remainingText = "";
   if (isOverdue) {
     remainingText = `Overdue by ${formatDistance(due, now)}`;
+  } else if (remainingMs === 0) {
+    remainingText = "Due now";
   } else {
     const diffSeconds = Math.floor(remainingMs / 1000);
     const diffMinutes = Math.floor(diffSeconds / 60);
@@ -72,19 +69,19 @@ export function computeTaskTimeline(
       const remMins = diffMinutes % 60;
       remainingText = remMins > 0 ? `${diffHours}h ${remMins}m left` : `${diffHours}h left`;
     } else {
-      remainingText = `${Math.max(1, diffMinutes)}m left`;
+      remainingText = diffMinutes < 1 ? "Less than 1m left" : `${diffMinutes}m left`;
     }
   }
 
   const isDueSoon = !isOverdue && remainingMs <= 48 * 60 * 60 * 1000;
 
   let colorScheme: "emerald" | "amber" | "rose" | "slate" = "emerald";
-  if (isOverdue) {
+  if (remainingMs < dayMs) {
     colorScheme = "rose";
-  } else if (isDueSoon || percent >= 80) {
-    colorScheme = "rose";
-  } else if (percent >= 50) {
+  } else if (remainingMs <= 3 * dayMs) {
     colorScheme = "amber";
+  } else if (remainingMs > windowMs) {
+    colorScheme = "slate";
   } else {
     colorScheme = "emerald";
   }
@@ -94,7 +91,7 @@ export function computeTaskTimeline(
 
   return {
     hasDeadline: true,
-    percent,
+    urgencyPercent,
     isOverdue,
     isDueSoon,
     remainingText,
