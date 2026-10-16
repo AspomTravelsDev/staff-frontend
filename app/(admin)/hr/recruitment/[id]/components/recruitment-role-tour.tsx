@@ -15,7 +15,7 @@ const RECRUITMENT_ROLE_TOUR_STEPS: DriveStep[] = [
     popover: {
       title: "Role Workspace & Command Banner",
       description:
-        "Welcome to the dedicated candidate workspace! View the role's title, department, target vacancies, hired count, and quickly switch campaign status between Active, Paused, or Closed.",
+        "Welcome to the dedicated candidate workspace. Use this area to see the role status, upload candidates and open the role actions menu.",
       side: "bottom",
       align: "start",
     },
@@ -75,19 +75,9 @@ const RECRUITMENT_ROLE_TOUR_STEPS: DriveStep[] = [
     popover: {
       title: "Advance Candidate Stage",
       description:
-        "Seamlessly move applicants between pipeline stages with this dropdown. Advancing a candidate to 'Interviewing' unlocks their structured interview rubric and offer dispatch actions.",
+        "Move applicants through the pipeline with this dropdown. When a candidate reaches Interviewing, their Applicant Assessment becomes available from Actions.",
       side: "top",
       align: "center",
-    },
-  },
-  {
-    element: "#tour-interview-rubric",
-    popover: {
-      title: "Structured Interview Rubric & PDF",
-      description:
-        "Conduct objective interview scoring across 5 key competencies (Technical Skills, Teamwork, Leadership, Critical Thinking, and Communication). Review AI score suggestions, record interviewer notes, and generate an official assessment summary PDF.",
-      side: "top",
-      align: "end",
     },
   },
   {

@@ -6,30 +6,19 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ArrowLeft,
-  SlidersHorizontal,
-  Briefcase,
-  Users,
   CheckCircle2,
   PauseCircle,
   PlayCircle,
-  Loader2,
-  UserCheck,
 } from "lucide-react";
 import type { RecruitmentRole, RoleStatus } from "@/lib/types/recruitment";
 import { updateRecruitmentRole } from "@/lib/api/recruitment";
 import { UploadCvDialog } from "./upload-cv-dialog";
 import { EditInstructionsDialog } from "./edit-instructions-dialog";
-import { RecruitmentRoleTourButton } from "./recruitment-role-tour";
+import { runRecruitmentRoleTour } from "./recruitment-role-tour";
 import { RoleActions } from "../../components/role-actions";
 import { toast } from "sonner";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface RoleHeaderProps {
   role: RecruitmentRole;
@@ -123,92 +112,57 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
       </div>
 
       {/* Main Title Banner */}
-      <div id="tour-role-header" className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-6">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-3xl font-bold tracking-tight">{role.title}</h1>
-            {getStatusBadge(currentStatus)}
-            <Badge variant="outline" className="capitalize text-xs">
-              {role.employment_type}
-            </Badge>
+      <div id="tour-role-header" className="border-b pb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{role.title}</h1>
+              {getStatusBadge(currentStatus)}
+              <Badge variant="outline" className="capitalize text-xs">
+                {role.employment_type}
+              </Badge>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5 font-medium text-foreground">
-              <Briefcase className="h-4 w-4 text-primary" />
-              {role.department} Department
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <Users className="h-4 w-4" />
-              {role.openings_count} Opening{role.openings_count > 1 ? "s" : ""}
-            </span>
-            <span>•</span>
-            <span
-              className={`flex items-center gap-1.5 font-medium ${
-                isFilled ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
-              }`}
-            >
-              <UserCheck className="h-4 w-4 text-emerald-600" />
-              {acceptedCount} of {role.openings_count} Hired
-            </span>
-            {role.hr_request && (
-              <>
-                <span>•</span>
-                <span className="text-xs">
-                  From Staff Request #{role.hr_request.id.slice(0, 8)}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Action buttons and Quick Status Control */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <RecruitmentRoleTourButton />
-
-          {/* Quick Status Select */}
-          <div className="flex items-center gap-1.5 bg-card border rounded-md px-2 py-1">
-            <span className="text-xs text-muted-foreground font-medium">Status:</span>
-            <Select
-              value={currentStatus}
-              onValueChange={(val) => handleStatusChange(val as RoleStatus)}
+          <div className="flex shrink-0 items-center gap-2 [&_button]:min-h-10 [&_button]:text-sm">
+            <div id="tour-upload-cv">
+              <UploadCvDialog roleId={role.id} roleTitle={role.title} disabled={currentStatus === "closed"} />
+            </div>
+            <RoleActions
+              role={role}
+              redirectOnDelete
               disabled={isPending}
-            >
-              <SelectTrigger className="h-7 w-[110px] text-xs border-0 shadow-none focus:ring-0 px-2 py-0">
-                {isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <SelectValue />
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active" className="text-xs">
-                  Active
-                </SelectItem>
-                <SelectItem value="paused" className="text-xs">
-                  Paused
-                </SelectItem>
-                <SelectItem value="closed" className="text-xs">
-                  Closed
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              additionalItems={
+                <>
+                  <DropdownMenuItem onSelect={runRecruitmentRoleTour}>
+                    <span id="tour-role-guide">Quick Guide</span>
+                  </DropdownMenuItem>
+                  <EditInstructionsDialog
+                    role={role}
+                    trigger={
+                      <DropdownMenuItem
+                        id="tour-role-instructions"
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        Edit Criteria & Instructions
+                      </DropdownMenuItem>
+                    }
+                  />
+                  <DropdownMenuItem asChild>
+                    <Link href={`/hr/recruitment/${role.id}/assessment-setup`}>
+                      View interview questions
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              }
+            />
           </div>
-
-          <div id="tour-role-instructions">
-            <EditInstructionsDialog role={role} />
-          </div>
-          <div id="tour-upload-cv">
-            <UploadCvDialog roleId={role.id} roleTitle={role.title} disabled={currentStatus === "closed"} />
-          </div>
-          <RoleActions role={role} redirectOnDelete disabled={isPending} />
         </div>
       </div>
 
       {/* Campaign Closed Banner */}
       {currentStatus === "closed" && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start sm:items-center gap-2.5">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
             <div>
@@ -241,7 +195,7 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
 
       {/* Campaign Paused Banner */}
       {currentStatus === "paused" && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start sm:items-center gap-2.5">
             <PauseCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
             <div>
@@ -266,18 +220,6 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
         </div>
       )}
 
-      {/* Screening Instructions Banner (if set) */}
-      {role.custom_instructions && (
-        <div className="rounded-lg border bg-muted/30 p-3.5 flex items-start gap-3">
-          <SlidersHorizontal className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-0.5 text-xs">
-            <div className="font-semibold text-foreground">Active Screening Instructions:</div>
-            <p className="text-muted-foreground leading-relaxed">
-              {role.custom_instructions}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

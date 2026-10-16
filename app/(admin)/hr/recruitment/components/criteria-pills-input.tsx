@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SlidersHorizontal, Plus, Check } from "lucide-react";
@@ -53,7 +53,10 @@ export function CriteriaPillsInput({
       // Cleanly remove the trait
       const escaped = trait.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(`(?:,\\s*)?${escaped}(?:,\\s*|\\.\\s*)?`, "gi");
-      let nextVal = value.replace(regex, ", ").replace(/^,\s*|,\s*$/g, "").trim();
+      let nextVal = value
+        .replace(regex, ", ")
+        .replace(/^,\s*|,\s*$/g, "")
+        .trim();
       // Clean duplicate commas
       nextVal = nextVal.replace(/,\s*,/g, ",").replace(/^,\s*|,\s*$/g, "");
       onChange(nextVal);
@@ -71,7 +74,7 @@ export function CriteriaPillsInput({
   };
 
   return (
-    <div className="space-y-2.5 rounded-lg border bg-muted/30 p-3.5">
+    <div className="space-y-2 rounded-md border bg-muted/30 p-3">
       <div className="space-y-1">
         <div className="flex items-center gap-1.5 text-foreground font-medium text-xs">
           <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
@@ -84,22 +87,19 @@ export function CriteriaPillsInput({
 
       {/* Suggested Trait Pills */}
       <div className="space-y-1.5 pt-1">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Suggested Criteria (Click to add/remove)
-        </div>
+        <div className="text-xs text-muted-foreground">Suggested criteria</div>
         <div className="flex flex-wrap gap-1.5">
           {SUGGESTED_CRITERIA_PILLS.map((pill) => {
             const active = isSelected(pill);
             return (
-              <button
+              <Button
                 key={pill}
                 type="button"
+                size="sm"
+                variant={active ? "default" : "outline"}
+                aria-pressed={active}
                 onClick={() => togglePill(pill)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer select-none ${
-                  active
-                    ? "bg-primary text-primary-foreground font-medium shadow-sm"
-                    : "bg-background border border-muted-foreground/20 text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                }`}
+                className="rounded-full"
               >
                 {active ? (
                   <Check className="h-3 w-3" />
@@ -107,7 +107,7 @@ export function CriteriaPillsInput({
                   <Plus className="h-3 w-3 opacity-60" />
                 )}
                 <span>{pill}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -115,7 +115,10 @@ export function CriteriaPillsInput({
 
       {/* Freeform Textarea */}
       <div className="pt-1.5">
-        <Label htmlFor={id} className="text-[11px] text-muted-foreground mb-1 block">
+        <Label
+          htmlFor={id}
+          className="text-[11px] text-muted-foreground mb-1 block"
+        >
           Custom Notes & Specific Requirements:
         </Label>
         <Textarea

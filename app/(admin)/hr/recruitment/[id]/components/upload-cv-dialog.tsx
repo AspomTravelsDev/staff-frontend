@@ -1,5 +1,6 @@
 "use client";
 
+import { cvEvaluationFailed } from "@/lib/recruitment/cv-evaluation";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadCloud, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { UploadCloud, FileText, Loader2 } from "lucide-react";
 import { uploadCandidateCv } from "@/lib/api/recruitment";
 import { toast } from "sonner";
 
@@ -25,7 +26,12 @@ interface UploadCvDialogProps {
   disabled?: boolean;
 }
 
-export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }: UploadCvDialogProps) {
+export function UploadCvDialog({
+  roleId,
+  roleTitle,
+  trigger,
+  disabled = false,
+}: UploadCvDialogProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,13 +49,17 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
     if (selected) {
       const ext = selected.name.split(".").pop()?.toLowerCase();
       if (!["pdf", "docx", "doc", "txt"].includes(ext || "")) {
-        toast.error("Please select a PDF or Word document (.pdf, .docx, .doc).");
+        toast.error(
+          "Please select a PDF or Word document (.pdf, .docx, .doc).",
+        );
         return;
       }
       setFile(selected);
       // Pre-fill candidate name from filename if empty
       if (!candidateName) {
-        const rawName = selected.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+        const rawName = selected.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[_-]/g, " ");
         setCandidateName(rawName);
       }
     }
@@ -66,7 +76,9 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
       }
       setFile(dropped);
       if (!candidateName) {
-        const rawName = dropped.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+        const rawName = dropped.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[_-]/g, " ");
         setCandidateName(rawName);
       }
     }
@@ -85,15 +97,17 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
 
     try {
       setUploading(true);
-      setUploadStep("Extracting text and reading document...");
+      setUploadStep("Uploading CV…");
 
       const formData = new FormData();
       formData.append("cv_file", file);
       if (candidateName.trim()) formData.append("name", candidateName.trim());
-      if (candidateEmail.trim()) formData.append("email", candidateEmail.trim());
-      if (candidatePhone.trim()) formData.append("phone", candidatePhone.trim());
+      if (candidateEmail.trim())
+        formData.append("email", candidateEmail.trim());
+      if (candidatePhone.trim())
+        formData.append("phone", candidatePhone.trim());
 
-      setUploadStep("Evaluating candidate with Gemini AI against role criteria...");
+      setUploadStep("Saving the applicant record…");
       const res = await uploadCandidateCv(roleId, formData);
 
       if (!res.success || !res.data) {
@@ -101,17 +115,30 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
         return;
       }
 
-      toast.success(
-        `Candidate analyzed! Match score: ${res.data.ai_score ?? "N/A"}%`
-      );
+      if (cvEvaluationFailed(res.data))
+        toast.warning(
+          "CV uploaded. AI evaluation failed — use Reanalyze CV to retry.",
+        );
+      else if (
+        ["pending", "processing"].includes(res.data.ai_evaluation?.status ?? "")
+      )
+        toast.success(
+          "CV uploaded. AI screening will continue in the background.",
+        );
+      else
+        toast.success(
+          `Candidate analyzed! Match score: ${res.data.ai_score ?? "N/A"}%`,
+        );
       setOpen(false);
       setFile(null);
       setCandidateName("");
       setCandidateEmail("");
       setCandidatePhone("");
       router.refresh();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to upload and analyze CV.");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to upload and analyze CV.",
+      );
     } finally {
       setUploading(false);
       setUploadStep("");
@@ -135,22 +162,14 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
             Upload Candidate CV
           </DialogTitle>
           <DialogDescription>
-            Upload a candidate's resume for <strong>{roleTitle}</strong>. The system will extract text locally and evaluate candidate qualifications against role criteria.
+            Upload a candidate&apos;s CV for <strong>{roleTitle}</strong>. AI
+            screening runs in the background for the new recruitment flow.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* File Upload Dropzone */}
-          <div
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-              file
-                ? "border-primary/50 bg-muted/30"
-                : "border-muted hover:border-primary/40 hover:bg-muted/30"
-            }`}
-          >
+          <div onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
             <input
               ref={fileInputRef}
               type="file"
@@ -159,42 +178,48 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
               onChange={handleFileChange}
               disabled={uploading}
             />
-
-            {file ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="p-3 bg-primary/10 text-primary rounded-full">
-                  <FileText className="h-6 w-6" />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="h-auto w-full whitespace-normal border-dashed p-4 text-center"
+            >
+              {file ? (
+                <div className="flex flex-col items-center gap-2">
+                  <FileText className="size-5 text-primary" />
+                  <div className="text-sm font-medium text-foreground max-w-[280px] truncate">
+                    {file.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB • Click or drop
+                    another to replace
+                  </div>
                 </div>
-                <div className="text-sm font-medium text-foreground max-w-[280px] truncate">
-                  {file.name}
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <UploadCloud className="size-5 text-muted-foreground" />
+                  <div className="text-sm font-medium">
+                    Click to browse or drop resume here
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Supports PDF or Word documents (.pdf, .docx, up to 15MB)
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB • Click or drop another to replace
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="p-3 bg-muted text-muted-foreground rounded-full">
-                  <UploadCloud className="h-6 w-6" />
-                </div>
-                <div className="text-sm font-medium">
-                  Click to browse or drop resume here
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Supports PDF or Word documents (.pdf, .docx, up to 15MB)
-                </div>
-              </div>
-            )}
+              )}
+            </Button>
           </div>
 
           {/* Optional manual contact overrides */}
           <div className="space-y-3 pt-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               Candidate Details (Optional - auto-extracted by AI if blank)
             </p>
 
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs">Candidate Name</Label>
+              <Label htmlFor="name" className="text-xs">
+                Candidate Name
+              </Label>
               <Input
                 id="name"
                 placeholder="Leave blank for automatic AI extraction"
@@ -204,9 +229,11 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs">Email Address</Label>
+                <Label htmlFor="email" className="text-xs">
+                  Email Address
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -218,7 +245,9 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs">Phone Number</Label>
+                <Label htmlFor="phone" className="text-xs">
+                  Phone Number
+                </Label>
                 <Input
                   id="phone"
                   placeholder="Auto-extracted"
@@ -249,16 +278,20 @@ export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false }:
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!file || uploading} className="gap-2">
+            <Button
+              type="submit"
+              disabled={!file || uploading}
+              className="gap-2"
+            >
               {uploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Analyzing CV...
+                  Uploading CV…
                 </>
               ) : (
                 <>
                   <UploadCloud className="h-4 w-4" />
-                  Upload & Screen CV
+                  Upload CV
                 </>
               )}
             </Button>

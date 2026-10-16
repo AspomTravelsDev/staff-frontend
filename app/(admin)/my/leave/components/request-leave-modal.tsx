@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Paperclip, AlertCircle, FileText, Upload, X, CheckCircle2 } from "lucide-react";
+import { Loader2, Paperclip, AlertCircle, FileText, X, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -75,12 +75,6 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
     const end = addBusinessDays(startDate, days);
     return format(end, "yyyy-MM-dd");
   }, [startDate, days]);
-
-  const today = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
 
   const selectedTypeObj = useMemo(() => {
     return leaveTypes.find((lt) => lt.value === type);
@@ -170,8 +164,8 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
       setHandoverFile(null);
       setEvidenceFile(null);
       router.refresh();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit leave request.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit leave request.");
     } finally {
       setLoading(false);
     }
@@ -260,7 +254,6 @@ export function RequestLeaveModal({ userName, role }: RequestLeaveModalProps) {
                 value={startDate}
                 onChange={setStartDate}
                 placeholder="Pick a start date"
-                minDate={today}
               />
             </div>
             <div className="space-y-1.5">

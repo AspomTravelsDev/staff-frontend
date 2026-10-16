@@ -62,7 +62,6 @@ export function AcceptOnboardModal({
     applicant_name: "",
     applicant_email: "",
     position_title: roleTitle,
-    reporting_to: "", // defaults to "Nancy O. Peters" if left blank
     effective_date: new Date().toISOString().split("T")[0],
   });
 
@@ -92,9 +91,10 @@ export function AcceptOnboardModal({
   // Pre-fill when candidate changes
   useEffect(() => {
     if (candidate) {
-      const parsedSalary = candidate.interview_rubric?.logistics?.recommended_salary
+      const assessmentSalary = candidate.assessment_summary?.hiring_review?.recommended_salary;
+      const parsedSalary = assessmentSalary ?? (candidate.interview_rubric?.logistics?.recommended_salary
         ? parseFloat(candidate.interview_rubric.logistics.recommended_salary.replace(/[^0-9.]/g, ""))
-        : null;
+        : null);
 
       const gross = parsedSalary && !isNaN(parsedSalary) && parsedSalary > 0 ? parsedSalary : 200000;
       const calc = calculateNetFromGross(gross, false);
@@ -103,7 +103,6 @@ export function AcceptOnboardModal({
         applicant_name: candidate.name || "",
         applicant_email: candidate.email || "",
         position_title: roleTitle || "",
-        reporting_to: "", // blank by default; Nancy O. Peters will be used
         effective_date: new Date().toISOString().split("T")[0],
       });
 
@@ -125,7 +124,7 @@ export function AcceptOnboardModal({
       return;
     }
 
-    if (candidate.interview_rubric && !postInterviewAnalysis && !analyzingInterview) {
+    if ((candidate.assessment_summary?.state === "submitted" || candidate.interview_rubric) && !postInterviewAnalysis && !analyzingInterview) {
       const runAutoPreOfferCheck = async () => {
         try {
           setAnalyzingInterview(true);
@@ -225,7 +224,7 @@ export function AcceptOnboardModal({
         applicant_name: formData.applicant_name,
         applicant_email: formData.applicant_email,
         position_title: formData.position_title,
-        reporting_to: formData.reporting_to.trim() || "Nancy O. Peters",
+        reporting_to: "Nancy O. Peters",
         effective_date: formData.effective_date,
         salary_gross: finalGross,
         is_tax_exempt: isTaxExempt,
@@ -370,10 +369,10 @@ export function AcceptOnboardModal({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted-foreground">Interview Rubric</div>
+                    <div className="text-[10px] text-muted-foreground">Interview score</div>
                     <div className="text-sm font-bold text-foreground">
-                      {candidate?.interview_rubric?.scores?.total_score || 0}
-                      <span className="text-[10px] font-normal text-muted-foreground"> / 55</span>
+                      {candidate?.assessment_summary?.score_100 ?? candidate?.interview_rubric?.scores?.total_score ?? 0}
+                      <span className="text-[10px] font-normal text-muted-foreground">{candidate?.assessment_summary ? " / 100" : " / 55"}</span>
                     </div>
                   </div>
                   <div>
@@ -421,13 +420,13 @@ export function AcceptOnboardModal({
               <div className="p-3 rounded-lg border bg-muted/30 text-xs text-muted-foreground flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5">
                   <HelpCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  {candidate?.interview_rubric ? (
-                    <span>Interview rubric is recorded. You can run pre-offer analysis below.</span>
+                  {candidate?.assessment_summary?.state === "submitted" || candidate?.interview_rubric ? (
+                    <span>Interview assessment is recorded. You can run pre-offer analysis below.</span>
                   ) : (
-                    <span>No interview rubric recorded for this candidate yet. You can still proceed directly.</span>
+                    <span>No submitted interview assessment is recorded for this candidate yet.</span>
                   )}
                 </span>
-                {candidate?.interview_rubric && (
+                {(candidate?.assessment_summary?.state === "submitted" || candidate?.interview_rubric) && (
                   <Button
                     type="button"
                     variant="outline"
@@ -476,18 +475,7 @@ export function AcceptOnboardModal({
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="reporting_to">Reporting Manager</Label>
-                <Input
-                  id="reporting_to"
-                  value={formData.reporting_to}
-                  onChange={(e) => setFormData({ ...formData, reporting_to: e.target.value })}
-                  placeholder="Nancy O. Peters (Default)"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Leave blank to default to Nancy O. Peters.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">Reporting manager: Nancy O. Peters</p>
             </div>
 
             <div className="space-y-1.5">

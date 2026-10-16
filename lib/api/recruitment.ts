@@ -2,6 +2,7 @@
 
 import { api } from "./client";
 import { revalidatePath } from "next/cache";
+import type { AssessmentConfiguration } from "@/lib/types/applicant-assessment";
 import type {
   RecruitmentRole,
   RoleDetailResponse,
@@ -38,6 +39,10 @@ export async function createRecruitmentRole(data: {
   job_description?: string;
   custom_instructions?: string;
   hr_request_id?: string;
+  assessment?: AssessmentConfiguration;
+  pipeline_settings?: import("@/lib/types/recruitment-pipeline").PipelineSettings;
+  salary_budget_min?:number;
+  salary_budget_max?:number;
 }): Promise<RecruitmentActionResult<RecruitmentRole>> {
   const response = await api.post<{ data: RecruitmentRole }>("/api/recruitment/roles", data);
   if (!response.success) {

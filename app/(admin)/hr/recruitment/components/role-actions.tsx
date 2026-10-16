@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, MoreHorizontal, PlayCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,9 +19,15 @@ interface RoleActionsProps {
   role: RecruitmentRole;
   redirectOnDelete?: boolean;
   disabled?: boolean;
+  additionalItems?: ReactNode;
 }
 
-export function RoleActions({ role, redirectOnDelete = false, disabled = false }: RoleActionsProps) {
+export function RoleActions({
+  role,
+  redirectOnDelete = false,
+  disabled = false,
+  additionalItems,
+}: RoleActionsProps) {
   const router = useRouter();
   const [confirmation, setConfirmation] = useState<"close" | "delete" | null>(null);
   const [isWorking, setIsWorking] = useState(false);
@@ -58,6 +64,8 @@ export function RoleActions({ role, redirectOnDelete = false, disabled = false }
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {additionalItems}
+          {additionalItems && <DropdownMenuSeparator />}
           {role.status === "closed" ? (
             <DropdownMenuItem onSelect={() => void performAction("reopen")}>
               <PlayCircle /> Reopen role

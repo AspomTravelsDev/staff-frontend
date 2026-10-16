@@ -5,11 +5,13 @@ import { RolesTable } from "./components/roles-table";
 import { CreateRoleDialog } from "./components/create-role-dialog";
 import { StandaloneRubricDialog } from "./components/standalone-rubric-dialog";
 import { Briefcase, Users, UserCheck, Clock } from "lucide-react";
-import { RecruitmentHubTour, RecruitmentHubTourButton } from "./components/recruitment-hub-tour";
+import { getCurrentUser } from "@/lib/auth/session";
+import { userHasAnyRole } from "@/types/user-types";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecruitmentPage() {
+  const canEdit=userHasAnyRole(await getCurrentUser(),["hr","super"]);
   let roles: any[] = [];
   let hrRequests: any[] = [];
 
@@ -29,27 +31,26 @@ export default async function RecruitmentPage() {
 
   const activeRolesCount = roles.filter((r) => r.status === "active").length;
   const totalCandidates = roles.reduce((sum, r) => sum + (r.total_candidates || 0), 0);
-  const totalInterviewing = roles.reduce((sum, r) => sum + (r.interviewing_count || 0), 0);
+  const totalInterviewing = roles.reduce((sum, r) => sum + (r.pipeline_config ? r.pipeline_interview_count || 0 : r.interviewing_count || 0), 0);
   const totalAccepted = roles.reduce((sum, r) => sum + (r.accepted_count || 0), 0);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Header */}
       <div id="tour-recruitment-header" className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-bold tracking-tight">Recruitment & Hiring</h1>
           <p className="text-muted-foreground mt-1">
-            Manage candidate pipelines, analyze CVs with AI against custom criteria, and bridge hired candidates into onboarding.
+            Screen CVs, check compatibility, assess applicants and prepare finalists for management review.
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center xl:shrink-0 xl:flex-nowrap">
-          <RecruitmentHubTourButton className="h-10 w-full sm:w-auto" />
           <div id="tour-create-rubric" className="w-full sm:w-auto">
             <StandaloneRubricDialog className="h-10 w-full sm:w-auto" />
           </div>
-          <div id="tour-create-role" className="w-full sm:w-auto">
+          {canEdit && <div id="tour-create-role" className="w-full sm:w-auto">
             <CreateRoleDialog hrRequests={hrRequests} triggerClassName="h-10 w-full sm:w-auto" />
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -125,11 +126,10 @@ export default async function RecruitmentPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RolesTable roles={roles} />
+          <RolesTable roles={roles} canEdit={canEdit}/>
         </CardContent>
       </Card>
 
-      <RecruitmentHubTour />
     </div>
   );
 }

@@ -33,12 +33,14 @@ export interface PostInterviewEvaluation {
 }
 
 export interface CandidateAiEvaluation {
+  failure_code?:string;
+  status?: "completed" | "failed" | "pending" | "processing";
   candidate_name?: string;
   candidate_email?: string;
   candidate_phone?: string;
   years_of_experience?: number | null;
   skills: string[];
-  match_score: number;
+  match_score: number | null;
   recommendation: "Strong Match" | "Potential Match" | "Not Recommended" | string;
   summary: string;
   strengths: string[];
@@ -100,7 +102,47 @@ export interface InterviewRubric {
   };
 }
 
+export interface RecruitmentOfferApplication {
+  id: string;
+  applicant_name: string;
+  applicant_email: string;
+  position_title: string;
+  employment_terms: {
+    gross_salary?: number;
+    effective_date?: string;
+    reporting_to?: string;
+    is_tax_exempt?: boolean;
+  };
+  offer: { state?: string; sent_at?: string };
+}
+
 export interface RecruitmentCandidate {
+  offer_application?: RecruitmentOfferApplication | null;
+  management_review_summary?: {version:number;submitted_at:string;decision:"approve"|"hold"|"return"|"decline"|null}|null;
+  pipeline_stage?: import("./recruitment-pipeline").PipelineStage | null;
+  pipeline_outcome?: "active"|"hold"|"rejected"|"withdrawn";
+  pipeline_revision?:number;
+  pipeline_summary?: {
+    salary_expectation?:number|null;
+    score_100: number | null;
+    stage_score: number | null;
+    stage_scores?: Record<string, number | null>;
+    status: string | null;
+    state?: "draft" | "completed" | "skipped";
+    passed?: boolean | null;
+    started?: boolean;
+    answered?: number;
+    total?: number;
+  };
+  assessment_summary?: {
+    state: "draft" | "submitted"; completed: number; total: number;
+    score_100: number | null; recommendation: string | null; submitted_at: string | null;
+    hiring_review?: {
+      reviewer_designation: string; availability_to_resume: string;
+      salary_expectation: number | null; recommended_salary: number | null;
+      nysc_status: string; accommodation: string;
+    } | null;
+  } | null;
   id: string;
   recruitment_role_id: string;
   name: string;
@@ -138,6 +180,14 @@ export interface RecruitmentCandidate {
 }
 
 export interface RecruitmentRole {
+  pipeline_config?: import("./recruitment-pipeline").PipelineDefinition | null;
+  pipeline_locked_at?:string|null;
+  salary_budget_min?:number|null;
+  salary_budget_max?:number|null;
+  assessment_plan_summary?: {
+    track_name: string; question_count: number; general_count: number;
+    practical: boolean; locked: boolean;
+  } | null;
   id: string;
   hr_request_id: string | null;
   title: string;
@@ -164,6 +214,7 @@ export interface RecruitmentRole {
     reason: string;
   } | null;
   total_candidates?: number;
+  pipeline_interview_count?:number;
   reviewing_count?: number;
   shortlisted_count?: number;
   interviewing_count?: number;
@@ -173,16 +224,23 @@ export interface RecruitmentRole {
 }
 
 export interface RoleDetailResponse {
+  management_only?: boolean;
   role: RecruitmentRole;
   candidates: RecruitmentCandidate[];
   stats: {
     total: number;
-    reviewing: number;
-    shortlisted: number;
-    interviewing: number;
-    offered: number;
-    accepted: number;
-    rejected: number;
+    reviewing?: number;
+    shortlisted?: number;
+    interviewing?: number;
+    offered?: number;
+    accepted?: number;
+    rejected?: number;
+    // Pipeline board stats
+    active?: number;
+    on_hold?: number;
+    ready_for_review?: number;
+    stage_counts?: Record<string, number>;
+    avg_score?: number | null;
   };
 }
 

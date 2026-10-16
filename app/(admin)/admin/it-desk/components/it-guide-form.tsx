@@ -134,6 +134,7 @@ export function ITGuideForm({ initialData, onSubmit }: ITGuideFormProps) {
                   </FormLabel>
                   <FormControl>
                     <RichTextEditor
+                      stickyToolbar
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Start writing your guide here..."
@@ -203,7 +204,7 @@ export function ITGuideForm({ initialData, onSubmit }: ITGuideFormProps) {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      "Published" guides are visible to all staff.
+                      &quot;Published&quot; guides are visible to all staff.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

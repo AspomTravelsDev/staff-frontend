@@ -43,14 +43,17 @@ import {
   TrendingUp,
 } from "lucide-react";
 import type { RecruitmentCandidate, CandidateStatus } from "@/lib/types/recruitment";
+import { cvEvaluationFailed, cvEvaluationScore } from "@/lib/recruitment/cv-evaluation";
 import { updateCandidateStatus, reanalyzeCandidate } from "@/lib/api/recruitment";
 import { toast } from "sonner";
 import { DeleteCandidateDialog } from "./delete-candidate-dialog";
+import { AssessmentLink } from "./assessment-link";
 
 interface CandidateEvaluationSheetProps {
   candidate: RecruitmentCandidate | null;
   roleId: string;
   roleTitle: string;
+  assessmentEnabled: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAcceptCandidate: (candidate: RecruitmentCandidate) => void;
@@ -61,6 +64,7 @@ export function CandidateEvaluationSheet({
   candidate,
   roleId,
   roleTitle,
+  assessmentEnabled,
   open,
   onOpenChange,
   onAcceptCandidate,
@@ -83,7 +87,7 @@ export function CandidateEvaluationSheet({
   if (!candidate) return null;
 
   const evalData = candidate.ai_evaluation;
-  const score = candidate.ai_score ?? evalData?.match_score ?? 0;
+  const score = cvEvaluationScore(candidate);
 
   const getScoreColor = (sc: number) => {
     if (sc >= 80) return "text-emerald-600 bg-emerald-500/10 border-emerald-500/20";
@@ -138,7 +142,9 @@ export function CandidateEvaluationSheet({
         toast.error(res.error || "Failed to re-analyze candidate.");
         return;
       }
-      toast.success("Candidate re-analyzed with updated role criteria!");
+      if (res.data && cvEvaluationFailed(res.data)) toast.error("AI evaluation is still unavailable. Please retry later.");
+      else toast.success("Candidate re-analyzed with updated role criteria!");
+      onOpenChange(false);
       router.refresh();
     } catch (err: any) {
       toast.error(err?.message || "Failed to re-analyze candidate.");
@@ -182,11 +188,11 @@ export function CandidateEvaluationSheet({
                 className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border font-bold ${
                   candidate.post_interview_evaluation
                     ? "bg-muted/40 border-border/60 text-muted-foreground"
-                    : getScoreColor(score)
+                    : getScoreColor(score ?? 0)
                 }`}
               >
                 <div className={candidate.post_interview_evaluation ? "text-base font-semibold text-foreground" : "text-2xl"}>
-                  {score}%
+                  {score == null ? (cvEvaluationFailed(candidate) ? "Evaluation failed" : "Not scored") : `${score}%`}
                 </div>
                 <div className="text-[9px] tracking-wider uppercase font-semibold">
                   CV Match
@@ -262,19 +268,27 @@ export function CandidateEvaluationSheet({
               </Button>
             </div>
 
-            {(candidate.status === "interviewing" || candidate.interview_rubric) && onOpenRubric && (
+            {(candidate.status === "interviewing" || candidate.assessment_summary) && <AssessmentLink candidate={candidate} roleId={roleId} />}
+            {!assessmentEnabled && (candidate.status === "interviewing" || candidate.interview_rubric) && onOpenRubric && (
               <Button
                 variant={candidate.interview_rubric ? "secondary" : "outline"}
                 size="sm"
                 className="gap-1.5 h-9 text-xs text-purple-700 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
                 onClick={() => onOpenRubric(candidate)}
+                disabled={
+                  !candidate.interview_rubric &&
+                  candidate.assessment_summary?.state !== "submitted"
+                }
               >
                 <ClipboardList className="h-3.5 w-3.5 text-purple-600" />
-                {candidate.interview_rubric ? `Rubric (${candidate.interview_rubric.scores?.total_score || 0}/55)` : "Interview Rubric"}
+                {candidate.interview_rubric
+                  ? `2. View rubric (${candidate.interview_rubric.scores?.total_score || 0}/55)`
+                  : "2. Fill rubric"}
               </Button>
             )}
 
-            {candidate.status === "interviewing" && (
+            {candidate.status === "interviewing" &&
+              (!assessmentEnabled || candidate.assessment_summary?.state === "submitted") && (
               <Button
                 size="sm"
                 className="gap-1.5 h-9 text-xs"

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { cn } from "@/lib/utils";
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
@@ -23,6 +24,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  stickyToolbar?: boolean;
 }
 
 export function RichTextEditor({
@@ -30,9 +32,10 @@ export function RichTextEditor({
   onChange,
   placeholder = "Write your content here...",
   className,
+  stickyToolbar = false,
 }: RichTextEditorProps) {
   return (
-    <div className={className}>
+    <div className={cn(className, stickyToolbar && "rich-text-editor--sticky")}>
       <ReactQuill
         theme="snow"
         value={value}
@@ -58,6 +61,13 @@ export function RichTextEditor({
         }
         .ql-editor {
           min-height: 160px;
+        }
+        .rich-text-editor--sticky .ql-toolbar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          background-color: var(--background);
+          border-color: var(--border);
         }
         .ql-editor.ql-blank::before {
           color: hsl(var(--muted-foreground));

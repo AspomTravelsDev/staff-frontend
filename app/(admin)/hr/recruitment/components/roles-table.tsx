@@ -20,9 +20,10 @@ import { RoleActions } from "./role-actions";
 
 interface RolesTableProps {
   roles: RecruitmentRole[];
+  canEdit?:boolean;
 }
 
-export function RolesTable({ roles }: RolesTableProps) {
+export function RolesTable({ roles,canEdit=true }: RolesTableProps) {
   const [activeTab, setActiveTab] = useState<string>("all");
 
   const counts = useMemo(() => {
@@ -44,7 +45,7 @@ export function RolesTable({ roles }: RolesTableProps) {
       <div className="text-center py-16 border rounded-lg bg-card/50 text-muted-foreground">
         <Users className="mx-auto h-10 w-10 text-muted-foreground/60 mb-3" />
         <p className="text-base font-medium">No recruitment roles yet.</p>
-        <p className="text-sm mt-1">Create your first role or connect one from an approved staff request.</p>
+        <p className="text-sm mt-1">{canEdit ? "Create your first role or connect one from an approved staff request." : "Roles will appear here when HR submits candidates for management review."}</p>
       </div>
     );
   }
@@ -186,7 +187,7 @@ export function RolesTable({ roles }: RolesTableProps) {
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
-                        <RoleActions role={role} />
+                        {canEdit && <RoleActions role={role} />}
                       </div>
                     </TableCell>
                   </TableRow>

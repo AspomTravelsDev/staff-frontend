@@ -1,7 +1,8 @@
 import { AllTasksTable } from "./components/all-tasks-table";
 import { TaskFilters } from "./components/task-filters";
 import { HRTaskStats } from "./components/task-stats";
-import { getHRTasks } from "./queries";
+import { getDailyTasksOverview } from "@/lib/api/tasks";
+import { BackfillReportDialog } from "./components/backfill-report-dialog";
 import { format } from "date-fns";
 import { getAllClockInsForFilters } from "@/lib/api/clock-in";
 
@@ -38,11 +39,12 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
   const fromDate = filters.start_date || filters.date;
   const toDate = filters.end_date || filters.date;
 
-  const [records, attendanceRecords] = await Promise.all([
-    getHRTasks(filters),
+  const [overview, attendanceRecords] = await Promise.all([
+    getDailyTasksOverview(filters),
     getAllClockInsForFilters(fromDate, toDate, filters.user_id).catch(() => []),
   ]);
 
+  const records = overview.data;
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -54,11 +56,22 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
             Monitor staff daily activities and end-of-day reports.
           </p>
         </div>
+        {overview.can_backfill && (
+          <BackfillReportDialog
+            users={overview.backfill_users}
+            initialUserId={filters.user_id}
+            initialDate={filters.date}
+          />
+        )}
       </div>
 
       <HRTaskStats records={records} />
 
-      <TaskFilters filters={filters} records={records} attendance={attendanceRecords} />
+      <TaskFilters
+        filters={filters}
+        records={records}
+        attendance={attendanceRecords}
+      />
 
       <AllTasksTable records={records} isLoading={false} />
     </div>

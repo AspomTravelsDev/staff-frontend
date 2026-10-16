@@ -126,6 +126,7 @@ type PdfMetadata = {
 }
 
 type GeneratedPdfs = {
+    recruitment_offer_generation?: string
     guarantor1?: PdfMetadata
     guarantor2?: PdfMetadata
     referee?: PdfMetadata
@@ -533,6 +534,8 @@ export async function downloadPdfFormsAction(
 
         // Output to Laravel (save PDF metadata)
         if (newPdfsGenerated) {
+            const offerGeneration = (application.form_data as {recruitment_offer?:{generation?:string}} | null)?.recruitment_offer?.generation
+            if (offerGeneration && options.includeAdminOnly) updatedGeneratedPdfs.recruitment_offer_generation = offerGeneration
             // Update the form_data via saveFormStep API without altering current step logic
             // We use standard step 1 or current step to hold this update
             await savePublicFormStep(uuid, formData.currentStep || 1, { generatedPdfs: updatedGeneratedPdfs })

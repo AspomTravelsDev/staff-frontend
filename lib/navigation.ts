@@ -292,6 +292,8 @@ export const departmentNav: NavItem[] = [
   {
     title: "Recruitment",
     url: "/hr/recruitment",
+    badgeKey: "recruitmentUpdates",
+    badgeLabel: "Recruitment updates",
     icon: Briefcase,
     allowedRoles: ["hr", "super", "mp", "md"],
   },
@@ -608,6 +610,7 @@ export function filterNavByRole(
 }
 
 export function getNavigationForUser(user: {
+  id?: string;
   role: UserRole;
   secondary_roles?: UserRole[] | null;
   roles?: UserRole[];
@@ -618,9 +621,14 @@ export function getNavigationForUser(user: {
       ? user.roles
       : [user.role, ...(user.secondary_roles || [])];
 
+  const department = filterNavByRole(departmentNav, activeRoles);
+  if (user.id === "019c56b9-09c2-729b-84de-a13bfc2b8e8d" && !department.some(item => item.url === "/hr/tasks")) {
+    const tasks = departmentNav.find(item => item.url === "/hr/tasks");
+    if (tasks) department.push(tasks);
+  }
   return {
     dashboard: dashboardNav,
-    department: filterNavByRole(departmentNav, activeRoles),
+    department,
     personal: user.is_department_account ? [] : personalNav,
   };
 }
