@@ -87,9 +87,9 @@ export function PaymentLinksClient() {
   const pagination = query.data?.pagination;
   return <div className="w-full space-y-4">
     <div id="payment-links-header" className="flex flex-wrap items-center justify-between gap-3">
-      <div><h1 className="text-2xl font-semibold">Payment Links</h1><p className="mt-1 text-sm text-muted-foreground">{query.data?.can_manage ? "Request client payments and follow their progress." : "Follow payment requests for your clients."}</p></div>
+      <div><h1 className="text-2xl font-semibold">Payment Links</h1><p className="mt-1 text-sm text-muted-foreground">{query.data?.can_manage ? "Request client payments and follow their progress." : query.data?.can_view_all ? "View company payment requests and their progress." : "Follow payment requests for your clients."}</p></div>
       <div className="flex flex-wrap gap-2">
-        <PaymentLinksGuide canManage={query.data?.can_manage || false} />
+        <PaymentLinksGuide canManage={query.data?.can_manage || false} canViewAll={query.data?.can_view_all || false} />
         <Button variant="ghost" size="sm" onClick={refresh} disabled={query.isFetching}><RefreshCw className="h-4 w-4" />Refresh</Button>
         {query.data?.can_manage && <Button id="payment-links-create" size="sm" onClick={() => { setReplacing(undefined); setCreateOpen(true); }}><Plus className="h-4 w-4" />Create link</Button>}
       </div>

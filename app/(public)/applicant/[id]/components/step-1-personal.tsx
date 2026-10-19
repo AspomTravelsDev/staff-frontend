@@ -61,7 +61,8 @@ export function Step1Personal({
       "nationality",
       "email",
       "phoneNumber",
-      "street",
+      "houseNumber",
+      "address",
       "city",
       "state",
       "country",
@@ -80,7 +81,8 @@ export function Step1Personal({
       nationality: "Nationality",
       email: "Email Address",
       phoneNumber: "Primary Phone",
-      street: "Street Address",
+      houseNumber: "House Number",
+      address: "Address",
       city: "City",
       state: "State",
       country: "Country",
@@ -130,7 +132,8 @@ export function Step1Personal({
         alternatePhoneNumber: formData.get("alternatePhoneNumber"),
         email: formData.get("email"),
         residentialAddress: {
-          street: formData.get("street"),
+          houseNumber: formData.get("houseNumber"),
+          address: formData.get("address"),
           busStop: formData.get("busStop"),
           city: formData.get("city"),
           state: formData.get("state"),
@@ -440,13 +443,22 @@ export function Step1Personal({
         <Separator />
         <h4 className="font-medium">Residential Address</h4>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="street">Street Address <span className="text-destructive font-semibold ml-1">*</span></Label>
+          <div className="space-y-2">
+            <Label htmlFor="houseNumber">House Number <span className="text-destructive font-semibold ml-1">*</span></Label>
             <Input
-              id="street"
-              name="street"
+              id="houseNumber"
+              name="houseNumber"
               required
-              defaultValue={initialData?.residentialAddress?.street || ""}
+              defaultValue={initialData?.residentialAddress?.houseNumber || ""}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Address <span className="text-destructive font-semibold ml-1">*</span></Label>
+            <Input
+              id="address"
+              name="address"
+              required
+              defaultValue={initialData?.residentialAddress?.address || ""}
             />
           </div>
           <div className="space-y-2">

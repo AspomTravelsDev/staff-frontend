@@ -4,27 +4,28 @@ import { useEffect } from "react";
 
 export function RegisterServiceWorker() {
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      process.env.NODE_ENV === "production"
-    ) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then(() => {
-          // ServiceWorker successfully registered
-        })
-        .catch((err) => {
-          console.warn("ServiceWorker registration error:", err);
-        });
-    } else if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      // In development, also register so PWA install prompt can be tested locally
-      navigator.serviceWorker
-        .register("/sw.js")
-        .catch((err) => {
-          console.warn("ServiceWorker registration (dev) error:", err);
-        });
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+    const enabled = process.env.NODE_ENV === "production"
+      || process.env.NEXT_PUBLIC_ENABLE_DEV_SERVICE_WORKER === "true";
+    if (enabled) {
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch((err) => {
+        console.warn("ServiceWorker registration error:", err);
+      });
+      return;
     }
+
+    // A worker installed by an earlier local build survives hard refreshes.
+    // Remove only this portal's worker; existing tabs release it on navigation.
+    navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+      const scriptUrl = new URL("/sw.js", window.location.origin).href;
+      await Promise.all(registrations.filter((registration) =>
+        [registration.active, registration.waiting, registration.installing]
+          .some((worker) => worker?.scriptURL === scriptUrl),
+      ).map((registration) => registration.unregister()));
+    }).catch((err) => {
+      console.warn("Could not remove the development service worker:", err);
+    });
   }, []);
 
   return null;

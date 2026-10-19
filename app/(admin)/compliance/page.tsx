@@ -3,15 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { userHasAnyRole } from "@/types/user-types";
 import { ComplianceStatsCards } from "./components/compliance-stats";
-import { ComplianceTable } from "./components/compliance-table";
 import { AddOccurrenceDialog } from "./components/add-occurrence-dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   getComplianceIssues,
   getComplianceStats,
@@ -44,7 +36,7 @@ export default async function CompliancePage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["super", "admin", "hr", "compliance", "office-operations"])) {
+  if (!userHasAnyRole(user, ["super", "mp", "md", "admin", "hr", "compliance", "office-operations"])) {
     redirect("/dashboard");
   }
 
@@ -71,7 +63,7 @@ export default async function CompliancePage({ searchParams }: PageProps) {
     new Set(employees.map((e) => e.department).filter(Boolean)),
   ).sort();
 
-  const { items: issues, pagination } = issuesData;
+  const { items: issues } = issuesData;
 
   return (
     <div className="space-y-6">

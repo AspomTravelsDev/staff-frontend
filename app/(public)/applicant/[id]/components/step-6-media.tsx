@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import {
   saveFormStep,
+  saveFormStepWithoutRedirect,
   redirectToPreviousStep,
   uploadPassportPhoto,
 } from "../actions";
@@ -63,6 +64,7 @@ export function Step6Media({
   const [uniName, setUniName] = useState<string | null>(initialData?.universityCertificate?.fileName || null);
   const [birthCertName, setBirthCertName] = useState<string | null>(initialData?.birthCertificate?.fileName || null);
   const [resumeName, setResumeName] = useState<string | null>(initialData?.resumeCv?.fileName || null);
+  const [utilityBillName, setUtilityBillName] = useState<string | null>(initialData?.utilityBill?.fileName || null);
 
   const [validIdError, setValidIdError] = useState<string | null>(null);
   const [oLevelError, setOLevelError] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export function Step6Media({
   const [uniError, setUniError] = useState<string | null>(null);
   const [birthCertError, setBirthCertError] = useState<string | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [utilityBillError, setUtilityBillError] = useState<string | null>(null);
 
   const handleOptionalFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -326,6 +329,7 @@ export function Step6Media({
       const uniFile = formData.get("universityCertificate") as File | null;
       const birthCertFile = formData.get("birthCertificate") as File | null;
       const resumeFile = formData.get("resumeCv") as File | null;
+      const utilityBillFile = formData.get("utilityBill") as File | null;
 
       const hasNewValidId = !!(validIdFile && validIdFile.size > 0 && validIdFile.name);
       const hasNewOLevel = !!(oLevelFile && oLevelFile.size > 0 && oLevelFile.name);
@@ -333,33 +337,7 @@ export function Step6Media({
       const hasNewUni = !!(uniFile && uniFile.size > 0 && uniFile.name);
       const hasNewBirthCert = !!(birthCertFile && birthCertFile.size > 0 && birthCertFile.name);
       const hasNewResume = !!(resumeFile && resumeFile.size > 0 && resumeFile.name);
-
-      const missingItems: string[] = [];
-      if (!hasNewValidId && !initialData?.validId?.storagePath) {
-        missingItems.push("Valid Means of ID");
-      }
-      if (!hasNewOLevel && !initialData?.oLevelResults?.storagePath) {
-        missingItems.push("O Level Results");
-      }
-      if (!hasNewNysc && !initialData?.nyscCertificate?.storagePath) {
-        missingItems.push("NYSC Certificate");
-      }
-      if (!hasNewUni && !initialData?.universityCertificate?.storagePath) {
-        missingItems.push("University Certificate");
-      }
-      if (!hasNewBirthCert && !initialData?.birthCertificate?.storagePath) {
-        missingItems.push("Birth Certificate / Age Declaration");
-      }
-      if (!hasNewResume && !initialData?.resumeCv?.storagePath) {
-        missingItems.push("Resume / CV");
-      }
-
-      if (missingItems.length > 0) {
-        return {
-          error: `Missing required document(s): ${missingItems.join(", ")}. Please upload them before continuing.`,
-          submittedData: toSubmittedData(formData),
-        };
-      }
+      const hasNewUtilityBill = !!(utilityBillFile && utilityBillFile.size > 0 && utilityBillFile.name);
 
       let validIdData = initialData?.validId;
       if (hasNewValidId) {
@@ -378,6 +356,29 @@ export function Step6Media({
         } catch (error: any) {
           return {
             error: `ID upload failed: ${error.message}`,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+
+      }
+
+      let utilityBillData = initialData?.utilityBill;
+      if (hasNewUtilityBill) {
+        try {
+          const result = await uploadPublicFile(
+            applicationId,
+            utilityBillFile as File,
+            `applicant_utility_bill_${applicationId}`
+          );
+          utilityBillData = {
+            fileName: (utilityBillFile as File).name,
+            storagePath: result.storagePath,
+            uploadedAt: new Date().toISOString(),
+            fileId: result.fileId,
+          };
+        } catch (error: any) {
+          return {
+            error: `Utility bill upload failed: ${error.message}`,
             submittedData: toSubmittedData(formData),
           };
         }
@@ -508,8 +509,32 @@ export function Step6Media({
           universityCertificate: uniData,
           birthCertificate: birthCertData,
           resumeCv: resumeData,
+          utilityBill: utilityBillData,
         },
       };
+
+      const missingItems: string[] = [];
+      if (!data.media.validId?.storagePath) missingItems.push("Valid Means of ID");
+      if (!data.media.oLevelResults?.storagePath) missingItems.push("O Level Results");
+      if (!data.media.nyscCertificate?.storagePath) missingItems.push("NYSC Certificate");
+      if (!data.media.universityCertificate?.storagePath) missingItems.push("University Certificate");
+      if (!data.media.birthCertificate?.storagePath) missingItems.push("Birth Certificate / Age Declaration");
+      if (!data.media.resumeCv?.storagePath) missingItems.push("Resume / CV");
+      if (!data.media.utilityBill?.storagePath) missingItems.push("Utility Bill");
+
+      if (missingItems.length > 0) {
+        const saved = await saveFormStepWithoutRedirect(applicationId, 6, data);
+        if (saved.error) {
+          return {
+            error: saved.error,
+            submittedData: toSubmittedData(formData),
+          };
+        }
+        return {
+          error: `Missing required document(s): ${missingItems.join(", ")}. Please upload them before continuing.`,
+          submittedData: toSubmittedData(formData),
+        };
+      }
 
       return saveFormStep(applicationId, 6, data);
     } catch (error) {
@@ -857,6 +882,31 @@ export function Step6Media({
               <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
                 <span>✓</span>
                 <span>{initialData?.resumeCv?.fileName === resumeName ? "Stored:" : "Selected:"} {resumeName}</span>
+              </div>
+
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                <span>⚠️</span>
+                <span>Required - pending upload</span>
+              </div>
+
+            )}
+          </div>
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="utilityBill" className="text-sm font-medium">Recent Utility Bill *</Label>
+            <input
+              type="file"
+              id="utilityBill"
+              name="utilityBill"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleOptionalFileChange(e, setUtilityBillName, setUtilityBillError)}
+              className="block w-full text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            />
+            {utilityBillError && <p className="text-xs font-medium text-destructive">{utilityBillError}</p>}
+            {utilityBillName ? (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mt-1">
+                <span>✓</span>
+                <span>{initialData?.utilityBill?.fileName === utilityBillName ? "Stored:" : "Selected:"} {utilityBillName}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">

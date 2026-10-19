@@ -47,7 +47,17 @@ export default async function RequestsPage({
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["super", "it", "admin", "compliance", "office-operations"])) {
+  if (
+    !userHasAnyRole(user, [
+      "super",
+      "mp",
+      "md",
+      "it",
+      "admin",
+      "compliance",
+      "office-operations",
+    ])
+  ) {
     redirect("/dashboard");
   }
 
@@ -55,8 +65,10 @@ export default async function RequestsPage({
   const limit = Math.min(parsePositiveInt(params.limit, DEFAULT_LIMIT), 100);
   const search = typeof params.search === "string" ? params.search : undefined;
   const status = typeof params.status === "string" ? params.status : undefined;
-  const category = typeof params.category === "string" ? params.category : undefined;
-  const priority = typeof params.priority === "string" ? params.priority : undefined;
+  const category =
+    typeof params.category === "string" ? params.category : undefined;
+  const priority =
+    typeof params.priority === "string" ? params.priority : undefined;
 
   const buildHref = (nextPage: number, nextLimit: number = limit) => {
     const query = new URLSearchParams();

@@ -11,7 +11,7 @@ export default async function AdminAnnouncementsPage() {
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["admin", "super", "it"])) {
+  if (!userHasAnyRole(user, ["admin", "super", "mp", "md", "it"])) {
     redirect("/dashboard");
   }
 

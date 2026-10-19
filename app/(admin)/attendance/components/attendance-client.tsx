@@ -4,6 +4,8 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ClockInRecord, ClockInSummary } from "@/lib/api/clock-in";
 import { Employee } from "@/lib/api/employees";
+import { AttendanceCharts } from "./attendance-charts";
+import type { AttendanceChartSummary } from "@/lib/utils/attendance-charts";
 import { AttendanceStats } from "./attendance-stats";
 import { AdminAttendanceTable } from "./admin-attendance-table";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
@@ -11,7 +13,12 @@ import { TableExportButton } from "@/components/ui/table-export-button";
 import { WallQrPosterDialog } from "@/components/attendance/wall-qr-poster-dialog";
 import { ClockInModeToggle } from "@/components/attendance/clock-in-mode-toggle";
 import { Button } from "@/components/ui/button";
-import { Filter, Users } from "lucide-react";
+import { Settings2, QrCode } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
 import type { ExportColumn } from "@/lib/utils/export";
@@ -31,6 +38,8 @@ import {
 
 interface AttendanceClientProps {
   history: ClockInRecord[];
+  charts: AttendanceChartSummary | null;
+  historyFailed?: boolean;
   stats: ClockInSummary | null;
   employees: Employee[];
   initialFrom?: string;
@@ -42,7 +51,9 @@ interface AttendanceClientProps {
 }
 
 export function AttendanceClient({
-  history,
+  history: allHistory,
+  charts,
+  historyFailed = false,
   stats,
   employees,
   initialFrom,
@@ -56,6 +67,24 @@ export function AttendanceClient({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+
+  const [tableDepartment, setTableDepartment] = useState<string | null>(null);
+  const history =
+    tableDepartment === null
+      ? allHistory
+      : allHistory.filter(
+          (record) =>
+            (record.user?.department?.trim() || "Unassigned") ===
+            tableDepartment,
+        );
+  const selectDepartment = (department: string | null) => {
+    setTableDepartment(department);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
+    startTransition(() =>
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false }),
+    );
+  };
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     if (initialFrom) {
@@ -71,9 +100,21 @@ export function AttendanceClient({
     initialUserId || "all",
   );
   const [pageSize, setPageSize] = useState<number>(initialPageSize);
-  const [clockOutFilter, setClockOutFilter] = useState(initialLateClockOutsOnly ? "late" : "all");
+  const [clockOutFilter, setClockOutFilter] = useState(
+    initialLateClockOutsOnly ? "late" : "all",
+  );
 
   useEffect(() => {
+    if (
+      (dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined) ===
+        initialFrom &&
+      (dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined) ===
+        initialTo &&
+      selectedStaff === (initialUserId || "all") &&
+      pageSize === initialPageSize &&
+      clockOutFilter === (initialLateClockOutsOnly ? "late" : "all")
+    )
+      return;
     const params = new URLSearchParams(searchParams.toString());
     let hasChanges = false;
 
@@ -117,8 +158,14 @@ export function AttendanceClient({
 
     const pageSizeValue = pageSize.toString();
     if (clockOutFilter === "late") {
-      if (params.get("clock_out") !== "late") { params.set("clock_out", "late"); hasChanges = true; }
-    } else if (params.has("clock_out")) { params.delete("clock_out"); hasChanges = true; }
+      if (params.get("clock_out") !== "late") {
+        params.set("clock_out", "late");
+        hasChanges = true;
+      }
+    } else if (params.has("clock_out")) {
+      params.delete("clock_out");
+      hasChanges = true;
+    }
     if (params.get("page_size") !== pageSizeValue) {
       params.set("page_size", pageSizeValue);
       hasChanges = true;
@@ -142,24 +189,43 @@ export function AttendanceClient({
     pathname,
     router,
     startTransition,
+    initialFrom,
+    initialTo,
+    initialUserId,
+    initialPageSize,
+    initialLateClockOutsOnly,
   ]);
 
   // Create a map of date_userId to track status (using earliest clock-in time)
-  const attendanceMap = new Map<string, { clockInTime: number; status: "Early" | "Late" | "Late (Permitted)"; lateClockOutAt?: string }>();
+  const attendanceMap = new Map<
+    string,
+    {
+      clockInTime: number;
+      status: "Early" | "Late" | "Late (Permitted)";
+      lateClockOutAt?: string;
+    }
+  >();
   history.forEach((record) => {
     const dateStr = formatLagosDateForInput(record.clock_in_at);
     if (!dateStr) return;
     const userId = record.user_id;
     const key = `${dateStr}_${userId}`;
     const clockInTime = new Date(record.clock_in_at).getTime();
-    
-    let status: "Early" | "Late" | "Late (Permitted)" = isLate(record.clock_in_at) ? "Late" : "Early";
+
+    let status: "Early" | "Late" | "Late (Permitted)" = isLate(
+      record.clock_in_at,
+    )
+      ? "Late"
+      : "Early";
     if (status === "Late" && record.is_late_permitted) {
       status = "Late (Permitted)";
     }
 
     const existing = attendanceMap.get(key);
-    const lateClockOutAt = record.is_late_clock_out && record.clock_out_at ? record.clock_out_at : existing?.lateClockOutAt;
+    const lateClockOutAt =
+      record.is_late_clock_out && record.clock_out_at
+        ? record.clock_out_at
+        : existing?.lateClockOutAt;
     if (!existing || clockInTime < existing.clockInTime) {
       attendanceMap.set(key, { clockInTime, status, lateClockOutAt });
     } else if (lateClockOutAt) {
@@ -171,12 +237,18 @@ export function AttendanceClient({
   const employeeMap = new Map<string, { id: string; name: string }>();
 
   // Add active employees
-  employees.forEach((emp) => {
-    employeeMap.set(emp.id, {
-      id: emp.id,
-      name: `${emp.firstName} ${emp.lastName}`.trim(),
+  employees
+    .filter(
+      (emp) =>
+        tableDepartment === null ||
+        (emp.department?.trim() || "Unassigned") === tableDepartment,
+    )
+    .forEach((emp) => {
+      employeeMap.set(emp.id, {
+        id: emp.id,
+        name: `${emp.firstName} ${emp.lastName}`.trim(),
+      });
     });
-  });
 
   // Add any employees from history who might not be active employees
   history.forEach((record) => {
@@ -253,7 +325,9 @@ export function AttendanceClient({
       exportEmployees.forEach((emp) => {
         const key = `${dateKey}_${emp.id}`;
         const record = attendanceMap.get(key);
-        row[emp.id] = record ? `${record.status}${record.lateClockOutAt ? `; clocked out ${formatLagosDate(record.lateClockOutAt)} at ${formatLagosTime(record.lateClockOutAt)} (After 8 PM)` : ""}` : "Absent";
+        row[emp.id] = record
+          ? `${record.status}${record.lateClockOutAt ? `; clocked out ${formatLagosDate(record.lateClockOutAt)} at ${formatLagosTime(record.lateClockOutAt)} (After 8 PM)` : ""}`
+          : "No clock-in";
       });
 
       pivotedRows.push(row);
@@ -272,140 +346,235 @@ export function AttendanceClient({
     },
     ...exportEmployees.map((emp) => ({
       header: emp.name,
-      key: (row: Record<string, string>) => row[emp.id] || "Absent",
+      key: (row: Record<string, string>) => row[emp.id] || "No clock-in",
     })),
   ];
 
   const lateClockOutExportColumns: ExportColumn<ClockInRecord>[] = [
-    { header: "Staff", key: record => record.user?.name || record.user_id },
-    { header: "Email", key: record => record.user?.email || "" },
-    { header: "Attendance date", key: record => formatLagosDate(record.clock_in_at) },
-    { header: "Clock in (Lagos)", key: record => formatLagosTime(record.clock_in_at) },
-    { header: "Clock-out date", key: record => formatLagosDate(record.clock_out_at || "") },
-    { header: "Clock out (Lagos)", key: record => formatLagosTime(record.clock_out_at || "") },
+    { header: "Staff", key: (record) => record.user?.name || record.user_id },
+    { header: "Email", key: (record) => record.user?.email || "" },
+    {
+      header: "Attendance date",
+      key: (record) => formatLagosDate(record.clock_in_at),
+    },
+    {
+      header: "Clock in (Lagos)",
+      key: (record) => formatLagosTime(record.clock_in_at),
+    },
+    {
+      header: "Clock-out date",
+      key: (record) => formatLagosDate(record.clock_out_at || ""),
+    },
+    {
+      header: "Clock out (Lagos)",
+      key: (record) => formatLagosTime(record.clock_out_at || ""),
+    },
     { header: "Clock-out flag", key: () => "After 8 PM" },
   ];
 
   return (
-    <div className="flex flex-col gap-6 p-4 pt-10 lg:pt-4">
-      <div>
-        <h1 className="text-2xl font-bold">General Attendance</h1>
-        <p className="text-sm text-muted-foreground">
-          Monitor attendance records across all staff.
-        </p>
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">General Attendance</h1>
+          <p className="text-sm text-muted-foreground">
+            Monitor attendance records across all staff.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <WallQrPosterDialog
+            trigger={
+              <Button variant="outline" size="sm">
+                <QrCode className="size-4" />
+                QR poster
+              </Button>
+            }
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings2 className="size-4" />
+                Attendance tools
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 space-y-3">
+              <p className="text-sm font-medium">Clock-in settings</p>
+              <ClockInModeToggle compact />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      <AttendanceStats stats={stats} isLoading={isPending} />
+      {stats ? (
+        <AttendanceStats stats={stats} isLoading={isPending} />
+      ) : (
+        <p role="status" className="text-sm text-muted-foreground">
+          Attendance totals could not load. Refresh the page to try again.
+        </p>
+      )}
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-3 bg-card p-4 rounded-xl border">
-        {/* Date Range */}
-        <label className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <Filter size={14} className="text-muted-foreground" />
-          Date Range
-        </label>
+      <div className="flex flex-wrap items-center gap-2">
         <DatePickerWithRange
           date={dateRange}
-          setDate={setDateRange}
+          setDate={(range) => {
+            if (range) {
+              setDateRange(range);
+              return;
+            }
+            const today = parseISO(formatLagosDateForInput(new Date()));
+            const from = new Date(today);
+            from.setDate(from.getDate() - 29);
+            setDateRange({ from, to: today });
+          }}
           disabled={isPending}
-          className="w-full sm:w-60 shrink-0"
+          className="h-9 w-full sm:w-72"
         />
+        <Select
+          value={selectedStaff}
+          onValueChange={setSelectedStaff}
+          disabled={isPending}
+        >
+          <SelectTrigger
+            aria-label="Filter by staff member"
+            className="h-9 w-full sm:w-48"
+          >
+            <SelectValue placeholder="All staff" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All staff</SelectItem>
+            {employees.map((emp) => (
+              <SelectItem key={emp.id} value={emp.id}>
+                {emp.firstName} {emp.lastName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={clockOutFilter}
+          onValueChange={setClockOutFilter}
+          disabled={isPending}
+        >
+          <SelectTrigger
+            aria-label="Filter by clock-out"
+            className="h-9 w-full sm:w-44"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All clock-outs</SelectItem>
+            <SelectItem value="late">Late clock-outs</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isPending}
+          onClick={() => {
+            const today = parseISO(formatLagosDateForInput(new Date()));
+            setDateRange({ from: today, to: today });
+          }}
+        >
+          Today
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={isPending}
+          onClick={() => {
+            const today = parseISO(formatLagosDateForInput(new Date()));
+            const start = new Date(today);
+            start.setDate(start.getDate() - 29);
+            setDateRange({ from: start, to: today });
+            setSelectedStaff("all");
+            setClockOutFilter("all");
+            setTableDepartment(null);
+          }}
+        >
+          Reset
+        </Button>
+      </div>
 
-        {/* Staff Member */}
-        <label className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <Users size={14} className="text-muted-foreground" />
-          Staff Member
-        </label>
-        <div className="w-full sm:w-48 shrink-0">
+      <AttendanceCharts
+        data={charts}
+        onSelectDay={(date) =>
+          setDateRange({ from: parseISO(date), to: parseISO(date) })
+        }
+        onSelectDepartment={selectDepartment}
+      />
+
+      {tableDepartment !== null && (
+        <div
+          className="flex flex-wrap items-center gap-2 text-sm"
+          role="status"
+        >
+          <span>
+            Table & export: <strong>{tableDepartment}</strong>
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => selectDepartment(null)}
+          >
+            Clear department
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Summary cards and charts cover all selected staff.
+          </span>
+        </div>
+      )}
+      {historyFailed && (
+        <p role="alert" className="rounded-md border p-4 text-sm">
+          Attendance records could not load. Refresh the page to try again.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Attendance records</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Rows per page</span>
           <Select
-            value={selectedStaff}
-            onValueChange={setSelectedStaff}
+            value={String(pageSize)}
+            onValueChange={(value) => setPageSize(Number(value))}
             disabled={isPending}
           >
-            <SelectTrigger className="h-10 bg-background">
-              <SelectValue placeholder="All Staff" />
+            <SelectTrigger aria-label="Rows per page" className="h-8 w-20">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Staff</SelectItem>
-              {employees.map((emp) => (
-                <SelectItem key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName}
+              {[25, 50, 100].map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        <label htmlFor="attendance-clock-out-filter" className="text-sm font-medium whitespace-nowrap shrink-0">Clock-outs</label>
-        <div className="w-full sm:w-48 shrink-0">
-          <Select value={clockOutFilter} onValueChange={setClockOutFilter} disabled={isPending}>
-            <SelectTrigger id="attendance-clock-out-filter" className="h-10 bg-background"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All records</SelectItem>
-              <SelectItem value="late">Late clock-outs</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Reset */}
-        <Button
-          variant="outline"
-          onClick={() => {
-            setDateRange(undefined);
-            setSelectedStaff("all");
-            setClockOutFilter("all");
-          }}
-          disabled={isPending || (!dateRange && selectedStaff === "all" && clockOutFilter === "all")}
-          className="shrink-0"
-        >
-          Reset
-        </Button>
-
-        {/* Rows per page */}
-        <label className="text-sm font-medium whitespace-nowrap shrink-0">Rows per page</label>
-        <div className="w-24 shrink-0">
-          <Select
-            value={pageSize.toString()}
-            onValueChange={(value) => setPageSize(Number.parseInt(value, 10))}
-            disabled={isPending}
-          >
-            <SelectTrigger className="h-10 bg-background">
-              <SelectValue placeholder="100" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <ClockInModeToggle compact />
-          <WallQrPosterDialog />
-          <fieldset disabled={isPending}>
-          {clockOutFilter === "late" ? <TableExportButton
-            data={history} columns={lateClockOutExportColumns}
-            filename={`Late_Clock_Outs_${formatLagosDateForInput(new Date())}`}
-          /> : <TableExportButton
-            data={pivotedRows} columns={exportColumns}
-            filename={`Attendance_Export_${formatLagosDateForInput(new Date())}`}
-          />}
+          <fieldset disabled={isPending || historyFailed}>
+            {clockOutFilter === "late" ? (
+              <TableExportButton
+                data={history}
+                columns={lateClockOutExportColumns}
+                filename={`Late_Clock_Outs_${formatLagosDateForInput(new Date())}`}
+              />
+            ) : (
+              <TableExportButton
+                data={pivotedRows}
+                columns={exportColumns}
+                filename={`Attendance_Export_${formatLagosDateForInput(new Date())}`}
+              />
+            )}
           </fieldset>
         </div>
       </div>
-
       {/* 4. List */}
-      <div className="flex flex-col gap-4 mt-2">
-        <AdminAttendanceTable
-          history={history}
-          isLoading={isPending}
-          currentPage={initialPage}
-          pageSize={pageSize}
-        />
-      </div>
+      {!historyFailed && (
+        <div className="flex flex-col gap-4">
+          <AdminAttendanceTable
+            history={history}
+            isLoading={isPending}
+            currentPage={initialPage}
+            pageSize={pageSize}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { fetchOnboardingDocument } from "@/lib/utils/onboarding-download";
 import { useState, useEffect } from "react";
 import { redirectToPreviousStep, saveFormStep } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,7 @@ import {
   AlertTriangle,
   Info,
   RefreshCw,
-  FileCheck,
-  Sparkles
+  FileCheck
 } from "lucide-react";
 
 type PdfDownloadResult = {
@@ -82,11 +82,11 @@ export function Step7Documents({
   const downloadFile = async (url: string, fileName: string) => {
     setDownloadingFile(fileName);
     try {
-      const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
-      
-      if (!response.ok) throw new Error("Network response was not ok");
-      
+      const response = await fetchOnboardingDocument(url, applicationId);
+      if (!response.ok) {
+        throw new Error(await response.text() || "The document could not be downloaded. Please try again.");
+      }
+
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -95,10 +95,12 @@ export function Step7Documents({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      return true;
     } catch (err) {
       console.error(`Failed to download ${fileName}:`, err);
-      toast.error(`Failed to download ${fileName}. Please try again.`);
+      toast.error(err instanceof Error ? err.message : `Failed to download ${fileName}. Please try again.`);
+      return false;
     } finally {
       setDownloadingFile(null);
     }
@@ -202,7 +204,8 @@ export function Step7Documents({
       const allFiles = [...requiredForms, ...recordForms];
       for (let i = 0; i < allFiles.length; i++) {
         const file = allFiles[i];
-        await downloadFile(file.url, file.filename);
+        const downloaded = await downloadFile(file.url, file.filename);
+        if (!downloaded) return;
         // Add a delay between downloads to reduce browser blockage on iOS/Safari
         if (i < allFiles.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -276,7 +279,6 @@ export function Step7Documents({
             <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 dark:border-indigo-950/20 dark:bg-indigo-950/5 p-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-400">
-                  <Sparkles className="h-5 w-5 text-indigo-500 shrink-0" />
                   <h5 className="text-sm font-semibold">Save Paper: Use E-Signatures (Recommended)</h5>
                 </div>
                 <p className="text-xs text-indigo-800 dark:text-indigo-500 leading-relaxed">
@@ -422,7 +424,6 @@ export function Step7Documents({
           {/* Section 3: Dress Code Guideline */}
           <div className="space-y-4 rounded-lg border p-4 bg-card shadow-sm">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-indigo-500" />
               <h4 className="text-sm font-semibold">3. Dress Guidelines</h4>
             </div>
             <p className="text-xs text-muted-foreground pl-7 -mt-2">
@@ -508,4 +509,3 @@ export function Step7Documents({
     </div>
   );
 }
-

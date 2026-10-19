@@ -3,6 +3,7 @@
 import { PaginatedResponse } from "./types";
 import { api, shouldMock } from "./client";
 import { revalidatePath } from "next/cache";
+import { ExpectedActionError } from "./action-result";
 
 // ============================================================================
 // Types
@@ -93,6 +94,14 @@ const getMockLeaveRequests = async (): Promise<LeaveRequest[]> => {
 // ============================================================================
 // API Functions
 // ============================================================================
+
+// The management table filters and paginates the complete server-fetched list.
+export async function getLeaveManagementRequests(): Promise<LeaveRequest[]> {
+    if (shouldMock("useMockLeave")) return getMockLeaveRequests();
+    const result = await api.get<{ data: LeaveRequest[] }>("/api/hr/leave");
+    if (!result.success) throw new ExpectedActionError(result.error?.error || "Unable to load leave requests. Please try again.");
+    return result.data.data;
+}
 
 export async function getLeaveRequests(
     filters: LeaveFilters = {}

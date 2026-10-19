@@ -76,7 +76,8 @@ export default async function ApplicationDetailPage({
 
   const personal = application.form_data?.personal;
   const addressParts = [
-    personal?.residentialAddress?.street,
+    personal?.residentialAddress?.houseNumber,
+    personal?.residentialAddress?.address,
     personal?.residentialAddress?.busStop,
     personal?.residentialAddress?.city,
     personal?.residentialAddress?.state,
@@ -257,6 +258,7 @@ export default async function ApplicationDetailPage({
             initialVerified={isAddressVerified}
             verifiedAt={addressVerification?.verified_at}
             verifiedByName={addressVerification?.verified_by?.name}
+            verificationProof={addressVerification?.proof}
           />
 
           <Separator />
@@ -289,6 +291,7 @@ export default async function ApplicationDetailPage({
                       initialStatus={
                         guarantor1.verification?.status || "unverified"
                       }
+                      initialProof={guarantor1.verification?.proof}
                     />
                   )}
                 </div>
@@ -327,6 +330,7 @@ export default async function ApplicationDetailPage({
                       initialStatus={
                         guarantor2.verification?.status || "unverified"
                       }
+                      initialProof={guarantor2.verification?.proof}
                     />
                   )}
                 </div>
@@ -364,6 +368,7 @@ export default async function ApplicationDetailPage({
                       initialStatus={
                         referee.verification?.status || "unverified"
                       }
+                      initialProof={referee.verification?.proof}
                     />
                   )}
                 </div>

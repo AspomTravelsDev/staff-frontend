@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { toggleAddressVerificationAction } from "../../actions";
+import { VerificationProofDialog } from "./verification-proof-dialog";
 
 interface AddressVerificationToggleProps {
   applicationId: string;
@@ -20,6 +21,7 @@ interface AddressVerificationToggleProps {
   initialVerified?: boolean;
   verifiedAt?: string | null;
   verifiedByName?: string | null;
+  verificationProof?: { storagePath?: string; fileName?: string };
   mode?: "full" | "inline";
 }
 
@@ -30,12 +32,15 @@ export function AddressVerificationToggle({
   initialVerified = false,
   verifiedAt,
   verifiedByName,
+  verificationProof,
   mode = "full",
 }: AddressVerificationToggleProps) {
   const [isVerified, setIsVerified] = useState(initialVerified);
   const [verifiedDate, setVerifiedDate] = useState<string | null>(verifiedAt || null);
   const [verifierName, setVerifierName] = useState<string | null>(verifiedByName || null);
+  const [proof, setProof] = useState(verificationProof);
   const [isPending, startTransition] = useTransition();
+  const [proofDialogOpen, setProofDialogOpen] = useState(false);
 
   const hasAddress = Boolean(addressText && addressText.trim());
 
@@ -46,6 +51,10 @@ export function AddressVerificationToggle({
     }
 
     const nextState = !isVerified;
+    if (nextState) {
+      setProofDialogOpen(true);
+      return;
+    }
     const previousState = isVerified;
     const previousDate = verifiedDate;
     const previousVerifier = verifierName;
@@ -80,6 +89,26 @@ export function AddressVerificationToggle({
         setVerifierName(previousVerifier);
         const message = err instanceof Error ? err.message : "Failed to update verification";
         toast.error(message);
+      }
+    });
+  };
+
+  const verifyWithProof = (proof: Record<string, unknown>) => {
+    const previousState = isVerified;
+    setIsVerified(true);
+    setProof(proof as { storagePath?: string; fileName?: string });
+    startTransition(async () => {
+      try {
+        const updated = await toggleAddressVerificationAction(applicationId, true, proof);
+        const verification = updated?.form_data?.address_verification;
+        if (verification) {
+          setVerifiedDate(verification.verified_at || null);
+          setVerifierName(verification.verified_by?.name || null);
+        }
+        toast.success("Applicant address marked as verified.");
+      } catch (err: unknown) {
+        setIsVerified(previousState);
+        toast.error(err instanceof Error ? err.message : "Failed to update address verification");
       }
     });
   };
@@ -152,6 +181,7 @@ export function AddressVerificationToggle({
   }
 
   return (
+    <>
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-muted-foreground">Residential Address</p>
@@ -176,6 +206,26 @@ export function AddressVerificationToggle({
           </p>
         )}
       </div>
+      {proof?.storagePath && (
+        <a
+          href={proof.storagePath}
+          aria-label="View address verification proof"
+          target="_blank"
+          rel="noreferrer"
+          className="whitespace-nowrap text-xs text-primary underline underline-offset-2"
+        >
+          View proof
+        </a>
+      )}
     </div>
+    <VerificationProofDialog
+      open={proofDialogOpen}
+      onOpenChange={setProofDialogOpen}
+      applicationId={applicationId}
+      title="address verification"
+      fieldName="address_verification_proof"
+      onUploaded={verifyWithProof}
+    />
+    </>
   );
 }

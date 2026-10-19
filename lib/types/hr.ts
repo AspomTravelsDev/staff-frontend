@@ -68,9 +68,10 @@ export interface PersonalInfo {
         relationship: string;
     };
     residentialAddress: {
+        houseNumber: string;
+        address: string;
         city: string;
         state: string;
-        street: string;
         busStop?: string;
         country: string;
     };
@@ -230,6 +231,12 @@ export interface AddressVerification {
     verified: boolean;
     verified_at?: string | null;
     verified_by?: OnboardingReviewUser | null;
+    proof?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileId?: string;
+    };
 }
 
 export type OnboardingCorrectionReason =
@@ -349,4 +356,3 @@ export interface CreateApplicationRequest {
     salary_gross: number;
     salary_breakdown: SalaryBreakdown;
 }
-

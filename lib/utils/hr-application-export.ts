@@ -70,7 +70,8 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
         header: "Residential Address",
         key: (app) =>
             joinAddress([
-                getPath(app.form_data, "personal.residentialAddress.street"),
+                getPath(app.form_data, "personal.residentialAddress.houseNumber"),
+                getPath(app.form_data, "personal.residentialAddress.address"),
                 getPath(app.form_data, "personal.residentialAddress.city"),
                 getPath(app.form_data, "personal.residentialAddress.state"),
                 getPath(app.form_data, "personal.residentialAddress.country"),

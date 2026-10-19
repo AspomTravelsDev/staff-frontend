@@ -81,6 +81,20 @@ export async function saveFormStep(
     return { success: true, nextStep: step + 1 }
 }
 
+export async function saveFormStepWithoutRedirect(
+    uuid: string,
+    step: number,
+    stepData: any,
+): Promise<FormState> {
+    try {
+        await savePublicFormStep(uuid, step, stepData)
+        return { success: true }
+    } catch (error: any) {
+        console.error('Save partial step error:', error)
+        return { error: error.message || 'An unexpected error occurred' }
+    }
+}
+
 export async function redirectToPreviousStep(
     uuid: string,
     currentStep: number

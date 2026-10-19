@@ -75,7 +75,14 @@ export const departmentNav: NavItem[] = [
     icon: FileText,
     allowedRoles: ["account"],
   },
-  { title: "Payment Links", url: "/accounts/payment-links", icon: CreditCard, allowedRoles: ["account"], badgeKey: "paymentLinkUpdates,paymentLinkAttention", badgeLabel: "Payment requests needing attention" },
+  {
+    title: "Payment Links",
+    url: "/accounts/payment-links",
+    icon: CreditCard,
+    allowedRoles: ["account"],
+    badgeKey: "paymentLinkUpdates,paymentLinkAttention",
+    badgeLabel: "Payment requests needing attention",
+  },
   {
     title: "Expenses Management",
     url: "/accounts/expenses",
@@ -182,7 +189,15 @@ export const departmentNav: NavItem[] = [
     title: "Payroll",
     url: "/hr/payroll",
     icon: CreditCard,
-    allowedRoles: ["hr", "super", "account", "compliance", "mp", "md", "office-operations"],
+    allowedRoles: [
+      "hr",
+      "super",
+      "account",
+      "compliance",
+      "mp",
+      "md",
+      "office-operations",
+    ],
     badgeKey: "payrollQueue",
     badgeLabel: "Payroll runs awaiting review",
   },
@@ -352,7 +367,8 @@ export const departmentNav: NavItem[] = [
     url: "/admin/inventory",
     icon: ClipboardList,
     allowedRoles: ["admin", "it", "super", "compliance", "office-operations"],
-    badgeKey: "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance,inventoryClearanceOfficer,inventoryClearanceCompliance",
+    badgeKey:
+      "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance,inventoryClearanceOfficer,inventoryClearanceCompliance",
     badgeLabel: "Pending asset assignment approvals",
   },
   // {
@@ -468,7 +484,12 @@ export const personalNav: NavItem[] = [
     url: "",
     icon: Settings2,
     items: [
-      { title: "My IT Assets", url: "/my/inventory", badgeKey: "inventoryAssignmentsStaff", badgeLabel: "Devices awaiting acknowledgement or clearance handover" },
+      {
+        title: "My IT Assets",
+        url: "/my/inventory",
+        badgeKey: "inventoryAssignmentsStaff",
+        badgeLabel: "Devices awaiting acknowledgement or clearance handover",
+      },
       { title: "Report Issue", url: "/my/it-issue" },
       // { title: "Request Gadget", url: "/my/gadget-request" },
     ],
@@ -484,7 +505,12 @@ export const personalNav: NavItem[] = [
         badgeKey: "myPaymentUpdates",
         badgeLabel: "New status updates",
       },
-      { title: "My Payment Links", url: "/my/payment-links", badgeKey: "myPaymentLinkUpdates", badgeLabel: "Payment link updates" },
+      {
+        title: "My Payment Links",
+        url: "/my/payment-links",
+        badgeKey: "myPaymentLinkUpdates",
+        badgeLabel: "Payment link updates",
+      },
       {
         title: "Assigned Deals",
         url: "/my/assigned-deals",
@@ -584,20 +610,52 @@ export const personalNav: NavItem[] = [
   },
 ];
 
-/**
- * Filter navigation items based on user role(s)
- * Super see all department items
- */
+const managementHiddenRoutes = new Set([
+  "/hr/award-staff",
+  "/hr/docs",
+  "/hr/onboarding",
+  "/hr/late-requests",
+  "/hr/staff-requests",
+  "/hr/weekly-feedback",
+  "/accounts/current-rates",
+  "/it/report-issues",
+  "/admin/cheatsheet",
+  "/admin/invite",
+  "/admin/it-desk",
+  "/it/departmental-contacts",
+  "/it/onboarding",
+  "/my/content-ideas",
+  "/my/documents",
+  "/my/request-staff",
+  "/my/weekly-feedback",
+  "/my/visa",
+]);
+
+function managementNavigation(items: NavItem[]): NavItem[] {
+  const visible = (url: string) =>
+    !managementHiddenRoutes.has(url) &&
+    !url.startsWith("/visa/") &&
+    !url.startsWith("/social-media/");
+  return items
+    .filter((item) => visible(item.url))
+    .map((item) =>
+      item.items
+        ? { ...item, items: item.items.filter((child) => visible(child.url)) }
+        : item,
+    )
+    .filter((item) => !item.items || item.items.length > 0);
+}
+
+/** Filter department tools; management exclusions also apply with secondary roles. */
 export function filterNavByRole(
   items: NavItem[],
   roleOrRoles: UserRole | UserRole[],
 ): NavItem[] {
   const roles = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
 
-  // Super, MP, MD see everything
-  if (roles.some((r) => r === "super" || r === "mp" || r === "md")) {
-    return items;
-  }
+  if (roles.some((r) => r === "mp" || r === "md"))
+    return managementNavigation(items);
+  if (roles.includes("super")) return [...items];
 
   return items.filter((item) => {
     // If no allowedRoles defined, invisible to all
@@ -622,13 +680,20 @@ export function getNavigationForUser(user: {
       : [user.role, ...(user.secondary_roles || [])];
 
   const department = filterNavByRole(departmentNav, activeRoles);
-  if (user.id === "019c56b9-09c2-729b-84de-a13bfc2b8e8d" && !department.some(item => item.url === "/hr/tasks")) {
-    const tasks = departmentNav.find(item => item.url === "/hr/tasks");
+  if (
+    user.id === "019c56b9-09c2-729b-84de-a13bfc2b8e8d" &&
+    !department.some((item) => item.url === "/hr/tasks")
+  ) {
+    const tasks = departmentNav.find((item) => item.url === "/hr/tasks");
     if (tasks) department.push(tasks);
   }
   return {
     dashboard: dashboardNav,
     department,
-    personal: user.is_department_account ? [] : personalNav,
+    personal: user.is_department_account
+      ? []
+      : activeRoles.some((r) => r === "mp" || r === "md")
+        ? managementNavigation(personalNav)
+        : personalNav,
   };
 }

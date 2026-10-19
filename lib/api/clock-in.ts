@@ -28,6 +28,7 @@ export interface ClockInRecord {
     user?: {
         name: string;
         email: string;
+        department?: string | null;
         image_url?: string;
         first_name?: string;
         last_name?: string;
@@ -230,7 +231,7 @@ export async function getAllClockInsForFilters(
     const firstResponse = await getAllClockIns(from, to, userId, 1, perPage, lateClockOutsOnly);
 
     if (!firstResponse.success || !firstResponse.data) {
-        return [];
+        throw new Error("Unable to load attendance records. Please try again.");
     }
 
     const firstPage = firstResponse.data.data.data;
@@ -254,6 +255,8 @@ export async function getAllClockInsForFilters(
     for (const result of pageResults) {
         if (result.success && result.data) {
             records.push(...result.data.data.data);
+        } else {
+            throw new Error("Unable to load all attendance records. Please try again.");
         }
     }
 

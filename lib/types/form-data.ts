@@ -20,7 +20,8 @@ export interface PersonalData {
     alternatePhoneNumber?: string;
     email: string;
     residentialAddress: {
-        street: string;
+        houseNumber: string;
+        address: string;
         busStop?: string;
         city: string;
         state: string;
@@ -96,6 +97,12 @@ export interface ContactVerification {
         id?: string | null;
         name?: string | null;
     } | null;
+    proof?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileId?: string;
+    };
 }
 
 export interface GuarantorRefereeData {
@@ -239,6 +246,13 @@ export interface MediaData {
         fileId?: string;
     };
     resumeCv?: {
+        fileName?: string;
+        storagePath?: string;
+        uploadedAt?: string;
+        fileSize?: number;
+        fileId?: string;
+    };
+    utilityBill?: {
         fileName?: string;
         storagePath?: string;
         uploadedAt?: string;

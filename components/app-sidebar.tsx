@@ -16,9 +16,7 @@ import {
 import { useUser } from "@/providers/user-provider";
 import {
   dashboardNav,
-  departmentNav,
-  filterNavByRole,
-  personalNav,
+  getNavigationForUser,
   type NavItem,
 } from "@/lib/navigation";
 import { USER_ROLE_DETAILS, type UserRole } from "@/types/user-types";
@@ -33,15 +31,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: notifications } = useRoleNotifications();
 
   const activeRoles: UserRole[] = user
-    ? (user.roles && user.roles.length > 0
-        ? (user.roles as UserRole[])
-        : [user.role as UserRole, ...((user.secondary_roles || []) as UserRole[])])
+    ? user.roles && user.roles.length > 0
+      ? (user.roles as UserRole[])
+      : [user.role as UserRole, ...((user.secondary_roles || []) as UserRole[])]
     : [];
 
-  // Filter department nav based on user active roles (primary + secondary)
-  const filteredDepartmentNav = user
-    ? filterNavByRole(departmentNav, activeRoles)
-    : [];
+  const navigation = user
+    ? getNavigationForUser(user as Parameters<typeof getNavigationForUser>[0])
+    : { dashboard: dashboardNav, department: [], personal: [] };
 
   // Group tools by department for super admins or multi-role users
   const getGroupedNav = (items: NavItem[]) => {
@@ -140,14 +137,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     });
 
     return Object.entries(groups)
-      .filter(([_, groupItems]) => groupItems.length > 0)
+      .filter(([, groupItems]) => groupItems.length > 0)
       .map(([label, groupItems]) => ({
         label,
         items: groupItems.sort((a, b) => a.title.localeCompare(b.title)),
       }));
   };
 
-  const groupedDepartmentNav = getGroupedNav(filteredDepartmentNav);
+  const groupedDepartmentNav = getGroupedNav(navigation.department);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -167,7 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent className="overflow-y-auto">
         {/* Dashboard - always visible */}
-        <NavMain items={dashboardNav} />
+        <NavMain items={navigation.dashboard} />
         {/* Divider */}
         <SidebarSeparator className="mx-2" />
 
@@ -190,7 +187,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <>
             <SidebarSeparator className="mx-2" />
             <NavMain
-              items={personalNav}
+              items={navigation.personal}
               label="Personal Tools"
               badges={notifications || {}}
             />

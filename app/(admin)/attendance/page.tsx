@@ -1,4 +1,9 @@
 import {
+  attendanceChartPeriod,
+  summarizeAttendanceCharts,
+} from "@/lib/utils/attendance-charts";
+import { formatLagosDateForInput } from "@/lib/utils/attendance";
+import {
   getAllClockInsForFilters,
   getAllClockInStats,
 } from "@/lib/api/clock-in";
@@ -10,9 +15,10 @@ export default async function GlobalAttendancePage(props: {
 }) {
   const searchParams = await props.searchParams;
 
-  const from =
+  const requestedFrom =
     typeof searchParams.from === "string" ? searchParams.from : undefined;
-  const to = typeof searchParams.to === "string" ? searchParams.to : undefined;
+  const requestedTo =
+    typeof searchParams.to === "string" ? searchParams.to : undefined;
   const userId =
     typeof searchParams.user_id === "string" ? searchParams.user_id : "all";
   const lateClockOutsOnly = searchParams.clock_out === "late";
@@ -24,8 +30,21 @@ export default async function GlobalAttendancePage(props: {
     typeof searchParams.page_size === "string"
       ? Math.max(1, Number.parseInt(searchParams.page_size, 10) || 100)
       : 100;
+  const period = attendanceChartPeriod(
+    requestedFrom,
+    requestedTo,
+    formatLagosDateForInput(new Date()),
+  );
+  const { from, to } = period;
+  const historyPromise = getAllClockInsForFilters(
+    from,
+    to,
+    userId,
+    100,
+    lateClockOutsOnly,
+  ).catch(() => null);
   const [historyRes, statsRes, employeesRes] = await Promise.all([
-    getAllClockInsForFilters(from, to, userId, 100, lateClockOutsOnly).catch(() => []),
+    historyPromise,
     getAllClockInStats(from, to, userId, lateClockOutsOnly).catch(() => ({
       success: false,
       data: null,
@@ -41,7 +60,13 @@ export default async function GlobalAttendancePage(props: {
   return (
     <AttendanceClient
       key={JSON.stringify([from, to, userId, lateClockOutsOnly])}
-      history={historyRes}
+      history={historyRes || []}
+      historyFailed={historyRes === null}
+      charts={
+        historyRes
+          ? summarizeAttendanceCharts(historyRes, period.from, period.to)
+          : null
+      }
       stats={stats}
       employees={employees}
       initialFrom={from}

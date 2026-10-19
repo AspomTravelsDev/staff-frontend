@@ -32,7 +32,8 @@ export const personalDataSchema = z.object({
     email: z.string().email('Invalid email address'),
 
     residentialAddress: z.object({
-        street: z.string().min(5, 'Street address is required'),
+        houseNumber: z.string().min(1, 'House number is required'),
+        address: z.string().min(5, 'Address is required'),
         busStop: z.string().optional(),
         city: z.string().min(2, 'City is required'),
         state: z.string().min(2, 'State is required'),

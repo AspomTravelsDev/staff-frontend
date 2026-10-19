@@ -696,6 +696,8 @@ export function Step4Guarantors({
         <h3 className="text-lg font-semibold">Guarantors Details</h3>
         <p className="text-sm text-muted-foreground">
           Step 4 of 6 - Provide details for two (2) guarantors including
+          <br />
+          Guarantors must be adults and must not be students.
           passport photographs
         </p>
       </div>

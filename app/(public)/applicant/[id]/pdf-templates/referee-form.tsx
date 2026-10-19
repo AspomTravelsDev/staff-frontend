@@ -41,7 +41,8 @@ interface ApplicantData {
   middleName?: string;
   lastName?: string;
   residentialAddress?: {
-    street?: string;
+    houseNumber?: string;
+    address?: string;
     city?: string;
     state?: string;
     country?: string;
@@ -87,7 +88,8 @@ export const RefereeFormPdf: React.FC<RefereeFormPdfProps> = ({
     .join(" ");
 
   const applicantAddress = [
-    applicant?.residentialAddress?.street,
+    applicant?.residentialAddress?.houseNumber,
+    applicant?.residentialAddress?.address,
     applicant?.residentialAddress?.city,
     applicant?.residentialAddress?.state,
     applicant?.residentialAddress?.country,

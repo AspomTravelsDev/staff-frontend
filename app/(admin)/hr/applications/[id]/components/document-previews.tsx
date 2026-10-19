@@ -477,7 +477,8 @@ export function DocumentPreviews({
           media?.nyscCertificate?.storagePath ||
           media?.universityCertificate?.storagePath ||
           media?.birthCertificate?.storagePath ||
-          media?.resumeCv?.storagePath
+          media?.resumeCv?.storagePath ||
+          media?.utilityBill?.storagePath
         ) && (
           <div>
             <div className="border-t my-6 border-zinc-200 dark:border-zinc-800" />
@@ -548,6 +549,17 @@ export function DocumentPreviews({
                   uploadedAt={media.resumeCv.uploadedAt}
                   fileId={media.resumeCv.fileId}
                   fileName={media.resumeCv.fileName}
+                  type="signed"
+                />
+              )}
+              {media?.utilityBill?.storagePath && (
+                <DocumentCard
+                  title="Utility Bill"
+                  description="Proof of residential address"
+                  documentUrl={media.utilityBill.storagePath}
+                  uploadedAt={media.utilityBill.uploadedAt}
+                  fileId={media.utilityBill.fileId}
+                  fileName={media.utilityBill.fileName}
                   type="signed"
                 />
               )}

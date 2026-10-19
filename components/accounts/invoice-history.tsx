@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { formatInvoiceMoney, type InvoiceCurrency } from "@/lib/utils/invoice-currency";
 import Link from "next/link";
 import { 
   getInvoices, 
@@ -59,6 +60,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
   // Filters
   const [search, setSearch] = useState("");
   const [subsidiary, setSubsidiary] = useState("all");
+  const [currency, setCurrency] = useState<InvoiceCurrency | "all">("all");
   const [status, setStatus] = useState("all");
   
   // Pagination
@@ -75,6 +77,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
         limit,
         search: search.trim() || undefined,
         subsidiary: subsidiary === "all" ? undefined : subsidiary,
+        currency: currency === "all" ? undefined : currency,
         status: status === "all" ? undefined : status,
       };
       const response = await getInvoices(filters);
@@ -87,7 +90,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
     } finally {
       setLoading(false);
     }
-  }, [page, search, subsidiary, status]);
+  }, [page, search, subsidiary, status, currency]);
 
   useEffect(() => {
     fetchHistory();
@@ -126,12 +129,6 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    }).format(amount);
-  };
 
   const getEmailStatusBadge = (status: string | undefined, lastSentAt: string | null | undefined) => {
     if (!status || status === "not_sent") {
@@ -221,6 +218,12 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
             </Select>
           </div>
 
+          <div className="w-36">
+            <Select value={currency} onValueChange={(value: InvoiceCurrency | "all") => { setCurrency(value); setPage(1); }}>
+              <SelectTrigger aria-label="Filter by currency"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All currencies</SelectItem><SelectItem value="NGN">NGN</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+            </Select>
+          </div>
           {/* Status Filter */}
           <div className="w-36">
             <Select
@@ -311,13 +314,13 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
                         {invoice.due_date}
                       </TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">
-                        {formatCurrency(Number(invoice.subtotal))}
+                        {formatInvoiceMoney(invoice.subtotal, invoice.currency)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-slate-500">
-                        {formatCurrency(Number(invoice.deposit))}
+                        {formatInvoiceMoney(invoice.deposit, invoice.currency)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums font-medium">
-                        {formatCurrency(Number(invoice.balance_due))}
+                        {formatInvoiceMoney(invoice.balance_due, invoice.currency)}
                       </TableCell>
                       <TableCell>
                         <Badge

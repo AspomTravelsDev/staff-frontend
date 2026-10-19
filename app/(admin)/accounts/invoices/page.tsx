@@ -8,6 +8,7 @@ import { StatsCard } from "@/components/stats-card";
 import { InvoiceWorkspace } from "@/components/accounts/invoice-workspace";
 import { InvoiceHistory } from "@/components/accounts/invoice-history";
 import { getInvoiceStats, type InvoiceStats, type Invoice } from "@/lib/api/invoices";
+import { formatInvoiceMoney } from "@/lib/utils/invoice-currency";
 import { toast } from "sonner";
 
 export default function InvoicesPage() {
@@ -52,13 +53,7 @@ export default function InvoicesPage() {
     setRefreshKey((prev) => prev + 1);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+  const formatCurrency = formatInvoiceMoney;
 
   return (
     <div className="w-full min-w-0 space-y-6">
@@ -110,7 +105,7 @@ export default function InvoicesPage() {
               title="Payments Received"
               icon={CreditCard}
               value={formatCurrency(stats?.total_paid ?? 0)}
-              description="Total payments recorded"
+              description={formatCurrency(stats?.totals_by_currency?.USD.total_paid ?? 0, "USD")}
               variant="dashboard"
               cardColor="green"
             />
@@ -118,7 +113,7 @@ export default function InvoicesPage() {
               title="Outstanding Balances"
               icon={Landmark}
               value={formatCurrency(stats?.total_unpaid ?? 0)}
-              description="Pending accounts receivable"
+              description={formatCurrency(stats?.totals_by_currency?.USD.total_unpaid ?? 0, "USD")}
               variant="dashboard"
               cardColor="red"
             />

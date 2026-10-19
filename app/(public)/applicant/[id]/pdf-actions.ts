@@ -343,7 +343,7 @@ export async function downloadPdfFormsAction(
 
         // Generate NDA PDF
         const personalAddress = personal?.residentialAddress
-            ? `${personal.residentialAddress.street || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
+            ? `${personal.residentialAddress.houseNumber || ''}, ${personal.residentialAddress.address || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
                 .replace(/\s+,/g, ',')
                 .replace(/^,\s*/, '')
                 .replace(/,\s*,/g, ', ')
@@ -387,7 +387,7 @@ export async function downloadPdfFormsAction(
                     .join('')
                 : ''
             const personalAddress = personal?.residentialAddress
-                ? `${personal.residentialAddress.street || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
+                ? `${personal.residentialAddress.houseNumber || ''}, ${personal.residentialAddress.address || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
                     .replace(/\s+,/g, ',')
                     .replace(/^,\s*/, '')
                     .replace(/,\s*,/g, ', ')
@@ -490,7 +490,7 @@ export async function downloadPdfFormsAction(
                     surname: personal.lastName || '',
                     firstName: personal.firstName || '',
                     middleNameInitials,
-                    address: personal.residentialAddress?.street || '',
+                    address: `${personal.residentialAddress?.houseNumber || ''}, ${personal.residentialAddress?.address || ''}`.replace(/^,\s*/, ''),
                     busStop: personal.residentialAddress?.busStop || '',
                     city: personal.residentialAddress?.city || '',
                     state: personal.residentialAddress?.state || '',

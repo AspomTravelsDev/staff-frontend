@@ -17,6 +17,7 @@ import {
 interface EmployeeListContentProps {
   employees: Employee[];
   stats: EmployeeStats;
+  headcountAsOf: string;
   roleOptions: RoleOption[];
   departmentsForEditor: string[];
   roleToDepartment: Record<string, string>;
@@ -25,6 +26,7 @@ interface EmployeeListContentProps {
 export function EmployeeListContent({
   employees,
   stats,
+  headcountAsOf,
   roleOptions,
   departmentsForEditor,
   roleToDepartment,
@@ -114,7 +116,8 @@ export function EmployeeListContent({
     },
     {
       header: "Staff Duration",
-      key: (emp: Employee) => formatEmployeeDuration(emp.joinDate, emp.status, emp.exit_date),
+      key: (emp: Employee) =>
+        formatEmployeeDuration(emp.joinDate, emp.status, emp.exit_date),
     },
     { header: "Status", key: (emp: Employee) => emp.status || "" },
     {
@@ -139,7 +142,11 @@ export function EmployeeListContent({
   return (
     <>
       {/* Stats Cards */}
-      <EmployeeStatsCards stats={stats} />
+      <EmployeeStatsCards
+        stats={stats}
+        employees={employees}
+        asOf={headcountAsOf}
+      />
 
       {/* Filters and Actions */}
       <EmployeeFilters

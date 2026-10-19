@@ -77,3 +77,42 @@ test("missing or unavailable offline cache still produces a valid response", asy
     assert.match(await response.text(), /Reconnect/);
   }
 });
+
+test("download and API navigations never receive an offline HTML fallback", () => {
+  const sw = worker({ network: async () => { throw new Error("reset"); }, offlinePage: new Response("offline page") });
+  for (const path of ["/api/onboarding/app/documents/files/file", "/api/proxy-file?url=test", "/_next/static/chunk.js", "/forms/guarantor.pdf"]) {
+    assert.equal(sw.request({ url: origin + path, method: "GET", mode: "navigate" }), undefined);
+  }
+  assert.deepEqual(sw.calls, { fetch: 0, cache: 0 });
+});
+
+import { actionLoader } from "../lib/api/action-test-utils.mjs";
+test("development removes the portal worker instead of registering another one", async () => {
+  const oldWindow = global.window;
+  const oldNavigator = Object.getOwnPropertyDescriptor(global, "navigator");
+  const oldEnv = process.env.NODE_ENV;
+  const oldOptIn = process.env.NEXT_PUBLIC_ENABLE_DEV_SERVICE_WORKER;
+  const calls = [];
+  let effect;
+  global.window = { location: { origin: "http://localhost:3000" } };
+  Object.defineProperty(global, "navigator", { configurable: true, value: { serviceWorker: {
+    register: async () => calls.push("register"),
+    getRegistrations: async () => [
+      { active: { scriptURL: "http://localhost:3000/sw.js" }, unregister: async () => calls.push("unregister portal") },
+      { active: { scriptURL: "http://localhost:3000/other-sw.js" }, unregister: async () => calls.push("unregister other") },
+    ],
+  } } });
+  process.env.NODE_ENV = "development";
+  delete process.env.NEXT_PUBLIC_ENABLE_DEV_SERVICE_WORKER;
+  try {
+    const component = actionLoader(() => {}, { react: { useEffect: fn => { effect = fn; } } }).load("components/pwa/register-sw.tsx");
+    component.RegisterServiceWorker(); effect();
+    await new Promise(setImmediate);
+    assert.deepEqual(calls, ["unregister portal"]);
+  } finally {
+    global.window = oldWindow;
+    if (oldNavigator) Object.defineProperty(global, "navigator", oldNavigator); else delete global.navigator;
+    if (oldEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldEnv;
+    if (oldOptIn === undefined) delete process.env.NEXT_PUBLIC_ENABLE_DEV_SERVICE_WORKER; else process.env.NEXT_PUBLIC_ENABLE_DEV_SERVICE_WORKER = oldOptIn;
+  }
+});

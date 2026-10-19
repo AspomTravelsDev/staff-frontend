@@ -1,5 +1,6 @@
 "use client";
 
+import { formatInvoiceMoney } from "@/lib/utils/invoice-currency";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
@@ -17,13 +18,9 @@ interface InvoicePaymentTrackerProps {
   onDataChanged: () => void;
 }
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat("en-NG", {
-  style: "currency",
-  currency: "NGN",
-  minimumFractionDigits: 2,
-}).format(amount);
 
 export function InvoicePaymentTracker({ invoice, onInvoiceUpdated, onDataChanged }: InvoicePaymentTrackerProps) {
+  const formatCurrency = (amount: number) => formatInvoiceMoney(amount, invoice.currency);
   const [payments, setPayments] = useState<InvoicePayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -74,6 +71,7 @@ export function InvoicePaymentTracker({ invoice, onInvoiceUpdated, onDataChanged
     try {
       const result = await recordInvoicePayment(invoice.id, {
         amount: parsedAmount,
+        currency: invoice.currency ?? "NGN",
         payment_date: paymentDate,
         payment_method: paymentMethod,
         reference: reference.trim() || undefined,
@@ -141,7 +139,7 @@ export function InvoicePaymentTracker({ invoice, onInvoiceUpdated, onDataChanged
           <div className="space-y-3 rounded-lg border p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="invoice-payment-amount">Amount (NGN)</Label>
+                <Label htmlFor="invoice-payment-amount">Amount ({invoice.currency ?? "NGN"})</Label>
                 <Input
                   id="invoice-payment-amount"
                   type="number"

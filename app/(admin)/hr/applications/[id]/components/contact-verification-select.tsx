@@ -5,12 +5,14 @@ import { CheckCircle2, CircleAlert, CircleDashed, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateContactVerificationAction } from "../../actions";
 import type { ContactVerificationStatus } from "@/lib/types/form-data";
+import { VerificationProofDialog } from "./verification-proof-dialog";
 
 interface ContactVerificationSelectProps {
   applicationId: string;
   contact: "guarantor" | "referee";
   index?: number;
   initialStatus?: ContactVerificationStatus;
+  initialProof?: { storagePath?: string; fileName?: string };
 }
 
 const statusLabels: Record<ContactVerificationStatus, string> = {
@@ -24,12 +26,21 @@ export function ContactVerificationSelect({
   contact,
   index,
   initialStatus = "unverified",
+  initialProof,
 }: ContactVerificationSelectProps) {
   const [status, setStatus] =
     useState<ContactVerificationStatus>(initialStatus);
   const [isPending, startTransition] = useTransition();
+  const [proofDialogOpen, setProofDialogOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<ContactVerificationStatus | null>(null);
+  const [proof, setProof] = useState(initialProof);
 
   const handleChange = (nextStatus: ContactVerificationStatus) => {
+    if (nextStatus === "verified") {
+      setPendingStatus(nextStatus);
+      setProofDialogOpen(true);
+      return;
+    }
     const previousStatus = status;
     setStatus(nextStatus);
 
@@ -54,6 +65,26 @@ export function ContactVerificationSelect({
     });
   };
 
+  const verifyWithProof = (proof: Record<string, unknown>) => {
+    const previousStatus = status;
+    setStatus("verified");
+    setProof(proof as { storagePath?: string; fileName?: string });
+    startTransition(async () => {
+      try {
+        await updateContactVerificationAction(applicationId, {
+          contact,
+          index,
+          status: "verified",
+          proof,
+        });
+        toast.success(`${contact === "guarantor" ? "Guarantor" : "Referee"} marked as verified.`);
+      } catch (error) {
+        setStatus(previousStatus);
+        toast.error(error instanceof Error ? error.message : "Failed to update verification status");
+      }
+    });
+  };
+
   const Icon =
     status === "verified"
       ? CheckCircle2
@@ -68,6 +99,7 @@ export function ContactVerificationSelect({
         : "border-border bg-muted/70 text-muted-foreground";
 
   return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
     <label
       className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium ${colorClass}`}
     >
@@ -93,5 +125,30 @@ export function ContactVerificationSelect({
         ))}
       </select>
     </label>
+    {proof?.storagePath && (
+      <a
+        href={proof.storagePath}
+        aria-label={contact === "guarantor" ? `View guarantor ${(index ?? 0) + 1} verification proof` : "View referee verification proof"}
+        target="_blank"
+        rel="noreferrer"
+        className="block whitespace-nowrap text-xs text-primary underline underline-offset-2"
+      >
+        View proof
+      </a>
+    )}
+    <VerificationProofDialog
+      open={proofDialogOpen}
+      onOpenChange={(open) => {
+        setProofDialogOpen(open);
+        if (!open) setPendingStatus(null);
+      }}
+      applicationId={applicationId}
+      title={`${contact === "guarantor" ? "guarantor" : "referee"} verification`}
+      fieldName={`${contact}_verification_proof${index !== undefined ? `_${index + 1}` : ""}`}
+      onUploaded={(proof) => {
+        if (pendingStatus === "verified") verifyWithProof(proof);
+      }}
+    />
+    </div>
   );
 }

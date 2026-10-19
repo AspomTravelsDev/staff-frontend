@@ -1,5 +1,6 @@
 "use server";
 
+import type { InvoiceCurrency } from "@/lib/utils/invoice-currency";
 import { api } from "./client";
 import type { Client } from "./crm-constants";
 import type { ListResponse } from "./payment-confirmations";
@@ -36,6 +37,8 @@ export interface NewInvoicePayment {
 export interface Invoice {
   id: string;
   invoice_number: string;
+  currency?: InvoiceCurrency;
+  currency_locked?: boolean;
   subsidiary: string;
   company_name: string;
   company_email: string | null;
@@ -72,6 +75,7 @@ export interface Invoice {
 }
 
 export interface InvoiceFilters {
+  currency?: InvoiceCurrency;
   page?: number;
   limit?: number;
   search?: string;
@@ -87,6 +91,7 @@ export async function getInvoices(
   if (filters.limit) queryParams.set("limit", filters.limit.toString());
   if (filters.search) queryParams.set("search", filters.search);
   if (filters.subsidiary) queryParams.set("subsidiary", filters.subsidiary);
+  if (filters.currency) queryParams.set("currency", filters.currency);
   if (filters.status) queryParams.set("status", filters.status);
 
   const response = await api.get<ListResponse<Invoice>>(
@@ -144,6 +149,7 @@ export async function deleteInvoice(id: string): Promise<{ success: boolean; mes
 }
 
 export interface InvoiceStats {
+  totals_by_currency?: Record<InvoiceCurrency, { total_paid: number; total_unpaid: number }>;
   total_count: number;
   unique_customers_count: number;
   total_paid: number;
@@ -162,14 +168,15 @@ export async function sendInvoiceEmail(
   id: string,
   data: {
     pdfBase64: string;
+    currency?: InvoiceCurrency;
     to: string;
     customNote?: string;
     cc?: string[];
   }
 ): Promise<{ success: boolean; data?: Invoice; error?: string }> {
-  const response = await api.post<Invoice>(`/api/invoices/${id}/send`, data);
+  const response = await api.post<{ invoice: Invoice }>(`/api/invoices/${id}/send`, data);
   if (response.success) {
-    return { success: true, data: response.data };
+    return { success: true, data: response.data.invoice };
   }
   return { success: false, error: response.error?.error || "Failed to send invoice email" };
 }
@@ -188,6 +195,7 @@ export async function recordInvoicePayment(
   id: string,
   data: {
     amount: number;
+    currency?: InvoiceCurrency;
     payment_date: string;
     payment_method: string;
     reference?: string;

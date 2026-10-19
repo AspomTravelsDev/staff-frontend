@@ -15,6 +15,7 @@ export function InstallPwaPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
+  const isApplicantPage = pathname === "/applicant" || pathname.startsWith("/applicant/");
 
   const [isStandalone] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -26,6 +27,8 @@ export function InstallPwaPrompt() {
   });
 
   useEffect(() => {
+    if (isApplicantPage) return;
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -42,9 +45,9 @@ export function InstallPwaPrompt() {
         handleBeforeInstallPrompt
       );
     };
-  }, []);
+  }, [isApplicantPage]);
 
-  if (pathname === "/pay" || pathname.startsWith("/pay/") || isStandalone || isDismissed || !deferredPrompt) {
+  if (isApplicantPage || pathname === "/pay" || pathname.startsWith("/pay/") || isStandalone || isDismissed || !deferredPrompt) {
     return null;
   }
 

@@ -12,3 +12,6 @@
 | [0008: Server-loaded recruitment prefills](0008-recruitment-server-prefills.md) | Accepted | 2026-10-16 |
 | [0009: Recruitment notifications](0009-recruitment-notifications.md) | Accepted | 2026-10-16 |
 | [0010: Restricted daily task backfill](0010-restricted-daily-task-backfill.md) | Accepted | 2026-10-16 |
+| [0011: Management page access](0011-management-page-access.md) | Accepted | 2026-10-16 |
+| [0012: Invoice currency](0012-invoice-currency.md) | Accepted | 2026-10-16 |
+| [0013: Management overview](0013-management-overview.md) | Accepted | 2026-10-16 |

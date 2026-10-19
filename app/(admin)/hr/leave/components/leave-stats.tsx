@@ -10,9 +10,10 @@ interface LeaveStatsCardsProps {
 
 export function LeaveStatsCards({ stats }: LeaveStatsCardsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatsCard
-        title="Pending Request"
+        className="gap-2 py-4 shadow-none [&_[data-slot=card-header]]:px-4 [&_[data-slot=card-content]]:px-4"
+        title="Pending requests"
         icon={Clock}
         value={stats.requestsPending}
         description="Awaiting approval"
@@ -20,6 +21,7 @@ export function LeaveStatsCards({ stats }: LeaveStatsCardsProps) {
       />
 
       <StatsCard
+        className="gap-2 py-4 shadow-none [&_[data-slot=card-header]]:px-4 [&_[data-slot=card-content]]:px-4"
         title="Approved (This Month)"
         icon={CheckCircle2}
         value={stats.approvedThisMonth}
@@ -28,6 +30,7 @@ export function LeaveStatsCards({ stats }: LeaveStatsCardsProps) {
       />
 
       <StatsCard
+        className="gap-2 py-4 shadow-none [&_[data-slot=card-header]]:px-4 [&_[data-slot=card-content]]:px-4"
         title="Currently on Leave"
         icon={Plane}
         value={stats.onLeave}
@@ -36,6 +39,7 @@ export function LeaveStatsCards({ stats }: LeaveStatsCardsProps) {
       />
 
       <StatsCard
+        className="gap-2 py-4 shadow-none [&_[data-slot=card-header]]:px-4 [&_[data-slot=card-content]]:px-4"
         title="Rejected (This Month)"
         icon={XCircle}
         value={stats.rejectedThisMonth}

@@ -1,14 +1,21 @@
 import { StatsCard } from "@/components/stats-card";
-import { Users, UserMinus, TrendingUp, UserPlus } from "lucide-react";
-import type { EmployeeStats } from "@/lib/api/employees";
+import { Users, UserMinus, UserPlus } from "lucide-react";
+import { HeadcountChart } from "./headcount-chart";
+import type { Employee, EmployeeStats } from "@/lib/api/employees";
 
 interface EmployeeStatsCardsProps {
   stats: EmployeeStats;
+  employees: Employee[];
+  asOf: string;
 }
 
-export function EmployeeStatsCards({ stats }: EmployeeStatsCardsProps) {
+export function EmployeeStatsCards({
+  stats,
+  employees,
+  asOf,
+}: EmployeeStatsCardsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatsCard
         title="Active Employees"
         icon={Users}
@@ -25,13 +32,7 @@ export function EmployeeStatsCards({ stats }: EmployeeStatsCardsProps) {
         iconClassName="text-muted-foreground"
       />
 
-      <StatsCard
-        title="Turnover Rate"
-        icon={TrendingUp}
-        value={stats.turnoverRate}
-        description="Quarterly turnover"
-        iconClassName="text-red-500"
-      />
+      <HeadcountChart employees={employees} asOf={asOf} />
 
       <StatsCard
         title="New Joiners"

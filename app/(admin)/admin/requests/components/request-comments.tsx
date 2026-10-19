@@ -55,7 +55,7 @@ export function RequestComments({
     }
     setLoading(true);
     try {
-      const payload: any = { comment: commentText };
+      const payload: { comment: string; close?: boolean; resolution_note?: string } = { comment: commentText };
       if (close) {
         payload.close = true;
         payload.resolution_note = commentText;
@@ -130,7 +130,15 @@ export function RequestComments({
           >
             Post comment
           </Button>
-          {userHasAnyRole(user, ["it", "super", "compliance", "admin", "office-operations"]) &&
+          {userHasAnyRole(user, [
+            "it",
+            "super",
+            "mp",
+            "md",
+            "compliance",
+            "admin",
+            "office-operations",
+          ]) &&
             !["completed", "approved", "rejected", "cancelled"].includes(
               currentStatus,
             ) && (

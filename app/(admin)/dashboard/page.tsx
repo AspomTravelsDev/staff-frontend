@@ -1,3 +1,8 @@
+import { getCurrentUser } from "@/lib/auth/session";
+import { userHasAnyRole } from "@/types/user-types";
+import { getManagementDashboard } from "@/lib/api/management-dashboard";
+import { ManagementDashboard } from "@/components/dashboard/management-dashboard";
+import { renderDataPage } from "@/lib/api/render-data-page";
 import {
   Baby,
   Calendar,
@@ -44,6 +49,11 @@ import { CheatsheetCard } from "@/components/dashboard/cheatsheet-card";
 import { DashboardTour, DashboardTourButton } from "./components/dashboard-tour";
 
 export default async function Page() {
+  const user = await getCurrentUser();
+  if (userHasAnyRole(user, ["mp", "md"])) {
+    return renderDataPage(async () => <ManagementDashboard data={await getManagementDashboard()} />, "Unable to load management overview");
+  }
+
   const now = new Date();
   const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

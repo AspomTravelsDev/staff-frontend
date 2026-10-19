@@ -1,5 +1,6 @@
 "use client";
 
+import { formatInvoiceMoney } from "@/lib/utils/invoice-currency";
 import { forwardRef } from "react";
 import type { Invoice } from "@/lib/api/invoices";
 import { INVOICE_LOGOS } from "@/lib/constants/invoice-branding";
@@ -24,13 +25,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
       }
     };
 
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat("en-NG", {
-        style: "currency",
-        currency: "NGN",
-        minimumFractionDigits: 2,
-      }).format(amount).replace("NGN", "NGN ");
-    };
+    const formatCurrency = (amount: number) => formatInvoiceMoney(amount, invoice.currency);
 
     // Render Travelatal Logo in SVG
     const renderTravelatalLogo = () => (
@@ -209,10 +204,10 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                             {item.qty}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-slate-600">
-                            {formatCurrency(Number(item.rate)).replace("NGN", "")}
+                            {formatCurrency(Number(item.rate))}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums font-bold text-slate-800">
-                            {formatCurrency(Number(item.amount)).replace("NGN", "")}
+                            {formatCurrency(Number(item.amount))}
                           </td>
                         </tr>
                       ))
@@ -263,14 +258,14 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                     TOTAL
                   </span>
                   <span className="text-sm font-bold text-slate-700 tabular-nums leading-6">
-                    {formatCurrency(Number(invoice.subtotal)).replace("NGN", "")}
+                    {formatCurrency(Number(invoice.subtotal))}
                   </span>
 
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-6">
                     PAID TO DATE
                   </span>
                   <span className="text-sm font-bold text-slate-700 tabular-nums leading-6">
-                    {formatCurrency(Number(invoice.deposit)).replace("NGN", "")}
+                    {formatCurrency(Number(invoice.deposit))}
                   </span>
                 </div>
 

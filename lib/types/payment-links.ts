@@ -12,7 +12,7 @@ export interface PaymentLink {
   due_at: string | null; expires_at: string | null; paid_at: string | null; created_at: string;
   responsible_user_id: string | null; cancellation_reason: string | null; attention_reason: string | null; public_url: string;
   creator?: { id: string; name: string }; responsible?: { id: string; name: string };
-  invoice?: { id: string; invoice_number: string; balance_due: string };
+  invoice?: { id: string; invoice_number: string; balance_due: string; currency?: "NGN" | "USD" };
   attempts?: PaymentAttempt[];
   attempts_exists?: boolean;
   receipt_document?: PublicPayment;
@@ -20,12 +20,12 @@ export interface PaymentLink {
 }
 export interface PaymentList {
   data: PaymentLink[]; pagination: { page: number; page_size: number; total_pages: number; total: number; from: number; to: number };
-  mode: "test" | "live"; configured: boolean; can_manage: boolean; test_accounting_enabled?: boolean;
+  mode: "test" | "live"; configured: boolean; can_manage: boolean; can_view_all?: boolean; test_accounting_enabled?: boolean;
   stats: { awaiting: number; overdue: number; received_minor: { NGN: number; USD: number }; attention: number };
 }
 export interface PaymentOptions {
   clients: { id: string; name: string; email: string | null; phone: string | null; assigned_to: string | null }[];
-  invoices: { id: string; invoice_number: string; client_name: string; client_email: string | null; client_phone: string | null; crm_client_id: string | null; subsidiary: string; balance_due: string }[];
+  invoices: { id: string; invoice_number: string; client_name: string; client_email: string | null; client_phone: string | null; crm_client_id: string | null; subsidiary: string; balance_due: string; currency?: "NGN" | "USD" }[];
   staff: { id: string; name: string }[];
 }
 export interface NewPaymentLink {

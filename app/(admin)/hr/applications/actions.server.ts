@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/hr";
 import { revalidatePath } from "next/cache";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
+import { uploadPublicFile } from "@/lib/api/public-upload";
 
 export async function deleteApplicationAction(id: string) {
     return runAction(async () => {
@@ -56,9 +57,13 @@ export async function sendReminderAction(id: string, note: string) {
     }, "sendReminderAction");
 }
 
-export async function toggleAddressVerificationAction(id: string, verified?: boolean) {
+export async function toggleAddressVerificationAction(
+    id: string,
+    verified?: boolean,
+    proof?: Record<string, unknown>,
+) {
     return runAction(async () => {
-        const updated = await toggleAddressVerification(id, verified);
+        const updated = await toggleAddressVerification(id, verified, proof);
         revalidatePath(`/hr/applications/${id}`);
         revalidatePath("/hr/applications");
         return updated;
@@ -71,6 +76,7 @@ export async function updateContactVerificationAction(
         contact: "guarantor" | "referee";
         index?: number;
         status: ContactVerificationStatus;
+        proof?: Record<string, unknown>;
     },
 ) {
     return runAction(async () => {
@@ -79,6 +85,17 @@ export async function updateContactVerificationAction(
         revalidatePath("/hr/applications");
         return updated;
     }, "updateContactVerificationAction");
+}
+
+export async function uploadVerificationProofAction(
+    id: string,
+    file: File,
+    fieldName: string,
+) {
+    return runAction(
+        () => uploadPublicFile(id, file, fieldName),
+        "uploadVerificationProofAction",
+    );
 }
 
 export async function provisionCorporateEmailAction(id: string, payload?: ProvisionCorporateEmailRequest) {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { formatInvoiceMoney, type InvoiceCurrency } from "@/lib/utils/invoice-currency";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getClients } from "@/lib/api/crm";
 import { createInvoice, updateInvoice, sendInvoiceEmail, type Invoice, type InvoiceItem } from "@/lib/api/invoices";
 import { SendEmailDialog } from "./send-email-dialog";
@@ -96,6 +98,10 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
   const [bankDetails, setBankDetails] = useState(PRESETS.aspom.bank_details);
   const [termsConditions, setTermsConditions] = useState(PRESETS.aspom.terms_conditions);
 
+  const [currency, setCurrency] = useState<InvoiceCurrency>(initialInvoice?.currency ?? "NGN");
+  const [pendingCurrency, setPendingCurrency] = useState<InvoiceCurrency | null>(null);
+  const currencyLocked = !!savedInvoice && (!!savedInvoice.currency_locked || !!savedInvoice.last_sent_at || ["sending", "sent"].includes(savedInvoice.email_status ?? "") || Number(savedInvoice.deposit) > 0);
+
   // Metadata
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
@@ -144,6 +150,15 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     ? "paid"
     : (paidAmount > 0 ? "partially_paid" : "unpaid");
 
+  const changeCurrency = (next: InvoiceCurrency) => {
+    if (currencyLocked || next === currency) return;
+    setCurrency(next);
+    setItems(current => current.map(item => ({ ...item, rate: 0, amount: 0 })));
+    setDraftPayments([]);
+    setBankDetails(next === "NGN" ? PRESETS[subsidiary].bank_details : "");
+    setPendingCurrency(null);
+  };
+
   // Apply subsidiary presets
   const applyPreset = useCallback((key: keyof typeof PRESETS) => {
     const p = PRESETS[key];
@@ -152,14 +167,16 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     setCompanyWebsite(p.company_website);
     setCompanyPhone(p.company_phone);
     setCompanyAddress(p.company_address);
-    setBankDetails(p.bank_details);
+    setBankDetails(currency === "NGN" ? p.bank_details : "");
     setTermsConditions(p.terms_conditions);
     setMembershipWelcomeText(p.membership_welcome_text);
-  }, []);
+  }, [currency]);
 
   // Sync loaded invoice from edit triggers
   useEffect(() => {
     setSavedInvoice(initialInvoice);
+    setCurrency(initialInvoice?.currency ?? "NGN");
+    setPendingCurrency(null);
     setActiveTab("details");
     if (initialInvoice) {
       setSubsidiary(initialInvoice.subsidiary as keyof typeof PRESETS);
@@ -330,7 +347,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
   };
 
   // Update Item field
-  const handleUpdateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const handleUpdateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
     
@@ -361,6 +378,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     try {
       const postData = {
         invoice_number: invoiceNumber.trim(),
+        currency,
         subsidiary,
         company_name: companyName,
         company_email: companyEmail || null,
@@ -477,6 +495,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
 
       const response = await sendInvoiceEmail(invoiceToSend.id, {
         pdfBase64,
+        currency: invoiceToSend.currency ?? "NGN",
         to: recipient,
         customNote,
       });
@@ -484,7 +503,8 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
       if (response.success) {
         toast.success(`Invoice sent successfully to ${recipient}!`);
         setEmailDialogOpen(false);
-        onSaveSuccess?.();
+        if (response.data) setSavedInvoice(response.data);
+        onSaveSuccess?.(response.data);
       } else {
         toast.error(response.error || "Failed to send invoice email");
       }
@@ -707,6 +727,18 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
                 placeholder="e.g. JUL021/2026"
                 onChange={(event) => setInvoiceNumber(event.target.value)}
               />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="invoice-currency" className="text-xs font-bold text-slate-600">Currency</Label>
+              <Select value={currency} disabled={currencyLocked || isSaving || isSendingEmail} onValueChange={(value: InvoiceCurrency) => {
+                if (value === currency) return;
+                if (items.some(item => Number(item.rate) > 0) || draftPayments.length > 0) setPendingCurrency(value);
+                else changeCurrency(value);
+              }}>
+                <SelectTrigger id="invoice-currency" className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="NGN">NGN — Nigerian naira</SelectItem><SelectItem value="USD">USD — US dollar</SelectItem></SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{currencyLocked ? "Locked after sending, payments or payment links." : "All prices and payments use this currency. No exchange conversion."}</p>
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-600">Payment Method</Label>
@@ -991,7 +1023,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-600">Payments Received</Label>
                 <div className="h-10 flex items-center rounded-md border bg-muted/40 px-3 text-sm font-semibold tabular-nums">
-                  NGN {paidAmount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                  {formatInvoiceMoney(paidAmount, currency)}
                 </div>
               </div>
 
@@ -1005,7 +1037,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
               <div className="space-y-1 text-right flex flex-col justify-end">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Balance Due</span>
                 <span className="text-lg font-black text-slate-900 tabular-nums">
-                  NGN {balanceDue.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                  {formatInvoiceMoney(balanceDue, currency)}
                 </span>
               </div>
             </div>
@@ -1040,7 +1072,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
                 {draftPayments.map((payment, index) => (
                   <div key={index} className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-md border p-3">
                     <div className="space-y-1">
-                      <Label className="text-[11px]">Amount (NGN)</Label>
+                      <Label className="text-[11px]">Amount ({currency})</Label>
                       <Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setDraftPayments((current) => current.map((item, i) => i === index ? { ...item, amount: event.target.value } : item))} placeholder="e.g. 50000" />
                     </div>
                     <div className="space-y-1">
@@ -1068,8 +1100,9 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
 
             <div className="space-y-3 pt-3 border-t">
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-600">Bank Account Details (Preset)</Label>
+                <Label className="text-xs font-bold text-slate-600">Bank Account Details ({currency})</Label>
                 <Textarea
+                  placeholder={currency === "USD" ? "Enter the USD account or payment instructions" : "Bank account details"}
                   value={bankDetails}
                   onChange={(e) => setBankDetails(e.target.value)}
                   className="text-xs h-16 min-h-16 font-mono"
@@ -1087,7 +1120,8 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
           </CardContent>
         </Card>
 
-        {savedInvoice && (
+        {savedInvoice && currency !== (savedInvoice.currency ?? "NGN") && <p className="text-sm text-muted-foreground">Save the new currency before recording payments.</p>}
+        {savedInvoice && currency === (savedInvoice.currency ?? "NGN") && (
           <InvoicePaymentTracker
             invoice={savedInvoice}
             onInvoiceUpdated={setSavedInvoice}
@@ -1101,6 +1135,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
         <InvoicePreview
           invoice={{
             invoice_number: invoiceNumber,
+            currency,
             subsidiary,
             company_name: companyName,
             company_email: companyEmail || null,
@@ -1130,6 +1165,12 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
         />
       </div>
 
+      <AlertDialog open={pendingCurrency !== null} onOpenChange={open => { if (!open) setPendingCurrency(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Change to {pendingCurrency}?</AlertDialogTitle><AlertDialogDescription>Existing prices and unsaved payments will be cleared. Enter new prices and payment instructions in {pendingCurrency}. Amounts are not converted.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Keep {currency}</AlertDialogCancel><AlertDialogAction onClick={() => { if (pendingCurrency) changeCurrency(pendingCurrency); }}>Change currency</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <SendEmailDialog
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}

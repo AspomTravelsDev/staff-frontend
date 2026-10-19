@@ -22,7 +22,8 @@ export type PersonalData = {
     alternatePhoneNumber?: string
     email: string
     residentialAddress: {
-        street: string
+        houseNumber: string
+        address: string
         busStop?: string
         city: string
         state: string

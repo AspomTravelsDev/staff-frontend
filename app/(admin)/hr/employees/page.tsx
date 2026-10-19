@@ -1,3 +1,4 @@
+import { lagosDateKey } from "@/lib/utils/employee-headcount";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { EmployeeListContent } from "./components/employee-list-content";
@@ -36,6 +37,7 @@ export default async function EmployeeListPage() {
       <EmployeeListContent
         employees={employees}
         stats={stats}
+        headcountAsOf={lagosDateKey(new Date())}
         roleOptions={roleOptions}
         departmentsForEditor={roleMetadata.departments}
         roleToDepartment={roleMetadata.role_to_department}

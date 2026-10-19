@@ -47,7 +47,8 @@ export function BioData({ formData, applicationId }: BioDataProps) {
   };
 
   const addressParts = [
-    personal?.residentialAddress?.street,
+    personal?.residentialAddress?.houseNumber,
+    personal?.residentialAddress?.address,
     personal?.residentialAddress?.busStop,
     personal?.residentialAddress?.city,
     personal?.residentialAddress?.state,

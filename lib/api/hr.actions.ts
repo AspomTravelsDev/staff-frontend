@@ -97,12 +97,13 @@ export async function requestOnboardingCorrection(
 
 export async function toggleAddressVerification(
     id: string,
-    verified?: boolean
+    verified?: boolean,
+    proof?: Record<string, unknown>,
 ): Promise<ActionResult<OnboardingApplication>> {
     return runAction(async (): Promise<OnboardingApplication> => {
         const response = await api.patch<{ message: string; data: OnboardingApplication }>(
             `/api/onboarding-applications/${id}/verify-address`,
-            verified !== undefined ? { verified } : {}
+            verified !== undefined ? { verified, ...(proof ? { proof } : {}) } : {}
         );
         if (!response.success) {
             throw new ExpectedActionError(response.error.error || "Failed to update address verification", response.error.code);
@@ -117,6 +118,7 @@ export async function updateContactVerification(
         contact: "guarantor" | "referee";
         index?: number;
         status: ContactVerificationStatus;
+        proof?: Record<string, unknown>;
     },
 ): Promise<ActionResult<OnboardingApplication>> {
     return runAction(async (): Promise<OnboardingApplication> => {
@@ -305,5 +307,4 @@ export async function submitPublicApplication(
         return response.data.data;
     }, "submitPublicApplication");
 }
-
 
