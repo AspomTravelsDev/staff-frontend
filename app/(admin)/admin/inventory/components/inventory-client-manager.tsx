@@ -6,7 +6,8 @@ import { InventoryItem, InventoryAssignment } from "@/lib/api/inventory";
 import { Employee } from "@/lib/api/employees";
 import { InventoryFilters } from "./inventory-filters";
 import { InventoryTable } from "./inventory-table";
-import { InventoryPendingApprovals } from "./inventory-pending-approvals";
+import { InventoryTasks } from "./inventory-tasks";
+import { buildInventoryTasks } from "@/lib/inventory-tasks";
 import { ClearanceQueueTable } from "./clearance-queue-table";
 import { InitiateFullClearanceDialog } from "./initiate-full-clearance-dialog";
 import { ExportStaffAssetDialog } from "./export-staff-asset-dialog";
@@ -75,13 +76,8 @@ export function InventoryClientManager({
     isCompliance && !isOfficer ? "compliance" : "officer"
   );
 
-  const pendingOfficerCount = isOfficer ? officerAssignments.length : 0;
-  const pendingComplianceCount = isCompliance ? complianceAssignments.length : 0;
-  const totalPendingCount = isSuper || (isOfficer && isCompliance)
-    ? officerAssignments.length + complianceAssignments.length
-    : isCompliance
-      ? pendingComplianceCount
-      : pendingOfficerCount;
+  const taskRecords = [...officerAssignments, ...complianceAssignments, ...clearanceOfficerQueue, ...clearanceComplianceQueue];
+  const totalPendingCount = buildInventoryTasks(taskRecords, { officer: isOfficer, compliance: isCompliance }).filter((task) => task.actionable).length;
 
   const activeClearanceQueue = canSwitchClearance
     ? clearanceView === "compliance"
@@ -91,12 +87,15 @@ export function InventoryClientManager({
       ? clearanceComplianceQueue
       : clearanceOfficerQueue;
 
-  const totalClearanceCount = isSuper || (isOfficer && isCompliance)
-    ? clearanceOfficerQueue.length + clearanceComplianceQueue.length
-    : activeClearanceQueue.length;
+  const totalClearanceCount = new Set(
+    [...clearanceOfficerQueue, ...clearanceComplianceQueue]
+      .filter((item) => item.status !== "cleared" && item.status !== "cancelled")
+      .map((item) => item.clearanceBatchId || `return:${item.id}`)
+  ).size;
 
   const urlTab = searchParams.get("tab");
-  const activeTab = urlTab || (totalPendingCount > 0 ? "pending-approvals" : initialTab || "inventory");
+  const requestedTab = urlTab || initialTab || "inventory";
+  const activeTab = requestedTab === "pending-approvals" ? "tasks" : requestedTab;
 
   const [search, setSearch] = useState<string>("");
 
@@ -134,9 +133,12 @@ export function InventoryClientManager({
         .toLowerCase()
         .includes(searchTerm);
 
-      return matchesName || matchesSerial;
+      const employee = employees.find((employee) => employee.id === item.assignedTo);
+      const staffName = employee ? `${employee.firstName} ${employee.lastName}` : "";
+      return matchesName || matchesSerial || staffName.toLowerCase().includes(searchTerm) ||
+        !!item.openAssignment?.assignee?.name?.toLowerCase().includes(searchTerm);
     });
-  }, [initialItems, search]);
+  }, [initialItems, search, employees]);
 
   return (
     <>
@@ -144,15 +146,15 @@ export function InventoryClientManager({
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            <span>Inventory Assets</span>
+            <span>Assets</span>
             <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
               {filteredItems.length}
             </Badge>
           </TabsTrigger>
 
-          <TabsTrigger value="pending-approvals" className="flex items-center gap-2">
+          <TabsTrigger value="tasks" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            <span>Pending Approvals</span>
+            <span>Tasks</span>
             {totalPendingCount > 0 ? (
               <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
                 {totalPendingCount}
@@ -166,7 +168,7 @@ export function InventoryClientManager({
 
           <TabsTrigger value="clearance" className="flex items-center gap-2">
             <RotateCcw className="h-4 w-4 text-blue-500" />
-            <span>Gadget Clearance</span>
+            <span>Clearances</span>
             {totalClearanceCount > 0 ? (
               <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
                 {totalClearanceCount}
@@ -199,19 +201,14 @@ export function InventoryClientManager({
           <InventoryTable items={filteredItems} employees={employees} />
         </TabsContent>
 
-        <TabsContent value="pending-approvals" className="space-y-4">
-          <InventoryPendingApprovals
-            userRole={userRole || activeRoles[0] || ""}
-            userRoles={activeRoles}
-            officerAssignments={officerAssignments}
-            complianceAssignments={complianceAssignments}
-          />
+        <TabsContent value="tasks" className="space-y-4">
+          <InventoryTasks records={taskRecords} isOfficer={isOfficer} isCompliance={isCompliance} />
         </TabsContent>
 
         <TabsContent value="clearance" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Gadget Clearance & Returns</h3>
+              <h3 className="text-lg font-semibold">Clearances & returns</h3>
               <p className="text-sm text-muted-foreground">
                 Inspect returned devices and audit staff offboarding clearance
               </p>
@@ -222,7 +219,7 @@ export function InventoryClientManager({
                 size="sm"
                 onClick={() => setIsFullClearanceDialogOpen(true)}
               >
-                <ShieldAlert className="mr-2 h-4 w-4" /> Initiate Full Offboarding Clearance
+                <ShieldAlert className="mr-2 h-4 w-4" /> Request equipment clearance
               </Button>
             )}
           </div>
@@ -238,7 +235,7 @@ export function InventoryClientManager({
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                Officer Clearance Queue
+                IT inspection view
                 <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
                   {clearanceOfficerQueue.length}
                 </Badge>
@@ -253,7 +250,7 @@ export function InventoryClientManager({
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                Compliance Audit Queue
+                Compliance review view
                 <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
                   {clearanceComplianceQueue.length}
                 </Badge>

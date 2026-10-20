@@ -1,5 +1,6 @@
 "use client";
 
+import { groupClearances } from "@/lib/inventory-clearance";
 import { useState } from "react";
 import { InventoryAssignment } from "@/lib/api/inventory";
 import { ClearanceHandoverDialog } from "./clearance-handover-dialog";
@@ -11,7 +12,7 @@ interface PendingClearanceHandoverSectionProps {
   assignments: InventoryAssignment[];
 }
 
-export function PendingClearanceHandoverSection({
+function ClearanceHandoverGroup({
   assignments,
 }: PendingClearanceHandoverSectionProps) {
   const [openDialog, setOpenDialog] = useState(false);
@@ -41,7 +42,7 @@ export function PendingClearanceHandoverSection({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-lg text-amber-950 dark:text-amber-100">
-                Gadget Clearance Handover Required
+                Equipment return requested
               </h2>
               <Badge className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-xs">
                 {assignments.length} {assignments.length === 1 ? "device" : "devices"}
@@ -57,7 +58,7 @@ export function PendingClearanceHandoverSection({
           onClick={() => setOpenDialog(true)}
           className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 shadow-sm"
         >
-          Complete Handover Form
+          Review and hand over
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
@@ -96,4 +97,8 @@ export function PendingClearanceHandoverSection({
       />
     </div>
   );
+}
+
+export function PendingClearanceHandoverSection({ assignments }: PendingClearanceHandoverSectionProps) {
+  return <div className="space-y-4">{groupClearances(assignments).map((group) => <ClearanceHandoverGroup key={group.id} assignments={group.devices} />)}</div>;
 }

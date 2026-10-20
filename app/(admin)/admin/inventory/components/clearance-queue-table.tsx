@@ -23,14 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -38,7 +30,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, UserCheck, RotateCcw, AlertTriangle } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+
+import { clearanceStage, clearanceStages, groupClearances } from "@/lib/inventory-clearance";
 
 type ClearanceQueueMode = "officer" | "compliance";
 
@@ -55,18 +49,29 @@ const returnChecklistFields: Array<[keyof GadgetChecklist, string]> = [
 export function ClearanceQueueTable({
   assignments,
   mode,
+  initialAssignment,
+  reviewOnly = false,
+  onReviewClose,
 }: {
   assignments: InventoryAssignment[];
   mode: ClearanceQueueMode;
+  initialAssignment?: InventoryAssignment;
+  reviewOnly?: boolean;
+  onReviewClose?: () => void;
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState<InventoryAssignment | null>(null);
-  const [returnCondition, setReturnCondition] = useState<string>("Good");
-  const [conditionDetails, setConditionDetails] = useState<string>("");
-  const [damageFee, setDamageFee] = useState<string>("0");
+  const [view, setView] = useState("active");
+  const allGroups = groupClearances(assignments);
+  const groups = allGroups.filter((group) => view === "all" || (view === "active" ? group.stage >= 0 && !group.complete : group.complete || group.stage < 0));
+  const [selected, setSelected] = useState<InventoryAssignment | null>(initialAssignment ?? null);
+  const [returnCondition, setReturnCondition] = useState<string>(initialAssignment?.returnConditionRating || initialAssignment?.inventoryItem?.conditionRating || "Good");
+  const [conditionDetails, setConditionDetails] = useState<string>(initialAssignment?.returnConditionDetails || "");
+  const [damageFee, setDamageFee] = useState<string>(String(initialAssignment?.damageAssessmentFee ?? 0));
   const [notes, setNotes] = useState("");
-  const [returnChecklist, setReturnChecklist] = useState<GadgetChecklist | undefined>();
+  const [returnChecklist, setReturnChecklist] = useState<GadgetChecklist | undefined>(initialAssignment ? { ...(initialAssignment.returnChecklist ?? initialAssignment.staffChecklist ?? initialAssignment.adminChecklist ?? initialAssignment.inventoryItem?.defaultChecklist ?? { screen: "", charger: "", buttons: "", battery: "", ports: "", cameraMic: "", overall: "" }) } : undefined);
   const [loading, setLoading] = useState(false);
+
+  const closeReview = () => { setSelected(null); onReviewClose?.(); };
 
   const openInspectionModal = (item: InventoryAssignment) => {
     setSelected(item);
@@ -125,11 +130,11 @@ export function ClearanceQueueTable({
               : "Clearance sent back to Admin/IT for another inspection."
         );
       }
-      setSelected(null);
+      setSelected(null); onReviewClose?.();
       setReturnChecklist(undefined);
       router.refresh();
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to process clearance decision");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to process clearance decision");
     } finally {
       setLoading(false);
     }
@@ -137,116 +142,52 @@ export function ClearanceQueueTable({
 
   return (
     <>
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Device</TableHead>
-              <TableHead>Assignee</TableHead>
-              <TableHead>Clearance Type</TableHead>
-              <TableHead>Return Condition</TableHead>
-              <TableHead>Damage Fee</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assignments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No device returns found in queue.
-                </TableCell>
-              </TableRow>
-            ) : (
-              assignments.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="font-semibold">{item.inventoryItem?.name}</div>
-                    <div className="text-xs text-muted-foreground font-mono">
-                      S/N: {item.inventoryItem?.serialNumber}
+      {!reviewOnly && <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">{groups.length} clearance requests · Expand a request to review devices.</p>
+          <Select value={view} onValueChange={setView}><SelectTrigger className="w-44" aria-label="Filter clearance requests"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">In progress</SelectItem><SelectItem value="closed">Completed or cancelled</SelectItem><SelectItem value="all">All requests</SelectItem></SelectContent></Select>
+        </div>
+        {!groups.length && <div className="rounded-lg border py-12 text-center text-sm text-muted-foreground">No clearances or device returns yet.</div>}
+        {groups.map((group) => {
+          const first = group.devices[0];
+          return <details key={group.id} className="rounded-lg border bg-card">
+            <summary className="cursor-pointer p-4 marker:text-muted-foreground">
+              <span className="ml-2 inline-flex max-w-full flex-wrap items-center gap-x-4 gap-y-2 align-middle">
+                <span><span className="block font-semibold">{first.assignee?.name || "Staff member"}</span><span className="text-xs text-muted-foreground">{first.type === "full_clearance" ? "Equipment clearance" : "Device return"} · {new Date(first.createdAt).toLocaleDateString()}</span></span>
+                <Badge variant={group.complete ? "secondary" : "outline"}>{group.complete ? "Complete" : group.stage >= 0 ? `Awaiting ${group.stage === 0 ? "staff handover" : group.stage === 1 ? "IT inspection" : "compliance review"}` : "Cancelled"}</Badge>
+                <span className="text-sm text-muted-foreground">{group.cleared} of {group.devices.length} devices cleared{group.cancelled ? ` · ${group.cancelled} cancelled` : ""}</span>
+              </span>
+            </summary>
+            <div className="space-y-5 border-t p-4">
+              <ol aria-label="Clearance progress" className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                {clearanceStages.map((label, index) => <li key={label} aria-current={group.stage === index ? "step" : undefined} className={`border-t-2 pt-2 ${group.stage >= index ? "border-primary font-medium text-foreground" : "border-muted text-muted-foreground"}`}>{index + 1}. {label}</li>)}
+              </ol>
+              <div className="divide-y">
+                {group.devices.map((item) => {
+                  const stage = clearanceStage(item.status);
+                  const actionable = mode === "officer" ? stage === 1 || stage === 2 : stage === 2;
+                  return <div key={item.id} className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center">
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-medium">{item.inventoryItem?.name || "Device"}</p>
+                      <p className="break-all text-xs text-muted-foreground">{item.inventoryItem?.serialNumber}</p>
+                      <p className="text-sm text-muted-foreground">{stage >= 0 ? clearanceStages[stage] : "Cancelled"}{stage < 3 && stage >= 0 ? " pending" : ""}</p>
+                      {item.complianceDecision === "rejected" && item.complianceNotes && <p className="text-sm">Changes requested: {item.complianceNotes}</p>}
+                      {item.returnConditionRating && <p className="text-xs text-muted-foreground">Reported condition: {item.returnConditionRating}{item.officerDecision === "approved" ? ` · Damage fee: NGN ${(item.damageAssessmentFee ?? 0).toLocaleString()}` : " · Fee not yet assessed"}</p>}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{item.assignee?.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.assignee?.department || "Staff"}
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      {actionable && <Button size="sm" variant={mode === "officer" && stage === 2 ? "outline" : "default"} onClick={() => openInspectionModal(item)}>{mode === "compliance" ? "Review clearance" : stage === 1 ? "Inspect return" : "Edit inspection"}</Button>}
+                      {item.status === "cleared" && <AssetClearancePdfButton assignment={item} label="Device clearance form" allAssignments={[item]} size="sm" />}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="capitalize">
-                      {item.type === "full_clearance" ? "Offboarding Clearance" : "Single Return"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {item.returnConditionRating || item.inventoryItem?.conditionRating || "Pending Inspection"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono font-medium text-slate-800 dark:text-slate-200">
-                    {item.damageAssessmentFee && item.damageAssessmentFee > 0
-                      ? `₦${item.damageAssessmentFee.toLocaleString()}`
-                      : "₦0"}
-                  </TableCell>
-                  <TableCell>
-                    {item.status === "return_pending_staff" ? (
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200">
-                        Awaiting Staff Handover
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="capitalize">
-                        {item.status.replace(/_/g, " ")}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {item.status === "return_pending_staff" ? (
-                        <span className="text-xs text-muted-foreground italic px-2 py-1">
-                          Awaiting staff report
-                        </span>
-                      ) : (
-                        item.status !== "cleared" && (
-                          <Button
-                            size="sm"
-                            variant={mode === "officer" ? (item.status === "return_pending_inspection" ? "default" : "outline") : "secondary"}
-                            onClick={() => openInspectionModal(item)}
-                          >
-                            {mode === "officer" ? (
-                              <>
-                                <UserCheck className="mr-1 h-3.5 w-3.5" />{" "}
-                                {item.status === "return_pending_inspection" ? "Inspect Return" : "Edit Inspection"}
-                              </>
-                            ) : (
-                              <>
-                                <ShieldCheck className="mr-1 h-3.5 w-3.5 text-blue-600" /> Audit Clearance
-                              </>
-                            )}
-                          </Button>
-                        )
-                      )}
+                  </div>;
+                })}
+              </div>
+              {group.complete && group.devices.length > 1 && <AssetClearancePdfButton assignment={first} label="Download full clearance form" allAssignments={group.devices} size="sm" />}
+            </div>
+          </details>;
+        })}
+      </div>}
 
-                      {item.status === "cleared" && (
-                        <AssetClearancePdfButton
-                          assignment={item}
-                          label="Generate Clearance Form"
-                          allAssignments={
-                            item.clearanceBatchId
-                              ? assignments.filter((a) => a.clearanceBatchId === item.clearanceBatchId)
-                              : assignments.filter((a) => a.assignee?.id && item.assignee?.id ? a.assignee.id === item.assignee.id : true)
-                          }
-                          size="sm"
-                        />
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+      <Dialog open={!!selected} onOpenChange={(open) => !open && closeReview()}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -393,7 +334,7 @@ export function ClearanceQueueTable({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setSelected(null)}
+                  onClick={closeReview}
                   disabled={loading}
                 >
                   Cancel

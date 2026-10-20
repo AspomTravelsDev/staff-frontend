@@ -42,11 +42,11 @@ export default async function InventoryPage({
 
   // Conditionally fetch queue data based on active permissions (including sub-roles/secondary roles)
   const officerQueuePromise = isOfficer
-    ? getInventoryOfficerQueue()
+    ? getInventoryOfficerQueue(true)
     : Promise.resolve([]);
 
   const complianceQueuePromise = isCompliance
-    ? getInventoryComplianceQueue()
+    ? getInventoryComplianceQueue(true)
     : Promise.resolve([]);
 
   const clearanceOfficerPromise = isOfficer

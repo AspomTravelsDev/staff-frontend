@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -16,7 +16,6 @@ import { ManageInventoryDialog } from "./inventory-dialog";
 import { InventoryHistoryDialog } from "./inventory-history-dialog";
 import { LogInspectionDialog } from "./log-inspection-dialog";
 import { InitiateAssignmentDialog } from "./initiate-assignment-dialog";
-import { InitiateFullClearanceDialog } from "./initiate-full-clearance-dialog";
 import { InitiateDeviceClearanceDialog } from "./initiate-device-clearance-dialog";
 import {
   AlertDialog,
@@ -51,17 +50,15 @@ import {
   Trash2,
   Edit,
   Replace,
-  MapPin,
-  Phone,
   History,
   ClipboardCheck,
   FileText,
   RotateCcw,
-  ShieldAlert,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem, InventoryAssignment } from "@/lib/api/inventory";
 
@@ -74,6 +71,7 @@ interface InventoryTableProps {
 
 export function InventoryTable({ items, employees }: InventoryTableProps) {
   const router = useRouter();
+  const [detailItem, setDetailItem] = useState<InventoryItem | null>(null);
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [itemHistory, setItemHistory] = useState<InventoryItem | null>(null);
@@ -82,7 +80,6 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
   );
   const [itemToAssign, setItemToAssign] = useState<InventoryItem | null>(null);
   const [itemToClear, setItemToClear] = useState<InventoryItem | null>(null);
-  const [fullClearanceEmployeeId, setFullClearanceEmployeeId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { sortedData: sorted, sortConfig, handleSort } = useSort(items);
@@ -104,9 +101,9 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
       }
 
       await downloadAssetFormPdf(assignments[0]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.dismiss("pdf-download");
-      toast.error(error?.message || "Failed to fetch assignment details for PDF.");
+      toast.error((error instanceof Error ? error.message : undefined) || "Failed to fetch assignment details for PDF.");
     }
   };
 
@@ -142,13 +139,13 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
 
       const filename = `Asset_Declaration_${staffName.replace(/\s+/g, "_")}.pdf`;
       await downloadAssetFormPdf(undefined, validAssignments, filename);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.dismiss("staff-all-pdf");
-      toast.error(error?.message || "Failed to download staff asset declaration PDF.");
+      toast.error((error instanceof Error ? error.message : undefined) || "Failed to download staff asset declaration PDF.");
     }
   };
 
-  const SortIcon = ({ columnKey }: { columnKey: keyof InventoryItem }) => {
+  const sortIcon = (columnKey: keyof InventoryItem) => {
     if (sortConfig?.key !== columnKey)
       return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
     return sortConfig.direction === "asc" ? (
@@ -171,21 +168,13 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
     }
   };
 
-  const getConditionColor = (rating: string) => {
-    switch (rating) {
-      case "Excellent":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-      case "Good":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
-      case "Fair":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "Poor":
-        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
-      case "Broken":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-      default:
-        return "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400";
+  const holder = (item: InventoryItem) => {
+    if (item.status === "Repairs") return item.technicianDetails?.name || "Repair provider";
+    if (item.assignedTo) {
+      const employee = employees.find((employee) => employee.id === item.assignedTo);
+      return employee ? `${employee.firstName} ${employee.lastName}` : "Staff member";
     }
+    return "In storage";
   };
 
   const handleUpdate = async (data: InventoryItemPayload) => {
@@ -197,7 +186,7 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         setItemToEdit(null);
         return "Item updated successfully";
       },
-      error: (err: any) => err.message || "Failed to update item",
+      error: (err: Error) => err.message || "Failed to update item",
     });
   };
 
@@ -213,7 +202,7 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         router.refresh();
         return "Asset removed successfully";
       },
-      error: (err: any) => {
+      error: (err: Error) => {
         setIsDeleting(false);
         return err.message || "Failed to remove asset";
       },
@@ -223,152 +212,53 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
   return (
     <div className="rounded-md border bg-card">
       <Table>
-        <TableHeader>
-            <TableRow>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("name")}
-              >
-                <div className="flex items-center">Device Model <SortIcon columnKey="name" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("serialNumber")}
-              >
-                <div className="flex items-center">Serial Number <SortIcon columnKey="serialNumber" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("category")}
-              >
-                <div className="flex items-center">Category <SortIcon columnKey="category" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("conditionRating")}
-              >
-                <div className="flex items-center">Condition <SortIcon columnKey="conditionRating" /></div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:text-foreground transition-colors group"
-                onClick={() => handleSort("status")}
-              >
-                <div className="flex items-center">Status <SortIcon columnKey="status" /></div>
-              </TableHead>
-              <TableHead>Tracking Details</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-        </TableHeader>
+        <TableHeader className="max-sm:hidden"><TableRow>
+          <TableHead aria-sort={sortConfig?.key === "name" ? (sortConfig.direction === "asc" ? "ascending" : "descending") : "none"}><button className="inline-flex items-center" onClick={() => handleSort("name")}>Device {sortIcon("name")}</button></TableHead>
+          <TableHead>Held by</TableHead>
+          <TableHead aria-sort={sortConfig?.key === "status" ? (sortConfig.direction === "asc" ? "ascending" : "descending") : "none"}><button className="inline-flex items-center" onClick={() => handleSort("status")}>Status {sortIcon("status")}</button></TableHead>
+          <TableHead className="hidden md:table-cell">Condition</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow></TableHeader>
         <TableBody>
           {sorted.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
-                No tracking devices found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            sorted.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">
-                  {item.serialNumber}
-                </TableCell>
-                <TableCell>{item.category}</TableCell>
-                <TableCell>
-                  <div
-                    className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${getConditionColor(item.conditionRating)}`}
-                  >
-                    {item.conditionRating}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <Badge variant={getStatusVariant(item.status)}>
-                      {item.status}
-                    </Badge>
-                    {item.openAssignment && (
-                      <Badge variant="outline" className="w-fit text-xs">
-                        {formatAssignmentStatus(item.openAssignment.status)}
-                        {item.openAssignment.assignee?.name
-                          ? ` → ${item.openAssignment.assignee.name}`
-                          : ""}
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {item.status === "Assigned" && item.assignedTo && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground mr-1">Staff:</span>
-                      <span className="font-medium text-foreground">
-                        {(() => {
-                          const emp = employees.find(
-                            (e) => e.id === item.assignedTo,
-                          );
-                          return emp
-                            ? `${emp.firstName} ${emp.lastName}`
-                            : item.assignedTo;
-                        })()}
-                      </span>
-                    </div>
-                  )}
-                  {item.status === "Repairs" && item.technicianDetails && (
-                    <div className="text-sm flex flex-col gap-0.5">
-                      <span className="font-medium text-destructive">
-                        {item.technicianDetails.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Phone className="w-3 h-3" />{" "}
-                        {item.technicianDetails.phone}
-                      </span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />{" "}
-                        {item.technicianDetails.address}
-                      </span>
-                    </div>
-                  )}
-                  {item.status === "Storage" && !item.openAssignment && (
-                    <span className="text-xs text-muted-foreground italic">
-                      In Storage
-                    </span>
-                  )}
-                  {item.status === "Storage" && item.openAssignment && (
-                    <span className="text-xs text-muted-foreground">
-                      Awaiting acknowledgement from{" "}
-                      {item.openAssignment.assignee?.name || "staff"}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
+            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No assets match your search or filters.</TableCell></TableRow>
+          ) : sorted.map((item) => (
+            <TableRow key={item.id} className="max-sm:grid max-sm:grid-cols-[1fr_auto] max-sm:gap-x-3 max-sm:p-3 [&>td]:max-sm:p-1">
+              <TableCell><button onClick={() => setDetailItem(item)} className="text-left font-medium underline-offset-4 hover:underline focus-visible:underline">{item.name}</button><div className="mt-1 text-xs text-muted-foreground break-all">{item.serialNumber}</div></TableCell>
+              <TableCell className="max-sm:col-start-1 max-sm:row-start-2 max-sm:text-muted-foreground">{holder(item)}</TableCell>
+              <TableCell className="max-sm:col-start-1 max-sm:row-start-3"><Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>{item.openAssignment && <p className="mt-1 max-w-56 text-xs text-muted-foreground">{formatAssignmentStatus(item.openAssignment.status)}{item.openAssignment.assignee?.name ? ` :  ${item.openAssignment.assignee.name}` : ""}</p>}</TableCell>
+              <TableCell className="hidden md:table-cell"><span className={["Poor", "Broken"].includes(item.conditionRating) ? "font-medium text-destructive" : "text-muted-foreground"}>{item.conditionRating}</span></TableCell>
+              <TableCell className="text-right max-sm:col-start-2 max-sm:row-start-1"><div className="flex items-center justify-end gap-1">
+                <Button size="sm" variant="outline" className="hidden sm:inline-flex" onClick={() => {
+                  if (item.openAssignment) setDetailItem(item);
+                  else if (item.status === "Storage") setItemToAssign(item);
+                  else if (item.status === "Assigned") setItemToClear(item);
+                  else setDetailItem(item);
+                }}>{item.openAssignment ? "View progress" : item.status === "Storage" ? "Assign" : item.status === "Assigned" ? "Request return" : "View details"}</Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
+                        <span className="sr-only">Actions for {item.name} ({item.serialNumber})</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Device Actions</DropdownMenuLabel>
+                      <DropdownMenuLabel>Device actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setDetailItem(item)}>View details</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setItemToEdit(item)}>
-                        <Edit className="mr-2 h-4 w-4" /> Update Status
+                        <Edit className="mr-2 h-4 w-4" /> Edit asset
                       </DropdownMenuItem>
                       {item.status === "Storage" && !item.openAssignment && (
                         <DropdownMenuItem onClick={() => setItemToAssign(item)}>
                           <Replace className="mr-2 h-4 w-4" /> Assign to Staff
                         </DropdownMenuItem>
                       )}
-                      {item.status === "Assigned" && (
+                      {item.status === "Assigned" && !item.openAssignment && (
                         <>
                           <DropdownMenuItem onClick={() => setItemToClear(item)}>
-                            <RotateCcw className="mr-2 h-4 w-4 text-blue-500" /> Initiate Device Clearance
+                            <RotateCcw className="mr-2 h-4 w-4 text-blue-500" /> Request return
                           </DropdownMenuItem>
-                          {item.assignedTo && (
-                            <DropdownMenuItem
-                              onClick={() => setFullClearanceEmployeeId(item.assignedTo!)}
-                            >
-                              <ShieldAlert className="mr-2 h-4 w-4 text-amber-500" /> Initiate Full Staff Clearance
-                            </DropdownMenuItem>
-                          )}
+
                         </>
                       )}
                       <DropdownMenuSeparator />
@@ -398,12 +288,30 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </TableCell>
+                </div></TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
+            ))}</TableBody>
       </Table>
+
+      <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader><SheetTitle>{detailItem?.name}</SheetTitle><SheetDescription>Asset details and supporting records.</SheetDescription></SheetHeader>
+          {detailItem && <div className="space-y-6 px-4 pb-6">
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              {[["Serial number", detailItem.serialNumber], ["Category", detailItem.category], ["Held by", holder(detailItem)], ["Status", detailItem.status], ["Condition", detailItem.conditionRating]].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-medium break-words">{value}</dd></div>)}
+            </dl>
+            {detailItem.openAssignment && <section><h3 className="font-medium">Current progress</h3><p className="mt-2 text-sm">{formatAssignmentStatus(detailItem.openAssignment.status)} : {detailItem.openAssignment.assignee?.name}</p><p className="mt-2 text-sm text-muted-foreground">Review this process in the approvals or clearance tab.</p></section>}
+            {detailItem.conditionDetails && <section><h3 className="font-medium">Condition notes</h3><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{detailItem.conditionDetails}</p></section>}
+            {detailItem.defaultChecklist && <details><summary className="cursor-pointer font-medium">Recorded device checklist</summary><dl className="mt-3 space-y-3 text-sm">{Object.entries(detailItem.defaultChecklist).map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{({ screen: "Screen & display", charger: "Charger & cables", buttons: "Buttons & keyboard", battery: "Battery & charging", ports: "Ports & connectivity", cameraMic: "Camera, mic & speaker", overall: "Body & casing" } as Record<string, string>)[key] || key}</dt><dd>{value || "Not recorded"}</dd></div>)}</dl></details>}
+            {detailItem.status === "Repairs" && detailItem.technicianDetails && <section><h3 className="font-medium">Repair contact</h3><p className="mt-2 text-sm">{detailItem.technicianDetails.name}</p><p className="text-sm text-muted-foreground">{detailItem.technicianDetails.phone}</p><p className="text-sm text-muted-foreground">{detailItem.technicianDetails.address}</p></section>}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => { setDetailItem(null); setItemHistory(detailItem); }}>View history</Button>
+              <Button variant="outline" onClick={() => { setDetailItem(null); setItemToInspect(detailItem); }}>Log inspection</Button>
+              {(detailItem.status === "Assigned" || detailItem.openAssignment) && <Button variant="outline" onClick={() => handleDownloadAssetForm(detailItem)}>Download device form</Button>}
+            </div>
+          </div>}
+        </SheetContent>
+      </Sheet>
 
       <ManageInventoryDialog
         open={!!itemToEdit}
@@ -437,13 +345,6 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         onOpenChange={(open) => !open && setItemToClear(null)}
         item={itemToClear}
         employees={employees}
-      />
-
-      <InitiateFullClearanceDialog
-        open={!!fullClearanceEmployeeId}
-        onOpenChange={(open) => !open && setFullClearanceEmployeeId(null)}
-        employees={employees}
-        initialStaffId={fullClearanceEmployeeId || undefined}
       />
 
       <AlertDialog

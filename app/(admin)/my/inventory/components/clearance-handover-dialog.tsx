@@ -69,6 +69,7 @@ export function ClearanceHandoverDialog({
   const [reports, setReports] = useState<Record<string, ItemReport>>({});
   const [handoverNotes, setHandoverNotes] = useState("");
   const [certified, setCertified] = useState(false);
+  const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -77,8 +78,8 @@ export function ClearanceHandoverDialog({
       assignments.forEach((a) => {
         initial[a.id] = {
           assignmentId: a.id,
-          conditionRating: "Good",
-          conditionDetails: "",
+          conditionRating: a.staffConditionRating ?? a.inventoryItem?.conditionRating ?? "Good",
+          conditionDetails: a.staffConditionDetails ?? a.inventoryItem?.conditionDetails ?? "",
           notes: "",
           staffChecklist: { ...(a.staffChecklist ?? a.adminChecklist ?? a.inventoryItem?.defaultChecklist ?? emptyChecklist) },
         };
@@ -86,6 +87,7 @@ export function ClearanceHandoverDialog({
       setReports(initial);
       setHandoverNotes("");
       setCertified(false);
+      setReviewed({});
     }
   }, [open, assignments]);
 
@@ -128,6 +130,10 @@ export function ClearanceHandoverDialog({
 
     // Check that at least some notes or details are entered if rating is fair/poor/broken
     for (const a of assignments) {
+      if (!reviewed[a.id]) {
+        toast.error(`Review and confirm the condition for ${a.inventoryItem?.name || "each device"}.`);
+        return;
+      }
       const rep = reports[a.id];
       if (rep && ["Poor", "Broken"].includes(rep.conditionRating) && (!rep.conditionDetails || rep.conditionDetails.trim().length < 4)) {
         toast.error(`Please provide details of issues for ${a.inventoryItem?.name || "device"} (rated ${rep.conditionRating}).`);
@@ -158,8 +164,8 @@ export function ClearanceHandoverDialog({
       toast.success("Clearance handover submitted successfully! IT will inspect the physical devices.");
       onOpenChange(false);
       router.refresh();
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to submit clearance handover.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit clearance handover.");
     } finally {
       setIsSubmitting(false);
     }
@@ -171,10 +177,10 @@ export function ClearanceHandoverDialog({
         <DialogHeader className="p-6 pb-2 border-b">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <ShieldAlert className="h-5 w-5 text-amber-600" />
-            Offboarding Gadget Clearance Handover
+            Return equipment
           </DialogTitle>
           <DialogDescription>
-            Review all assigned equipment being returned. Self-report their condition and handover notes before handing over to IT.
+            Review the recorded condition for each device. Update anything that has changed, then confirm your handover.
           </DialogDescription>
         </DialogHeader>
 
@@ -223,8 +229,8 @@ export function ClearanceHandoverDialog({
                     )}
 
                     {assignment.adminChecklist && (
-                      <div className="rounded-md border bg-muted/30 p-3 text-xs">
-                        <p className="mb-2 font-semibold">Admin / IT assignment checklist</p>
+                      <details className="rounded-md border bg-muted/30 p-3 text-xs">
+                        <summary className="cursor-pointer font-semibold">Original assignment checklist</summary>
                         <div className="grid grid-cols-2 gap-1.5 text-muted-foreground">
                           {checklistFields.map(([key, label]) => (
                             <p key={key} className={key === "overall" ? "col-span-2" : undefined}>
@@ -232,10 +238,11 @@ export function ClearanceHandoverDialog({
                             </p>
                           ))}
                         </div>
-                      </div>
+                      </details>
                     )}
 
-                    <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+                    <details className="space-y-2 rounded-md border p-3">
+                      <summary className="cursor-pointer text-sm font-medium">Review or update device checklist</summary>
                       <div>
                         <p className="text-sm font-semibold">Staff final device checklist</p>
                         <p className="text-xs text-muted-foreground">Update the checklist to reflect the device’s condition at handover.</p>
@@ -257,7 +264,7 @@ export function ClearanceHandoverDialog({
                           </label>
                         ))}
                       </div>
-                    </div>
+                    </details>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1.5">
@@ -294,6 +301,10 @@ export function ClearanceHandoverDialog({
                         />
                       </div>
                     </div>
+                    <label className="flex items-start gap-3 text-sm">
+                      <Checkbox checked={!!reviewed[assignment.id]} onCheckedChange={(checked) => setReviewed((current) => ({ ...current, [assignment.id]: checked === true }))} />
+                      <span>I have reviewed this device and confirm the condition and checklist are accurate for handover.</span>
+                    </label>
                   </div>
                 );
               })}

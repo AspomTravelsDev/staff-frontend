@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,7 +28,6 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,7 +48,7 @@ const formSchema = z
       .optional(),
     conditionDetails: z.string().optional(),
     agreedToTerms: z.boolean(),
-    notes: z.string().min(5, "Please provide at least 5 characters."),
+    notes: z.string().optional(),
     staffChecklist: z
       .object({
         screen: z.string().min(1, "Enter a value or N/A"),
@@ -62,6 +61,9 @@ const formSchema = z
       }),
   })
   .superRefine((data, ctx) => {
+    if (data.decision === "rejected" && (!data.notes || data.notes.trim().length < 5)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Provide a rejection reason (at least 5 characters).", path: ["notes"] });
+    }
     if (data.decision === "approved") {
       if (!data.conditionRating) {
         ctx.addIssue({
@@ -104,10 +106,10 @@ export function AcknowledgeAssignmentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const getChecklistValues = () => ({
+  const getChecklistValues = useCallback(() => ({
     ...EMPTY_GADGET_CHECKLIST,
     ...(assignment?.staffChecklist ?? assignment?.adminChecklist),
-  });
+  }), [assignment]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -132,7 +134,7 @@ export function AcknowledgeAssignmentDialog({
         staffChecklist: getChecklistValues(),
       });
     }
-  }, [open, form, assignment]);
+  }, [open, form, getChecklistValues]);
 
   const decision = form.watch("decision");
 
@@ -146,7 +148,7 @@ export function AcknowledgeAssignmentDialog({
           values.decision === "approved" ? values.conditionRating : undefined,
         conditionDetails:
           values.decision === "approved" ? values.conditionDetails : undefined,
-        notes: values.notes,
+        notes: values.decision === "rejected" ? values.notes?.trim() : undefined,
         staffChecklist: values.staffChecklist,
       });
       toast.success(
@@ -156,8 +158,8 @@ export function AcknowledgeAssignmentDialog({
       );
       onOpenChange(false);
       router.refresh();
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to submit decision");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit decision");
     } finally {
       setIsSubmitting(false);
     }
@@ -381,36 +383,20 @@ export function AcknowledgeAssignmentDialog({
               </>
             )}
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {decision === "approved"
-                      ? "Acknowledgement notes"
-                      : "Rejection reason"}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={
-                        decision === "approved"
-                          ? "Any additional comments about receiving this device..."
-                          : "Why are you rejecting this assignment?"
-                      }
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {decision === "rejected"
-                      ? "Required. The device will remain in Storage."
-                      : "Required. Officers and compliance will review your comments."}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {decision === "rejected" && (
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rejection reason</FormLabel>
+                    <FormControl><Textarea placeholder="Why are you rejecting this assignment?" rows={3} {...field} /></FormControl>
+                    <FormDescription>Required. The device will remain in Storage.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex justify-end gap-3 pt-2">
               <Button

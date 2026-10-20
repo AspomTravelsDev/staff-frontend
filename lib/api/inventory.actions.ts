@@ -566,7 +566,7 @@ export async function submitInventoryAssignmentDecision(
         decision: InventoryAssignmentDecision;
         conditionRating?: InventoryConditionRating;
         conditionDetails?: string;
-        notes: string;
+        notes?: string;
         staffChecklist?: GadgetChecklist;
     }
 ): Promise<ActionResult<InventoryAssignment>> {
@@ -602,10 +602,10 @@ export async function initiateInventoryAssignment(
     }, "initiateInventoryAssignment");
 }
 
-export async function getInventoryOfficerQueue(): Promise<ActionResult<InventoryAssignment[]>> {
+export async function getInventoryOfficerQueue(includeWaiting = false): Promise<ActionResult<InventoryAssignment[]>> {
     return runAction(async (): Promise<InventoryAssignment[]> => {
         try {
-            const response = await api.get<any>("/api/admin/inventory/assignments/officer-queue");
+            const response = await api.get<any>(`/api/admin/inventory/assignments/officer-queue${includeWaiting ? "?include_waiting=1" : ""}`);
             if (!response.success) throw new ExpectedActionError(response.error.error || "Failed to fetch officer queue", response.error.code);
             return (response.data.data || []).map(mapAssignment);
         } catch (error) {
@@ -615,10 +615,10 @@ export async function getInventoryOfficerQueue(): Promise<ActionResult<Inventory
     }, "getInventoryOfficerQueue");
 }
 
-export async function getInventoryComplianceQueue(): Promise<ActionResult<InventoryAssignment[]>> {
+export async function getInventoryComplianceQueue(includeWaiting = false): Promise<ActionResult<InventoryAssignment[]>> {
     return runAction(async (): Promise<InventoryAssignment[]> => {
         try {
-            const response = await api.get<any>("/api/admin/inventory/assignments/compliance-queue");
+            const response = await api.get<any>(`/api/admin/inventory/assignments/compliance-queue${includeWaiting ? "?include_waiting=1" : ""}`);
             if (!response.success) throw new ExpectedActionError(response.error.error || "Failed to fetch compliance queue", response.error.code);
             return (response.data.data || []).map(mapAssignment);
         } catch (error) {

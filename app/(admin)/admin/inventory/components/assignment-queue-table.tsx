@@ -38,15 +38,21 @@ type QueueMode = "officer" | "compliance";
 export function AssignmentQueueTable({
   assignments,
   mode,
+  initialAssignment,
+  reviewOnly = false,
+  onReviewClose,
 }: {
   assignments: InventoryAssignment[];
   mode: QueueMode;
+  initialAssignment?: InventoryAssignment;
+  reviewOnly?: boolean;
+  onReviewClose?: () => void;
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState<InventoryAssignment | null>(null);
+  const [selected, setSelected] = useState<InventoryAssignment | null>(initialAssignment ?? null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [adminChecklist, setAdminChecklist] = useState<GadgetChecklist | undefined>();
+  const [adminChecklist, setAdminChecklist] = useState<GadgetChecklist | undefined>(initialAssignment?.adminChecklist ? { ...initialAssignment.adminChecklist } : undefined);
 
   const checklistFields: Array<[keyof GadgetChecklist, string]> = [
     ["screen", "Screen & Display"],
@@ -92,12 +98,12 @@ export function AssignmentQueueTable({
             ? "Sent back to staff."
             : "Sent back to Admin / IT.",
       );
-      setSelected(null);
+      setSelected(null); onReviewClose?.();
       setNotes("");
       setAdminChecklist(undefined);
       router.refresh();
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to submit decision");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit decision");
     } finally {
       setLoading(false);
     }
@@ -107,7 +113,7 @@ export function AssignmentQueueTable({
 
   return (
     <>
-      <div className="rounded-md border bg-card">
+      {!reviewOnly && <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -170,13 +176,13 @@ export function AssignmentQueueTable({
             )}
           </TableBody>
         </Table>
-      </div>
+      </div>}
 
       <Dialog
         open={!!selected}
         onOpenChange={(open) => {
           if (!open) {
-            setSelected(null);
+            setSelected(null); onReviewClose?.();
             setNotes("");
           }
         }}
