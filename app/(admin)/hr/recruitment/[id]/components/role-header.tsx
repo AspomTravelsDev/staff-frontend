@@ -126,7 +126,7 @@ export function RoleHeader({ role, stats }: RoleHeaderProps) {
 
           <div className="flex shrink-0 items-center gap-2 [&_button]:min-h-10 [&_button]:text-sm">
             <div id="tour-upload-cv">
-              <UploadCvDialog roleId={role.id} roleTitle={role.title} disabled={currentStatus === "closed"} />
+              <UploadCvDialog roleId={role.id} roleTitle={role.title} disabled={currentStatus === "closed"} screeningOnUpload={!role.pipeline_config} />
             </div>
             <RoleActions
               role={role}

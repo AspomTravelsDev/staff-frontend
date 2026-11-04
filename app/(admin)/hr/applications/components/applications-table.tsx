@@ -30,6 +30,16 @@ import {
 import { formatLagosDate } from "@/lib/utils/attendance";
 import { ApplicationActions } from "./application-actions";
 import { ApplicationExportButton } from "./application-export-button";
+import { EmploymentOutcomeBadge } from "./update-employment-status-dialog";
+import { StatsCard } from "@/components/stats-card";
+import { CheckCircle2, Clock, Inbox, Loader2 } from "lucide-react";
+
+interface OnboardingStats {
+  total: number;
+  invited: number;
+  inProgress: number;
+  completed: number;
+}
 
 const statusLabels = {
   pending: "Pending",
@@ -40,8 +50,10 @@ const statusLabels = {
 
 export function ApplicationsTable({
   applications,
+  stats,
 }: {
   applications: OnboardingApplication[];
+  stats: OnboardingStats;
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -86,6 +98,12 @@ export function ApplicationsTable({
 
   return (
     <section className="space-y-3" aria-label="Onboarding applications">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatsCard title="Total Applications" icon={Inbox} value={stats.total} description="All onboarding applications" onClick={reset} active={status === "all" && position === "all" && !search} />
+        <StatsCard title="Invited" icon={Clock} value={stats.invited} description="Invited to complete onboarding" onClick={() => { setStatus("invited"); setPage(1); }} active={status === "invited"} />
+        <StatsCard title="In Progress" icon={Loader2} value={stats.inProgress} description="Currently completing onboarding" onClick={() => { setStatus("in_progress"); setPage(1); }} active={status === "in_progress"} />
+        <StatsCard title="Completed" icon={CheckCircle2} value={stats.completed} description="Completed applications" onClick={() => { setStatus("completed"); setPage(1); }} active={status === "completed"} />
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:min-w-60 sm:flex-1">
           <Search
@@ -245,6 +263,10 @@ export function ApplicationsTable({
                   </div>
                   {statusBadge(app)}
                 </div>
+                <div className="flex items-center justify-between border-t pt-2 text-xs">
+                  <span className="text-muted-foreground">Staff outcome</span>
+                  <EmploymentOutcomeBadge status={app.employment_status} />
+                </div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 text-xs text-muted-foreground">
                     <p className="break-words">{app.position_title}</p>
@@ -253,6 +275,8 @@ export function ApplicationsTable({
                   <ApplicationActions
                     id={app.id}
                     step={app.form_data?.currentStep ?? 1}
+                    employmentStatus={app.employment_status}
+                    employmentStatusNote={app.employment_status_note}
                   />
                 </div>
               </div>
@@ -264,7 +288,8 @@ export function ApplicationsTable({
                 <TableRow>
                   <TableHead>Applicant</TableHead>
                   <TableHead>Position</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Onboarding</TableHead>
+                  <TableHead>Staff outcome</TableHead>
                   <TableHead>Invited</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -286,6 +311,7 @@ export function ApplicationsTable({
                     </TableCell>
                     <TableCell>{app.position_title}</TableCell>
                     <TableCell>{statusBadge(app)}</TableCell>
+                    <TableCell><EmploymentOutcomeBadge status={app.employment_status} /></TableCell>
                     <TableCell className="whitespace-nowrap">
                       {formatLagosDate(app.invited_at)}
                     </TableCell>
@@ -293,6 +319,8 @@ export function ApplicationsTable({
                       <ApplicationActions
                         id={app.id}
                         step={app.form_data?.currentStep ?? 1}
+                        employmentStatus={app.employment_status}
+                        employmentStatusNote={app.employment_status_note}
                       />
                     </TableCell>
                   </TableRow>

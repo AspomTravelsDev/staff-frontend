@@ -54,7 +54,7 @@ export function HRTaskStats({ records }: HRTaskStatsProps) {
       <Card>
         <CardContent className="p-4 pt-4 flex flex-col justify-between h-full">
           <div className="text-sm font-medium text-muted-foreground">
-            Pending
+            Incomplete Reports
           </div>
           <div className="flex items-center gap-2 mt-2">
             <Circle className="h-5 w-5 text-orange-500" />

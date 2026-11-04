@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { InventoryAssignment } from "@/lib/api/inventory";
 import { formatAssignmentStatus } from "@/lib/utils";
+import { AcknowledgeEquipmentDialog } from "./acknowledge-equipment-dialog";
 import { AcknowledgeAssignmentDialog } from "./acknowledge-assignment-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,8 @@ export function PendingAssignmentsSection({
 }: PendingAssignmentsSectionProps) {
   const [selected, setSelected] = useState<InventoryAssignment | null>(null);
 
+  const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
+  const batches = Array.from(new Set(assignments.map((assignment) => assignment.issueBatchId).filter((id): id is string => !!id)));
   if (assignments.length === 0) return null;
 
   return (
@@ -34,7 +37,12 @@ export function PendingAssignmentsSection({
         </div>
       </div>
 
-      <div className="space-y-2">
+      {batches.map((batch) => {
+        const items = assignments.filter((assignment) => assignment.issueBatchId === batch);
+        return <div key={batch} className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card p-3"><div><p className="font-medium">Equipment issue · {items.length} items</p><p className="text-sm text-muted-foreground">{items.map((item) => item.inventoryItem?.name).join(", ")}</p></div><Button onClick={() => setSelectedBatch(batch)}>Review equipment together</Button></div>;
+      })}
+      <details open={batches.length === 0}><summary className="cursor-pointer text-sm font-medium">Review individual items or reject an item</summary>
+      <div className="mt-3 space-y-2">
         {assignments.map((assignment) => (
           <div
             key={assignment.id}
@@ -65,6 +73,8 @@ export function PendingAssignmentsSection({
         ))}
       </div>
 
+      </details>
+      {selectedBatch && <AcknowledgeEquipmentDialog key={selectedBatch} assignments={assignments.filter((assignment) => assignment.issueBatchId === selectedBatch)} onClose={() => setSelectedBatch(null)} />}
       <AcknowledgeAssignmentDialog
         open={!!selected}
         onOpenChange={(open) => !open && setSelected(null)}

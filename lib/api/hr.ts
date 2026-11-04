@@ -15,6 +15,10 @@ export async function getApplication(...args: Parameters<typeof actions.getAppli
   return callAction(() => actions.getApplication(...args));
 }
 
+export async function updateApplicationEmploymentStatus(...args: Parameters<typeof actions.updateApplicationEmploymentStatus>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateApplicationEmploymentStatus>>>> {
+  return callAction(() => actions.updateApplicationEmploymentStatus(...args));
+}
+
 export async function createApplication(...args: Parameters<typeof actions.createApplication>): Promise<ActionData<Awaited<ReturnType<typeof actions.createApplication>>>> {
   return callAction(() => actions.createApplication(...args));
 }

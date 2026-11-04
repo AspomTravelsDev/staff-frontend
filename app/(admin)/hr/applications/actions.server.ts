@@ -18,12 +18,20 @@ import {
 import { revalidatePath } from "next/cache";
 import { downloadPdfFormsAction } from "@/app/(public)/applicant/[id]/pdf-actions";
 import { uploadPublicFile } from "@/lib/api/public-upload";
+import { updateApplicationEmploymentStatus } from "@/lib/api/hr";
 
 export async function deleteApplicationAction(id: string) {
     return runAction(async () => {
         await deleteApplication(id);
         revalidatePath("/hr/applications");
     }, "deleteApplicationAction");
+}
+
+export async function updateApplicationEmploymentStatusAction(
+    id: string,
+    payload: { employment_status: string | null; employment_status_note?: string },
+) {
+    return runAction(async () => updateApplicationEmploymentStatus(id, payload), "updateApplicationEmploymentStatusAction");
 }
 
 export async function generateDocumentsAction(uuid: string) {

@@ -42,7 +42,6 @@ import {
   Loader2,
   MapPin,
   Plus,
-  Sparkles,
   Trash2,
   User,
   Users,
@@ -378,7 +377,7 @@ export function TravelItineraryForm() {
           <div className="p-4 rounded-xl border bg-primary/5 border-primary/20 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-base flex items-center gap-2 text-primary">
-                <Sparkles className="size-4 text-primary" /> Preset Country & Duration Selector
+                 Preset Country & Duration Selector
               </h3>
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1.5 font-medium">
                 <CheckCircle2 className="size-3.5" /> Auto-Prefill Active

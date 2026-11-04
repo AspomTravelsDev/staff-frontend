@@ -342,6 +342,36 @@ test("previous stage assessments are read only", (t) => {
   );
 });
 
+test("rejecting saves a failed call draft without completing it or requiring an advancement note", async (t) => {
+  const context = fixture("call_screening");
+  context.records = [{ stage: "call_screening", state: "draft", definition: context.definition, payload: { compatibility: "Not compatible" }, results: { passed: false, score_100: null, threshold: null, missing: [], checks: [] } }];
+  let rejected = 0, control;
+  control = form(async input => control.success(input), context, { onReject() { rejected++; } });
+  t.after(() => control.dispose());
+  let tree = control.render();
+  nodes(tree, "Textarea").find(node => node.props["aria-label"] === "Stage notes").props.onChange({ target: { value: "Saved HR evidence for rejection." } });
+  tree = control.render();
+  const reject = nodes(tree, "Button").find(node => node.props.variant === "destructive");
+  assert.equal(reject.props.type, "button");
+  reject.props.onClick(); await tick();
+  assert.equal(rejected, 1);
+  assert.equal(control.calls.length, 1);
+  assert.equal(control.calls[0].complete, false);
+  assert.equal(control.calls[0].payload.notes, "Saved HR evidence for rejection.");
+  assert.equal(control.calls[0].payload.advancement_note, undefined);
+  assert.equal(control.completed.length, 0);
+});
+
+test("a failed autosave keeps rejection on the assessment with edits intact", async (t) => {
+  let rejected = 0;
+  const control = form(async () => ({ success: false, error: "Save failed" }), fixture("call_screening"), { onReject() { rejected++; } });
+  t.after(() => control.dispose());
+  nodes(control.render(), "Textarea").find(node => node.props["aria-label"] === "Stage notes").props.onChange({ target: { value: "Keep this evidence" } });
+  nodes(control.render(), "Button").find(node => node.props.variant === "destructive").props.onClick(); await tick();
+  assert.equal(rejected, 0);
+  assert.equal(nodes(control.render(), "Textarea").find(node => node.props["aria-label"] === "Stage notes").props.value, "Keep this evidence");
+});
+
 test("oral opens a sheet; call, written, practical and management open form dialogs", async (t) => {
   for (const stage of [
     "oral_interview",

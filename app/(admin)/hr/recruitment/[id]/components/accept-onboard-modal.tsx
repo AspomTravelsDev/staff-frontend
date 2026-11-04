@@ -20,7 +20,6 @@ import {
   ArrowRight,
   CheckCircle2,
   ShieldOff,
-  Sparkles,
   AlertTriangle,
   TrendingUp,
   RotateCw,
@@ -327,7 +326,6 @@ export function AcceptOnboardModal({
               <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4 text-xs">
                 <div className="flex items-center justify-between gap-2 border-b border-primary/10 pb-2">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-primary" />
                     <span className="font-bold uppercase tracking-wider text-primary text-[11px]">
                       Pre-Offer AI Hiring Verification
                     </span>
@@ -434,7 +432,6 @@ export function AcceptOnboardModal({
                     className="h-7 text-xs gap-1"
                     onClick={handleRerunInterviewAnalysis}
                   >
-                    <Sparkles className="h-3 w-3 text-primary" />
                     Run AI Analysis
                   </Button>
                 )}

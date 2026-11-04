@@ -14,7 +14,8 @@ import {
 import { getAllEmployees } from "@/app/(admin)/hr/employees/queries";
 import { getRoles, userHasAnyRole } from "@/types/user-types";
 import { InventoryStatsCards } from "./components/inventory-stats";
-import { InventoryAddButton } from "./components/inventory-add-button";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { InventoryClientManager } from "./components/inventory-client-manager";
 
 interface InventoryPageProps {
@@ -75,7 +76,6 @@ export default async function InventoryPage({
     }),
     getInventoryStats({
       category: params.category,
-      status: params.status as InventoryStatus,
       conditionRating: params.condition_rating as InventoryConditionRating,
     }),
     getAllEmployees(),
@@ -89,12 +89,12 @@ export default async function InventoryPage({
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Company Inventory & Approvals</h1>
+          <h1 className="text-2xl font-bold">Gadget Assignments</h1>
           <p className="text-sm text-muted-foreground">
-            Track company assets, process gadget assignments, and manage offboarding clearance
+            Issue equipment to staff, review acknowledgements, and manage returns and clearance
           </p>
         </div>
-        <InventoryAddButton employees={employees} />
+        <Button variant="outline" asChild><Link href="/admin/company-inventory">Company Inventory</Link></Button>
       </div>
 
       <InventoryStatsCards stats={stats} />
@@ -108,7 +108,7 @@ export default async function InventoryPage({
         complianceAssignments={complianceAssignments}
         clearanceOfficerQueue={clearanceOfficerQueue}
         clearanceComplianceQueue={clearanceComplianceQueue}
-        initialTab={params.tab || "inventory"}
+        initialTab={params.tab || "equipment"}
         serverFilters={{
           category: params.category || "all",
           status: params.status || "all",

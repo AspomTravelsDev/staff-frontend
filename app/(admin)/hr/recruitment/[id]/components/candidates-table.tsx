@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,8 +382,10 @@ export function CandidatesTable({
                 const score = cvEvaluationScore(candidate);
 
                 return (
-                  <TableRow
+                  <DetailsTableRow
                     key={candidate.id}
+                    detailLabel={`Open evaluation for ${candidate.name}`}
+                    onOpenDetails={() => handleOpenEvaluation(candidate)}
                     className="hover:bg-muted/50 transition-colors"
                   >
                     {/* Rank */}
@@ -600,7 +603,7 @@ export function CandidatesTable({
                         onReanalyze={() => void retryEvaluation(candidate)}
                       />
                     </TableCell>
-                  </TableRow>
+                  </DetailsTableRow>
                 );
               })
             )}

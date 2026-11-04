@@ -112,6 +112,32 @@ export function DocumentListTable({
     }
   };
 
+  const handleOpenInNewTab = async (doc: DocumentFile) => {
+    const downloadId = doc.file_id || doc.id;
+    setDownloadingId(downloadId);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const downloadUrl = `${baseUrl}/api/files/download/${downloadId}`;
+      const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(downloadUrl)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) {
+        toast.error("Unable to open this document.");
+        return;
+      }
+
+      const blobUrl = window.URL.createObjectURL(await response.blob());
+      const openedWindow = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!openedWindow) {
+        toast.error("Pop-up blocked. Please allow pop-ups to open documents.");
+      }
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+    } catch {
+      toast.error("Unable to open this document.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const getFileExtension = (filename: string | undefined) => {
     if (!filename) return "";
     return filename.split(".").pop()?.toLowerCase() || "";
@@ -166,7 +192,20 @@ export function DocumentListTable({
         </TableHeader>
         <TableBody>
           {documents.map((doc) => (
-            <TableRow key={doc.id}>
+            <TableRow
+              key={doc.id}
+              className="cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              tabIndex={0}
+              aria-label={`Open ${doc.title}`}
+              onClick={() => void handleOpenInNewTab(doc)}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  void handleOpenInNewTab(doc);
+                }
+              }}
+            >
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                   {renderFileIcon(doc.original_name)}
@@ -213,7 +252,10 @@ export function DocumentListTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDownload(doc)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDownload(doc);
+                      }}
                       title="Download"
                       disabled={downloadingId !== null}
                     >
@@ -239,7 +281,7 @@ export function DocumentListTable({
                       departments={departments}
                       document={doc}
                       trigger={
-                        <Button variant="ghost" size="icon" title="Edit">
+                        <Button variant="ghost" size="icon" title="Edit" onClick={(event) => event.stopPropagation()}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       }
@@ -254,6 +296,7 @@ export function DocumentListTable({
                           size="icon"
                           className="text-muted-foreground hover:text-destructive"
                           disabled={deletingId === doc.id}
+                          onClick={(event) => event.stopPropagation()}
                         >
                           {deletingId === doc.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

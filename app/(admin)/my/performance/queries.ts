@@ -1,8 +1,8 @@
 import { getAppraisalHistory, getAppraisalStats } from "@/lib/api/performance-appraisal";
-import type { PerformanceAppraisal, AppraisalStats } from "@/lib/api/performance-appraisal";
+import type { AppraisalSummary, AppraisalStats } from "@/lib/api/performance-appraisal";
 
 export async function getPerformanceData(): Promise<{
-    appraisals: PerformanceAppraisal[];
+    appraisals: AppraisalSummary[];
     stats: AppraisalStats;
 }> {
     const [appraisals, stats] = await Promise.all([

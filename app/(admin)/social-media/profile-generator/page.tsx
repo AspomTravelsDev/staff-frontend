@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, User, Briefcase, Phone, Image as ImageIcon } from "lucide-react";
+import { User, Briefcase, Phone, Image as ImageIcon } from "lucide-react";
 
 export default function ProfileGeneratorPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -65,7 +65,7 @@ export default function ProfileGeneratorPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-          <Sparkles className="h-4 w-4" /> Social Media Department Tools
+           Social Media Department Tools
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Staff Profile Image Generator</h1>
         <p className="text-muted-foreground">

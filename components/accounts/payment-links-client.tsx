@@ -25,6 +25,7 @@ import { CreatePaymentLinkDialog } from "./create-payment-link-dialog";
 import { PaymentLinkDetailsSheet } from "./payment-link-details-sheet";
 import { PaymentLinkActions } from "./payment-link-actions";
 import { PaymentLinksGuide } from "./payment-links-guide";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 
 function PaymentFilter({ id, label, value, onChange, options, disabled }: {
   id: string; label: string; value: string; onChange: (value: string) => void;
@@ -129,7 +130,7 @@ export function PaymentLinksClient() {
           <div id="payment-links-table" className="overflow-hidden rounded-md border bg-card" aria-busy={query.isFetching}>
             <Table className="min-w-[850px]">
               <TableHeader><TableRow><TableHead>Client</TableHead><TableHead>Purpose / invoice</TableHead><TableHead>Amount</TableHead><TableHead>Created by</TableHead><TableHead>Due date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-              <TableBody>{query.data.data.length ? query.data.data.map(link => <TableRow key={link.id}>
+              <TableBody>{query.data.data.length ? query.data.data.map(link => <DetailsTableRow key={link.id} detailLabel={`Open payment link details for ${link.client_name}`} onOpenDetails={() => setSelectedId(link.id)}>
                 <TableCell><p className="font-medium">{link.client_name}</p><p className="text-xs text-muted-foreground">{link.reference}</p></TableCell>
                 <TableCell className="max-w-[230px] whitespace-normal"><button className="text-left font-medium hover:underline" onClick={() => setSelectedId(link.id)}>{link.purpose}</button>{link.invoice && <p className="mt-1 text-xs text-muted-foreground">{link.invoice.invoice_number}</p>}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatPaymentAmount(link.amount_minor, link.currency)}</TableCell>
@@ -137,7 +138,7 @@ export function PaymentLinksClient() {
                 <TableCell className="max-w-[160px] whitespace-normal text-xs">{link.due_at ? formatReadableDate(link.due_at) : "Not set"}</TableCell>
                 <TableCell><Badge variant="outline" className={link.effective_status === "needs_attention" ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300" : link.effective_status === "paid" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : ""}>{paymentStatusLabels[link.effective_status]}</Badge></TableCell>
                 <TableCell><div className="flex justify-end"><PaymentLinkActions link={link} canManage={query.data.can_manage} onDetails={() => setSelectedId(link.id)} onReplace={() => { setReplacing(link); setCreateOpen(true); }} onUpdated={refresh} /></div></TableCell>
-              </TableRow>) : <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No payment requests found.</TableCell></TableRow>}</TableBody>
+              </DetailsTableRow>) : <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No payment requests found.</TableCell></TableRow>}</TableBody>
             </Table>
           </div>
           {pagination && <div id="payment-links-pagination" className="flex flex-col gap-3 px-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">

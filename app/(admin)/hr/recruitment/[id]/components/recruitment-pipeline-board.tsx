@@ -9,7 +9,6 @@ import {
   Loader2,
   MoreHorizontal,
   RotateCw,
-  Sparkles,
   Users,
   Activity,
   PauseCircle,
@@ -56,11 +55,15 @@ import {
 import { StatsCard } from "@/components/stats-card";
 import { reanalyzeCandidate } from "@/lib/api/recruitment";
 import { decideRecruitmentStage } from "@/lib/api/recruitment-pipeline";
-import { cvEvaluationScore } from "@/lib/recruitment/cv-evaluation";
+import { cvEvaluationScore, cvAnalysisFailureMessage } from "@/lib/recruitment/cv-evaluation";
+import { runRecruitmentBatch, CV_UPLOAD_LIMIT } from "@/lib/recruitment/cv-intake";
 import { UploadCvDialog } from "./upload-cv-dialog";
 import { CvAnalysisSheet } from "./cv-analysis-sheet";
 import { ApplicantAdvanceDialog } from "./applicant-advance-dialog";
+import { StageDocumentsDialog } from "./stage-documents-dialog";
 import { ApplicantStageWorkspace } from "./applicant-stage-workspace";
+import { CandidateEmailsDialog } from "./candidate-emails-dialog";
+import { CandidateOverviewSheet } from "./candidate-overview-sheet";
 import { ApplicantStatusDialog } from "./applicant-status-dialog";
 import { VacancySettingsDialog } from "./vacancy-settings-dialog";
 import { ManagementReviewSheet } from "./management-review-sheet";
@@ -75,6 +78,7 @@ import type {
   RecruitmentRole,
   RecruitmentCandidate,
 } from "@/lib/types/recruitment";
+import type { RecruitmentFinalReview } from "@/lib/types/recruitment-final-review";
 
 function isOfferStage(candidate?: RecruitmentCandidate) {
   return (
@@ -88,6 +92,8 @@ function isOfferStage(candidate?: RecruitmentCandidate) {
 export function RecruitmentPipelineBoard({
   role,
   candidates,
+  initialContexts = {},
+  initialFinalReviews = {},
   initialApplicantId,
   initialSettingsOpen = false,
   initialStatusOpen = false,
@@ -95,6 +101,8 @@ export function RecruitmentPipelineBoard({
 }: {
   role: RecruitmentRole;
   candidates: RecruitmentCandidate[];
+  initialContexts?: Record<string, PipelineContext>;
+  initialFinalReviews?: Record<string, RecruitmentFinalReview>;
   initialApplicantId?: string;
   initialSettingsOpen?: boolean;
   initialStatusOpen?: boolean;
@@ -108,6 +116,21 @@ export function RecruitmentPipelineBoard({
   };
 }) {
   const router = useRouter();
+  const [contextUpdates, setContextUpdates] = useState<Record<string, { source: RecruitmentCandidate; data: PipelineContext }>>({});
+  const [reviewUpdates, setReviewUpdates] = useState<Record<string, { source: RecruitmentCandidate; data: RecruitmentFinalReview }>>({});
+  function contextFor(id: string) {
+    const saved = contextUpdates[id];
+    return saved && saved.source === candidates.find(candidate => candidate.id === id) ? saved.data : initialContexts[id];
+  }
+  function reviewFor(id: string) {
+    const saved = reviewUpdates[id];
+    return saved && saved.source === candidates.find(candidate => candidate.id === id) ? saved.data : initialFinalReviews[id];
+  }
+  function updateReview(id: string, data: RecruitmentFinalReview) {
+    const source = candidates.find(candidate => candidate.id === id);
+    if (source) setReviewUpdates(previous => ({ ...previous, [id]: { source, data } }));
+  }
+  const [documentCandidate, setDocumentCandidate] = useState<RecruitmentCandidate | null>(null);
   const [stage, setStage] = useState<PipelineStage | "all">("all"),
     [search, setSearch] = useState(""),
     [outcome, setOutcome] = useState("all");
@@ -140,6 +163,9 @@ export function RecruitmentPipelineBoard({
   const [workspaceView, setWorkspaceView] = useState<PipelineStage | undefined>(
     undefined,
   );
+  const [emailId, setEmailId] = useState<string | null>(null);
+  const [overviewId, setOverviewId] = useState<string | null>(null);
+  const [statusAction, setStatusAction] = useState("");
   const [managementId, setManagementId] = useState<string | null>(null);
   const [offerId, setOfferId] = useState<string | null>(
     !initialStatusOpen &&
@@ -159,6 +185,7 @@ export function RecruitmentPipelineBoard({
       applicant?.pipeline_outcome === "active" &&
       isOfferStage(applicant)
     ) {
+      if (applicant?.email_summary?.pending) { setEmailId(id); return; }
       setOfferId(id);
       return;
     }
@@ -181,6 +208,10 @@ export function RecruitmentPipelineBoard({
     >
   >({});
   const [retrying, setRetrying] = useState<string[]>([]);
+  const [selectedCvs, setSelectedCvs] = useState<string[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState("");
+  const batchLock = useRef(false);
   const inFlight = useRef(new Set<string>());
   // Fresh server records supersede optimistic analysis and stage updates.
   const applicants = candidates.map((c) =>
@@ -293,40 +324,74 @@ export function RecruitmentPipelineBoard({
     if (days === 1) return "Yesterday";
     return `${days} days ago`;
   };
-  async function retryAnalysis(candidate: RecruitmentCandidate) {
+  async function analyzeCandidate(candidate: RecruitmentCandidate, quiet = false) {
     if (
       inFlight.current.has(candidate.id) ||
       ["pending", "processing"].includes(candidate.ai_evaluation?.status ?? "")
     )
-      return;
+      return false;
     inFlight.current.add(candidate.id);
     setRetrying((ids) => [...ids, candidate.id]);
     try {
       const result = await reanalyzeCandidate(candidate.id, role.id);
       if (!result.success || !result.data) {
-        toast.error(
-          result.error || "AI analysis could not be queued. Please retry.",
+        if (!quiet) toast.error(
+          result.error || "AI analysis could not be started. Please retry.",
         );
-        return;
+        return false;
       }
       const source = candidates.find((c) => c.id === candidate.id)!;
       setUpdates((values) => ({
         ...values,
         [candidate.id]: { source, candidate: result.data! },
       }));
+      const loadedContext = contextFor(candidate.id);
+      if (loadedContext) setContextUpdates(previous => ({ ...previous, [candidate.id]: { source, data: { ...loadedContext, candidate: { ...loadedContext.candidate, ...result.data! } } } }));
+      const review = reviewFor(candidate.id);
+      if (review?.ai && !result.analysisReused) updateReview(candidate.id, { ...review, ai_stale: true });
       if (result.data.ai_evaluation?.status === "failed")
-        toast.error("AI analysis could not be queued. Please retry.");
-      else toast.success("AI analysis queued. You can continue working.");
+        { if (!quiet) toast.error(cvAnalysisFailureMessage(result.data)); }
+      else if (!quiet) toast.success(result.analysisReused ? "Saved screening reused. No new AI request was needed." : "AI analysis completed.");
       router.refresh();
+      return result.data.ai_evaluation?.status !== "failed";
     } catch {
-      toast.error("AI analysis could not be queued. Please retry.");
+      if (!quiet) toast.error("AI analysis could not be started. Please retry.");
+      return false;
     } finally {
       inFlight.current.delete(candidate.id);
       setRetrying((ids) => ids.filter((id) => id !== candidate.id));
     }
   }
-  function updateApplicant(context: PipelineContext) {
+  async function retryAnalysis(candidate: RecruitmentCandidate) { await analyzeCandidate(candidate); }
+  const selectedApplicants = applicants.filter(candidate => selectedCvs.includes(candidate.id));
+  function canSelectCv(candidate: RecruitmentCandidate) {
+    return candidate.pipeline_outcome === "active" && !["pending", "processing"].includes(candidate.ai_evaluation?.status ?? "") && !retrying.includes(candidate.id);
+  }
+  async function analyzeSelected() {
+    if (batchLock.current) return;
+    const items = selectedApplicants.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT);
+    if (!items.length) return;
+    batchLock.current = true; setBatchRunning(true);
+    let done = 0, failed = 0;
+    setBatchProgress(`Analysing 0 of ${items.length} CVs…`);
+    try {
+      await runRecruitmentBatch(items, async candidate => {
+        if (await analyzeCandidate(candidate, true)) setSelectedCvs(previous => previous.filter(id => id !== candidate.id)); else failed++;
+        done++; setBatchProgress(`Analysed ${done} of ${items.length} CVs${failed ? ` · ${failed} failed` : ""}`);
+      });
+      if (failed) toast.error(`${failed} CV${failed === 1 ? "" : "s"} could not be analysed. They remain selected for retry.`);
+      else toast.success(`${items.length} CV${items.length === 1 ? "" : "s"} screened. Unchanged saved results were reused.`);
+    } finally { batchLock.current = false; setBatchRunning(false); router.refresh(); }
+  }
+  function updateApplicant(context: PipelineContext, evidenceChanged = true) {
     const source = candidates.find((c) => c.id === context.candidate.id)!;
+    setContextUpdates(previous => ({ ...previous, [context.candidate.id]: { source, data: context } }));
+    const review = reviewFor(context.candidate.id);
+    if (review) updateReview(context.candidate.id, {
+      ...review,
+      ready: pipelineStages.slice(0, 5).every(stage => context.records.some(record => record.stage === stage && (record.state === "completed" || record.state === "skipped"))),
+      ai_stale: (!!review.ai && evidenceChanged) || review.ai_stale,
+    });
     const record = context.records.find(
       (r) => r.stage === context.candidate.pipeline_stage,
     );
@@ -360,7 +425,8 @@ export function RecruitmentPipelineBoard({
   function moved(context: PipelineContext) {
     updateApplicant(context);
     setAdvanceId(null);
-    openStage(context.candidate.id);
+    if (["oral_interview", "written_exam", "practical"].includes(context.candidate.pipeline_stage!)) setEmailId(context.candidate.id);
+    else openStage(context.candidate.id);
     toast.success(
       `${context.candidate.name} moved to ${pipelineLabels[context.candidate.pipeline_stage!].toLowerCase()}.`,
     );
@@ -498,6 +564,8 @@ export function RecruitmentPipelineBoard({
             </span>
           </h2>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={batchRunning || !selectedApplicants.some(canSelectCv)} onClick={() => void analyzeSelected()}>{batchRunning ? "Analysing selected…" : `Analyze selected (${selectedApplicants.length})`}</Button>
+            {!!selectedCvs.length && <Button variant="ghost" disabled={batchRunning} onClick={() => setSelectedCvs([])}>Clear selection</Button>}
             <Input
               aria-label="Search applicants"
               placeholder="Search name or email"
@@ -557,11 +625,12 @@ export function RecruitmentPipelineBoard({
             )}
           </div>
         </div>
+        <p className="text-xs text-muted-foreground" role="status" aria-live="polite">{batchProgress || "Select up to 20 applicants to screen. Unchanged CVs reuse their saved analysis."}</p>
         <div className="rounded-md border">
           <Table className="text-xs">
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[170px]">Applicant</TableHead>
+                <TableHead className="min-w-[170px]"><label className="flex items-center gap-2"><input type="checkbox" aria-label="Select up to 20 visible applicants for AI screening" disabled={batchRunning || !visible.some(canSelectCv)} checked={visible.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT).length > 0 && visible.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT).every(candidate => selectedCvs.includes(candidate.id))} onChange={event => setSelectedCvs(event.target.checked ? visible.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT).map(candidate => candidate.id) : [])} />Applicant</label></TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>CV fit</TableHead>
@@ -603,7 +672,9 @@ export function RecruitmentPipelineBoard({
                   !!next &&
                   (current === "cv_screening" || stageCompleted);
                 const taskLabel =
-                  c.pipeline_outcome === "hold"
+                  c.email_summary?.pending
+                    ? "Review email"
+                    : c.pipeline_outcome === "hold"
                     ? "Resume applicant"
                     : c.pipeline_outcome === "rejected" ||
                         c.pipeline_outcome === "withdrawn"
@@ -631,14 +702,16 @@ export function RecruitmentPipelineBoard({
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <input type="checkbox" aria-label={`Select ${c.name} for AI screening`} checked={selectedCvs.includes(c.id)} disabled={batchRunning || !canSelectCv(c) || (!selectedCvs.includes(c.id) && selectedCvs.length >= CV_UPLOAD_LIMIT)} onChange={event => setSelectedCvs(previous => event.target.checked ? [...previous, c.id] : previous.filter(id => id !== c.id))} />
                         <Button
                           variant="link"
                           className="h-auto justify-start p-0 text-foreground"
-                          aria-label={`View CV analysis for ${c.name}`}
-                          onClick={() => setAnalysisId(c.id)}
+                          aria-label={`View candidate overview for ${c.name}`}
+                          onClick={() => setOverviewId(c.id)}
                         >
                           {c.name}
                         </Button>
+                        {c.duplicate_email && <Badge variant="outline" title="This email is also used by another applicant for this role">Duplicate email</Badge>}
                         {Date.now() - new Date(c.created_at).getTime() <
                           24 * 60 * 60 * 1000 && (
                           <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300">
@@ -685,13 +758,14 @@ export function RecruitmentPipelineBoard({
                         {analysing || isRetrying ? (
                           <>
                             <Loader2 className="size-3 animate-spin" />
-                            Analysis pending
+                            Analyzing CV…
                           </>
                         ) : failed ? (
                           <>
                             <span className="text-destructive">
                               Analysis failed
                             </span>
+                              <p className="max-w-64 whitespace-normal text-xs text-muted-foreground">{cvAnalysisFailureMessage(c)}</p>
                             <Button
                               variant="outline"
                               size="sm"
@@ -703,9 +777,19 @@ export function RecruitmentPipelineBoard({
                             </Button>
                           </>
                         ) : score === null ? (
-                          <span className="text-muted-foreground">
-                            Not scored
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">
+                              {c.ai_evaluation?.status === "not_requested" ? "Analysis not run" : "Not scored"}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isRetrying}
+                              onClick={() => void retryAnalysis(c)}
+                            >
+                              Run AI analysis
+                            </Button>
+                          </div>
                         ) : (
                           <div>
                             <Button
@@ -718,7 +802,6 @@ export function RecruitmentPipelineBoard({
                             </Button>
                             {c.ai_evaluation?.recommendation && (
                               <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                <Sparkles className="size-3" />
                                 {c.ai_evaluation.recommendation}
                               </p>
                             )}
@@ -828,13 +911,14 @@ export function RecruitmentPipelineBoard({
                           variant="outline"
                           aria-label={`${taskLabel} for ${c.name}`}
                           onClick={() => {
-                            if (c.pipeline_outcome !== "active")
+                            if (c.email_summary?.pending) setEmailId(c.id);
+                            else if (c.pipeline_outcome !== "active")
                               setStatusId(c.id);
                             else if (canStartNext) setAdvanceId(c.id);
                             else openStage(c.id);
                           }}
                         >
-                          {canStartNext &&
+                          {!c.email_summary?.pending && canStartNext &&
                             !needsException &&
                             !analysing &&
                             !failed && <ArrowRight />}
@@ -843,7 +927,7 @@ export function RecruitmentPipelineBoard({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setAnalysisId(c.id)}
+                          onClick={() => setOverviewId(c.id)}
                           aria-label={`View candidate details for ${c.name}`}
                         >
                           View
@@ -859,6 +943,10 @@ export function RecruitmentPipelineBoard({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => setEmailId(c.id)}>Candidate emails</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setDocumentCandidate(c)}>
+                              Download stage documents
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => setAnalysisId(c.id)}
                             >
@@ -942,6 +1030,31 @@ export function RecruitmentPipelineBoard({
           </Table>
         </div>
       </section>
+      {documentCandidate && <StageDocumentsDialog key={documentCandidate.id} candidate={documentCandidate} initialContext={contextFor(documentCandidate.id)} initialReview={reviewFor(documentCandidate.id)} onContextLoaded={context => updateApplicant(context, false)} onReviewUpdate={review => updateReview(documentCandidate.id, review)} onClose={() => setDocumentCandidate(null)} />}
+      {overviewId && applicants.find(candidate => candidate.id === overviewId) && (
+        <CandidateOverviewSheet
+          key={overviewId}
+          candidate={applicants.find(candidate => candidate.id === overviewId)!}
+          initialContext={contextFor(overviewId)}
+          initialReview={reviewFor(overviewId)}
+          onContextLoaded={context => updateApplicant(context, false)}
+          onReviewLoaded={review => updateReview(overviewId, review)}
+          onClose={() => setOverviewId(null)}
+          onCv={() => { setOverviewId(null); setAnalysisId(overviewId); }}
+          onStage={stage => {
+            setOverviewId(null);
+            const person = applicants.find(candidate => candidate.id === overviewId)!;
+            if (stage === "cv_screening") setAnalysisId(overviewId);
+            else if (stage === "offer_preparation" || stage === "management_review") {
+              if (stage === person.pipeline_stage) openStage(overviewId);
+              else setDocumentCandidate(person);
+            } else openStage(overviewId, stage);
+          }}
+          onStatus={() => { setOverviewId(null); setStatusId(overviewId); }}
+          onDocuments={() => { setOverviewId(null); setDocumentCandidate(applicants.find(candidate => candidate.id === overviewId)!); }}
+          onEmail={() => { setOverviewId(null); setEmailId(overviewId); }}
+        />
+      )}
       {analysisCandidate && (
         <CvAnalysisSheet
           key={analysisCandidate.id}
@@ -963,6 +1076,8 @@ export function RecruitmentPipelineBoard({
           key={advanceCandidate.id}
           candidate={advanceCandidate}
           roleId={role.id}
+          initialContext={contextFor(advanceCandidate.id)}
+          onContextLoaded={context => updateApplicant(context, false)}
           onClose={() => setAdvanceId(null)}
           onMoved={moved}
           onContinue={() => {
@@ -976,17 +1091,25 @@ export function RecruitmentPipelineBoard({
           key={workspaceCandidate.id}
           candidate={workspaceCandidate}
           roleId={role.id}
+          initialContext={contextFor(workspaceCandidate.id)}
+          onContextLoaded={context => updateApplicant(context, false)}
           viewStage={workspaceView}
           onClose={() => {
             closeDeepLink(workspaceId);
             setWorkspaceId(null);
           }}
           onUpdate={updateApplicant}
+          onReject={() => {
+            setWorkspaceId(null);
+            setStatusAction("reject");
+            setStatusId(workspaceCandidate.id);
+          }}
           onComplete={(context) => {
             updateApplicant(context);
             setWorkspaceId(null);
             const currentStage = workspaceCandidate.pipeline_stage;
             const newStage = context.candidate.pipeline_stage;
+            if (newStage !== currentStage && ["oral_interview", "written_exam", "practical"].includes(newStage!)) setEmailId(context.candidate.id);
             toast.success(
               newStage === currentStage
                 ? `${pipelineLabels[currentStage!] ?? "Stage"} completed.`
@@ -1025,23 +1148,43 @@ export function RecruitmentPipelineBoard({
           }}
         />
       )}
+      {emailId && (
+        <CandidateEmailsDialog key={emailId} candidateId={emailId} name={applicants.find((c) => c.id === emailId)?.name ?? "Applicant"} onClose={() => setEmailId(null)} onChanged={status => {
+          const candidate = applicants.find(c => c.id === emailId);
+          const source = candidates.find(c => c.id === emailId);
+          if (candidate && source) {
+            const email_summary = { ...candidate.email_summary, pending: status !== "sent" && status !== "skipped", status, event_id: candidate.email_summary?.event_id ?? null };
+            setUpdates(previous => ({ ...previous, [emailId]: { source, candidate: { ...candidate, email_summary } } }));
+            const context = contextFor(emailId);
+            if (context) setContextUpdates(previous => ({ ...previous, [emailId]: { source, data: { ...context, candidate: { ...context.candidate, email_summary } } } }));
+          }
+          router.refresh();
+        }} />
+      )}
       {statusCandidate && (
         <ApplicantStatusDialog
           key={statusCandidate.id}
           candidate={statusCandidate}
           roleId={role.id}
+          initialContext={contextFor(statusCandidate.id)}
+          onContextLoaded={context => updateApplicant(context, false)}
+          initialAction={statusAction}
           onClose={() => {
             closeDeepLink(statusId);
             setStatusId(null);
+            setStatusAction("");
           }}
           onSaved={(context) => {
             updateApplicant(context);
             setStatusId(null);
+            setStatusAction("");
+            if (context.candidate.pipeline_outcome === "rejected") setEmailId(context.candidate.id);
             toast.success("Applicant status updated.");
             router.refresh();
           }}
           onViewStage={(stage) => {
             setStatusId(null);
+            setStatusAction("");
             openStage(statusCandidate.id, stage);
           }}
         />

@@ -8,6 +8,20 @@ import { actionLoader } from '../lib/api/action-test-utils.mjs';
 function loader(api = () => { throw new Error('Unexpected API request'); }) {
   return actionLoader(api, { react: React, 'react/jsx-runtime': jsxRuntime });
 }
+
+test('discounted document shows subtotal, discount, net total and balance in both currencies', () => {
+  const { InvoicePreview } = loader().load('components/accounts/invoice-preview.tsx');
+  for (const currency of ['NGN', 'USD']) {
+    const html = renderToStaticMarkup(React.createElement(InvoicePreview, { invoice: {
+      currency, subsidiary: 'aspom', invoice_number: 'DISC-1', issue_date: '2026-10-26', due_date: '2026-11-26',
+      company_name: 'Aspom', client_name: 'Client', items: [], subtotal: 200,
+      discount_type: 'percentage', discount_value: 12.5, discount_amount: 25, total: 175, deposit: 50, balance_due: 125,
+    } }));
+    assert.match(html, /Discount/);
+    assert.match(html, /12\.5%/);
+    for (const amount of ['200', '25', '175', '50', '125']) assert.match(html, new RegExp(`${currency}[^<]*${amount}\\.00`));
+  }
+});
 test('invoice preview and generated document source use the invoice currency for every amount', () => {
   const { InvoicePreview } = loader().load('components/accounts/invoice-preview.tsx');
   for (const currency of ['NGN', 'USD']) {

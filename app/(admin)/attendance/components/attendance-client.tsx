@@ -1,12 +1,16 @@
 "use client";
 
+import { approvedLeavePayStatus, type ExportEmployee } from "@/lib/export-confirmation";
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ClockInRecord, ClockInSummary } from "@/lib/api/clock-in";
 import { Employee } from "@/lib/api/employees";
 import { AttendanceCharts } from "./attendance-charts";
+import type { ExportLeave } from "@/lib/export-confirmation";
+import type { WorkFromHomeRequest } from "@/lib/api/work-from-home";
 import type { AttendanceChartSummary } from "@/lib/utils/attendance-charts";
 import { AttendanceStats } from "./attendance-stats";
+import { AttendanceStatusBlocks, type AttendanceStatus } from "@/components/dashboard/attendance-status-blocks";
 import { AdminAttendanceTable } from "./admin-attendance-table";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { TableExportButton } from "@/components/ui/table-export-button";
@@ -40,8 +44,11 @@ interface AttendanceClientProps {
   history: ClockInRecord[];
   charts: AttendanceChartSummary | null;
   historyFailed?: boolean;
+  leaveFailed?: boolean;
   stats: ClockInSummary | null;
   employees: Employee[];
+  approvedLeaves: ExportLeave[];
+  approvedWorkFromHome: WorkFromHomeRequest[];
   initialFrom?: string;
   initialTo?: string;
   initialUserId?: string;
@@ -54,8 +61,11 @@ export function AttendanceClient({
   history: allHistory,
   charts,
   historyFailed = false,
+  leaveFailed = false,
   stats,
   employees,
+  approvedLeaves,
+  approvedWorkFromHome,
   initialFrom,
   initialTo,
   initialUserId,
@@ -203,6 +213,7 @@ export function AttendanceClient({
       clockInTime: number;
       status: "Early" | "Late" | "Late (Permitted)";
       lateClockOutAt?: string;
+      isHalfDay: boolean;
     }
   >();
   history.forEach((record) => {
@@ -227,14 +238,15 @@ export function AttendanceClient({
         ? record.clock_out_at
         : existing?.lateClockOutAt;
     if (!existing || clockInTime < existing.clockInTime) {
-      attendanceMap.set(key, { clockInTime, status, lateClockOutAt });
+      attendanceMap.set(key, { clockInTime, status, lateClockOutAt, isHalfDay: Boolean(record.is_half_day) });
     } else if (lateClockOutAt) {
-      existing.lateClockOutAt = lateClockOutAt;
+        existing.lateClockOutAt = lateClockOutAt;
+        existing.isHalfDay = existing.isHalfDay || Boolean(record.is_half_day);
     }
   });
 
   // Identify all unique staff members
-  const employeeMap = new Map<string, { id: string; name: string }>();
+  const employeeMap = new Map<string, ExportEmployee>();
 
   // Add active employees
   employees
@@ -247,6 +259,8 @@ export function AttendanceClient({
       employeeMap.set(emp.id, {
         id: emp.id,
         name: `${emp.firstName} ${emp.lastName}`.trim(),
+        joinDate: emp.joinDate,
+        contract_type: emp.contract_type,
       });
     });
 
@@ -261,6 +275,10 @@ export function AttendanceClient({
       });
     }
   });
+
+  const staffOptions = Array.from(employeeMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   let exportEmployees = Array.from(employeeMap.values());
 
@@ -297,6 +315,8 @@ export function AttendanceClient({
 
   // Generate rows for each day in range
   const pivotedRows: Record<string, string>[] = [];
+  const attendanceDayStatuses: AttendanceStatus[] = [];
+  const extraTotals = new Map<string, { halfDays: number; lateClockOuts: number }>();
   if (startStr && endStr) {
     const [sYear, sMonth, sDay] = startStr.split("-").map(Number);
     const [eYear, eMonth, eDay] = endStr.split("-").map(Number);
@@ -308,6 +328,11 @@ export function AttendanceClient({
 
     const curr = new Date(startDateObj);
     while (curr <= endDateObj) {
+      // The attendance grid represents scheduled working days only.
+      if (curr.getDay() === 0 || curr.getDay() === 6) {
+        curr.setDate(curr.getDate() + 1);
+        continue;
+      }
       const y = curr.getFullYear();
       const m = String(curr.getMonth() + 1).padStart(2, "0");
       const dStr = String(curr.getDate()).padStart(2, "0");
@@ -325,13 +350,62 @@ export function AttendanceClient({
       exportEmployees.forEach((emp) => {
         const key = `${dateKey}_${emp.id}`;
         const record = attendanceMap.get(key);
-        row[emp.id] = record
-          ? `${record.status}${record.lateClockOutAt ? `; clocked out ${formatLagosDate(record.lateClockOutAt)} at ${formatLagosTime(record.lateClockOutAt)} (After 8 PM)` : ""}`
-          : "No clock-in";
+        const leavePay = approvedLeavePayStatus(emp, approvedLeaves, dateKey);
+        const onApprovedLeave = leavePay !== null;
+        const onApprovedWfh = approvedWorkFromHome.some((request) => request.user_id === emp.id && request.start_date <= dateKey && dateKey <= request.end_date);
+        const status = onApprovedLeave
+          ? leavePay === "Paid leave" ? "Paid Leave" : "Unpaid Leave"
+          : onApprovedWfh
+            ? "Work From Home"
+            : record?.status ?? "Absent";
+        row[emp.id] = status;
+        const totals = extraTotals.get(emp.id) ?? { halfDays: 0, lateClockOuts: 0 };
+        if (record?.isHalfDay && !onApprovedLeave && !onApprovedWfh) totals.halfDays++;
+        if (record?.lateClockOutAt) totals.lateClockOuts++;
+        extraTotals.set(emp.id, totals);
       });
+
+      if (exportEmployees.length === 1) {
+        const employeeId = exportEmployees[0].id;
+        const record = attendanceMap.get(`${dateKey}_${employeeId}`);
+        const onApprovedLeave = approvedLeaves.some((leave) => leave.employeeId === employeeId && leave.startDate <= dateKey && dateKey < leave.endDate);
+        const onApprovedWfh = approvedWorkFromHome.some((request) => request.user_id === employeeId && request.start_date <= dateKey && dateKey <= request.end_date);
+        attendanceDayStatuses.push(onApprovedLeave ? "leave" : onApprovedWfh ? "work-from-home" : record?.isHalfDay ? "half-day" : record?.status === "Early" ? "on-time" : record?.status === "Late" ? "late" : record?.status === "Late (Permitted)" ? "late-permitted" : "absent");
+      }
 
       pivotedRows.push(row);
       curr.setDate(curr.getDate() + 1);
+    }
+  }
+
+  const attendanceTotalStatuses = [
+    "Early", "Absent", "Late", "Late (Permitted)", "Paid Leave", "Unpaid Leave", "Work From Home",
+    "Leave", "Half Day", "Late Clock Out",
+  ];
+  if (pivotedRows.length > 0) {
+    const statusTotals = new Map<string, Record<string, number>>();
+    for (const status of attendanceTotalStatuses) statusTotals.set(status, {});
+    for (const emp of exportEmployees) {
+      for (const row of pivotedRows) {
+        const status = row[emp.id];
+        const counts = statusTotals.get(status);
+        if (counts) counts[emp.id] = (counts[emp.id] || 0) + 1;
+        if (status === "Paid Leave" || status === "Unpaid Leave") {
+          const leaveCounts = statusTotals.get("Leave")!;
+          leaveCounts[emp.id] = (leaveCounts[emp.id] || 0) + 1;
+        }
+      }
+    }
+    for (const status of attendanceTotalStatuses) {
+      const row: Record<string, string> = { day: `TOTAL - ${status}`, date: "" };
+      for (const emp of exportEmployees) {
+        row[emp.id] = String(status === "Half Day"
+          ? extraTotals.get(emp.id)?.halfDays ?? 0
+          : status === "Late Clock Out"
+            ? extraTotals.get(emp.id)?.lateClockOuts ?? 0
+            : statusTotals.get(status)?.[emp.id] || 0);
+      }
+      pivotedRows.push(row);
     }
   }
 
@@ -346,7 +420,7 @@ export function AttendanceClient({
     },
     ...exportEmployees.map((emp) => ({
       header: emp.name,
-      key: (row: Record<string, string>) => row[emp.id] || "No clock-in",
+      key: (row: Record<string, string>) => row[emp.id] || "Absent",
     })),
   ];
 
@@ -413,8 +487,19 @@ export function AttendanceClient({
         </p>
       )}
 
+      {exportEmployees.length === 1 && attendanceDayStatuses.length > 0 && (
+        <section className="space-y-2 rounded-lg border bg-card px-4 py-3" aria-label={`Attendance status for ${exportEmployees[0].name}`}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium">Daily attendance status · {exportEmployees[0].name}</h2>
+            <span className="text-xs text-muted-foreground">Selected date range</span>
+          </div>
+          <AttendanceStatusBlocks statuses={attendanceDayStatuses} showLegend size="large" />
+        </section>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <DatePickerWithRange
+          applyOnConfirm
           date={dateRange}
           setDate={(range) => {
             if (range) {
@@ -442,9 +527,9 @@ export function AttendanceClient({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All staff</SelectItem>
-            {employees.map((emp) => (
+            {staffOptions.map((emp) => (
               <SelectItem key={emp.id} value={emp.id}>
-                {emp.firstName} {emp.lastName}
+                {emp.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -465,17 +550,6 @@ export function AttendanceClient({
             <SelectItem value="late">Late clock-outs</SelectItem>
           </SelectContent>
         </Select>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={() => {
-            const today = parseISO(formatLagosDateForInput(new Date()));
-            setDateRange({ from: today, to: today });
-          }}
-        >
-          Today
-        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -522,6 +596,11 @@ export function AttendanceClient({
           </span>
         </div>
       )}
+      {leaveFailed && (
+        <p role="alert" className="rounded-md border p-4 text-sm">
+          Leave records could not be loaded. Refresh the page to export accurate totals.
+        </p>
+      )}
       {historyFailed && (
         <p role="alert" className="rounded-md border p-4 text-sm">
           Attendance records could not load. Refresh the page to try again.
@@ -547,7 +626,7 @@ export function AttendanceClient({
               ))}
             </SelectContent>
           </Select>
-          <fieldset disabled={isPending || historyFailed}>
+          <fieldset disabled={isPending || historyFailed || (clockOutFilter !== "late" && leaveFailed)}>
             {clockOutFilter === "late" ? (
               <TableExportButton
                 data={history}

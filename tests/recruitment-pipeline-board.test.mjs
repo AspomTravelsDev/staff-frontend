@@ -87,6 +87,9 @@ function board(reanalyse, initialProps = {}) {
     "./applicant-advance-dialog": named("ApplicantAdvanceDialog"),
     "./applicant-stage-workspace": named("ApplicantStageWorkspace"),
     "./applicant-status-dialog": named("ApplicantStatusDialog"),
+    "./candidate-emails-dialog": named("CandidateEmailsDialog"),
+    "./candidate-overview-sheet": named("CandidateOverviewSheet"),
+    "./stage-documents-dialog": named("StageDocumentsDialog"),
     "./vacancy-settings-dialog": named("VacancySettingsDialog"),
     "./management-review-sheet": named("ManagementReviewSheet"),
     "./prepare-offer-dialog": named("PrepareOfferDialog"),
@@ -126,7 +129,17 @@ const retry = (control) =>
     (node) => node.props["aria-label"] === "Retry AI analysis for Ada",
   );
 
-test("table retry queues AI once, hides failed scores and shows pending without changing the stage", async () => {
+test("a failed CV shows its recovery reason in the table and after retry", async () => {
+  const candidate = { ...applicant, ai_evaluation: { status: "failed", failure_code: "missing_api_key" } };
+  const control = board(async () => ({ success: true, data: candidate }));
+  const tree = control.render([candidate]);
+  assert.match(JSON.stringify(nodes(tree, "Table")[0]), /AI screening is not configured/);
+  retry(control).props.onClick();
+  await tick();
+  assert.match(control.messages[0][1], /AI screening is not configured/);
+});
+
+test("table retry runs AI once, hides failed scores and shows progress without changing the stage", async () => {
   let finish;
   const control = board(
     () =>
@@ -150,7 +163,7 @@ test("table retry queues AI once, hides failed scores and shows pending without 
   });
   await tick();
   const table = nodes(control.render(), "Table")[0];
-  assert.ok(JSON.stringify(table).includes("Analysis pending"));
+  assert.ok(JSON.stringify(table).includes("Analyzing CV"));
   assert.ok(!JSON.stringify(table).includes("85%"));
   assert.equal(control.refreshes.length, 1);
   assert.equal(control.messages[0][0], "success");
@@ -231,17 +244,17 @@ test("all applicants are shown by default and stage/status filters work together
   );
 });
 
-test("applicant name opens CV sheet and move action opens a compact stage dialog", () => {
+test("applicant name opens the complete overview and move action opens a stage dialog", () => {
   const control = board(async () => ({ success: false }));
   let tree = control.render([
     { ...applicant, ai_score: 50, ai_evaluation: { status: "completed" } },
   ]);
   nodes(tree, "Button")
-    .find((node) => node.props["aria-label"] === "View CV analysis for Ada")
+    .find((node) => node.props["aria-label"] === "View candidate overview for Ada")
     .props.onClick();
   tree = control.render();
   assert.equal(
-    nodes(tree, "CvAnalysisSheet")[0].props.candidate.id,
+    nodes(tree, "CandidateOverviewSheet")[0].props.candidate.id,
     applicant.id,
   );
   nodes(tree, "Button")
@@ -263,7 +276,7 @@ test("applicant name opens CV sheet and move action opens a compact stage dialog
   );
 });
 
-test("visible row button starts or continues the current form and advances completed stages into the next form", () => {
+test("visible row button starts or continues the form and opens email review after advancing", () => {
   for (const [summary, label] of [
     [{ state: "draft", status: null }, "Start oral interview"],
     [{ state: "draft", status: "Not started" }, "Continue oral interview"],
@@ -296,11 +309,8 @@ test("visible row button starts or continues the current form and advances compl
       });
       tree = control.render();
       assert.equal(nodes(tree, "ApplicantAdvanceDialog").length, 0);
-      assert.equal(
-        nodes(tree, "ApplicantStageWorkspace")[0].props.candidate
-          .pipeline_stage,
-        "written_exam",
-      );
+      assert.equal(nodes(tree, "CandidateEmailsDialog")[0].props.candidateId, applicant.id);
+      assert.equal(nodes(tree, "ApplicantStageWorkspace").length, 0);
     } else
       assert.equal(
         nodes(tree, "ApplicantStageWorkspace")[0].props.candidate
@@ -308,6 +318,33 @@ test("visible row button starts or continues the current form and advances compl
         "oral_interview",
       );
   }
+});
+
+test("stage rejection preselects reject and then opens candidate email review", () => {
+  const control = board(async () => ({ success: false }));
+  const candidate = { ...applicant, pipeline_stage: "call_screening", pipeline_summary: { state: "draft", started: true, passed: false } };
+  let tree = control.render([candidate]);
+  nodes(tree, "DropdownMenuItem").find(node => node.props.children === "Continue call screening").props.onSelect();
+  tree = control.render();
+  nodes(tree, "ApplicantStageWorkspace")[0].props.onReject();
+  tree = control.render();
+  assert.equal(nodes(tree, "ApplicantStageWorkspace").length, 0);
+  const status = nodes(tree, "ApplicantStatusDialog")[0];
+  assert.equal(status.props.initialAction, "reject");
+  status.props.onSaved({ candidate: { ...candidate, pipeline_outcome: "rejected", pipeline_revision: 5 }, records: [], events: [], final_score: null });
+  tree = control.render();
+  assert.equal(nodes(tree, "ApplicantStatusDialog").length, 0);
+  assert.equal(nodes(tree, "CandidateEmailsDialog")[0].props.candidateId, applicant.id);
+});
+
+test("overview routes the offer stage to the offer workflow instead of an assessment form", () => {
+  const control = board(async () => ({ success: false }));
+  let tree = control.render([{ ...applicant, pipeline_stage: "offer_preparation", status: "reviewing" }]);
+  nodes(tree, "Button").find(node => node.props["aria-label"] === "View candidate details for Ada").props.onClick();
+  nodes(control.render(), "CandidateOverviewSheet")[0].props.onStage("offer_preparation");
+  tree = control.render();
+  assert.equal(nodes(tree, "ApplicantStageWorkspace").length, 0);
+  assert.equal(nodes(tree, "PrepareOfferDialog")[0].props.candidate.id, applicant.id);
 });
 
 test("analysis recovery is explicit and held applicants cannot advance", () => {
@@ -458,4 +495,39 @@ test("a follow-up notification opens status/history without opening a stage form
   assert.equal(nodes(tree, "ApplicantStatusDialog").length, 1);
   assert.equal(nodes(tree, "ApplicantStageWorkspace").length, 0);
   assert.equal(nodes(tree, "CvAnalysisSheet").length, 0);
+});
+
+test("pending email remains the visible next action after closing, and explicit skip restores the stage action", () => {
+  const control = board(async () => ({ success: false }));
+  const candidate = { ...applicant, ai_evaluation: { status: "completed" }, pipeline_stage: "oral_interview", email_summary: { pending: true, status: "pending", event_id: "event-1" } };
+  let tree = control.render([candidate]);
+  nodes(tree, "Button").find(node => node.props["aria-label"] === "Review email for Ada").props.onClick();
+  let dialog = nodes(control.render(), "CandidateEmailsDialog")[0];
+  dialog.props.onClose();
+  tree = control.render();
+  assert.ok(nodes(tree, "Button").some(node => node.props["aria-label"] === "Review email for Ada"));
+  nodes(tree, "Button").find(node => node.props["aria-label"] === "Review email for Ada").props.onClick();
+  dialog = nodes(control.render(), "CandidateEmailsDialog")[0];
+  dialog.props.onChanged("skipped"); dialog.props.onClose();
+  tree = control.render();
+  assert.ok(!nodes(tree, "Button").some(node => node.props["aria-label"] === "Review email for Ada"));
+  assert.ok(nodes(tree, "Button").some(node => node.props["aria-label"] === "Start oral interview for Ada"));
+});
+
+test("selected CVs are analysed with bounded concurrency and only failures remain selected", async () => {
+  let active = 0, max = 0;
+  const candidates = [1, 2, 3].map(i => ({ ...applicant, id: `bulk-${i}`, name: `Candidate ${i}`, ai_evaluation: { status: "not_requested" } }));
+  const control = board(async id => {
+    active++; max = Math.max(max, active); await tick(); active--;
+    return id === "bulk-2" ? { success: false, error: "Provider unavailable" } : { success: true, data: { ...candidates.find(c => c.id === id), ai_score: 80, ai_evaluation: { status: "completed" } } };
+  });
+  let tree = control.render(candidates);
+  nodes(tree, "input").find(node => node.props["aria-label"] === "Select up to 20 visible applicants for AI screening").props.onChange({ target: { checked: true } });
+  tree = control.render();
+  nodes(tree, "Button").find(node => node.props.children === "Analyze selected (3)").props.onClick();
+  await tick(); await tick(); await tick();
+  tree = control.render();
+  assert.equal(control.calls.length, 3); assert.equal(max, 2);
+  assert.ok(nodes(tree, "Button").some(node => node.props.children === "Analyze selected (1)"));
+  assert.ok(control.messages.some(([kind, text]) => kind === "error" && text.includes("remain selected")));
 });

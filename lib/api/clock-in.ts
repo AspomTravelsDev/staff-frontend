@@ -9,6 +9,7 @@ export interface ClockInRecord {
     clock_in_at: string;
     clock_out_at: string | null;
     is_late_clock_out?: boolean;
+    is_half_day?: boolean;
     duration_minutes: number | null;
     is_clocked_in?: boolean; // Sometimes returned by /today
     location_method?: "gps" | "ip" | "exempt" | "disabled" | "qrcode";
@@ -61,7 +62,9 @@ export interface LatePermissionRequestItem {
     id: number;
     user_id: string;
     request_date: string;
-    expected_arrival_time: string;
+    request_type?: "late_arrival" | "early_departure" | "half_day";
+    expected_arrival_time: string | null;
+    expected_clock_out_time?: string | null;
     reason: string;
     status: "pending" | "approved" | "rejected" | "cancelled";
     reviewed_by?: string | null;
@@ -330,11 +333,14 @@ export async function removeClockInProxyFlag(
  */
 export async function submitLatePermissionRequest(payload: {
     request_date: string;
-    expected_arrival_time: string;
+    request_type?: "late_arrival" | "early_departure" | "half_day";
+    expected_arrival_time?: string;
+    expected_clock_out_time?: string;
     reason: string;
 }): Promise<ApiResponse<StandardResponse<LatePermissionRequestItem>>> {
     revalidatePath("/my/attendance");
     revalidatePath("/hr/late-requests");
+    revalidatePath("/hr/attendance-requests");
     return api.post<StandardResponse<LatePermissionRequestItem>>("/api/late-permission-requests", payload);
 }
 
@@ -353,20 +359,36 @@ export async function getMyLatePermissionRequests(
  * Get HR review queue for late requests
  */
 export async function getLatePermissionReviewQueue(filters?: {
+    request_type?: "half_day" | "late_arrival";
     status?: "pending" | "approved" | "rejected" | "cancelled";
     user_id?: string;
     from?: string;
     to?: string;
     page?: number;
-}): Promise<ApiResponse<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>> {
+    per_page?: number;
+    search?: string;
+    sort_by?: "request_date" | "staff" | "status";
+    sort_order?: "asc" | "desc";
+}): Promise<ApiResponse<StandardResponse<{
+    requests: { data: LatePermissionRequestItem[]; current_page: number; last_page: number; per_page: number; total: number; from: number | null; to: number | null };
+    summary: { total: number; pending: number; approved: number; rejected: number; cancelled: number };
+}>>> {
     const params = new URLSearchParams();
+    if (filters?.request_type) params.append("request_type", filters.request_type);
     if (filters?.status) params.append("status", filters.status);
     if (filters?.user_id && filters.user_id !== "all") params.append("user_id", filters.user_id);
     if (filters?.from) params.append("from", filters.from);
     if (filters?.to) params.append("to", filters.to);
     if (filters?.page) params.append("page", String(filters.page));
+    if (filters?.per_page) params.append("per_page", String(filters.per_page));
+    if (filters?.search?.trim()) params.append("search", filters.search.trim());
+    if (filters?.sort_by) params.append("sort_by", filters.sort_by);
+    if (filters?.sort_order) params.append("sort_order", filters.sort_order);
 
-    return api.get<StandardResponse<{ data: LatePermissionRequestItem[]; current_page: number; last_page: number; total: number }>>(`/api/late-permission-requests?${params.toString()}`);
+    return api.get<StandardResponse<{
+        requests: { data: LatePermissionRequestItem[]; current_page: number; last_page: number; per_page: number; total: number; from: number | null; to: number | null };
+        summary: { total: number; pending: number; approved: number; rejected: number; cancelled: number };
+    }>>(`/api/late-permission-requests?${params.toString()}`);
 }
 
 /**
@@ -379,6 +401,7 @@ export async function cancelLatePermissionRequest(
     revalidatePath("/attendance");
     revalidatePath("/my/attendance");
     revalidatePath("/hr/late-requests");
+    revalidatePath("/hr/attendance-requests");
     return api.post<StandardResponse<LatePermissionRequestItem>>(`/api/late-permission-requests/${requestId}/cancel`, {});
 }
 
@@ -393,5 +416,6 @@ export async function reviewLatePermissionRequest(
     revalidatePath("/attendance");
     revalidatePath("/my/attendance");
     revalidatePath("/hr/late-requests");
+    revalidatePath("/hr/attendance-requests");
     return api.patch<StandardResponse<LatePermissionRequestItem>>(`/api/late-permission-requests/${requestId}/review`, payload);
 }

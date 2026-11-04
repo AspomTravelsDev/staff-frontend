@@ -10,7 +10,6 @@ import {
   Move,
   Plus,
   Minus,
-  Sparkles,
   Sliders,
   RotateCcw,
   Pipette,
@@ -734,7 +733,7 @@ export function StaffProfileCanvas({
       <div className="w-full space-y-3 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent p-4 rounded-xl border border-primary/20">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4" /> Free Background Removal Tools
+             Free Background Removal Tools
           </span>
           {(cloudProcessedUrl || removeBgMode !== "none") && (
             <Button

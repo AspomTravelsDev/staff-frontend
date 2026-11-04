@@ -10,7 +10,7 @@ import {
 } from "@/lib/api/employees";
 import { format, parseISO, differenceInYears, differenceInMonths } from "date-fns";
 import { parseCalendarDate } from "@/lib/utils/date-utils";
-import { Cake, Gift, Calendar, Trophy, Stars, PartyPopper } from "lucide-react";
+import { Cake, Gift, Calendar, Trophy, PartyPopper } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
@@ -132,9 +132,7 @@ function CelebrationHero({
       <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
       {isBirthday ? (
           <Gift className="absolute right-10 bottom-10 h-32 w-32 text-white/10 -rotate-12" />
-      ) : (
-          <Stars className="absolute right-10 bottom-10 h-32 w-32 text-white/10 -rotate-12" />
-      )}
+      ) : null}
     </div>
   );
 }

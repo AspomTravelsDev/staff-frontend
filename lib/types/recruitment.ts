@@ -33,8 +33,12 @@ export interface PostInterviewEvaluation {
 }
 
 export interface CandidateAiEvaluation {
+  criteria?: { requirement: string; status: "met" | "not_shown" | "unclear"; evidence: string }[];
+  analysis_version?: string;
+  analyzed_at?: string;
+  usage?: { input_tokens?: number; output_tokens?: number; reasoning_tokens?: number; elapsed_ms?: number; model?: string };
   failure_code?:string;
-  status?: "completed" | "failed" | "pending" | "processing";
+  status?: "not_requested" | "completed" | "failed" | "pending" | "processing";
   candidate_name?: string;
   candidate_email?: string;
   candidate_phone?: string;
@@ -117,6 +121,8 @@ export interface RecruitmentOfferApplication {
 }
 
 export interface RecruitmentCandidate {
+  duplicate_email?: boolean;
+  email_summary?: { pending: boolean; status: string | null; event_id: string | null };
   offer_application?: RecruitmentOfferApplication | null;
   management_review_summary?: {version:number;submitted_at:string;decision:"approve"|"hold"|"return"|"decline"|null}|null;
   pipeline_stage?: import("./recruitment-pipeline").PipelineStage | null;
@@ -179,6 +185,13 @@ export interface RecruitmentCandidate {
   } | null;
 }
 
+export interface InterviewPreparation {
+  status: "processing" | "completed" | "stale" | "failed";
+  probes?: InterviewProbe[];
+  generated_at?: string;
+  reused?: boolean;
+}
+
 export interface RecruitmentRole {
   pipeline_config?: import("./recruitment-pipeline").PipelineDefinition | null;
   pipeline_locked_at?:string|null;
@@ -224,6 +237,7 @@ export interface RecruitmentRole {
 }
 
 export interface RoleDetailResponse {
+  pipeline_prefills?: Record<string, import("./recruitment-pipeline").PipelinePrefill>;
   management_only?: boolean;
   role: RecruitmentRole;
   candidates: RecruitmentCandidate[];

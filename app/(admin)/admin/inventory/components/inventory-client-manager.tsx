@@ -6,11 +6,11 @@ import { InventoryItem, InventoryAssignment } from "@/lib/api/inventory";
 import { Employee } from "@/lib/api/employees";
 import { InventoryFilters } from "./inventory-filters";
 import { InventoryTable } from "./inventory-table";
+import { StaffEquipment } from "./staff-equipment";
 import { InventoryTasks } from "./inventory-tasks";
 import { buildInventoryTasks } from "@/lib/inventory-tasks";
 import { ClearanceQueueTable } from "./clearance-queue-table";
 import { InitiateFullClearanceDialog } from "./initiate-full-clearance-dialog";
-import { ExportStaffAssetDialog } from "./export-staff-asset-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,6 @@ export function InventoryClientManager({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isFullClearanceDialogOpen, setIsFullClearanceDialogOpen] = useState(false);
 
   const activeRoles = useMemo(() => {
@@ -143,7 +142,7 @@ export function InventoryClientManager({
   return (
     <>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 sm:max-w-2xl">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             <span>Assets</span>
@@ -152,6 +151,7 @@ export function InventoryClientManager({
             </Badge>
           </TabsTrigger>
 
+          <TabsTrigger value="equipment">Staff equipment</TabsTrigger>
           <TabsTrigger value="tasks" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span>Tasks</span>
@@ -196,10 +196,12 @@ export function InventoryClientManager({
             onClear={handleClear}
             items={filteredItems}
             employees={employees}
-            onExportStaffFormClick={() => setIsExportDialogOpen(true)}
+            onExportStaffFormClick={() => handleTabChange("equipment")}
           />
           <InventoryTable items={filteredItems} employees={employees} />
         </TabsContent>
+
+        <TabsContent value="equipment"><StaffEquipment employees={employees} canIssue={isOfficer} /></TabsContent>
 
         <TabsContent value="tasks" className="space-y-4">
           <InventoryTasks records={taskRecords} isOfficer={isOfficer} isCompliance={isCompliance} />
@@ -270,13 +272,6 @@ export function InventoryClientManager({
           />
         </TabsContent>
       </Tabs>
-
-      <ExportStaffAssetDialog
-        open={isExportDialogOpen}
-        onOpenChange={setIsExportDialogOpen}
-        employees={employees}
-        items={initialItems}
-      />
 
       <InitiateFullClearanceDialog
         open={isFullClearanceDialogOpen}

@@ -9,6 +9,8 @@ export interface ManagementDashboardSummary {
     late_permitted: number;
     present: number;
     on_leave: number;
+    work_from_home: number;
+    half_day: number;
     not_yet_clocked_in: number;
     unrecorded: number;
     flagged: number;
@@ -39,6 +41,9 @@ export interface ManagementDashboardSummary {
     late: number;
     late_permitted: number;
     present: number;
+    on_leave: number;
+    work_from_home: number;
+    half_day: number;
   }[];
   departments: {
     name: string;

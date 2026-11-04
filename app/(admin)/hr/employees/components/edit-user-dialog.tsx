@@ -29,6 +29,7 @@ import { type RoleOption, USER_EXIT_TYPE_LABELS, type UserExitType } from "@/typ
 import { formatLagosDateForInput } from "@/lib/utils/attendance";
 import { Textarea } from "@/components/ui/textarea";
 import { CompanyEmailNotice, notifyEmailRestriction } from "@/components/company-email-notice";
+import { buildEmployeeStatusUpdate, type EmployeeStatusEdit } from "@/lib/employee-status-update";
 
 interface EditUserDialogProps {
   employee: Employee | null;
@@ -39,7 +40,7 @@ interface EditUserDialogProps {
   roleToDepartment: Record<string, string>;
 }
 
-interface EditUserFormData {
+interface EditUserFormData extends EmployeeStatusEdit {
   staff_id: string;
   tax_id: string;
   name: string;
@@ -53,7 +54,6 @@ interface EditUserFormData {
   gross_pay: string;
   date_joined: string;
   dob: string;
-  contract_type: string;
   is_active: boolean;
   exit_type: UserExitType;
   exit_date: string;
@@ -92,11 +92,12 @@ export function EditUserDialog({
       gross_pay: "",
       date_joined: "",
       dob: "",
-      contract_type: "",
       is_active: true,
       exit_type: "resignation",
       exit_date: "",
       exit_reason: "",
+      is_blacklisted: false,
+      blacklist_reason: "",
     },
   });
 
@@ -117,11 +118,12 @@ export function EditUserDialog({
         gross_pay: employee.gross_pay || "",
         date_joined: formatLagosDateForInput(employee.joinDate),
         dob: formatLagosDateForInput(employee.dob),
-        contract_type: employee.contract_type || "",
         is_active: employee.status === "Active",
         exit_type: (employee.exit_type as UserExitType) || "resignation",
         exit_date: employee.exit_date || employee.exitDate || "",
         exit_reason: employee.exit_reason || "",
+        is_blacklisted: employee.is_blacklisted ?? false,
+        blacklist_reason: employee.blacklist_reason || "",
       });
     }
   }, [employee, reset]);
@@ -154,11 +156,7 @@ export function EditUserDialog({
       gross_pay: data.gross_pay ? parseFloat(data.gross_pay) : null,
       date_joined: data.date_joined || null,
       dob: data.dob || null,
-      contract_type: data.contract_type || null,
-      is_active: data.is_active,
-      exit_type: !data.is_active ? data.exit_type : null,
-      exit_date: !data.is_active ? data.exit_date || null : null,
-      exit_reason: !data.is_active ? data.exit_reason || null : null,
+      ...buildEmployeeStatusUpdate(employee, data),
     });
 
     setIsPending(false);
@@ -359,25 +357,9 @@ export function EditUserDialog({
               </div>
             </div>
 
-            {/* Contract Type */}
-            <div className="grid gap-2">
-              <Label htmlFor="contract_type">Contract Type</Label>
-              <Select
-                value={watch("contract_type")}
-                onValueChange={(value) => setValue("contract_type", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select contract type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full_time">Full Time</SelectItem>
-                  <SelectItem value="part_time">Part Time</SelectItem>
-                  <SelectItem value="contract">Contract</SelectItem>
-                  <SelectItem value="nysc">NYSC</SelectItem>
-                  <SelectItem value="intern">Intern</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Contract type and dates are managed in Contract Periods so the full history stays together.
+            </p>
 
             {/* Gross Pay */}
             <div className="grid gap-2">
@@ -434,7 +416,7 @@ export function EditUserDialog({
 
             {!watch("is_active") && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3.5 space-y-3">
-                <CompanyEmailNotice />
+                {employee.status === "Active" && <CompanyEmailNotice />}
                 <div className="text-xs font-semibold uppercase tracking-wider text-destructive">
                   Separation / Exit Details
                 </div>
@@ -470,8 +452,9 @@ export function EditUserDialog({
                     id="edit_exit_date"
                     type="date"
                     className="bg-background"
-                    {...register("exit_date")}
+                    {...register("exit_date", { required: employee.status === "Active" && !watch("is_active") ? "Separation date is required" : false })}
                   />
+                  {errors.exit_date && <p className="text-xs text-destructive">{errors.exit_date.message}</p>}
                 </div>
 
                 <div className="grid gap-2">
@@ -481,8 +464,17 @@ export function EditUserDialog({
                     rows={2}
                     className="bg-background"
                     placeholder="e.g. Formal resignation letter submitted with 30 days notice..."
-                    {...register("exit_reason")}
+                    {...register("exit_reason", {
+                      required: employee.status === "Active" && !watch("is_active") ? "A detailed separation reason is required" : false,
+                      minLength: employee.status === "Active" && !watch("is_active") ? { value: 20, message: "Enter at least 20 characters" } : undefined,
+                      maxLength: { value: 1000, message: "Reason cannot exceed 1000 characters" },
+                    })}
                   />
+                  {errors.exit_reason && <p className="text-xs text-destructive">{errors.exit_reason.message}</p>}
+                </div>
+                <div className="space-y-3 border-t pt-3">
+                  <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="h-4 w-4" disabled={isPending} {...register("is_blacklisted")} />Add to blacklist</label>
+                  {watch("is_blacklisted") && <div className="grid gap-2"><Label htmlFor="edit-blacklist-reason">Blacklist reason <span className="text-destructive">*</span></Label><Textarea id="edit-blacklist-reason" rows={3} disabled={isPending} placeholder="Explain why this staff member is being added to the blacklist." maxLength={1000} aria-invalid={!!errors.blacklist_reason} {...register("blacklist_reason", { validate: value => watch("is_active") || !watch("is_blacklisted") || Boolean(value.trim()) || "A blacklist reason is required", maxLength: { value: 1000, message: "Reason cannot exceed 1000 characters" } })} />{errors.blacklist_reason && <p className="text-xs text-destructive">{errors.blacklist_reason.message}</p>}<p className="text-xs text-muted-foreground">Saved separately from the employee’s separation remarks.</p></div>}
                 </div>
               </div>
             )}

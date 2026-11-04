@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
         const headers: Record<string, string> = {
             "Content-Type": contentType || "application/octet-stream",
-            "Cache-Control": "public, max-age=31536000, immutable",
+            "Cache-Control": inline ? "private, no-store" : "public, max-age=31536000, immutable",
         };
 
         if (inline) {

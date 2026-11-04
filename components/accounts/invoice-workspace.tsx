@@ -30,7 +30,6 @@ import {
   Save, 
   Search, 
   X, 
-  Sparkles,
   ChevronDown,
   Mail
 } from "lucide-react";
@@ -140,12 +139,17 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
       amount: 0
     }
   ]);
-  const [subtotal, setSubtotal] = useState(0);
+  const [discountType, setDiscountType] = useState<"none" | "fixed" | "percentage">("none");
+  const [discountValue, setDiscountValue] = useState(0);
+  const subtotal = Math.round(items.reduce((sum, item) => sum + Math.round(Number(item.qty || 0) * Number(item.rate || 0) * 100) / 100, 0) * 100) / 100;
+  const discountAmount = Math.round((discountType === "percentage" ? subtotal * discountValue / 100 : discountType === "fixed" ? discountValue : 0) * 100) / 100;
+  const total = Math.round((subtotal - discountAmount) * 100) / 100;
+  const invalidDiscount = !Number.isFinite(discountValue) || discountValue < 0 || (discountType === "percentage" && discountValue > 100) || discountAmount > subtotal;
   const [draftPayments, setDraftPayments] = useState<DraftInvoicePayment[]>([]);
   const paidAmount = savedInvoice
     ? Number(savedInvoice.deposit || 0)
     : draftPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
-  const balanceDue = subtotal - paidAmount;
+  const balanceDue = Math.round((total - paidAmount) * 100) / 100;
   const status: Invoice["status"] = subtotal > 0 && balanceDue === 0
     ? "paid"
     : (paidAmount > 0 ? "partially_paid" : "unpaid");
@@ -153,6 +157,8 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
   const changeCurrency = (next: InvoiceCurrency) => {
     if (currencyLocked || next === currency) return;
     setCurrency(next);
+    setDiscountType("none");
+    setDiscountValue(0);
     setItems(current => current.map(item => ({ ...item, rate: 0, amount: 0 })));
     setDraftPayments([]);
     setBankDetails(next === "NGN" ? PRESETS[subsidiary].bank_details : "");
@@ -175,6 +181,8 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
   // Sync loaded invoice from edit triggers
   useEffect(() => {
     setSavedInvoice(initialInvoice);
+    setDiscountType(initialInvoice?.discount_type ?? "none");
+    setDiscountValue(Number(initialInvoice?.discount_value ?? 0));
     setCurrency(initialInvoice?.currency ?? "NGN");
     setPendingCurrency(null);
     setActiveTab("details");
@@ -253,17 +261,7 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
     }
   }, [initialInvoice]);
 
-  // Financial auto-calculations
-  useEffect(() => {
-    let sum = 0;
-    const computedItems = items.map((item) => {
-      const amt = Number(item.qty || 0) * Number(item.rate || 0);
-      sum += amt;
-      return { ...item, amount: amt };
-    });
 
-    setSubtotal(sum);
-  }, [items]);
 
   // Fetch all clients in the background on load
   useEffect(() => {
@@ -369,7 +367,8 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
       toast.error("Client name is required");
       return null;
     }
-    if (paidAmount > subtotal) {
+    if (invalidDiscount) { toast.error("Enter a valid discount within the invoice subtotal (percentage: 0-100)."); return null; }
+    if (paidAmount > total) {
       toast.error("Invoice total cannot be less than payments already recorded");
       return null;
     }
@@ -399,6 +398,10 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
         membership_welcome_text: hasMembership && membershipWelcomeText ? membershipWelcomeText : null,
         items,
         subtotal,
+        discount_type: discountType,
+        discount_value: discountValue,
+        discount_amount: discountAmount,
+        total,
         deposit: paidAmount,
         balance_due: balanceDue,
         status,
@@ -786,7 +789,6 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             {/* Search CRM client block */}
             <div className="space-y-1.5 relative">
               <Label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                <Sparkles className="size-3.5 text-primary animate-pulse" />
                 Prefetch from CRM Client Database
               </Label>
               <div className="relative">
@@ -1015,10 +1017,16 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
         <Card className="shadow-xs border-slate-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-500">
-              Financial Status & Bank Info
+              Totals, Payments & Bank Info
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label htmlFor="invoice-discount-type">Discount</Label><Select value={discountType} onValueChange={(value: "none" | "fixed" | "percentage") => { setDiscountType(value); setDiscountValue(0); }}><SelectTrigger id="invoice-discount-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No discount</SelectItem><SelectItem value="fixed">Fixed amount ({currency})</SelectItem><SelectItem value="percentage">Percentage (%)</SelectItem></SelectContent></Select></div>
+              {discountType !== "none" && <div className="space-y-2"><Label htmlFor="invoice-discount-value">{discountType === "percentage" ? "Discount percentage" : `Discount amount (${currency})`}</Label><Input id="invoice-discount-value" type="number" min="0" max={discountType === "percentage" ? 100 : subtotal} step="0.01" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} aria-invalid={invalidDiscount} /></div>}
+            </div>
+            {invalidDiscount && <p role="alert" className="text-sm text-destructive">Discount must be between zero and the subtotal; percentage discounts cannot exceed 100%.</p>}
+            <dl className="space-y-2 text-sm"><div className="flex justify-between"><dt>Subtotal</dt><dd>{formatInvoiceMoney(subtotal, currency)}</dd></div>{discountAmount > 0 && <div className="flex justify-between"><dt>Discount{discountType === "percentage" ? ` (${discountValue}%)` : ""}</dt><dd>-{formatInvoiceMoney(discountAmount, currency)}</dd></div>}<div className="flex justify-between font-semibold"><dt>Invoice total</dt><dd>{formatInvoiceMoney(total, currency)}</dd></div></dl>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-600">Payments Received</Label>
@@ -1041,9 +1049,9 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
                 </span>
               </div>
             </div>
-            {paidAmount > subtotal && (
+            {paidAmount > total && (
               <p className="text-xs font-medium text-destructive">
-                Invoice total cannot be less than payments already recorded. Increase the line items before saving.
+                Invoice total cannot be less than payments already recorded. Reduce the discount or increase the line items before saving.
               </p>
             )}
 
@@ -1156,6 +1164,10 @@ export function InvoiceWorkspace({ initialInvoice, clearInvoice, onSaveSuccess }
             membership_welcome_text: hasMembership && membershipWelcomeText ? membershipWelcomeText : null,
             items,
             subtotal,
+        discount_type: discountType,
+        discount_value: discountValue,
+        discount_amount: discountAmount,
+        total,
             deposit: paidAmount,
             balance_due: balanceDue,
             status,

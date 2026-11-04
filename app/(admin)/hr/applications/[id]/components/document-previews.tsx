@@ -89,6 +89,9 @@ function DocumentCard({
   const proxiedUrl = backendDownloadUrl
     ? getProxiedImageUrl(backendDownloadUrl)
     : undefined;
+  const previewUrl = proxiedUrl?.startsWith("/api/proxy-file?")
+    ? `${proxiedUrl}&inline=true`
+    : proxiedUrl;
   const [isHovering, setIsHovering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -215,7 +218,7 @@ function DocumentCard({
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => window.open(proxiedUrl, "_blank")}
+              onClick={() => window.open(previewUrl, "_blank", "noopener,noreferrer")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -263,7 +266,7 @@ function DocumentCard({
             size="sm"
             variant="outline"
             className="min-h-10 flex-1"
-            onClick={() => window.open(proxiedUrl, "_blank")}
+            onClick={() => window.open(previewUrl, "_blank", "noopener,noreferrer")}
           >
             <Eye className="mr-1 h-4 w-4" />
             View

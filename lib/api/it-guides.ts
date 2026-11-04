@@ -26,3 +26,7 @@ export async function deleteITGuide(...args: Parameters<typeof actions.deleteITG
 export async function markITGuideAsRead(...args: Parameters<typeof actions.markITGuideAsRead>): Promise<ActionData<Awaited<ReturnType<typeof actions.markITGuideAsRead>>>> {
   return callAction(() => actions.markITGuideAsRead(...args));
 }
+
+export async function markAllITGuidesAsRead(): Promise<void> {
+  return callAction(() => actions.markAllITGuidesAsRead());
+}

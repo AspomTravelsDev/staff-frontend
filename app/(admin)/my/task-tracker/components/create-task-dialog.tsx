@@ -41,7 +41,6 @@ import {
   Calendar,
   User,
   Search,
-  Sparkles,
   Zap,
   Clock,
 } from "lucide-react";
@@ -61,6 +60,7 @@ export function CreateTaskDialog({
   onSuccess,
   requireColleague = false,
 }: CreateTaskDialogProps) {
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [colleagues, setColleagues] = useState<Colleague[]>([]);
   const [loadingColleagues, setLoadingColleagues] = useState(false);
@@ -94,6 +94,7 @@ export function CreateTaskDialog({
   }, [open]);
 
   useEffect(() => {
+    setAttachments([]);
     if (taskToEdit) {
       setTitle(taskToEdit.title || "");
       setDescription(taskToEdit.description || "");
@@ -211,7 +212,15 @@ export function CreateTaskDialog({
           toast.error(res.error.error || "Failed to update task");
         }
       } else {
-        const res = await createTaskTrackerItem(payload);
+        const res = attachments.length ? await (async () => {
+          const data = new FormData();
+          Object.entries(payload).forEach(([key, value]) => { if (value !== null && value !== undefined) data.append(key, typeof value === "boolean" ? (value ? "1" : "0") : String(value)); });
+          attachments.forEach(file => data.append("attachments[]", file, file.name));
+          const response = await fetch("/api/task-tracker", { method: "POST", body: data });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.message || body.error || "Could not create task with attachments. Please try again.");
+          return { success: true as const, data: body as { data: TaskTrackerItem } };
+        })() : await createTaskTrackerItem(payload);
         if (res.success) {
           if (selectedColleague) {
             toast.success(`Task assigned to ${selectedColleague.name} with instant alerts!`);
@@ -350,7 +359,6 @@ export function CreateTaskDialog({
               {/* Informative banner when delegating */}
               {selectedColleague && (
                 <div className="flex items-start gap-2 p-2.5 rounded-lg border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/30 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-200">
-                  <Sparkles className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-semibold">{selectedColleague.name}</span> will receive an instant Web Push notification and email alert with this deadline, plus automated reminders before it is due.
                   </div>
@@ -539,6 +547,18 @@ export function CreateTaskDialog({
             </div>
           </div>
 
+          {!taskToEdit && <section className="mb-5 space-y-2">
+            <Label htmlFor="task-attachments">Task attachments</Label>
+            <Input id="task-attachments" type="file" multiple disabled={loading} accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.txt,.csv" onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              e.target.value = "";
+              if (attachments.length + files.length > 5) { toast.error("Attach up to 5 files per task."); return; }
+              if (files.some(file => file.size > 10 * 1024 * 1024)) { toast.error("Each attachment must be 10 MB or smaller."); return; }
+              setAttachments(previous => [...previous, ...files]);
+            }} />
+            <p className="text-xs text-muted-foreground">Up to 5 files, 10 MB each. Documents, spreadsheets, presentations, images, text and CSV files.</p>
+            {attachments.map((file, index) => <div key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 text-sm"><span className="min-w-0 break-all">{file.name}</span><Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setAttachments(previous => previous.filter((_, i) => i !== index))} aria-label={`Remove ${file.name}`}>Remove</Button></div>)}
+          </section>}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"

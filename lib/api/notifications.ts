@@ -8,9 +8,11 @@ export type NotificationCountValue =
           count: number;
           label?: string;
           latest_id?: string | null;
+          view?: "responses" | "details";
           items?: { conversation_id: string; sender_name: string; count: number }[];
           task_items?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[];
           recruitment_items?: { id: string; title: string; body: string; count: number; url: string }[];
+          payroll_items?: { id: string; title: string; body: string; count: number; url: string }[];
           payment_items?: { id: string; title: string; message: string; count: number; url: string }[];
       };
 

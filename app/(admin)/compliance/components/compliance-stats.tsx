@@ -9,57 +9,30 @@ interface ComplianceStatsProps {
 }
 
 export function ComplianceStatsCards({ stats }: ComplianceStatsProps) {
-  const isAdmin = !!stats.topOffender;
+  const isAdmin = stats.isManager ?? !!stats.topOffender;
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <StatsCard
-        title="Open Issues"
+        title="Open queries"
         icon={Clock}
         value={stats.openIssues}
-        description="Pending resolution"
+        description="Awaiting review or response"
         iconClassName="text-muted-foreground"
       />
 
       {isAdmin ? (
         <>
           <StatsCard
-            title="Total Issues"
+            title="Total queries"
             icon={AlertTriangle}
             value={stats.totalIssues}
-            description="Reported occurrences"
+            description="Queries raised"
             iconClassName="text-orange-500"
           />
 
-          <StatsCard
-            title="Top Offender"
-            icon={UserMinus}
-            value={
-              <span
-                className="truncate block"
-                title={stats.topOffender?.name || "None"}
-              >
-                {stats.topOffender?.name || "None"}
-              </span>
-            }
-            description={`${stats.topOffender?.count || 0} occurrences`}
-            iconClassName="text-red-500"
-          />
-
-          <StatsCard
-            title="Top Department"
-            icon={Building}
-            value={
-              <span
-                className="truncate block"
-                title={stats.topDepartment?.name || "None"}
-              >
-                {stats.topDepartment?.name || "None"}
-              </span>
-            }
-            description={`${stats.topDepartment?.count || 0} occurrences`}
-            iconClassName="text-blue-500"
-          />
+          <StatsCard title="Evidence Needed" icon={AlertTriangle} value={stats.awaitingEvidence ?? 0} description="Open queries without evidence" iconClassName="text-orange-500" />
+          <StatsCard title="Staff Replies to Review" icon={Building} value={stats.staffReplies ?? 0} description="Open queries last answered by staff" iconClassName="text-blue-500" />
         </>
       ) : (
         <>
@@ -80,10 +53,10 @@ export function ComplianceStatsCards({ stats }: ComplianceStatsProps) {
           />
 
           <StatsCard
-            title="Total History"
+            title="Query history"
             icon={AlertTriangle}
             value={stats.totalIssues}
-            description="All occurrences"
+            description="All compliance queries"
             iconClassName="text-orange-500"
           />
         </>

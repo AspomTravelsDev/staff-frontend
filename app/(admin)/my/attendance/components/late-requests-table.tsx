@@ -75,7 +75,7 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           </div>
           <h3 className="text-sm font-semibold">No Late Requests</h3>
           <p className="text-xs text-muted-foreground max-w-sm">
-            You haven&apos;t submitted any late permission requests yet. Click &ldquo;Request Permission to be Late&rdquo; above if you expect to arrive after standard hours.
+            You haven&apos;t submitted any attendance requests yet. Use &ldquo;Request attendance permission&rdquo; to request a half day or late arrival.
           </p>
         </div>
       </div>
@@ -115,8 +115,8 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
       } else {
         toast.error(res.error?.error || "Failed to cancel request");
       }
-    } catch (error: any) {
-      toast.error(error.message || "An unexpected error occurred while cancelling");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "An unexpected error occurred while cancelling");
     } finally {
       setIsCancelling(false);
     }
@@ -155,7 +155,7 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
                   <TableCell className="whitespace-nowrap font-mono text-sm">
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
                       <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>{request.expected_arrival_time}</span>
+                      <span>{request.request_type === "half_day" || request.request_type === "early_departure" ? `Half day${request.expected_clock_out_time ? ` · ${request.expected_clock_out_time}` : ""}` : `Late arrival${request.expected_arrival_time ? ` · ${request.expected_arrival_time}` : ""}`}</span>
                     </div>
                   </TableCell>
 
@@ -330,17 +330,17 @@ export function LateRequestsTable({ requests }: LateRequestsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base font-bold flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-600" />
-              Cancel Late Permission Request?
+              Cancel attendance request?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed pt-1">
-              Are you sure you want to cancel your late permission request for{" "}
+              Are you sure you want to cancel your attendance request for{" "}
               <strong className="text-foreground">
                 {requestToCancel ? formatLagosDate(requestToCancel.request_date) : ""}
               </strong>
               ?
               <br />
               <br />
-              This will withdraw your request. You can cancel if you made it to work early/on time or no longer require late permission. HR will not need to review this request.
+              This will withdraw your request. Cancel if you no longer need this attendance permission. HR will not need to review this request.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

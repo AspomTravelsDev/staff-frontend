@@ -21,8 +21,10 @@ import {
   Mail,
   Briefcase,
   ListTodo,
+  Ticket,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
+import { ANNOUNCEMENT_REVIEW_ROLES, canReviewAnnouncements } from "@/lib/announcement-review-access";
 
 export interface NavItem {
   title: string;
@@ -30,6 +32,9 @@ export interface NavItem {
   icon?: LucideIcon;
   isActive?: boolean;
   allowedRoles?: UserRole[];
+  /** Do not inherit the broad management/admin navigation visibility. */
+  requiresExplicitRole?: boolean;
+  requiresReviewer?: boolean;
   badgeKey?: string;
   badgeLabel?: string;
   disabled?: boolean;
@@ -103,7 +108,7 @@ export const departmentNav: NavItem[] = [
   //     allowedRoles: ["account"],
   // },
   {
-    title: "Celebrations",
+    title: "Staff Celebrations",
     url: "/hr/celebrations",
     icon: LayoutDashboard,
     allowedRoles: ["hr"],
@@ -130,19 +135,36 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "Pending leave requests",
   },
   {
-    title: "Performance Reviews",
+    title: "Appraisal Results",
     url: "/hr/performance",
     icon: ClipboardList,
-    allowedRoles: ["hr", "compliance", "office-operations"],
-    disabled: true,
+    allowedRoles: ["hr"],
+    requiresExplicitRole: true,
+    disabled: process.env.NODE_ENV === "production",
+  },
+  {
+    title: "Monthly Appraisal Setup",
+    url: "/hr/performance/periods",
+    icon: CalendarCheck,
+    allowedRoles: ["hr"],
+    requiresExplicitRole: true,
+    disabled: process.env.NODE_ENV === "production",
   },
   {
     title: "Compliance Dashboard",
     url: "/compliance",
     icon: ShieldCheck,
-    allowedRoles: ["compliance", "office-operations"],
+    allowedRoles: ["compliance", "office-operations", "hr"],
     badgeKey: "complianceReplies",
-    badgeLabel: "Staff replies pending review",
+    badgeLabel: "Compliance queries awaiting review",
+  },
+  {
+    title: "Department KPIs",
+    url: "/compliance/kpis",
+    icon: ClipboardList,
+    allowedRoles: ["compliance"],
+    requiresExplicitRole: true,
+    disabled: process.env.NODE_ENV === "production",
   },
   {
     title: "Invite Staff",
@@ -172,7 +194,7 @@ export const departmentNav: NavItem[] = [
     ],
   },
   {
-    title: "HR Applications",
+    title: "New Staff Onboarding",
     url: "/hr/applications",
     icon: FileText,
     allowedRoles: ["hr", "compliance", "office-operations"],
@@ -198,7 +220,7 @@ export const departmentNav: NavItem[] = [
       "md",
       "office-operations",
     ],
-    badgeKey: "payrollQueue",
+    badgeKey: "payrollQueue,payrollComments",
     badgeLabel: "Payroll runs awaiting review",
   },
   {
@@ -253,6 +275,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["visa", "super"],
   },
   {
+    title: "Booking Generator",
+    url: "/social-media/booking-confirmation",
+    icon: Ticket,
+    allowedRoles: ["social-media", "super"],
+  },
+  {
     title: "Staff Profile Generator",
     url: "/social-media/profile-generator",
     icon: Megaphone,
@@ -297,6 +325,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["hr", "it"],
   },
   {
+    title: "Employee Black List",
+    url: "/hr/blacklist",
+    icon: Users,
+    allowedRoles: ["hr", "it"],
+  },
+  {
     title: "Staff Requests",
     url: "/hr/staff-requests",
     icon: Users,
@@ -313,10 +347,12 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["hr", "super", "mp", "md"],
   },
   {
-    title: "Late Permission Requests",
-    url: "/hr/late-requests",
+    title: "Attendance Requests",
+    url: "/hr/attendance-requests",
     icon: CalendarCheck,
-    allowedRoles: ["hr", "super", "compliance", "office-operations"],
+    allowedRoles: ["hr", "super", "compliance", "office-operations", "mp", "md"],
+    badgeKey: "pendingLatePermissionRequests,workFromHomeRequests",
+    badgeLabel: "Pending attendance requests",
   },
   {
     title: "Loan Requests Queue",
@@ -364,6 +400,12 @@ export const departmentNav: NavItem[] = [
   },
   {
     title: "Company Inventory",
+    url: "/admin/company-inventory",
+    icon: ClipboardList,
+    allowedRoles: ["admin", "it", "super", "compliance", "office-operations"],
+  },
+  {
+    title: "Gadget Assignments",
     url: "/admin/inventory",
     icon: ClipboardList,
     allowedRoles: ["admin", "it", "super", "compliance", "office-operations"],
@@ -382,6 +424,12 @@ export const departmentNav: NavItem[] = [
     url: "/visa/information-desk",
     icon: FolderOpen,
     allowedRoles: ["visa"],
+  },
+  {
+    title: "Birth Services Information",
+    url: "/birth-services/information-desk",
+    icon: FolderOpen,
+    allowedRoles: ["birth-services"],
   },
   {
     title: "Manage IT Information Desk",
@@ -412,12 +460,21 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "Enter today's dollar rate",
   },
   {
-    title: "Announcements",
+    title: "All Announcements",
+    url: "/announcements",
+    icon: Megaphone,
+    allowedRoles: ["hr", "it", "super", "mp", "md", "compliance", "office-operations", "account", "admin", "visa", "social-media"],
+    badgeKey: "unreadAnnouncements",
+    badgeLabel: "Unread announcements",
+  },
+  {
+    title: "Announcement Reviews",
     url: "/admin/announcements",
     icon: Megaphone,
-    allowedRoles: ["it", "super"],
+    allowedRoles: ANNOUNCEMENT_REVIEW_ROLES,
+    requiresExplicitRole: true,
     badgeKey: "announcements",
-    badgeLabel: "Announcements pending review",
+    badgeLabel: "Announcements awaiting review",
   },
   {
     title: "General Attendance",
@@ -432,6 +489,13 @@ export const departmentNav: NavItem[] = [
  * Now grouped into collapsible sections
  */
 export const personalNav: NavItem[] = [
+  {
+    title: "Reviews to Complete",
+    url: "/my/performance/reviews",
+    icon: ClipboardList,
+    requiresReviewer: true,
+    disabled: process.env.NODE_ENV === "production",
+  },
   {
     title: "My Content Ideas",
     url: "/my/content-ideas",
@@ -459,7 +523,7 @@ export const personalNav: NavItem[] = [
       {
         title: "Task Tracker",
         url: "/my/task-tracker",
-        badgeKey: "assignedTasks,taskUpdates",
+        badgeKey: "assignedTasks",
         badgeLabel: "Tasks assigned to you",
       },
       {
@@ -475,7 +539,7 @@ export const personalNav: NavItem[] = [
         badgeLabel: "Clock in for today",
       },
       { title: "Employee Documents", url: "/my/documents" },
-      { title: "Appraisal", url: "/my/performance", disabled: true },
+      { title: "My Performance", url: "/my/performance", disabled: process.env.NODE_ENV === "production" },
       { title: "Request Staff", url: "/my/request-staff" },
     ],
   },
@@ -569,9 +633,9 @@ export const personalNav: NavItem[] = [
         title: "Visa Information Desk",
         url: "/my/visa",
       },
-      // {
-      //     title: "Birth Services Information Desk", url: "/my/birth-services"
-      // },
+      {
+        title: "Birth Services Information Desk", url: "/my/birth-services",
+      },
       {
         title: "IT Information Desk",
         url: "/my/it",
@@ -585,11 +649,21 @@ export const personalNav: NavItem[] = [
     ],
   },
   {
-    title: "My Compliance Record",
+    title: "Compliance",
     url: "/my/compliance",
     icon: ShieldCheck,
-    badgeKey: "compliance",
-    badgeLabel: "New compliance query",
+    items: [
+      {
+        title: "My Compliance Record",
+        url: "/my/compliance",
+        badgeKey: "compliance",
+        badgeLabel: "New compliance query",
+      },
+      {
+        title: "Compliance Guide",
+        url: "/my/compliance/guide",
+      },
+    ],
   },
   {
     title: "Staff Directory",
@@ -629,12 +703,14 @@ const managementHiddenRoutes = new Set([
   "/my/request-staff",
   "/my/weekly-feedback",
   "/my/visa",
+  "/my/birth-services",
 ]);
 
 function managementNavigation(items: NavItem[]): NavItem[] {
   const visible = (url: string) =>
     !managementHiddenRoutes.has(url) &&
     !url.startsWith("/visa/") &&
+    !url.startsWith("/birth-services/") &&
     !url.startsWith("/social-media/");
   return items
     .filter((item) => visible(item.url))
@@ -652,12 +728,13 @@ export function filterNavByRole(
   roleOrRoles: UserRole | UserRole[],
 ): NavItem[] {
   const roles = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
+  const eligibleItems = items.filter((item) => !item.requiresExplicitRole || item.allowedRoles?.some((allowed) => roles.includes(allowed)));
 
   if (roles.some((r) => r === "mp" || r === "md"))
-    return managementNavigation(items);
-  if (roles.includes("super")) return [...items];
+    return managementNavigation(eligibleItems);
+  if (roles.includes("super")) return [...eligibleItems];
 
-  return items.filter((item) => {
+  return eligibleItems.filter((item) => {
     // If no allowedRoles defined, invisible to all
     if (!item.allowedRoles) {
       return false;
@@ -673,13 +750,21 @@ export function getNavigationForUser(user: {
   secondary_roles?: UserRole[] | null;
   roles?: UserRole[];
   is_department_account?: boolean;
+  is_active?: boolean;
+  is_supervisor?: boolean;
 }) {
   const activeRoles =
     user.roles && user.roles.length > 0
       ? user.roles
       : [user.role, ...(user.secondary_roles || [])];
 
-  const department = filterNavByRole(departmentNav, activeRoles);
+  const department = filterNavByRole(departmentNav, activeRoles)
+    .filter((item) => !user.is_department_account || !item.requiresExplicitRole)
+    .filter((item) => item.url !== "/admin/announcements" || canReviewAnnouncements(user));
+  if (user.is_active !== false && user.is_supervisor && !user.is_department_account && !department.some(item => item.url === "/compliance")) {
+    const compliance = departmentNav.find(item => item.url === "/compliance");
+    if (compliance) department.push(compliance);
+  }
   if (
     user.id === "019c56b9-09c2-729b-84de-a13bfc2b8e8d" &&
     !department.some((item) => item.url === "/hr/tasks")
@@ -692,8 +777,8 @@ export function getNavigationForUser(user: {
     department,
     personal: user.is_department_account
       ? []
-      : activeRoles.some((r) => r === "mp" || r === "md")
+      : (activeRoles.some((r) => r === "mp" || r === "md")
         ? managementNavigation(personalNav)
-        : personalNav,
+        : personalNav).filter((item) => !item.requiresReviewer || user.is_supervisor || activeRoles.some((role) => role === "compliance" || role === "mp")),
   };
 }

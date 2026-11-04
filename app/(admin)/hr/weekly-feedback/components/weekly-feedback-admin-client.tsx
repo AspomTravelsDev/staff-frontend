@@ -35,7 +35,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Sparkles,
   Search,
   CalendarDays,
   Plus,
@@ -878,7 +877,6 @@ export function WeeklyFeedbackAdminClient() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
                   Create New Question
                 </CardTitle>
                 <CardDescription>

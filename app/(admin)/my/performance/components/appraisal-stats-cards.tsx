@@ -1,70 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Clock, TrendingUp, Calendar } from "lucide-react";
-import type { AppraisalStats } from "@/lib/api/performance-appraisal";
+import type { AppraisalStats } from "@/lib/types/performance-appraisal";
 
-interface AppraisalStatsCardsProps {
-  stats: AppraisalStats;
-}
-
-export function AppraisalStatsCards({ stats }: AppraisalStatsCardsProps) {
-  const cards = [
-    {
-      title: "Total Appraisals",
-      value: stats.total_appraisals,
-      description: "Completed reviews",
-      icon: Trophy,
-      color: "text-blue-600",
-    },
-    {
-      title: "Pending",
-      value: stats.pending_self_appraisal,
-      description: "Awaiting submission",
-      icon: Clock,
-      color: "text-orange-600",
-    },
-    {
-      title: "Average Rating",
-      value: stats.average_rating ? stats.average_rating.toFixed(1) : "N/A",
-      description: "Out of 10",
-      icon: TrendingUp,
-      color: "text-green-600",
-    },
-    {
-      title: "Last Review",
-      value: stats.last_review_date
-        ? new Intl.DateTimeFormat("en-US", {
-            timeZone: "Africa/Lagos",
-            month: "short",
-            year: "numeric",
-          }).format(new Date(stats.last_review_date))
-        : "N/A",
-      description: "Most recent",
-      icon: Calendar,
-      color: "text-purple-600",
-    },
-  ];
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card, index) => {
-        const Icon = card.icon;
-        return (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {card.title}
-              </CardTitle>
-              <Icon className={`h-4 w-4 ${card.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {card.description}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
+export function AppraisalStatsCards({ stats }: { stats: AppraisalStats }) {
+  return <dl className="flex flex-wrap gap-x-8 gap-y-4 border-y py-4 text-sm">
+    <div><dt className="text-muted-foreground">Assigned</dt><dd className="mt-1 font-semibold tabular-nums">{stats.total_appraisals}</dd></div>
+    <div><dt className="text-muted-foreground">Awaiting my submission</dt><dd className="mt-1 font-semibold tabular-nums">{stats.pending_self_appraisal}</dd></div>
+    <div><dt className="text-muted-foreground">Completed</dt><dd className="mt-1 font-semibold tabular-nums">{stats.completed_appraisals}</dd></div>
+    <div><dt className="text-muted-foreground">Average final score</dt><dd className="mt-1 font-semibold tabular-nums">{stats.average_rating === null ? "No completed scores" : `${stats.average_rating.toFixed(2)} / 5`}</dd></div>
+  </dl>;
 }

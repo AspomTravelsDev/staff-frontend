@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/table";
 import { ItIssueDetailsSheet } from "@/app/(admin)/my/it-issue/components/it-issue-details-sheet";
 import { ItIssueStatusSelect } from "./it-issue-status-select";
+import { StatsCard } from "@/components/stats-card";
+import { AlertTriangle, CheckCircle, Clock, Inbox } from "lucide-react";
+import type { ItIssueStats } from "@/lib/api/it-issues";
+import { Card } from "@/components/ui/card";
 
 function getPriorityVariant(priority: string) {
   switch (priority) {
@@ -40,19 +44,22 @@ function getStatusVariant(status: string) {
   }
 }
 
-export function ItIssuesTable({ issues }: { issues: ItIssue[] }) {
+export function ItIssuesTable({ issues, stats }: { issues: ItIssue[]; stats: ItIssueStats }) {
   const [selected, setSelected] = useState<ItIssue | null>(null);
-
-  if (issues.length === 0) {
-    return (
-      <div className="py-8 text-center text-muted-foreground text-sm">
-        No IT issues have been reported yet.
-      </div>
-    );
-  }
+  const [activeFilter, setActiveFilter] = useState<"all" | "open" | "in_progress" | "resolved" | "critical">("all");
+  const filteredIssues = activeFilter === "critical"
+    ? issues.filter((issue) => issue.priority === "critical")
+    : activeFilter === "all" ? issues : issues.filter((issue) => issue.status === activeFilter);
 
   return (
     <>
+      <div className="mb-5 grid gap-3 md:grid-cols-4">
+        <StatsCard title="Open Tickets" icon={Inbox} value={stats.open} description="Awaiting action" onClick={() => setActiveFilter(activeFilter === "open" ? "all" : "open")} active={activeFilter === "open"} iconClassName="text-orange-500" />
+        <StatsCard title="In Progress" icon={Clock} value={stats.in_progress} description="Currently being worked on" onClick={() => setActiveFilter(activeFilter === "in_progress" ? "all" : "in_progress")} active={activeFilter === "in_progress"} iconClassName="text-blue-500" />
+        <StatsCard title="Resolved" icon={CheckCircle} value={stats.resolved} description="Closed successfully" onClick={() => setActiveFilter(activeFilter === "resolved" ? "all" : "resolved")} active={activeFilter === "resolved"} iconClassName="text-green-500" />
+        <StatsCard title="Critical Issues" icon={AlertTriangle} value={stats.critical} description="High priority tickets" onClick={() => setActiveFilter(activeFilter === "critical" ? "all" : "critical")} active={activeFilter === "critical"} iconClassName="text-destructive" />
+      </div>
+      <Card className="overflow-x-auto p-4">
       <Table>
         <TableHeader>
           <TableRow>
@@ -65,7 +72,7 @@ export function ItIssuesTable({ issues }: { issues: ItIssue[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {issues.map((issue) => (
+          {filteredIssues.map((issue) => (
             <TableRow
               key={issue.id}
               className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -109,8 +116,10 @@ export function ItIssuesTable({ issues }: { issues: ItIssue[] }) {
               </TableCell>
             </TableRow>
           ))}
+          {filteredIssues.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">{issues.length === 0 ? "No IT issues have been reported yet." : "No tickets match this card."}</TableCell></TableRow>}
         </TableBody>
       </Table>
+      </Card>
 
       <ItIssueDetailsSheet
         issue={selected}

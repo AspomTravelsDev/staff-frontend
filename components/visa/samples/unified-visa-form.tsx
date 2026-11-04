@@ -57,7 +57,6 @@ import {
   RefreshCw,
   Globe,
   Wallet,
-  Sparkles,
   Wand2,
   AlertCircle,
   CheckCircle2,
@@ -1241,7 +1240,7 @@ export function UnifiedVisaForm() {
                         onClick={() => openAiEnhancer("Enhance Source of Funds with AI", "source_of_funds", "source_of_funds")}
                         className="h-6 text-[11px] text-primary gap-1 p-0 hover:bg-transparent hover:underline"
                       >
-                        <Sparkles className="size-3" /> Enhance with AI
+                         Enhance with AI
                       </Button>
                     </div>
                     <Textarea id="source_of_funds" name="source_of_funds" rows={2} value={profile.source_of_funds} onChange={handleInputChange} placeholder="e.g. Monthly salary deposits and investment proceeds over the past 3 years." className="text-xs" />
@@ -1256,7 +1255,7 @@ export function UnifiedVisaForm() {
                         onClick={() => openAiEnhancer("Enhance Home & Economic Ties with AI", "home_ties", "home_ties_summary")}
                         className="h-6 text-[11px] text-primary gap-1 p-0 hover:bg-transparent hover:underline"
                       >
-                        <Sparkles className="size-3" /> Enhance with AI
+                         Enhance with AI
                       </Button>
                     </div>
                     <Textarea id="home_ties_summary" name="home_ties_summary" rows={2} value={profile.home_ties_summary} onChange={handleInputChange} placeholder="e.g. 4+ years as Program Manager at Advokc Foundation leading key projects, plus domestic family commitments in Nigeria." className="text-xs" />

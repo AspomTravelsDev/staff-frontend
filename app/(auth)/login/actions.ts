@@ -1,6 +1,7 @@
 "use server";
 
 
+import { safeReturnPath } from "@/lib/auth/return-path";
 import { login } from "@/lib/auth/api";
 import { setSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
@@ -81,8 +82,7 @@ export async function loginAction(
     await setSession(result.data.token, result.data.user, rememberMe);
 
     const redirectPath = formData.get("redirect") as string;
-    const destination =
-        redirectPath && redirectPath.startsWith("/") ? redirectPath : "/dashboard";
+    const destination = safeReturnPath(redirectPath);
 
     return {
         success: true,

@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
 
-export type AttendanceStatus = "on-time" | "late" | "late-permitted" | "flagged" | "absent" | "placeholder";
+export type AttendanceStatus = "on-time" | "late" | "late-permitted" | "half-day" | "work-from-home" | "leave" | "flagged" | "absent" | "placeholder";
 
 interface AttendanceStatusBlocksProps {
   statuses: AttendanceStatus[];
   maxBlocks?: number;
   showLegend?: boolean;
+  size?: "default" | "large";
 }
  
 /**
@@ -20,6 +21,7 @@ export function AttendanceStatusBlocks({
   statuses,
   maxBlocks,
   showLegend,
+  size = "default",
 }: AttendanceStatusBlocksProps) {
   const displayStatuses = [...statuses];
 
@@ -29,14 +31,16 @@ export function AttendanceStatusBlocks({
     }
     // Only show up to maxBlocks if specified
     const limitedStatuses = displayStatuses.slice(0, maxBlocks);
-    return renderBlocks(limitedStatuses, showLegend);
+    return renderBlocks(limitedStatuses, showLegend, size);
   }
 
   // Otherwise, show exactly the statuses provided
-  return renderBlocks(displayStatuses, showLegend);
+  return renderBlocks(displayStatuses, showLegend, size);
 }
 
-function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
+function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean, size: "default" | "large" = "default") {
+  const blockSize = size === "large" ? "h-5 w-5 sm:h-6 sm:w-6" : "h-3 w-3";
+  const blockGap = size === "large" ? "gap-2" : "gap-1";
   const getBlockStyles = (status: AttendanceStatus) => {
     switch (status) {
       case "on-time":
@@ -47,6 +51,12 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
         return "bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-500";
       case "flagged":
         return "bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500";
+      case "half-day":
+        return "bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-500";
+      case "work-from-home":
+        return "bg-sky-500 dark:bg-sky-600 hover:bg-sky-600 dark:hover:bg-sky-500";
+      case "leave":
+        return "bg-violet-500 dark:bg-violet-600 hover:bg-violet-600 dark:hover:bg-violet-500";
       case "absent":
       case "placeholder":
         return "bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700";
@@ -65,6 +75,12 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
         return "Late (Permitted)";
       case "flagged":
         return "Flagged (Proxy)";
+      case "half-day":
+        return "Half day (clocked out before 4 PM)";
+      case "work-from-home":
+        return "Approved work from home";
+      case "leave":
+        return "Approved leave";
       case "absent":
         return "Absent";
       case "placeholder":
@@ -77,12 +93,13 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
   return (
     <div className="space-y-2">
       {/* GitHub-style square grid */}
-      <div className="flex flex-wrap gap-1">
+      <div className={cn("flex flex-wrap", blockGap)}>
         {statuses.map((status, index) => (
           <div
             key={index}
             className={cn(
-              "h-3 w-3 rounded-sm transition-all cursor-default",
+              blockSize,
+              "rounded-sm transition-all cursor-default",
               getBlockStyles(status),
             )}
             title={getLabel(status)}
@@ -96,6 +113,9 @@ function renderBlocks(statuses: AttendanceStatus[], showLegend?: boolean) {
             <div className="h-2 w-2 rounded-sm bg-green-500" />
             <span>On time</span>
           </div>
+          {statuses.includes("half-day") && <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-sm bg-amber-500" /><span>Half day</span></div>}
+          {statuses.includes("work-from-home") && <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-sm bg-sky-500" /><span>Work from home</span></div>}
+          {statuses.includes("leave") && <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-sm bg-violet-500" /><span>Leave</span></div>}
           <div className="flex items-center gap-1">
             <div className="h-2 w-2 rounded-sm bg-orange-500" />
             <span>Late</span>

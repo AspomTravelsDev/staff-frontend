@@ -1,0 +1,83 @@
+export const emojiCategories = {
+  faces: 'Faces', people: 'People', hearts: 'Hearts', nature: 'Nature', food: 'Food', travel: 'Travel', work: 'Work', symbols: 'Symbols',
+} as const;
+export type EmojiCategory = keyof typeof emojiCategories;
+const groups: Record<EmojiCategory, [string, string][]> = {
+  faces: [
+    ['😀', 'Grinning happy'], ['😃', 'Smiling big eyes'], ['😄', 'Smiling closed eyes'], ['😁', 'Beaming grin'],
+    ['😆', 'Laughing squinting'], ['😅', 'Sweat smile relieved'], ['😂', 'Tears of joy laughing'], ['🤣', 'Rolling laughing'],
+    ['😊', 'Smiling blushing'], ['🙂', 'Slight smile'], ['🙃', 'Upside down smile'], ['😉', 'Winking'],
+    ['😍', 'Heart eyes love'], ['🥰', 'Smiling hearts love'], ['😘', 'Blowing kiss'], ['😗', 'Kissing'],
+    ['😋', 'Yummy delicious'], ['😛', 'Tongue out'], ['😜', 'Wink tongue'], ['🤪', 'Zany silly'],
+    ['😎', 'Cool sunglasses'], ['🤓', 'Nerd glasses'], ['🧐', 'Monocle curious'], ['🤔', 'Thinking'],
+    ['🤗', 'Hugging'], ['🤭', 'Hand over mouth giggle'], ['🤫', 'Quiet shushing'], ['🤐', 'Zipped mouth secret'],
+    ['😐', 'Neutral'], ['😑', 'Expressionless'], ['😶', 'Speechless'], ['🙄', 'Rolling eyes'],
+    ['😏', 'Smirking'], ['😒', 'Unamused'], ['😬', 'Grimacing awkward'], ['🤥', 'Lying'],
+    ['😌', 'Relieved peaceful'], ['😔', 'Pensive sad'], ['😪', 'Sleepy'], ['😴', 'Sleeping'],
+    ['😷', 'Medical mask sick'], ['🤒', 'Fever thermometer'], ['🤕', 'Injured bandage'], ['🤢', 'Nauseated'],
+    ['🤧', 'Sneezing'], ['🥵', 'Hot'], ['🥶', 'Cold'], ['🥳', 'Party celebrate'],
+    ['😕', 'Confused'], ['😟', 'Worried'], ['🙁', 'Frowning'], ['😮', 'Surprised'],
+    ['😯', 'Hushed surprised'], ['😲', 'Astonished'], ['😳', 'Flushed embarrassed'], ['🥺', 'Pleading'],
+    ['😢', 'Sad crying'], ['😭', 'Loud crying'], ['😤', 'Frustrated'], ['😠', 'Angry'],
+  ],
+  people: [
+    ['👋', 'Waving hello goodbye'], ['🤚', 'Raised back hand'], ['🖐️', 'Open hand'], ['✋', 'Raised hand stop'],
+    ['🖖', 'Vulcan greeting'], ['👌', 'Okay hand'], ['🤏', 'Small amount pinch'], ['✌️', 'Peace victory'],
+    ['🤞', 'Fingers crossed luck'], ['🤟', 'Love you gesture'], ['🤘', 'Rock on'], ['🤙', 'Call me'],
+    ['👈', 'Pointing left'], ['👉', 'Pointing right'], ['👆', 'Pointing up'], ['👇', 'Pointing down'],
+    ['👍', 'Thumbs up yes approved'], ['👎', 'Thumbs down no'], ['✊', 'Raised fist'], ['👊', 'Fist bump'],
+    ['👏', 'Clapping well done'], ['🙌', 'Raised hands celebration'], ['👐', 'Open hands'], ['🤲', 'Palms together'],
+    ['🤝', 'Handshake agreed deal'], ['🙏', 'Thank you please praying'], ['💪', 'Strong muscle'], ['🙋', 'Raising hand question'],
+    ['🤷', 'Shrug unsure'], ['🤦', 'Facepalm'], ['🙇', 'Bowing thanks'], ['💃', 'Dancing'],
+  ],
+  hearts: [
+    ['❤️', 'Red heart love'], ['🧡', 'Orange heart'], ['💛', 'Yellow heart'], ['💚', 'Green heart'],
+    ['💙', 'Blue heart'], ['💜', 'Purple heart'], ['🖤', 'Black heart'], ['🤍', 'White heart'],
+    ['🤎', 'Brown heart'], ['💔', 'Broken heart'], ['❣️', 'Heart exclamation'], ['💕', 'Two hearts'],
+    ['💞', 'Revolving hearts'], ['💓', 'Beating heart'], ['💗', 'Growing heart'], ['💖', 'Sparkling heart'],
+    ['💘', 'Heart arrow'], ['💝', 'Heart ribbon gift'], ['💌', 'Love letter'], ['💋', 'Kiss mark'],
+  ],
+  nature: [
+    ['🌞', 'Sun smiling'], ['☀️', 'Sun sunny'], ['🌤️', 'Sun cloud'], ['☁️', 'Cloud'],
+    ['🌧️', 'Rain weather'], ['⛈️', 'Thunderstorm'], ['🌈', 'Rainbow'], ['❄️', 'Snowflake'],
+    ['🌙', 'Moon night'], ['⭐', 'Star'], ['🌟', 'Glowing star'],
+    ['🌍', 'Earth Africa world'], ['🌱', 'Seedling growth'], ['🌳', 'Tree'], ['🌴', 'Palm tree'],
+    ['🌷', 'Tulip flower'], ['🌹', 'Rose flower'], ['🌻', 'Sunflower'], ['🌺', 'Hibiscus flower'],
+    ['🐶', 'Dog'], ['🐱', 'Cat'], ['🦁', 'Lion'], ['🦋', 'Butterfly'],
+  ],
+  food: [
+    ['🍎', 'Apple fruit'], ['🍊', 'Orange fruit'], ['🍋', 'Lemon'], ['🍌', 'Banana'],
+    ['🍉', 'Watermelon'], ['🍇', 'Grapes'], ['🍓', 'Strawberry'], ['🍍', 'Pineapple'],
+    ['🥑', 'Avocado'], ['🥗', 'Salad'], ['🍞', 'Bread'], ['🥚', 'Egg'],
+    ['🍕', 'Pizza'], ['🍔', 'Burger'], ['🍟', 'Fries'], ['🍗', 'Chicken'],
+    ['🍚', 'Rice'], ['🍜', 'Noodles'], ['🍰', 'Cake'], ['🎂', 'Birthday cake'],
+    ['☕', 'Coffee tea'], ['🍵', 'Green tea'], ['🥤', 'Drink cup'], ['🥂', 'Cheers celebration'],
+  ],
+  travel: [
+    ['✈️', 'Airplane flight travel'], ['🛫', 'Departure takeoff'], ['🛬', 'Arrival landing'], ['🚁', 'Helicopter'],
+    ['🚗', 'Car'], ['🚕', 'Taxi'], ['🚌', 'Bus'], ['🚆', 'Train'],
+    ['🚢', 'Ship cruise'], ['🚲', 'Bicycle'], ['🚀', 'Rocket launch'], ['🧳', 'Luggage suitcase'],
+    ['🛂', 'Passport control immigration'], ['🎫', 'Ticket'], ['🏨', 'Hotel'], ['🏖️', 'Beach holiday'],
+    ['🏝️', 'Island vacation'], ['🏕️', 'Camping'], ['🏔️', 'Mountain'], ['🗺️', 'World map'],
+    ['📍', 'Location pin'], ['🧭', 'Compass direction'], ['🏠', 'Home'], ['🏢', 'Office building'],
+  ],
+  work: [
+    ['💼', 'Briefcase work business'], ['💻', 'Laptop computer'], ['🖥️', 'Desktop computer'], ['📱', 'Mobile phone'],
+    ['📞', 'Telephone call'], ['📧', 'Email'], ['📨', 'Incoming mail'], ['📩', 'Message received'],
+    ['📝', 'Note writing'], ['📄', 'Document page'], ['📋', 'Clipboard checklist'], ['📁', 'Folder'],
+    ['📅', 'Calendar date'], ['⏰', 'Alarm clock reminder'], ['⏳', 'Hourglass waiting'], ['⌛', 'Time up'],
+    ['📌', 'Pin important'], ['📎', 'Paperclip attachment'], ['📊', 'Chart analytics'], ['📈', 'Growth graph'],
+    ['📉', 'Declining graph'], ['💡', 'Idea light bulb'], ['🎯', 'Target goal'], ['🏆', 'Trophy success'],
+    ['🥇', 'Gold medal first'], ['🎉', 'Party celebration congratulations'], ['🎊', 'Confetti congratulations'], ['🎁', 'Gift'],
+  ],
+  symbols: [
+    ['✅', 'Done check yes complete'], ['✔️', 'Check correct'], ['❌', 'Cross no incorrect'], ['❎', 'Cross mark'],
+    ['⚠️', 'Warning attention'], ['❗', 'Exclamation important'], ['❓', 'Question'], ['‼️', 'Double exclamation'],
+    ['💯', 'Hundred perfect'], ['🔥', 'Fire great'], ['💥', 'Boom impact'], ['💬', 'Speech message'],
+    ['🔔', 'Bell notification'], ['🔕', 'Muted bell'], ['🔒', 'Locked private'], ['🔓', 'Unlocked'],
+    ['🔑', 'Key access'], ['🔗', 'Link'], ['🔄', 'Refresh repeat'], ['♻️', 'Recycle'],
+    ['➕', 'Plus add'], ['➖', 'Minus remove'], ['➡️', 'Arrow right'], ['⬅️', 'Arrow left'],
+  ],
+};
+
+export const chatEmojis = Object.entries(groups).flatMap(([category, items]) => items.map(([emoji, label]) => ({ emoji, label, category: category as EmojiCategory })));

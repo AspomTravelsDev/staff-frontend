@@ -83,7 +83,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     };
 
     const hasItems = Array.isArray(invoice.items) && invoice.items.length > 0;
-    const subtotal = Number(invoice.subtotal);
+    const subtotal = Number(invoice.total ?? (Number(invoice.subtotal) - Number(invoice.discount_amount || 0)));
     const balance = Number(invoice.balance_due);
     const isPaid = invoice.status === "paid" || (subtotal > 0 && balance <= 0 && invoice.status !== "unpaid" && invoice.status !== "partially_paid");
 
@@ -254,11 +254,13 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               {/* Financial calculations */}
               <div className="w-80 space-y-3 text-right">
                 <div className="grid grid-cols-2 gap-x-4">
+                  {Number(invoice.discount_amount || 0) > 0 && <><span className="text-[10px] text-slate-500 font-bold uppercase leading-6">Subtotal</span><span className="text-sm font-bold text-slate-700 tabular-nums leading-6">{formatCurrency(Number(invoice.subtotal))}</span><span className="text-[10px] text-slate-500 font-bold uppercase leading-6">Discount{invoice.discount_type === "percentage" ? ` (${invoice.discount_value}%)` : ""}</span><span className="text-sm font-bold text-slate-700 tabular-nums leading-6">-{formatCurrency(Number(invoice.discount_amount))}</span></>}
+
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-6">
                     TOTAL
                   </span>
                   <span className="text-sm font-bold text-slate-700 tabular-nums leading-6">
-                    {formatCurrency(Number(invoice.subtotal))}
+                    {formatCurrency(subtotal)}
                   </span>
 
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-6">

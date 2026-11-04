@@ -33,6 +33,9 @@ export function ApplicantStageWorkspace({
   onComplete,
   onCv,
   viewStage,
+  onReject,
+  initialContext,
+  onContextLoaded,
 }: {
   candidate: RecruitmentCandidate;
   roleId: string;
@@ -41,15 +44,19 @@ export function ApplicantStageWorkspace({
   onComplete: (context: PipelineContext) => void;
   onCv: (candidate: RecruitmentCandidate) => void;
   viewStage?: import("@/lib/types/recruitment-pipeline").PipelineStage;
+  onReject?: () => void;
+  initialContext?: PipelineContext;
+  onContextLoaded?: (context: PipelineContext) => void;
 }) {
-  const [context, setContext] = useState<PipelineContext | null>(null),
+  const [context, setContext] = useState<PipelineContext | null>(initialContext ?? null),
     [error, setError] = useState(""),
     [reload, setReload] = useState(0),
     [closing, setClosing] = useState(false);
   const closeGuard = useRef<() => Promise<boolean>>(async () => true),
     closePending = useRef(false);
-  const callbacks = useRef({ onUpdate, onComplete, onCv, onClose });
-  callbacks.current = { onUpdate, onComplete, onCv, onClose };
+  const callbacks = useRef({ onUpdate, onComplete, onCv, onClose, onContextLoaded });
+  callbacks.current = { onUpdate, onComplete, onCv, onClose, onContextLoaded };
+  const openingContext = useRef(initialContext);
   const registerClose = useCallback((guard: () => Promise<boolean>) => {
     closeGuard.current = guard;
     return () => {
@@ -57,6 +64,7 @@ export function ApplicantStageWorkspace({
     };
   }, []);
   useEffect(() => {
+    if (openingContext.current && reload === 0) return;
     let cancelled = false;
     getRecruitmentPipeline(candidate.id)
       .then((data) => {
@@ -70,6 +78,7 @@ export function ApplicantStageWorkspace({
           return;
         }
         setContext(data);
+        callbacks.current.onContextLoaded?.(data);
         setError("");
       })
       .catch(() => {
@@ -125,6 +134,7 @@ export function ApplicantStageWorkspace({
           onDone={() => void close()}
           registerClose={registerClose}
           onDiscard={onClose}
+          onReject={onReject}
           onUpdate={(next) => {
             setContext(next);
             callbacks.current.onUpdate(next);

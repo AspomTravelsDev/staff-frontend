@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "@/components/ui/combobox";
 import { addBatchComplianceOccurrences } from "@/lib/api/compliance";
-import { OFFICIAL_POLICY_CATEGORIES } from "@/lib/types/compliance";
+import { type Severity, OFFICIAL_POLICY_CATEGORIES } from "@/lib/types/compliance";
 import { type Employee } from "@/lib/api/employees";
 import { toast } from "sonner";
 
@@ -39,14 +39,22 @@ export function AddOccurrenceDialog({
   departments,
 }: AddOccurrenceDialogProps) {
   const [open, setOpen] = useState(false);
+  const [dialogContainer, setDialogContainer] = useState<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [staffSearch, setStaffSearch] = useState("");
+  const staffOptions = useMemo(() => employees.map(employee => ({
+    value: employee.id,
+    label: `${employee.firstName} ${employee.lastName} · ${employee.department} · ${employee.staff_id}`,
+  })), [employees]);
   const [formData, setFormData] = useState({
     type: "",
     points: 1.0,
     date: "",
     severity: "",
     description: "",
+    evidence: "",
   });
 
   const handleTypeChange = (typeVal: string) => {
@@ -56,12 +64,6 @@ export function AddOccurrenceDialog({
       type: typeVal,
       points: matched ? matched.points : 1.0,
     }));
-  };
-
-  const handleAddUser = (userId: string) => {
-    if (userId && !selectedUserIds.includes(userId)) {
-      setSelectedUserIds([...selectedUserIds, userId]);
-    }
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -84,21 +86,28 @@ export function AddOccurrenceDialog({
       toast.error("Please select at least one employee");
       return;
     }
+    if (!formData.type) {
+      toast.error("Please select a policy category from the list");
+      return;
+    }
 
     setLoading(true);
 
     try {
+      const attachments = new FormData();
+      evidenceFiles.forEach(file => attachments.append("evidence_files[]", file));
       const res = await addBatchComplianceOccurrences({
         user_ids: selectedUserIds,
         type: formData.type,
         points: formData.points,
         occurrence_date: `${formData.date} 12:00:00`,
-        severity: formData.severity as any,
+        severity: formData.severity as Severity,
         description: formData.description,
-      });
+        evidence: formData.evidence,
+      }, evidenceFiles.length ? attachments : undefined);
 
       if (!res.success) {
-        toast.error(res.error || "Failed to add compliance occurrence");
+        toast.error(res.error || "Unable to initiate compliance query");
         return;
       }
 
@@ -110,13 +119,16 @@ export function AddOccurrenceDialog({
         date: "",
         severity: "",
         description: "",
+    evidence: "",
       });
+      setEvidenceFiles([]);
       setSelectedUserIds([]);
+      setStaffSearch("");
       // Refresh the page or trigger a re-fetch
       window.location.reload();
-    } catch (error: any) {
-      console.error("Failed to add occurrence", error);
-      toast.error(error?.message || "Failed to add compliance occurrence");
+    } catch (error: unknown) {
+      console.error("Unable to initiate compliance query", error);
+      toast.error(error instanceof Error ? error.message : "Unable to initiate compliance query");
     } finally {
       setLoading(false);
     }
@@ -129,27 +141,27 @@ export function AddOccurrenceDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Add Occurrence
+          Initiate query
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent ref={setDialogContainer} className="sm:max-w-2xl max-h-[90vh] flex flex-col">
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Add Compliance Occurrence</DialogTitle>
+            <DialogTitle>Initiate compliance query</DialogTitle>
             <DialogDescription>
-              Record a new compliance issue. You can select multiple staff members or an entire department.
+              Raise a compliance query for review. You can select multiple staff members or an entire department. Raising a query does not add occurrences or apply disciplinary action. An outcome is recorded after review.
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4 overflow-y-auto pr-2">
             {/* Staff Selection */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Target Staff ({selectedUserIds.length})</Label>
-                <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Label htmlFor="compliance-staff-search">Staff involved ({selectedUserIds.length})</Label>
+                <div className="flex flex-col gap-2 sm:flex-row">
                   {/* Select by Department */}
                   <Select onValueChange={handleAddDepartment}>
-                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
                       <Users className="mr-2 h-3 w-3" />
                       <SelectValue placeholder="Add by Dept" />
                     </SelectTrigger>
@@ -162,24 +174,35 @@ export function AddOccurrenceDialog({
                     </SelectContent>
                   </Select>
 
-                  {/* Add Individual */}
-                  <Select onValueChange={handleAddUser}>
-                    <SelectTrigger className="w-[180px] h-8 text-xs">
-                      <Plus className="mr-2 h-3 w-3" />
-                      <SelectValue placeholder="Add Individual" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <ScrollArea className="h-60">
-                        {employees
-                          .filter((e) => !selectedUserIds.includes(e.id))
-                          .map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.firstName} {user.lastName} ({user.department})
-                            </SelectItem>
-                          ))}
-                      </ScrollArea>
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    multiple
+                    items={staffOptions}
+                    value={staffOptions.filter(option => selectedUserIds.includes(option.value))}
+                    inputValue={staffSearch}
+                    onInputValueChange={setStaffSearch}
+                    onValueChange={options => {
+                      setSelectedUserIds(options.map(option => option.value));
+                      setStaffSearch("");
+                    }}
+                    disabled={loading}
+                  >
+                    <ComboboxInput
+                      id="compliance-staff-search"
+                      placeholder="Search staff…"
+                      aria-label="Search staff by name, department or staff ID"
+                      className="w-full sm:w-60"
+                    />
+                    <ComboboxContent portalContainer={dialogContainer} className="min-w-64 max-w-[calc(100vw-2rem)]">
+                      <ComboboxEmpty>No staff match your search.</ComboboxEmpty>
+                      <ComboboxList>
+                        {option => (
+                          <ComboboxItem key={option.value} value={option}>
+                            <span className="whitespace-normal break-words">{option.label}</span>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 </div>
               </div>
 
@@ -194,6 +217,7 @@ export function AddOccurrenceDialog({
                       <button 
                         type="button"
                         onClick={() => handleRemoveUser(emp.id)}
+                        aria-label={`Remove ${emp.firstName} ${emp.lastName}`}
                         className="hover:bg-muted-foreground/20 rounded-full p-0.5"
                       >
                         <X className="h-3 w-3" />
@@ -209,27 +233,29 @@ export function AddOccurrenceDialog({
                 Policy Category
               </Label>
               <div className="col-span-3 space-y-1.5">
-                <Select
-                  value={formData.type}
-                  onValueChange={handleTypeChange}
-                  required
+                <Combobox<(typeof OFFICIAL_POLICY_CATEGORIES)[number]>
+                  items={OFFICIAL_POLICY_CATEGORIES}
+                  value={OFFICIAL_POLICY_CATEGORIES.find(category => category.type === formData.type) ?? null}
+                  itemToStringLabel={category => category.label}
+                  itemToStringValue={category => category.type}
+                  onValueChange={category => handleTypeChange(category?.type ?? "")}
+                  disabled={loading}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select official policy category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {OFFICIAL_POLICY_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.type} value={cat.type}>
-                        <div className="flex items-center justify-between w-full gap-2">
-                          <span>{cat.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <ComboboxInput id="type" placeholder="Search policy categories…" className="w-full" required />
+                  <ComboboxContent portalContainer={dialogContainer}>
+                    <ComboboxEmpty>No policy categories match your search.</ComboboxEmpty>
+                    <ComboboxList>
+                      {category => (
+                        <ComboboxItem key={category.type} value={category}>
+                          <span className="whitespace-normal break-words">{category.label}</span>
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
                 {formData.type && (
                   <div className="flex items-center justify-between text-xs px-2 py-1 rounded bg-muted/40 border">
-                    <span className="text-muted-foreground">Occurrences:</span>
+                    <span className="text-muted-foreground">Policy reference (if confirmed):</span>
                     <span className="font-semibold text-primary">
                       {OFFICIAL_POLICY_CATEGORIES.find((c) => c.type === formData.type)?.unitText || `${formData.points} Occurrence(s)`}
                     </span>
@@ -240,7 +266,7 @@ export function AddOccurrenceDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="date" className="text-right text-sm">
-                Date
+                Incident date
               </Label>
               <Input
                 id="date"
@@ -256,7 +282,7 @@ export function AddOccurrenceDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="severity" className="text-right text-sm">
-                Severity
+                Reported severity
               </Label>
               <Select
                 value={formData.severity}
@@ -266,7 +292,7 @@ export function AddOccurrenceDialog({
                 required
               >
                 <SelectTrigger className="w-full col-span-3">
-                  <SelectValue placeholder="Select severity" />
+                  <SelectValue placeholder="Select reported severity" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
@@ -291,6 +317,21 @@ export function AddOccurrenceDialog({
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="evidence">Evidence or reference</Label>
+              <Textarea id="evidence" value={formData.evidence} onChange={(e) => setFormData({ ...formData, evidence: e.target.value })} placeholder="Record timestamps, message references, or file history. Evidence must be verified before confirming an occurrence." maxLength={10000} />
+              <Label htmlFor="evidence-files">Attach evidence documents (optional)</Label>
+              <Input id="evidence-files" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" disabled={loading} onChange={event => {
+                const files = Array.from(event.target.files ?? []);
+                if (files.length + evidenceFiles.length > 5 || files.some(file => file.size > 10 * 1024 * 1024) || [...evidenceFiles, ...files].reduce((total, file) => total + file.size, 0) > 15 * 1024 * 1024) {
+                  toast.error("Attach up to 5 documents: 10 MB per file and 15 MB in total.");
+                } else setEvidenceFiles(previous => [...previous, ...files]);
+                event.target.value = "";
+              }} />
+              <p className="text-xs text-muted-foreground">PDF, Word, Excel or images. Up to 5 files, 10 MB each and 15 MB in total. Staff involved can view these documents.</p>
+              {evidenceFiles.length > 0 && <ul className="divide-y text-sm">{evidenceFiles.map((file, index) => <li key={index} className="flex items-center justify-between gap-2 py-2"><span className="min-w-0 break-words">{file.name}</span><Button type="button" variant="ghost" size="sm" disabled={loading} aria-label={`Remove ${file.name}`} onClick={() => setEvidenceFiles(previous => previous.filter((_, item) => item !== index))}>Remove</Button></li>)}</ul>}
+              <p className="text-xs text-muted-foreground">Record the facts for review and allow each staff member to respond. Any occurrence or corrective action is decided separately after review.</p>
+            </div>
           </div>
           <DialogFooter className="mt-auto pt-2 border-t">
             <Button 
@@ -303,7 +344,7 @@ export function AddOccurrenceDialog({
               Clear Selection
             </Button>
             <Button type="submit" disabled={loading || selectedUserIds.length === 0}>
-              {loading ? "Adding..." : `Send to ${selectedUserIds.length} Staff`}
+              {loading ? "Sending query…" : `Send query to ${selectedUserIds.length} staff ${selectedUserIds.length === 1 ? "member" : "members"}`}
             </Button>
           </DialogFooter>
         </form>

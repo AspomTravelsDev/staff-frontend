@@ -42,6 +42,7 @@ interface DeactivateFormData {
   exit_type: UserExitType;
   exit_date: string;
   exit_reason: string;
+  is_blacklisted: boolean;
 }
 
 export function DeactivateUserDialog({
@@ -66,6 +67,7 @@ export function DeactivateUserDialog({
       exit_type: "resignation",
       exit_date: format(new Date(), "yyyy-MM-dd"),
       exit_reason: "",
+      is_blacklisted: false,
     },
   });
 
@@ -78,6 +80,7 @@ export function DeactivateUserDialog({
           employee.exitDate ||
           format(new Date(), "yyyy-MM-dd"),
         exit_reason: employee.exit_reason || "",
+        is_blacklisted: employee.is_blacklisted ?? false,
       });
       setInitiateClearance(true);
     }
@@ -95,6 +98,7 @@ export function DeactivateUserDialog({
         exit_type: data.exit_type,
         exit_date: data.exit_date,
         exit_reason: data.exit_reason.trim() || null,
+        is_blacklisted: data.is_blacklisted,
       });
 
       if (result.success) {
@@ -214,28 +218,36 @@ export function DeactivateUserDialog({
           {/* Reason / Notes */}
           <div className="grid gap-2">
             <Label htmlFor="exit_reason">
-              Reason / Remarks{" "}
-              <span className="text-xs text-muted-foreground font-normal">
-                (optional)
-              </span>
+              Detailed Reason / Remarks <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="exit_reason"
               rows={3}
               placeholder="e.g. Submitted formal resignation letter with 30 days notice..."
               {...register("exit_reason", {
+                required: "A detailed separation reason is required",
+                minLength: { value: 20, message: "Enter at least 20 characters" },
                 maxLength: {
                   value: 1000,
                   message: "Reason cannot exceed 1000 characters",
                 },
               })}
             />
+            {errors.exit_reason && <p className="text-xs text-destructive">{errors.exit_reason.message}</p>}
             {errors.exit_reason && (
               <p className="text-xs text-destructive">
                 {errors.exit_reason.message}
               </p>
             )}
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border p-3">
+            <input type="checkbox" className="mt-1 h-4 w-4 accent-destructive" disabled={isPending} {...register("is_blacklisted")} />
+            <span className="space-y-1">
+              <span className="block text-sm font-medium">Add to blacklist</span>
+              <span className="block text-sm text-muted-foreground">For staff who absconded or left without proper notice. The separation reason above will be saved with their blacklist record.</span>
+            </span>
+          </label>
 
           {/* IT Device & Asset Clearance Trigger */}
           <div className="p-3 rounded-lg border bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40">

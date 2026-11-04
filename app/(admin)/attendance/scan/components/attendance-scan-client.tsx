@@ -15,7 +15,6 @@ import {
   RefreshCw,
   Building2,
   Calendar,
-  Sparkles,
   ArrowRight,
   Loader2,
   Camera,
@@ -48,6 +47,7 @@ import { useUser } from "@/providers/user-provider";
 import { toast } from "sonner";
 import { CameraQrScanner } from "@/components/attendance/camera-qr-scanner";
 import { useTodayAttendance } from "@/hooks/use-today-attendance";
+import { toProxiedImageUrl } from "@/lib/utils/image-url";
 
 function playSuccessChime() {
   try {
@@ -90,6 +90,7 @@ export function AttendanceScanClient({
   const { user } = useUser();
   const [scannerOpen, setScannerOpen] = useState(false);
   const { status, updateStatus, refetch } = useTodayAttendance(initialStatus);
+  const [imageFailed, setImageFailed] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>("");
 
@@ -265,12 +266,14 @@ export function AttendanceScanClient({
 
   const isClockedIn = Boolean(status && !status.clock_out_at);
   const isClockedOut = Boolean(status && status.clock_out_at);
+  const profileImage = user?.image_url && !imageFailed
+    ? toProxiedImageUrl(user.image_url)
+    : undefined;
 
   return (
-    <div className="relative isolate min-h-dvh overflow-hidden bg-linear-to-b from-slate-50 via-slate-100/50 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col items-center justify-start px-4 py-5 sm:px-6 sm:py-8">
-      <div aria-hidden="true" className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+    <div className="flex w-full min-w-0 flex-1 flex-col items-center bg-muted/20 px-3 py-4 sm:px-6 sm:py-6">
       {/* Brand Header */}
-      <div className="w-full max-w-xl flex items-center justify-between py-2 mb-5">
+      <div className="mb-5 flex w-full max-w-2xl items-center justify-between gap-3 py-1">
         <div className="flex items-center gap-2">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md font-bold text-sm ring-4 ring-primary/10">
             AT
@@ -301,83 +304,83 @@ export function AttendanceScanClient({
         </div>
       </div>
 
-      <main className="w-full max-w-xl space-y-5">
+      <main className="w-full max-w-2xl space-y-4 sm:space-y-5">
         <div className="px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Staff attendance</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Clock in and out</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Verify your office presence and view today&apos;s attendance status.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Clock in and out</h2>
+          <p className="mt-1 max-w-prose text-sm text-muted-foreground">Verify your office presence and view today&apos;s attendance status.</p>
         </div>
         {/* User Card & Digital Clock */}
-        <Card className="border-border/70 shadow-sm backdrop-blur-sm overflow-hidden rounded-2xl">
-          <div className="h-2 bg-linear-to-r from-primary via-indigo-500 to-sky-400" />
-          <CardHeader className="p-4 sm:p-5 pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {user?.image_url ? (
-                  <div className="relative h-11 w-11 rounded-full overflow-hidden border border-border">
+        <Card className="rounded-xl border-border/70 shadow-sm">
+          <CardHeader className="gap-4 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                {profileImage ? (
+                  <div className="relative size-11 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
                     <Image
-                      src={user.image_url}
-                      alt={user.name || "User"}
+                      src={profileImage}
+                      alt={user?.name || "User"}
                       fill
+                      unoptimized
                       className="object-cover"
+                      onError={() => setImageFailed(true)}
                     />
                   </div>
                 ) : (
-                  <div className="h-11 w-11 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-base">
-                    {user?.name?.[0] || "U"}
+                  <div aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {user?.name?.trim()?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
-                <div>
-                  <h2 className="font-semibold text-base leading-tight">
+                <div className="min-w-0">
+                  <h2 className="truncate text-base font-semibold leading-tight">
                     {user?.name || "Staff Member"}
                   </h2>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {user?.department || user?.role || "Aspom Staff"}
                   </p>
                 </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 justify-end">
-                  <Calendar className="h-3 w-3" />
+              <div className="sm:text-right">
+                <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:justify-end">
+                  <Calendar className="size-3" aria-hidden="true" />
                   WAT
                 </span>
-                <p className="text-xs font-medium text-foreground">
+                <p className="text-xs font-medium text-foreground sm:whitespace-nowrap">
                   {currentDate || "Today"}
                 </p>
               </div>
             </div>
 
             {/* Big Live Clock */}
-            <div className="mt-4 p-3 rounded-xl bg-muted/40 border border-muted/60 flex items-center justify-between">
+            <div className="flex flex-col gap-1.5 rounded-lg border bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4 text-primary animate-pulse" />
-                <span className="text-xs font-medium">Lagos Office Time</span>
+                <Clock className="size-4 text-primary" aria-hidden="true" />
+                <span className="text-xs font-medium">Lagos office time</span>
               </div>
-              <span className="text-lg sm:text-xl font-mono font-bold tracking-tight text-foreground">
+              <span className="font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground sm:text-2xl">
                 {currentTime || "--:--:--"}
               </span>
             </div>
           </CardHeader>
 
           {/* Verification Indicators */}
-          <CardContent className="p-4 sm:p-5 pt-0">
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-background border border-border/70">
-                <MapPin className="h-4 w-4 shrink-0 text-emerald-500" />
+          <CardContent className="px-4 pb-4 sm:px-5 sm:pb-5">
+            <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+              <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-background p-3">
+                <MapPin className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="font-medium text-[11px] truncate">Presence Proof</p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">
+                  <p className="truncate text-[11px] font-medium">Presence proof</p>
+                  <p className="truncate text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
                     Office Wall QR Scanned
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-background border border-border/70">
-                <Smartphone className="h-4 w-4 shrink-0 text-emerald-500" />
+              <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-background p-3">
+                <Smartphone className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="font-medium text-[11px] truncate">Device Signature</p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                  <p className="truncate text-[11px] font-medium">Device signature</p>
+                  <p className="truncate text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
                     Hardware Verified
                   </p>
                 </div>
@@ -388,8 +391,8 @@ export function AttendanceScanClient({
 
         {/* 1-Step Auto Clock-in Loading State */}
         {isAutoClockingIn && !isClockedIn ? (
-          <Card className="border-primary/30 bg-primary/5 shadow-md animate-pulse">
-            <CardHeader className="p-6 text-center space-y-3">
+          <Card className="border-primary/25 bg-primary/5 shadow-sm">
+            <CardHeader className="space-y-3 p-5 text-center sm:p-6">
               <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                 <Loader2 className="h-7 w-7 animate-spin text-primary" />
               </div>
@@ -406,7 +409,7 @@ export function AttendanceScanClient({
         ) : isClockedIn ? (
           justClockedIn ? (
             /* Just Clocked In State - Celebratory Card */
-            <Card className="border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-md">
+            <Card className="border-emerald-500/30 bg-emerald-50/40 shadow-sm dark:bg-emerald-950/20">
               <CardHeader className="p-4 sm:p-5 text-center">
                 <div className="mx-auto h-14 w-14 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mb-2 shadow-xs">
                   <CheckCircle2 className="h-7 w-7" />
@@ -449,7 +452,7 @@ export function AttendanceScanClient({
             </Card>
           ) : (
             /* Re-scanned Wall QR While Clocked In -> Ready to Clock Out */
-            <Card className="border-primary/30 bg-linear-to-b from-primary/5 via-card to-card shadow-md">
+            <Card className="border-border/70 shadow-sm">
               <CardHeader className="p-4 sm:p-5 text-center">
                 <div className="mx-auto h-14 w-14 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2 shadow-xs">
                   <LogOut className="h-7 w-7" />
@@ -478,7 +481,7 @@ export function AttendanceScanClient({
                     setScannerOpen(true);
                   }}
                   disabled={isSubmitting}
-                  className="w-full h-12 text-sm font-bold uppercase tracking-wider gap-2 shadow-md cursor-pointer bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all active:scale-[0.98]"
+                  className="h-12 w-full gap-2 text-sm font-semibold shadow-sm"
                 >
                   {isSubmitting ? (
                     <>
@@ -496,7 +499,7 @@ export function AttendanceScanClient({
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full h-10 text-xs font-semibold tracking-wide gap-1.5 cursor-pointer"
+                  className="h-11 w-full gap-1.5 text-sm font-medium"
                 >
                   <Link href="/dashboard">
                     <span>Continue Working / Dashboard</span>
@@ -510,9 +513,6 @@ export function AttendanceScanClient({
           /* Clocked Out State */
           <Card className="border-border/60 shadow-xs">
             <CardHeader className="p-4 sm:p-5 text-center">
-              <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1">
-                <Sparkles className="h-6 w-6" />
-              </div>
               <CardTitle className="text-lg font-bold">Shift Completed</CardTitle>
               <CardDescription className="text-xs">
                 You have finished your work day for today.
@@ -624,9 +624,9 @@ export function AttendanceScanClient({
         )}
 
         {/* Security & Anti-Proxy Notice */}
-        <div className="p-3.5 rounded-xl bg-background/70 border border-border/70 text-center shadow-xs">
-          <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+        <div className="rounded-lg border bg-background px-3 py-2.5 text-center">
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
             Device signature & physical office QR ensure authentic attendance.
           </p>
         </div>

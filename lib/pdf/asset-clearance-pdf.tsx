@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import { InventoryAssignment } from "@/lib/api/inventory";
 import { format } from "date-fns";
+import { clearanceStaffNotes } from "@/lib/inventory-clearance";
 
 const formatPdfDate = (dateStr?: string | Date | null): string => {
   if (!dateStr) return "";
@@ -295,7 +296,7 @@ export function AssetClearancePdfDocument({
       isDeviceCleared ||
       item.staffDecision === "approved" ||
       !!item.staffDecidedAt ||
-      !!item.staffNotes ||
+      !!clearanceStaffNotes(item.staffNotes) ||
       !!item.staffConditionDetails ||
       item.status === "return_pending_inspection" ||
       item.status === "return_pending_compliance";
@@ -394,8 +395,9 @@ export function AssetClearancePdfDocument({
           {itemsToDisplay.map((item, idx) => {
             const devName = item.inventoryItem?.name || "Device";
             const condStr = item.staffConditionRating ? `[Condition: ${item.staffConditionRating}] ` : "";
-            const detailsStr = [item.staffConditionDetails, item.staffNotes].filter(Boolean).join(" — ");
-            const comment = condStr + (detailsStr || item.initiateNotes || "No condition issues reported upon handover.");
+            const detailsStr = [item.staffConditionDetails, clearanceStaffNotes(item.staffNotes)].filter(Boolean).join(" — ");
+            const comment = condStr + detailsStr;
+            if (!comment.trim()) return null;
             return (
               <Text style={styles.commentLine} key={idx}>
                 {itemsToDisplay.length > 1 ? `${devName}: ` : ""}{comment}

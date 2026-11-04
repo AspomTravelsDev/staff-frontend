@@ -1,6 +1,6 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Crown, Sparkles } from "lucide-react";
+import { Crown } from "lucide-react";
 
 interface EmployeeOfTheMonthCardProps {
   employee?: {
@@ -23,12 +23,6 @@ export function EmployeeOfTheMonthCard({
 
           {/* Crown Icon */}
           <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
-
-          {/* Sparkles */}
-          <Sparkles className="absolute -left-6 top-0 h-6 w-6 text-primary fill-primary/20 animate-pulse" />
-          <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-primary fill-primary/20 animate-pulse delay-75" />
-          <Sparkles className="absolute -left-2 bottom-0 h-4 w-4 text-primary fill-primary/20 animate-pulse delay-150" />
-          <Sparkles className="absolute -right-4 -bottom-2 h-7 w-7 text-primary fill-primary/20 animate-bounce delay-300" />
 
           <Avatar className="h-48 w-48 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 transition-transform duration-500 group-hover:scale-105">
             {employee ? (

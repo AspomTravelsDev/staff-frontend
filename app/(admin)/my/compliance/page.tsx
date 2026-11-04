@@ -2,17 +2,17 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   getComplianceIssues,
-  getComplianceStats,
   getComplianceSanctionGrid,
   Severity,
   ComplianceStatus,
 } from "@/lib/api/compliance";
-import { ComplianceStatsCards } from "../../compliance/components/compliance-stats";
 import { ComplianceClientManager } from "../../compliance/components/compliance-client-manager";
 import { SanctionLadderGrid } from "../../compliance/components/sanction-ladder-grid";
+import type { CorrectionFilter } from "@/lib/types/compliance";
 
 interface PageProps {
   searchParams: Promise<{
+    correction?: CorrectionFilter;
     status?: ComplianceStatus;
     severity?: Severity;
     type?: string;
@@ -33,24 +33,24 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
   const page = params.page ? parseInt(params.page) : 1;
 
   // Fetch only user's issues and their specific stats
-  const [issuesData, stats, sanctionGrid] = await Promise.all([
+  const [issuesData, sanctionGrid] = await Promise.all([
     getComplianceIssues({
       user_id: user.id,
       limit: 500,
       page,
       status: params.status,
+      correction: params.correction,
       severity: params.severity,
       date_from: params.date_from,
       date_to: params.date_to,
     }),
-    getComplianceStats({ user_id: user.id }),
     getComplianceSanctionGrid({ user_id: user.id }),
   ]);
 
   const { items: issues } = issuesData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">My Compliance</h1>
         <p className="text-muted-foreground">
@@ -58,32 +58,30 @@ export default async function MyCompliancePage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <ComplianceStatsCards stats={stats} />
-
       <SanctionLadderGrid
         items={sanctionGrid.items}
         steps={sanctionGrid.steps}
         windowStart={sanctionGrid.windowStart}
         windowEnd={sanctionGrid.windowEnd}
         periodLabel={sanctionGrid.periodLabel}
-        title="My Sanction Ladder"
-        description="Your disciplinary ladder for the active calendar half-year (Jan-Jun or Jul-Dec). Resolved (No Action) records are excluded."
+        title="My confirmed occurrences"
+        description="Your confirmed occurrences in the rolling six-month window. No-action outcomes are excluded; recommended steps require a recorded review."
         showDepartment={false}
         allowImageExport={false}
-        showBreakdown={false}
       />
 
       <ComplianceClientManager
         initialIssues={issues}
         isAdmin={false}
         serverFilters={{
+          correction: params.correction,
           status: params.status,
           severity: params.severity,
           date_from: params.date_from,
           date_to: params.date_to,
         }}
       />
+
     </div>
   );
 }

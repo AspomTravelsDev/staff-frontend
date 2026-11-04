@@ -25,13 +25,11 @@ export function PayslipContent({
   if (!entry) return null;
 
   const runStatus = entry.run?.status || entry.run_status;
-  const isDraft =
-    entry.status !== "approved" ||
-    (Boolean(runStatus) && runStatus !== "closed");
+  const isDraft = runStatus !== "closed";
   const isPending = isDraft;
 
   const getStatusLabel = () => {
-    if (!isDraft) return "Approved & Finalized";
+    if (!isDraft) return "Payroll Finalized";
     if (runStatus === "draft" || runStatus === "hr_draft") return "Draft (HR Review)";
     if (runStatus === "account_review") return "Draft (Accounts Review)";
     if (runStatus === "compliance_review") return "Draft (Compliance Review)";
@@ -79,8 +77,12 @@ export function PayslipContent({
       ? Number(entry.calculation_snapshot.suspension_deduction)
       : Number(entry.suspension_days || 0) * Number(entry.daily_rate || 0);
 
+  const snapshotLateDeduction = Number(
+    entry.calculation_snapshot?.unauthorized_late_deduction ?? 0,
+  );
+
   const storedDeductionAmount = Number(entry.deduction_amount || 0);
-  const deductionAdjustment = storedDeductionAmount - (snapshotAttDeduction + snapshotSuspDeduction);
+  const deductionAdjustment = storedDeductionAmount - (snapshotAttDeduction + snapshotSuspDeduction + snapshotLateDeduction);
 
   const totalDeductions = Math.max(
     0,
@@ -391,6 +393,17 @@ export function PayslipContent({
                       (
                       {formatPrice(snapshotSuspDeduction).replace("NGN", "")}
                       )
+                    </td>
+                  </tr>
+                )}
+
+                {snapshotLateDeduction > 0 && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Unauthorized Late Arrivals ({entry.calculation_snapshot?.unauthorized_late_days ?? 0} late days; {entry.calculation_snapshot?.unauthorized_late_deduction_days ?? 0} deduction days)
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      ({formatPrice(snapshotLateDeduction).replace("NGN", "")})
                     </td>
                   </tr>
                 )}

@@ -60,7 +60,7 @@ export function PayrollHistory({ initialEntries, user }: PayrollHistoryProps) {
 
   const isEntryDraft = (entry: PayrollEntry) => {
     const runStatus = entry.run?.status || (entry as any).run_status;
-    return entry.status !== "approved" || (Boolean(runStatus) && runStatus !== "closed");
+    return runStatus !== "closed";
   };
 
   const hasDraftEntries = entries.some(isEntryDraft);

@@ -1,5 +1,6 @@
 import { renderDataPage } from "@/lib/api/render-data-page";
 import { getITGuides } from "@/lib/api/it-guides";
+import { MarkITGuidesReadOnVisit } from "./components/mark-it-guides-read-on-visit";
 import {
   Search,
   BookOpen,
@@ -56,6 +57,7 @@ export default async function ITInformationDeskPage({
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/30">
+      <MarkITGuidesReadOnVisit />
       {/* Hero Section */}
       <section className="bg-primary text-primary-foreground py-16 px-4">
         <div className="container mx-auto max-w-6xl text-center">

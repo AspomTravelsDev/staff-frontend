@@ -110,7 +110,7 @@ export const SiteHeader = () => {
         } else if (key === "compliance") {
           label = "New compliance query issued";
         } else if (key === "complianceReplies") {
-          label = "Staff reply to compliance query";
+          label = "Compliance queries awaiting review";
         } else if (key === "pendingLeaves") {
           label = "Pending leave requests";
         } else if (key === "myLeaveUpdates") {
@@ -146,6 +146,9 @@ export const SiteHeader = () => {
           if (count.label) {
             label = count.label;
           }
+          if ((key === "compliance" || key === "complianceReplies") && count.latest_id) {
+            targetUrl = `${key === "complianceReplies" ? "/compliance" : "/my/compliance"}?id=${encodeURIComponent(count.latest_id)}&view=${count.view ?? "responses"}`;
+          }
           if (key === "payrollQueue") {
             targetUrl = "/hr/payroll";
           }
@@ -154,11 +157,7 @@ export const SiteHeader = () => {
           }
           // Dynamic routing for announcements
           if (key === "unreadAnnouncements") {
-            if (displayCount === 1 && count.latest_id) {
-              targetUrl = `/announcements/${count.latest_id}`;
-            } else {
-              targetUrl = "/dashboard#announcements";
-            }
+            targetUrl = "/announcements";
           }
           // Dynamic routing for IT guides
           if (key === "unreadITGuides") {
@@ -177,7 +176,7 @@ export const SiteHeader = () => {
           label,
           url: targetUrl,
           items: chatItems,
-          recruitmentItems: typeof count === "object" && count !== null ? count.recruitment_items : undefined,
+          recruitmentItems: typeof count === "object" && count !== null ? count.recruitment_items ?? count.payroll_items : undefined,
           taskItems: typeof count === "object" && count !== null ? count.task_items : undefined,
           paymentItems: typeof count === "object" && count !== null ? count.payment_items : undefined,
         };
@@ -287,7 +286,7 @@ export const SiteHeader = () => {
                           ([key, data]) => {
                             if (data.paymentItems?.length) return data.paymentItems.map(payment => <Link key={`payment-${payment.id}`} href={payment.url} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0"><div className="min-w-0"><p className="truncate text-sm font-medium">{payment.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{payment.message}</p></div><span className="shrink-0 rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600">{payment.count}</span></Link>);
                             if (key === "paymentLinkAttention") return <Link key={key} href="/accounts/payment-links?status=needs_attention" className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b"><span className="text-sm">Payments needing Accounts attention</span><span className="text-xs font-semibold">{data.count}</span></Link>;
-                            if (key === "recruitmentUpdates" && data.recruitmentItems?.length) {
+                            if ((key === "recruitmentUpdates" || key === "payrollComments") && data.recruitmentItems?.length) {
                               return data.recruitmentItems.map(item => <Link key={`recruitment-${item.id}`} href={item.url} className="flex items-center justify-between gap-3 border-b px-4 py-3 hover:bg-muted/50 last:border-0">
                                 <div className="min-w-0"><p className="text-sm font-medium">{item.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{item.body}</p></div>
                                 {item.count > 1 && <span className="shrink-0 text-xs font-semibold tabular-nums">{item.count}</span>}

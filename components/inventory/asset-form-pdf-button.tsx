@@ -9,9 +9,10 @@ import { InventoryAssignment } from "@/lib/api/inventory";
 export async function downloadAssetFormPdf(
   assignment?: InventoryAssignment | null,
   assignments?: InventoryAssignment[],
-  filename?: string
+  filename?: string,
+  options: { blank?: boolean; current?: boolean } = {}
 ) {
-  if (!assignment && (!assignments || assignments.length === 0)) {
+  if (!options.blank && !assignment && (!assignments || assignments.length === 0)) {
     toast.error("No assignment data available for PDF export.");
     return;
   }
@@ -24,6 +25,8 @@ export async function downloadAssetFormPdf(
       <AssetFormPdfDocument
         assignment={assignment}
         assignments={assignments}
+        blank={options.blank}
+        current={options.current}
       />
     );
 
@@ -44,7 +47,7 @@ export async function downloadAssetFormPdf(
     URL.revokeObjectURL(blobUrl);
 
     toast.success("Asset Form PDF generated successfully!");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("PDF generation error:", error);
     toast.error("Failed to generate PDF form.");
   }
@@ -56,6 +59,7 @@ interface AssetFormPdfButtonProps extends Omit<React.ComponentProps<typeof Butto
   filename?: string;
   label?: string;
   hideIfEmpty?: boolean;
+  current?: boolean;
 }
 
 export function AssetFormPdfButton({
@@ -67,6 +71,7 @@ export function AssetFormPdfButton({
   size = "sm",
   className,
   hideIfEmpty = true,
+  current = false,
   ...props
 }: AssetFormPdfButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -85,7 +90,7 @@ export function AssetFormPdfButton({
 
     setLoading(true);
     try {
-      await downloadAssetFormPdf(assignment, assignments, filename);
+      await downloadAssetFormPdf(assignment, assignments, filename, { current });
     } finally {
       setLoading(false);
     }

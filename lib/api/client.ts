@@ -1,3 +1,6 @@
+import { sessionLogoutUrl } from "@/lib/auth/return-path";
+import { unstable_rethrow } from "next/navigation";
+
 /**
  * Centralized API Client
  *
@@ -13,6 +16,14 @@ const defaultApiUrl = process.env.NODE_ENV === "production"
     : "http://localhost:8000";
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || defaultApiUrl;
+
+interface ApiErrorPayload {
+    code?: string;
+    message?: string;
+    error?: string;
+    details?: string;
+    errors?: Record<string, string | string[]>;
+}
 
 export interface ErrorResponse {
     error: string;
@@ -78,7 +89,7 @@ export async function apiClient<T>(
         const response = await fetch(`${API_URL}${endpoint}`, {
             ...fetchOptions,
             headers,
-            body: isFormData ? (body as any) : (body ? JSON.stringify(body) : undefined),
+            body: isFormData ? (body as FormData) : (body ? JSON.stringify(body) : undefined),
             cache: fetchOptions.cache ?? "no-store",
         });
 
@@ -88,7 +99,7 @@ export async function apiClient<T>(
         }
 
         let text = "";
-        let data: any = null;
+        let data: ApiErrorPayload | null = null;
         try {
             text = await response.text();
             if (text && text.trim()) {
@@ -122,23 +133,15 @@ export async function apiClient<T>(
                 });
             }
 
-            // Handle 401 Unauthorized globally (only for true session expiration)
-            if (response.status === 401 && data?.code === "UNAUTHENTICATED" && !endpoint.includes("/login")) {
+            // A protected 401 is a session failure even when the backend omits its error code.
+            if (response.status === 401 && !skipAuth && !/^\/api\/(?:login|logout)(?:[/?]|$)/.test(endpoint)) {
                 if (typeof window !== "undefined") {
-                    const { toast } = await import("sonner");
-                    toast.error("Session expired. Please login again.");
-                    setTimeout(() => {
-                        window.location.href = "/auth/logout";
-                    }, 1500);
+                    window.location.replace(sessionLogoutUrl(window.location.pathname + window.location.search + window.location.hash));
+                } else {
+                    const { redirectToSessionLogin } = await import("@/lib/auth/recover-session");
+                    return await redirectToSessionLogin();
                 }
-
-                return {
-                    success: false,
-                    error: {
-                        error: "Your session has expired. Please login again.",
-                        code: "UNAUTHENTICATED",
-                    },
-                };
+                return { success: false, error: { error: "Your session has expired. Please sign in again.", code: "UNAUTHENTICATED" } };
             }
 
             let errorMessage = isUpstreamUploadBlock
@@ -182,14 +185,17 @@ export async function apiClient<T>(
             };
         }
 
-        return { success: true, data: (data ?? ({} as T)) };
-    } catch (error: any) {
+        return { success: true, data: (data ?? {}) as T };
+    } catch (error) {
+        // Authentication redirects must reach Next's navigation/action handler.
+        unstable_rethrow(error);
         console.error(`API Error [${endpoint}]:`, error);
-        const isAbort = error?.name === "AbortError";
+        const errorDetails = error instanceof Error ? error : undefined;
+        const isAbort = errorDetails?.name === "AbortError";
         const message = isAbort
             ? "Request was cancelled."
-            : (error?.message && !error.message.includes("fetch failed") && !error.message.includes("NetworkError")
-                ? error.message
+            : (errorDetails?.message && !errorDetails.message.includes("fetch failed") && !errorDetails.message.includes("NetworkError")
+                ? errorDetails.message
                 : "Unable to reach the server. Please check your internet connection.");
         return {
             success: false,
@@ -233,6 +239,7 @@ export async function apiClientBrowser<T>(
     const isFormData = body instanceof FormData;
 
     if (!token) {
+        if (typeof window !== "undefined") window.location.replace(sessionLogoutUrl(window.location.pathname + window.location.search + window.location.hash));
         throw new Error("Token is required for browser API calls");
     }
 
@@ -244,11 +251,15 @@ export async function apiClientBrowser<T>(
     const response = await fetch(`${API_URL}${endpoint}`, {
         ...fetchOptions,
         headers,
-        body: isFormData ? (body as any) : (body ? JSON.stringify(body) : undefined),
+        body: isFormData ? (body as FormData) : (body ? JSON.stringify(body) : undefined),
     });
 
     if (!response.ok) {
-        let errorData: any = {};
+        if (response.status === 401 && !/^\/api\/(?:login|logout)(?:[/?]|$)/.test(endpoint)) {
+            if (typeof window !== "undefined") window.location.replace(sessionLogoutUrl(window.location.pathname + window.location.search + window.location.hash));
+            throw new Error("Your session has expired. Please sign in again.");
+        }
+        let errorData: ApiErrorPayload = {};
         try {
             errorData = await response.json();
         } catch {

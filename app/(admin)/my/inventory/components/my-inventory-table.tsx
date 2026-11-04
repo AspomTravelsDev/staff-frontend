@@ -93,6 +93,8 @@ export function MyInventoryTable({ items, assignments = [] }: MyInventoryTablePr
 
   return (
     <div className="flex flex-col gap-4">
+      {assignments.some((assignment) => assignment.issueBatchId) && <details><summary className="cursor-pointer text-sm font-medium">Equipment issue records</summary><div className="mt-3 flex flex-wrap gap-2">{Array.from(new Set(assignments.map((assignment) => assignment.issueBatchId).filter((id): id is string => !!id))).map((batch) => { const records = assignments.filter((assignment) => assignment.issueBatchId === batch); return <AssetFormPdfButton key={batch} assignments={records} label={`Issue record · ${format(new Date(records[0].createdAt), "dd MMM yyyy HH:mm")}`} />; })}</div></details>}
+
       <div className="flex justify-end">
         {items.length > 0 && (
           <TableExportButton
@@ -177,8 +179,7 @@ export function MyInventoryTable({ items, assignments = [] }: MyInventoryTablePr
 
                       {(() => {
                         const matchedAssignment =
-                          item.openAssignment ||
-                          assignments.find((a) => a.inventoryItemId === item.id);
+                          assignments.find((a) => a.inventoryItemId === item.id && (!a.type || a.type === "assignment"));
                         if (!matchedAssignment) return null;
                         return (
                           <div className="px-1 py-1">

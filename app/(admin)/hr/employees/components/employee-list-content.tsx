@@ -15,6 +15,7 @@ import {
 } from "@/types/user-types";
 
 interface EmployeeListContentProps {
+  blacklist?: boolean;
   employees: Employee[];
   stats: EmployeeStats;
   headcountAsOf: string;
@@ -30,13 +31,17 @@ export function EmployeeListContent({
   roleOptions,
   departmentsForEditor,
   roleToDepartment,
+  blacklist = false,
 }: EmployeeListContentProps) {
   const [filters, setFilters] = useState<FilterValues>({
     status: "all",
     exit_type: "all",
     department: "all",
+    contract_type: "all",
+    search: "",
     sortBy: "name",
     sortOrder: "asc",
+    joined_this_month: false,
   });
 
   // Extract unique departments
@@ -53,9 +58,29 @@ export function EmployeeListContent({
   const filteredAndSortedEmployees = useMemo(() => {
     let result = [...employees];
 
+    if (filters.search?.trim()) {
+      const search = filters.search.trim().toLocaleLowerCase();
+      result = result.filter((employee) => `${employee.firstName} ${employee.lastName}`.toLocaleLowerCase().includes(search));
+    }
+
+    if (filters.contract_type === "none") {
+      result = result.filter((employee) => !employee.contract_type);
+    } else if (filters.contract_type && filters.contract_type !== "all") {
+      result = result.filter((employee) => employee.contract_type === filters.contract_type);
+    }
+
     // Apply status filter
     if (filters.status !== "all") {
       result = result.filter((e) => e.status === filters.status);
+    }
+
+    if (filters.joined_this_month) {
+      const now = new Date(headcountAsOf);
+      result = result.filter((employee) => {
+        if (!employee.joinDate) return false;
+        const joined = new Date(employee.joinDate);
+        return joined.getFullYear() === now.getFullYear() && joined.getMonth() === now.getMonth();
+      });
     }
 
     // Apply exit_type filter (when status is Inactive)
@@ -98,9 +123,30 @@ export function EmployeeListContent({
     });
 
     return result;
-  }, [employees, filters]);
+  }, [employees, filters, headcountAsOf]);
+
+  const activeStatFilter = filters.joined_this_month
+    ? "new-joiners"
+    : filters.status === "Active"
+      ? "active"
+      : filters.status === "Inactive"
+        ? "inactive"
+        : "all";
+
+  const selectStatFilter = (filter: "active" | "inactive" | "new-joiners") => {
+    setFilters((current) => ({
+      ...current,
+      status: filter === "active" ? "Active" : filter === "inactive" ? "Inactive" : "all",
+      joined_this_month: filter === "new-joiners",
+      exit_type: "all",
+    }));
+  };
 
   const exportColumns = [
+    ...(blacklist ? [
+      { header: "Blacklist Reason", key: (emp: Employee) => emp.blacklist_reason || "" },
+      { header: "Blacklisted On", key: (emp: Employee) => emp.blacklisted_at ? formatLagosDate(emp.blacklisted_at) : "" },
+    ] : []),
     { header: "Staff ID", key: (emp: Employee) => emp.staff_id || "" },
     { header: "Tax ID", key: (emp: Employee) => emp.tax_id || "" },
     { header: "First Name", key: (emp: Employee) => emp.firstName || "" },
@@ -109,6 +155,9 @@ export function EmployeeListContent({
     { header: "Phone", key: (emp: Employee) => emp.phone || "" },
     { header: "Department", key: (emp: Employee) => emp.department || "" },
     { header: "Role", key: (emp: Employee) => emp.role || "" },
+    { header: "Contract Type", key: (emp: Employee) => emp.contract_type || "-" },
+    { header: "Contract Start", key: (emp: Employee) => emp.contract_start_date || "-" },
+    { header: "Contract End", key: (emp: Employee) => emp.contract_end_date || "-" },
     {
       header: "Date Joined",
       key: (emp: Employee) =>
@@ -142,11 +191,13 @@ export function EmployeeListContent({
   return (
     <>
       {/* Stats Cards */}
-      <EmployeeStatsCards
+      {!blacklist && <EmployeeStatsCards
         stats={stats}
         employees={employees}
         asOf={headcountAsOf}
-      />
+        onSelect={selectStatFilter}
+        activeFilter={activeStatFilter}
+      />}
 
       {/* Filters and Actions */}
       <EmployeeFilters
@@ -154,12 +205,12 @@ export function EmployeeListContent({
         onFiltersChange={setFilters}
         departments={departments}
       >
-        <div className="shrink-0 flex items-center ml-auto">
+        <div className="flex shrink-0 items-center">
           {filteredAndSortedEmployees.length > 0 && (
             <TableExportButton
               data={filteredAndSortedEmployees}
               columns={exportColumns}
-              filename={`Employee_List_${new Date().toISOString().split("T")[0]}.csv`}
+              filename={`${blacklist ? "Staff_Blacklist" : "Employee_List"}_${new Date().toISOString().split("T")[0]}.csv`}
             />
           )}
         </div>
@@ -167,6 +218,7 @@ export function EmployeeListContent({
 
       {/* Employee Table - Instant updates, no loading */}
       <EmployeeTable
+        blacklist={blacklist}
         employees={filteredAndSortedEmployees}
         roleOptions={roleOptions}
         departments={departmentsForEditor}

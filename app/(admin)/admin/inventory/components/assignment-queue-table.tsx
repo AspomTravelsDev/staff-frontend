@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 
 type QueueMode = "officer" | "compliance";
 
@@ -137,7 +138,15 @@ export function AssignmentQueueTable({
               </TableRow>
             ) : (
               assignments.map((assignment) => (
-                <TableRow key={assignment.id}>
+                <DetailsTableRow
+                  key={assignment.id}
+                  detailLabel={`Review assignment for ${assignment.inventoryItem?.name || "device"}`}
+                  onOpenDetails={() => {
+                    setSelected(assignment);
+                    setNotes("");
+                    setAdminChecklist(assignment.adminChecklist ? { ...assignment.adminChecklist } : undefined);
+                  }}
+                >
                   <TableCell>
                     <div className="font-medium">
                       {assignment.inventoryItem?.name}
@@ -171,7 +180,7 @@ export function AssignmentQueueTable({
                       Review
                     </Button>
                   </TableCell>
-                </TableRow>
+                </DetailsTableRow>
               ))
             )}
           </TableBody>

@@ -59,6 +59,7 @@ import { deleteClientAction } from "../actions";
 import { EditClientDialog } from "./edit-client-dialog";
 import { ClientDetailSheet } from "./client-detail-sheet";
 import { TableExportButton } from "@/components/ui/table-export-button";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 import { toast } from "sonner";
 import type { ExportColumn } from "@/lib/utils/export";
 
@@ -437,8 +438,10 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
               clients.map((client) => {
                 const isSelected = selectedRows.has(client.id);
                 return (
-                  <TableRow
+                  <DetailsTableRow
                     key={client.id}
+                    detailLabel={`Open details for ${client.name}`}
+                    onOpenDetails={() => handleView(client)}
                     className={`cursor-pointer ${isSelected ? "bg-muted/50" : "hover:bg-muted/30"}`}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -514,7 +517,7 @@ export function CRMTable({ clients, pagination, filters }: CRMTableProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                  </TableRow>
+                  </DetailsTableRow>
                 );
               })
             )}

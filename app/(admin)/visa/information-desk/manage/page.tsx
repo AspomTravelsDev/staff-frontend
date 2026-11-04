@@ -39,7 +39,7 @@ export default async function ManageInfoPage(props: ManageInfoPageProps) {
     <div className="">
       <div className="flex justify-center">
         <div className="w-full">
-          <ManageInfoForm infoRecord={infoRecord} />
+          <ManageInfoForm key={infoRecord?.id ?? "new"} infoRecord={infoRecord} />
         </div>
       </div>
     </div>

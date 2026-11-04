@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   ShieldCheck,
   Upload,
-  Sparkles,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -118,7 +117,7 @@ export default function AdvertisingCompliancePage() {
       {/* Consistent Admin Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-          <Sparkles className="h-4 w-4" /> Social Media Department Tools
+           Social Media Department Tools
         </div>
         <h1 className="text-3xl font-bold tracking-tight">AI Advertising & Graphic Compliance Checker</h1>
         <p className="text-muted-foreground">
@@ -191,7 +190,7 @@ export default function AdvertisingCompliancePage() {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="size-4 text-amber-300" /> Audit Advertising Compliance
+                       Audit Advertising Compliance
                     </>
                   )}
                 </Button>
@@ -321,7 +320,7 @@ export default function AdvertisingCompliancePage() {
                           <div className="bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-lg space-y-2">
                             <div className="flex items-center justify-between">
                               <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                                <Sparkles className="size-3.5 text-amber-400" /> Compliant Rewording Recommendation
+                                 Compliant Rewording Recommendation
                               </p>
                               <Button
                                 size="sm"

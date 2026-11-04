@@ -41,6 +41,31 @@ export interface LeaveRequest {
     approvedAt?: string;
 }
 
+export interface LeaveComment {
+    id: string;
+    comment: string;
+    createdAt: string;
+    userName: string;
+    userRole?: string;
+    isMine: boolean;
+}
+
+export async function getLeaveComments(id: string, forHr: boolean): Promise<LeaveComment[]> {
+    const base = forHr ? `/api/hr/leave/${id}/comments` : `/api/my/leave/${id}/comments`;
+    const result = await api.get<{ data: LeaveComment[] }>(base);
+    if (!result.success) throw new Error(result.error?.error || "Could not load comments");
+    return result.data.data;
+}
+
+export async function postLeaveComment(id: string, comment: string, forHr: boolean): Promise<LeaveComment> {
+    const base = forHr ? `/api/hr/leave/${id}/comments` : `/api/my/leave/${id}/comments`;
+    const result = await api.post<{ data: LeaveComment }>(base, { comment });
+    if (!result.success) throw new Error(result.error?.error || "Could not send comment");
+    revalidatePath("/my/leave");
+    revalidatePath("/hr/leave");
+    return result.data.data;
+}
+
 export interface LeaveStats {
     requestsPending: number;
     approvedThisMonth: number;
@@ -94,6 +119,18 @@ const getMockLeaveRequests = async (): Promise<LeaveRequest[]> => {
 // ============================================================================
 // API Functions
 // ============================================================================
+
+/** Reporting source: approved leave only, without private reasons or attachments. */
+export async function getApprovedLeaveForExport(from?: string, to?: string, userId?: string): Promise<import("../export-confirmation").ExportLeave[]> {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    if (userId && userId !== "all") params.set("user_id", userId);
+    const result = await api.get<{ data: import("../export-confirmation").ExportLeave[] }>(`/api/admin/attendance/approved-leaves?${params}`);
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    if (!Array.isArray(result.data.data)) throw new ExpectedActionError("Invalid leave response.");
+    return result.data.data;
+}
 
 // The management table filters and paginates the complete server-fetched list.
 export async function getLeaveManagementRequests(): Promise<LeaveRequest[]> {
@@ -302,6 +339,16 @@ export async function rejectLeaveRequest(id: string, reason: string): Promise<{ 
     const result = await api.post<{ message: string }>(`/api/hr/leave/${id}/reject`, { rejection_reason: reason });
     if (!result.success) {
         return { success: false, error: result.error?.error || "Failed to reject leave request" };
+    }
+    revalidatePath("/my/leave");
+    revalidatePath("/hr/leave");
+    return { success: true, data: result.data };
+}
+
+export async function revertLeaveRequest(id: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    const result = await api.post<{ message: string }>(`/api/hr/leave/${id}/revert`, {});
+    if (!result.success) {
+        return { success: false, error: result.error?.error || "Failed to revert leave request to pending" };
     }
     revalidatePath("/my/leave");
     revalidatePath("/hr/leave");

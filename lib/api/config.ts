@@ -7,7 +7,7 @@ export const API_CONFIG = {
     useMockActivity: true,
     useMockLeave: false,
     useMockInventory: false,
-    useMockPerformance: true,
+    useMockPerformance: false,
     useMockCompliance: true,
     useMockAwards: false,
     useMockDashboard: true,

@@ -182,4 +182,10 @@ export async function markAnnouncementAsRead(id: string): Promise<void> {
     revalidatePath(`/announcements/${id}`);
 }
 
+/** Mark all currently published announcements as read for the current user. */
+export async function markAllAnnouncementsAsRead(): Promise<void> {
+    const result = await api.post<{ message: string }>("/api/announcements/mark-all-read", {});
+    if (!result.success) throw new Error(result.error.error);
+}
+
 

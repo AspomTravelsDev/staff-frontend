@@ -1,20 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { safeReturnPath } from "@/lib/auth/return-path";
 
-/**
- * Auth Proxy
- *
- * Protects routes by checking for auth token cookie.
- * - Unauthenticated users accessing protected routes → redirect to /login
- * - Authenticated users accessing auth pages → redirect to /dashboard
- *
- * Note: This only checks for token existence, not validity.
- * Token validation happens in getCurrentUser() on the server.
- */
-
-const AUTH_COOKIE_NAME = "auth_token";
-
-// Routes that require authentication
 const protectedRoutes = [
     "/dashboard",
     "/accounts",
@@ -22,6 +9,7 @@ const protectedRoutes = [
     "/forms",
     "/hr",
     "/visa",
+    "/birth-services",
     "/admin",
     "/my",
     "/activity",
@@ -30,9 +18,12 @@ const protectedRoutes = [
     "/chat",
     "/crm",
     "/it",
+    "/directory",
+    "/operations",
+    "/social-media",
 ];
 
-// Routes that are always public, even if they match a protected prefix
+
 const publicRoutes = [
     "/visa/apply",
     "/applicant",
@@ -41,57 +32,47 @@ const publicRoutes = [
     "/",
 ];
 
-// Routes only for unauthenticated users
-const authRoutes = ["/login", "/reset-password", "/update-password", "/accept-invite"];
 
-export function proxy(request: NextRequest) {
+const matches = (pathname: string, routes: string[]) => routes.some(route => pathname === route || pathname.startsWith(`${route}/`));
+
+/** Cheap routing check only. Server user lookup and Laravel authorize actual data. */
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
-    const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-
-    // First check if it's a public route (whitelist)
-    const isPublicRoute = publicRoutes.some(
-        (route) => pathname === route || pathname.startsWith(`${route}/`)
-    );
-
-    if (isPublicRoute) {
-        return NextResponse.next();
-    }
-
-    // Check if accessing a protected route without auth
-    const isProtectedRoute = protectedRoutes.some(
-        (route) => pathname === route || pathname.startsWith(`${route}/`)
-    );
-
-    if (isProtectedRoute && !token) {
+    const token = request.cookies.get("auth_token")?.value;
+    const returnPath = safeReturnPath(pathname + request.nextUrl.search);
+    const requestHeaders = new Headers(request.headers);
+    // Overwrite incoming values so recovery always uses the actual requested page.
+    requestHeaders.set("x-portal-return-path", returnPath);
+    const next = () => NextResponse.next({ request: { headers: requestHeaders } });
+    const clear = (response: NextResponse) => {
+        response.cookies.delete("auth_token");
+        response.cookies.delete("auth_user");
+        return response;
+    };
+    const login = () => {
         const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("redirect", pathname);
-        return NextResponse.redirect(loginUrl);
-    }
+        loginUrl.searchParams.set("redirect", returnPath);
+        if (request.headers.get("next-action")) {
+            // Next's action client consumes this header instead of following an HTML fetch redirect.
+            return clear(new NextResponse(null, { headers: {
+                "x-action-redirect": `${loginUrl.pathname}${loginUrl.search};replace`,
+                "Content-Type": "text/plain",
+                "Cache-Control": "no-store",
+            } }));
+        }
+        return clear(NextResponse.redirect(loginUrl, 303));
+    };
 
-    // Check if accessing auth routes while authenticated
-    const isAuthRoute = authRoutes.some(
-        (route) => pathname === route || pathname.startsWith(`${route}/`)
-    );
-
-    if (isAuthRoute && token) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
-    return NextResponse.next();
+    if (matches(pathname, publicRoutes)) return next();
+    const protectedPage = matches(pathname, protectedRoutes);
+    if (protectedPage && !token) return login();
+    // Do not duplicate /api/user here: this also runs for every route prefetch.
+    // A cookie is not proof of identity. getCurrentUser validates it on the server;
+    // the API client redirects on protected 401s, including retained-layout navigation.
+    return next();
 }
 
 export { proxy as middleware };
-
 export const config = {
-    matcher: [
-        /*
-         * Match all request paths except:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - public folder
-         * - api routes
-         */
-        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api).*)",
-    ],
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api).*)"],
 };

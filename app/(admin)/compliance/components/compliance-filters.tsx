@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -10,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Search } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { parseISO, isValid } from "date-fns";
 
@@ -26,6 +25,8 @@ interface ComplianceFiltersProps {
   dateTo?: string;
   onDateToChange: (value: string | null) => void;
   onClear: () => void;
+  correction?: string;
+  onCorrectionChange?: (value: string | null) => void;
 }
 
 export function ComplianceFilters({
@@ -40,44 +41,32 @@ export function ComplianceFilters({
   dateTo,
   onDateToChange,
   onClear,
+  correction,
+  onCorrectionChange,
 }: ComplianceFiltersProps) {
-  const [localSearch, setLocalSearch] = useState(search);
-
-  // Sync local search with prop
-  useEffect(() => {
-    setLocalSearch(search);
-  }, [search]);
-
-  // Handle debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localSearch !== search) {
-        onSearchChange(localSearch);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [localSearch, onSearchChange, search]);
-
   const parseParamDate = (val: string | undefined) => {
     if (!val) return undefined;
     const d = parseISO(val);
     return isValid(d) ? d : undefined;
   };
 
-  const hasFilters = search || status || severity || dateFrom || dateTo;
+  const hasFilters = search || status || severity || dateFrom || dateTo || correction;
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <div className="flex-1 min-w-[200px]">
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search by type, staff, or department..."
-          className="h-9"
-          value={localSearch}
-          onChange={(e) => setLocalSearch(e.target.value)}
+          aria-label="Search compliance queries"
+          className="h-9 pl-9"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {onCorrectionChange && <div className="w-[180px]"><Select value={correction || "all"} onValueChange={value => onCorrectionChange(value === "all" ? null : value)}><SelectTrigger className="h-9" aria-label="Correction follow-up"><SelectValue placeholder="Corrections" /></SelectTrigger><SelectContent><SelectItem value="all">All corrections</SelectItem><SelectItem value="pending">Pending corrections</SelectItem><SelectItem value="overdue">Overdue corrections</SelectItem><SelectItem value="completed">Completed corrections</SelectItem></SelectContent></Select></div>}
         <div className="w-[150px]">
           <Select
             value={status || "all"}

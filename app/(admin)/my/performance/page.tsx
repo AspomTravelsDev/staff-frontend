@@ -1,38 +1,15 @@
 import { renderDataPage } from "@/lib/api/render-data-page";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import Link from "next/link";
-import { AppraisalStatsCards } from "./components/appraisal-stats-cards";
-import { AppraisalTable } from "./components/appraisal-table";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/session";
+import { MyPerformanceWorkspace } from "./components/my-performance-workspace";
 import { getPerformanceData } from "./queries";
 
 export default async function Page() {
   return renderDataPage(async () => {
-  const { appraisals, stats } = await getPerformanceData();
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Performance Reviews
-          </h1>
-          <p className="text-muted-foreground">
-            Track and manage your performance appraisals
-          </p>
-        </div>
-        <Link href="/my/performance/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Start New Appraisal
-          </Button>
-        </Link>
-      </div>
-
-      <AppraisalStatsCards stats={stats} />
-
-      <AppraisalTable appraisals={appraisals} />
-    </div>
-  );
-  }, "Unable to load your performance reviews");
+    const user = await getCurrentUser();
+    if (!user) redirect("/login");
+    if (!user.is_active || user.is_department_account) redirect("/dashboard");
+    const { appraisals, stats } = await getPerformanceData();
+    return <MyPerformanceWorkspace initialAppraisals={appraisals} initialStats={stats} />;
+  }, "Unable to load your appraisals");
 }

@@ -119,6 +119,9 @@ export interface PayrollEntryInput {
   proratedDays: number;
   accommodationAmount?: number | null;
   attendanceDays: number;
+  halfDayCount?: number;
+  unapprovedLeaveDays?: number;
+  unauthorizedLateDays?: number;
   suspensionDays: number;
   otherDeductions: PayrollItemInput[];
   additions: PayrollItemInput[];
@@ -139,6 +142,9 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     proratedDays,
     accommodationAmount,
     attendanceDays,
+    halfDayCount = 0,
+    unapprovedLeaveDays = 0,
+    unauthorizedLateDays = 0,
     suspensionDays,
     otherDeductions,
     additions,
@@ -200,8 +206,8 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
       : calculateMonthlyTax(taxableGross)
   );
 
-  // Prorated After-Tax Salary
-  const afterTaxSalary = round2(Math.max(0, actualGross + preTaxAdditions - preTaxDeductions - taxAmount));
+  // Tax is the only deduction from the daily-rate basis. Other items affect net pay.
+  const afterTaxSalary = round2(Math.max(0, actualGross + preTaxAdditions - taxAmount));
 
   // Calendar proration for accommodation
   let calendarProratedDays = 0;
@@ -227,8 +233,13 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     ? accommodationAmount
     : defaultAccommodationAmount;
 
-  // Daily rate base
-  const dailyRateBase = Math.max(0, actualGross + preTaxAdditions - preTaxDeductions - taxAmount - finalAccommodationAmount - postTaxDeductions);
+  // Determine the day value (Gross less Tax, Accommodation, and Other Deductions divided by working days)
+  const dailyRateBase = round2(
+    Math.max(
+      0,
+      actualGross + preTaxAdditions - preTaxDeductions - taxAmount - finalAccommodationAmount - postTaxDeductions
+    )
+  );
   const defaultDailyRate = workingDaysInMonth > 0 ? round2(dailyRateBase / workingDaysInMonth) : 0;
   const dailyRate = (customDailyRate !== undefined && customDailyRate !== null)
     ? customDailyRate
@@ -236,10 +247,15 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
 
   // Absences and Suspensions
   const attendanceDeduction = round2(attendanceDays * dailyRate);
+  const halfDayDeduction = round2(halfDayCount * 0.5 * dailyRate);
+  const unapprovedLeaveDeduction = round2(unapprovedLeaveDays * dailyRate);
+  // The first two unauthorized late arrivals are free; each later one deducts a day.
+  const lateDeductionDays = Math.max(0, Math.floor(unauthorizedLateDays) - 2);
+  const unauthorizedLateDeduction = round2(lateDeductionDays * dailyRate);
   const suspensionDeduction = round2(suspensionDays * dailyRate);
-  const deductionAmount = round2(attendanceDeduction + suspensionDeduction);
+  const deductionAmount = round2(attendanceDeduction + halfDayDeduction + unapprovedLeaveDeduction + unauthorizedLateDeduction + suspensionDeduction);
 
-  const finalDeductionDays = round2(attendanceDays + suspensionDays);
+  const finalDeductionDays = round2(attendanceDays + (halfDayCount * 0.5) + unapprovedLeaveDays + lateDeductionDays + suspensionDays);
 
   // Default Net Salary calculation
   const defaultNet = round2(
@@ -272,15 +288,24 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     accommodation_amount: finalAccommodationAmount,
     accommodation_weeks: Math.ceil(activeCalendarDays / 7),
     after_tax: round2(actualGross - taxAmount),
-    after_tax_accommodation: dailyRateBase,
+    after_tax_accommodation: round2(Math.max(0, afterTaxSalary - finalAccommodationAmount - preTaxDeductions - postTaxDeductions)),
+    daily_rate_base: dailyRateBase,
+    daily_rate_basis: "after_tax_before_other_deductions",
     daily_rate: dailyRate,
     working_days: workingDaysInMonth,
     rate_days: workingDaysInMonth,
     deduction_amount: deductionAmount,
     attendance_deduction: attendanceDeduction,
+    half_day_deduction: halfDayDeduction,
+    unapproved_leave_deduction: unapprovedLeaveDeduction,
+    unauthorized_late_days: unauthorizedLateDays,
+    unauthorized_late_deduction_days: lateDeductionDays,
+    unauthorized_late_deduction: unauthorizedLateDeduction,
     suspension_deduction: suspensionDeduction,
     prorated_days: proratedDays,
     attendance_absence_days: attendanceDays,
+    half_day_count: halfDayCount,
+    unapproved_leave_days: unapprovedLeaveDays,
     other_deductions_amount: otherDeductionsAmount,
     other_deductions: otherDeductions,
     additions_amount: additionsAmount,
@@ -301,6 +326,13 @@ export function calculatePayrollEntry(input: PayrollEntryInput) {
     is_intern: isIntern,
     accommodation_amount: finalAccommodationAmount,
     attendance_days: attendanceDays,
+    half_day_count: halfDayCount,
+    unapproved_leave_days: unapprovedLeaveDays,
+    half_day_deduction: halfDayDeduction,
+    unapproved_leave_deduction: unapprovedLeaveDeduction,
+    unauthorized_late_days: unauthorizedLateDays,
+    unauthorized_late_deduction_days: lateDeductionDays,
+    unauthorized_late_deduction: unauthorizedLateDeduction,
     suspension_days: suspensionDays,
     prorated_days: proratedDays,
     other_deductions_amount: otherDeductionsAmount,

@@ -52,7 +52,7 @@ export default async function DelegatedTasksPage({ searchParams }: PageProps) {
       initialTasks={initialTasks}
       initialStats={initialStats}
       initialFilters={{
-        status: params?.status || "all",
+        status: params?.status || "pending",
         priority: params?.priority || "all",
         department: params?.department || "all",
         search: params?.search || "",

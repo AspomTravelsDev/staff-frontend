@@ -12,6 +12,9 @@ interface StatsCardProps {
   cardColor?: "blue" | "green" | "red" | "yellow" | "purple" | "orange";
   iconClassName?: string;
   className?: string; // For any extra card styling
+  onClick?: () => void;
+  active?: boolean;
+  compact?: boolean;
 }
 
 export function StatsCard({
@@ -24,6 +27,9 @@ export function StatsCard({
   cardColor = "blue",
   iconClassName,
   className,
+  onClick,
+  active = false,
+  compact = false,
 }: StatsCardProps) {
   const dashboardColors = {
     blue: "bg-blue-50/80 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
@@ -41,16 +47,16 @@ export function StatsCard({
   const isDashboard = variant === "dashboard";
   const cardStyles = isDashboard ? dashboardColors[cardColor] : "bg-card";
 
-  return (
-    <Card className={cn(cardStyles, isDashboard && "shadow-none", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+  const card = (
+    <Card className={cn(cardStyles, isDashboard && "shadow-none", compact && "gap-1.5 py-3", className)}>
+      <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-2", compact && "pb-0")}>
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon
           className={cn("h-4 w-4", iconClassName || "text-muted-foreground")}
         />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className={cn("font-bold", compact ? "text-xl leading-7" : "text-2xl")}>{value}</div>
         {footer ? (
           <div className="mt-3">{footer}</div>
         ) : description ? (
@@ -58,5 +64,34 @@ export function StatsCard({
         ) : null}
       </CardContent>
     </Card>
+  );
+
+  if (!onClick) return card;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="group w-full cursor-pointer rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <Card className={cn(
+        cardStyles,
+        isDashboard && "shadow-none",
+        "h-full transition-colors group-hover:bg-muted/40",
+        active && "ring-2 ring-primary ring-offset-2",
+        compact && "gap-1.5 py-3",
+        className,
+      )}>
+        <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-2", compact && "pb-0")}>
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <Icon className={cn("h-4 w-4", iconClassName || "text-muted-foreground")} />
+        </CardHeader>
+        <CardContent>
+          <div className={cn("font-bold", compact ? "text-xl leading-7" : "text-2xl")}>{value}</div>
+          {footer ? <div className="mt-3">{footer}</div> : description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        </CardContent>
+      </Card>
+    </button>
   );
 }

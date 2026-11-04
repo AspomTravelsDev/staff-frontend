@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Image as ImageIcon, ChevronDown } from "lucide-react";
+import { Loader2, Image as ImageIcon, FileText, Download, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toJpeg } from "html-to-image";
 import { toast } from "sonner";
@@ -20,9 +22,13 @@ interface BulkExportButtonProps {
   allCount?: number;
   monthLabel: string;
   payrollMonth: string; // Expects YYYY-MM
+  onExportCsv?: (group: "full_staff" | "fhon") => void;
+  fullStaffCount?: number;
+  fhonCount?: number;
+  disabled?: boolean;
 }
 
-export function BulkExportButton({ entries, allCount, monthLabel, payrollMonth }: BulkExportButtonProps) {
+export function BulkExportButton({ entries, allCount, monthLabel, payrollMonth, onExportCsv, fullStaffCount = 0, fhonCount = 0, disabled = false }: BulkExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
 
@@ -105,29 +111,37 @@ export function BulkExportButton({ entries, allCount, monthLabel, payrollMonth }
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
+            data-payroll-tour="export"
             variant="outline"
-            className="h-10 border-primary/20 hover:bg-primary/5 text-primary transition-all active:scale-95 flex items-center gap-1"
-            disabled={isExporting || entries.length === 0}
+            className="h-9"
+            disabled={disabled || isExporting || entries.length === 0}
           >
             {isExporting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <ImageIcon className="h-4 w-4 mr-1" />
+              <Download className="h-4 w-4" />
             )}
             {isExporting 
               ? `Exporting ${entries.length}...` 
-              : entries.length < (allCount || 0) 
+              : onExportCsv ? "Export" : entries.length < (allCount || 0)
                 ? `Export Selected (${entries.length})` 
                 : "Export All"}
             <ChevronDown className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-64">
+          {onExportCsv && <>
+            <DropdownMenuLabel>Payroll CSV · entire group</DropdownMenuLabel>
+            <DropdownMenuItem disabled={!fullStaffCount} onSelect={() => onExportCsv("full_staff")}><FileText className="size-4" />Export for Full Staff</DropdownMenuItem>
+            <DropdownMenuItem disabled={!fhonCount} onSelect={() => onExportCsv("fhon")}><FileText className="size-4" />Export for FHON</DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>}
+          <DropdownMenuLabel>{entries.length < (allCount || 0) ? `Payslips · ${entries.length} selected` : `Payslips · all ${entries.length}`}</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => handleBulkExport("pdf")} className="cursor-pointer">
-            📄 Export as PDF Zip
+            <FileText className="size-4" />Download PDF ZIP
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleBulkExport("jpg")} className="cursor-pointer">
-            🖼️ Export as JPG Zip
+            <ImageIcon className="size-4" />Download JPG ZIP
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

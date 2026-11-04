@@ -93,7 +93,7 @@ export async function getRecruitmentScreeningStatus(candidateId: string) {
     data: Pick<
       RecruitmentCandidate,
       "id" | "ai_score" | "ai_summary" | "ai_evaluation" | "cv_extracted_text"
-    >;
+    > & { interview_preparation?: import("@/lib/types/recruitment").InterviewPreparation | null };
   }>(`/api/recruitment/candidates/${candidateId}/screening-status`);
   if (!response.success) throw new Error(response.error.error);
   return response.data.data;

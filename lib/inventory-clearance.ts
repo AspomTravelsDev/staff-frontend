@@ -1,5 +1,11 @@
 import type { InventoryAssignment } from "./api/inventory";
 
+/** Older handovers stored generated boilerplate as if it were a staff comment. */
+export function clearanceStaffNotes(notes?: string): string | undefined {
+  const value = notes?.trim();
+  return value === "Device submitted for offboarding clearance handover." ? undefined : value || undefined;
+}
+
 export const clearanceStages = ["Staff handover", "IT inspection", "Compliance review", "Complete"];
 
 export function clearanceStage(status: string): number {

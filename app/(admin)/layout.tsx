@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { getNotifications } from "@/lib/api/notifications";
 import { NotificationsUpdater } from "@/components/notifications-updater";
 import { GlobalChatNotifications } from "@/components/chat/global-chat-notifications";
+import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 import { CheatsheetFloatingWidget } from "@/components/cheatsheet-floating-widget";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
@@ -31,6 +32,7 @@ export default async function AdminLayout({
         <GlobalChatNotifications />
         <SidebarProvider className="h-svh min-h-0 overflow-hidden">
           <AppSidebar />
+          <FloatingChatButton />
           <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
             <SiteHeader />
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 pt-4 pb-20 md:pb-4">

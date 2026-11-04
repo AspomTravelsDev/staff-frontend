@@ -41,10 +41,7 @@ export function ExportButton({ entry }: ExportButtonProps = {}) {
       });
 
       const runStatus = entry?.run?.status || entry?.run_status;
-      const isDraft = entry
-        ? entry.status !== "approved" ||
-          (Boolean(runStatus) && runStatus !== "closed")
-        : false;
+      const isDraft = entry ? runStatus !== "closed" : false;
       const draftSuffix = isDraft ? "_DRAFT" : "";
 
       const monthName = entry?.run?.payroll_month

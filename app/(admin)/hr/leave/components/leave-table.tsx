@@ -25,10 +25,11 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
@@ -45,8 +46,10 @@ import {
   LeaveRequest,
   approveLeaveRequest,
   rejectLeaveRequest,
+  revertLeaveRequest,
 } from "@/lib/api/leave";
 import { LeaveDetailsSheet } from "../../../my/leave/components/leave-details-sheet";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import {
@@ -68,13 +71,20 @@ interface LeaveTableProps {
 
 export function LeaveTable({ requests }: LeaveTableProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [period, setPeriod] = useState("all");
   const [department, setDepartment] = useState("all");
   const [type, setType] = useState("all");
   const [sort, setSort] = useState<LeaveSort>("pending");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  useEffect(() => {
+    setStatus(searchParams.get("leaveStatus") || "all");
+    setPeriod(searchParams.get("leavePeriod") || "all");
+    setPage(1);
+  }, [searchParams]);
   const departments = useMemo(
     () =>
       [
@@ -86,20 +96,29 @@ export function LeaveTable({ requests }: LeaveTableProps) {
     () => [...new Set(requests.map((row) => row.type).filter(Boolean))].sort(),
     [requests],
   );
-  const filtered = useMemo(
-    () =>
-      filterLeaveRequests(requests, { search, status, department, type, sort }),
-    [requests, search, status, department, type, sort],
-  );
+  const filtered = useMemo(() => {
+    const statusRows = filterLeaveRequests(requests, { search, status, department, type, sort });
+    if (period === "all") return statusRows;
+    const today = format(new Date(), "yyyy-MM-dd");
+    const month = today.slice(0, 7);
+    return statusRows.filter((request) => period === "this-month"
+      ? request.startDate.startsWith(month)
+      : request.startDate <= today && request.endDate >= today);
+  }, [requests, search, status, department, type, sort, period]);
   const result = paginateLeaveRequests(filtered, page, pageSize);
   const hasFilters =
-    !!search || status !== "all" || department !== "all" || type !== "all";
+    !!search || status !== "all" || department !== "all" || type !== "all" || period !== "all";
   const clearFilters = () => {
     setSearch("");
     setStatus("all");
     setDepartment("all");
     setType("all");
+    setPeriod("all");
     setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("leaveStatus");
+    params.delete("leavePeriod");
+    router.replace(params.size ? `?${params.toString()}` : window.location.pathname, { scroll: false });
   };
 
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -139,7 +158,27 @@ export function LeaveTable({ requests }: LeaveTableProps) {
     }
   };
 
-  const handleRejectSubmit = async (e: React.FormEvent) => {
+  const handleRevert = async (id: string) => {
+    setLoadingId(id);
+    try {
+      const res = await revertLeaveRequest(id);
+      if (!res.success) {
+        toast.error(res.error || "Failed to revert request.");
+        return;
+      }
+      toast.success("Leave request reverted to pending.");
+      router.refresh();
+    } catch (error: unknown) {
+      toast.error(
+        (error instanceof Error ? error.message : "") ||
+          "Failed to revert request.",
+      );
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+    const handleRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectId) return;
     if (!rejectionReason.trim()) {
@@ -340,7 +379,14 @@ export function LeaveTable({ requests }: LeaveTableProps) {
               </TableRow>
             ) : (
               result.rows.map((req) => (
-                <TableRow key={req.id}>
+                <DetailsTableRow
+                  key={req.id}
+                  detailLabel={`Open leave request details for ${req.employeeName}`}
+                  onOpenDetails={() => {
+                    setSelectedLeave(req);
+                    setDetailsOpen(true);
+                  }}
+                >
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{req.employeeName}</span>
@@ -414,10 +460,25 @@ export function LeaveTable({ requests }: LeaveTableProps) {
                             </DropdownMenuItem>
                           </>
                         )}
+                        {req.status === "Approved" && new Date(req.startDate) > new Date() && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              disabled={loadingId !== null}
+                              onClick={() => handleRevert(req.id)}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" />{" "}
+                              {loadingId === req.id
+                                ? "Processing..."
+                                : "Revert to Pending"}
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
+                </DetailsTableRow>
               ))
             )}
           </TableBody>

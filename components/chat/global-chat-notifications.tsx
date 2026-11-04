@@ -15,7 +15,7 @@ interface ConversationOverview {
   } | null;
 }
 
-const CHAT_ROUTE_PREFIX = "/admin/chat";
+const CHAT_ROUTE_PREFIX = "/chat";
 
 export function GlobalChatNotifications() {
   const pathname = usePathname();

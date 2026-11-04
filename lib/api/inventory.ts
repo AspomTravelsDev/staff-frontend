@@ -102,3 +102,19 @@ export async function approveClearanceCompliance(...args: Parameters<typeof acti
 export async function submitClearanceHandover(...args: Parameters<typeof actions.submitClearanceHandover>): Promise<ActionData<Awaited<ReturnType<typeof actions.submitClearanceHandover>>>> {
   return callAction(() => actions.submitClearanceHandover(...args));
 }
+
+export async function issueEquipment(...args: Parameters<typeof actions.issueEquipment>): Promise<ActionData<Awaited<ReturnType<typeof actions.issueEquipment>>>> {
+  return callAction(() => actions.issueEquipment(...args));
+}
+
+export async function acknowledgeEquipment(...args: Parameters<typeof actions.acknowledgeEquipment>): Promise<ActionData<Awaited<ReturnType<typeof actions.acknowledgeEquipment>>>> {
+  return callAction(() => actions.acknowledgeEquipment(...args));
+}
+
+export async function returnSelectedEquipment(...args: Parameters<typeof actions.returnSelectedEquipment>): Promise<ActionData<Awaited<ReturnType<typeof actions.returnSelectedEquipment>>>> {
+  return callAction(() => actions.returnSelectedEquipment(...args));
+}
+
+export async function getEmployeeEquipment(...args: Parameters<typeof actions.getEmployeeEquipment>): Promise<ActionData<Awaited<ReturnType<typeof actions.getEmployeeEquipment>>>> {
+  return callAction(() => actions.getEmployeeEquipment(...args));
+}

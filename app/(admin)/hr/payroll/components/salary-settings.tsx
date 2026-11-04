@@ -132,18 +132,18 @@ export function SalarySettings({ initialEmployees }: SalarySettingsProps) {
   return (
     <div className="space-y-4">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border bg-card p-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="col-span-2 rounded-xl border bg-card p-3 sm:col-span-1 sm:p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Staff Shown</p>
           <p className="text-2xl font-bold">{filtered.length}</p>
           <p className="text-xs text-muted-foreground mt-0.5">of {employees.length} total</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
+        <div className="rounded-xl border bg-card p-3 sm:p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Total Gross</p>
           <p className="text-2xl font-bold">{formatNGN(totalGross)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">combined monthly</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
+        <div className="rounded-xl border bg-card p-3 sm:p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Est. Total Net</p>
           <p className="text-2xl font-bold text-green-700">{formatNGN(totalEstNet)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">estimated, full month</p>
@@ -157,14 +157,14 @@ export function SalarySettings({ initialEmployees }: SalarySettingsProps) {
           <Input
             id="salary-search"
             placeholder="Search name, staff ID…"
-            className="pl-9 h-9"
+            className="pl-9 h-11"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger id="salary-dept-filter" className="h-9 w-44">
+          <SelectTrigger id="salary-dept-filter" className="h-11 w-full sm:w-44">
             <SelectValue placeholder="All Departments" />
           </SelectTrigger>
           <SelectContent>
@@ -176,7 +176,7 @@ export function SalarySettings({ initialEmployees }: SalarySettingsProps) {
         </Select>
 
         <Select value={contractFilter} onValueChange={setContractFilter}>
-          <SelectTrigger id="salary-contract-filter" className="h-9 w-40">
+          <SelectTrigger id="salary-contract-filter" className="h-11 w-full sm:w-40">
             <SelectValue placeholder="All Contract Types" />
           </SelectTrigger>
           <SelectContent>
@@ -195,7 +195,34 @@ export function SalarySettings({ initialEmployees }: SalarySettingsProps) {
           <p className="text-sm">No staff found matching your filters.</p>
         </div>
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <>
+        <div className="space-y-2 md:hidden">
+          {filtered.map((emp) => {
+            const fullName = `${emp.firstName} ${emp.lastName}`.trim();
+            const gross = parseFloat(emp.gross_pay) || 0;
+            const estNet = getEstimatedNet(emp);
+            const contractLabel = CONTRACT_TYPE_LABELS[emp.contract_type ?? ""] ?? emp.contract_type ?? "—";
+            return (
+              <article key={emp.id} className="rounded-xl border bg-card p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold">{fullName}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{emp.staff_id || "No staff ID"} · {emp.department || "No department"}</p>
+                  </div>
+                  <Badge variant={CONTRACT_TYPE_VARIANTS[emp.contract_type ?? ""] ?? "outline"} className="shrink-0 text-xs">{contractLabel}</Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3">
+                  <div><p className="text-xs text-muted-foreground">Gross pay</p><p className="mt-0.5 text-sm font-semibold tabular-nums">{gross > 0 ? formatNGN(gross) : "Not set"}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Estimated net</p><p className="mt-0.5 text-sm font-semibold tabular-nums text-green-700">{estNet > 0 ? formatNGN(estNet) : "—"}</p></div>
+                </div>
+                <Button id={`edit-salary-mobile-${emp.id}`} type="button" variant="outline" className="mt-3 min-h-11 w-full gap-2" onClick={() => setEditEmployee(emp)}>
+                  <Pencil className="h-4 w-4" />Edit salary
+                </Button>
+              </article>
+            );
+          })}
+        </div>
+        <div className="hidden overflow-x-auto rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
@@ -262,7 +289,7 @@ export function SalarySettings({ initialEmployees }: SalarySettingsProps) {
                         id={`edit-salary-${emp.id}`}
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-11 w-11 opacity-100 transition-opacity sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100"
                         onClick={() => setEditEmployee(emp)}
                         title={`Edit salary for ${fullName}`}
                       >
@@ -275,6 +302,7 @@ export function SalarySettings({ initialEmployees }: SalarySettingsProps) {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       <EditSalarySheet

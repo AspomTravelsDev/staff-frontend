@@ -17,7 +17,7 @@ import {
   calculateGrossFromNet,
   ComputedSalaryPackage,
 } from "@/lib/payroll/payroll-reverse-calculator";
-import { ArrowLeftRight, Sparkles, ShieldOff } from "lucide-react";
+import { ArrowLeftRight, ShieldOff } from "lucide-react";
 
 export function CreateApplicationForm() {
   const router = useRouter();
@@ -260,7 +260,7 @@ export function CreateApplicationForm() {
                 <span>Gross Salary (₦)</span>
                 {lastEdited === "net" && breakdown.gross_salary > 0 && (
                   <span className="text-emerald-600 dark:text-emerald-400 font-normal text-[11px] flex items-center gap-1">
-                    <Sparkles className="size-3" /> Auto-calculated from Net
+                     Auto-calculated from Net
                   </span>
                 )}
               </Label>
@@ -281,7 +281,7 @@ export function CreateApplicationForm() {
                 <span>Desired Net Salary (₦)</span>
                 {lastEdited === "gross" && breakdown.net_salary > 0 && (
                   <span className="text-emerald-600 dark:text-emerald-400 font-normal text-[11px] flex items-center gap-1">
-                    <Sparkles className="size-3" /> Auto-calculated from Gross
+                     Auto-calculated from Gross
                   </span>
                 )}
               </Label>

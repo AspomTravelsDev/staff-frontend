@@ -75,10 +75,11 @@ export async function sendMessage(formData: FormData): Promise<ActionResult<Mess
     }, "sendMessage");
 }
 
-export async function markAsRead(conversationId: string): Promise<ActionResult<void>> {
+export async function markAsRead(conversationId: string, throughMessageId?: string): Promise<ActionResult<void>> {
     return runAction(async (): Promise<void> => {
         const result = await api.post<{ message: string }>(
-            `/api/conversations/${conversationId}/read`
+            `/api/conversations/${conversationId}/read`,
+            throughMessageId ? { through_message_id: throughMessageId } : {}
         );
         if (!result.success) {
             throw new ExpectedActionError(result.error.error, result.error.code);

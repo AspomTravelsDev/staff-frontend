@@ -1,4 +1,5 @@
 import type { ExportColumn } from "@/lib/utils/export";
+import { employmentOutcomeLabel } from "@/lib/employment-outcomes";
 import type { OnboardingApplication } from "@/lib/types/hr";
 
 function getPath(source: unknown, path: string): unknown {
@@ -39,6 +40,10 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
     { header: "Applicant Email", key: "applicant_email" },
     { header: "Position Title", key: "position_title" },
     { header: "Status", key: (app) => app.status?.replaceAll("_", " ") ?? "" },
+    { header: "Staff Outcome", key: (app) => employmentOutcomeLabel(app.employment_status) },
+    { header: "Staff Outcome Note", key: (app) => app.employment_status_note ?? "" },
+    { header: "Staff Outcome Updated At", key: (app) => app.employment_status_updated_at ?? "" },
+    { header: "Staff Outcome Updated By", key: (app) => app.employment_status_updater?.name ?? "" },
     { header: "Gross Salary", key: "salary_gross" },
     { header: "Invited At", key: (app) => app.invited_at ?? "" },
     { header: "Completed At", key: (app) => app.completed_at ?? "" },

@@ -1,47 +1,5 @@
-"use client";
+import type { PerformanceResultStats } from "@/lib/types/performance-result";
 
-import { StatsCard } from "@/components/stats-card";
-import { Star, ClipboardList, CheckCircle2, Clock } from "lucide-react";
-import type { PerformanceStats } from "@/lib/api/performance";
-
-interface PerformanceStatsCardsProps {
-  stats: PerformanceStats;
-}
-
-export function PerformanceStatsCards({ stats }: PerformanceStatsCardsProps) {
-  return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <StatsCard
-        title="Avg. Performance Score"
-        icon={Star}
-        value={stats.averageScore}
-        description="Company wide average (5.0 scale)"
-        iconClassName="text-yellow-500"
-      />
-
-      <StatsCard
-        title="Pending Reviews"
-        icon={Clock}
-        value={stats.pendingReviews}
-        description="Awaiting completion"
-        iconClassName="text-orange-500"
-      />
-
-      <StatsCard
-        title="Completed (Month)"
-        icon={CheckCircle2}
-        value={stats.completedThisMonth}
-        description="Reviews finalized"
-        iconClassName="text-green-600"
-      />
-
-      <StatsCard
-        title="Total Reviews"
-        icon={ClipboardList}
-        value={stats.totalReviews}
-        description="All recorded sessions"
-        iconClassName="text-blue-500"
-      />
-    </div>
-  );
+export function PerformanceStatsCards({ stats }: { stats: PerformanceResultStats }) {
+  return <dl className="flex flex-wrap gap-x-8 gap-y-4 border-y py-4 text-sm"><div><dt className="text-muted-foreground">Completed appraisals</dt><dd className="mt-1 font-semibold tabular-nums">{stats.completed}</dd></div><div><dt className="text-muted-foreground">Average final score</dt><dd className="mt-1 font-semibold tabular-nums">{stats.average_score === null ? "No completed scores" : `${stats.average_score.toFixed(2)} / 5`}</dd></div><div><dt className="text-muted-foreground">Departments represented</dt><dd className="mt-1 font-semibold tabular-nums">{stats.departments}</dd></div></dl>;
 }

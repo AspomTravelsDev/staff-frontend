@@ -14,6 +14,7 @@ export interface TaskTrackerItem {
   id: string;
   user_id: string;
   assigned_by_user_id?: string | null;
+  assigned_at?: string | null;
   title: string;
   description: string | null;
   due_date: string | null;
@@ -27,6 +28,8 @@ export interface TaskTrackerItem {
   submission_due_date?: string | null;
   submission_note?: string | null;
   submission_url?: string | null;
+  attachments?: { id: string; name: string; size: number; download_url: string }[] | null;
+  submission_attachments?: { id: string; name: string; size: number; download_url: string }[] | null;
   review_feedback?: string | null;
   can_manage?: boolean;
   can_submit?: boolean;
@@ -66,6 +69,7 @@ export interface TaskTrackerComment {
 }
 
 export interface TaskTrackerStats {
+  attention?: number;
   total: number;
   pending: number;
   due_soon: number;

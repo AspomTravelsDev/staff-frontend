@@ -12,6 +12,7 @@ import { TaskDetailsSheet } from "./task-details-sheet";
 import { TaskCommentsDialog } from "./task-comments-dialog";
 import { TaskDeadlineTimeline } from "./task-deadline-timeline";
 import { TaskCompletionDialog } from "@/components/tasks/task-completion-dialog";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 
 interface Props {
   tasks: TaskTrackerItem[];
@@ -56,7 +57,7 @@ export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, 
         </TableRow></TableHeader>
         <TableBody>{tasks.length === 0 ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">No tasks in this view. Choose another status or add a task.</TableCell></TableRow> : tasks.map(task => {
           const colleague = view === "assigned_by_me" ? task.user : task.assigned_by;
-          return <TableRow key={task.id}>
+          return <DetailsTableRow key={task.id} detailLabel={`Open details for ${task.title}`} onOpenDetails={() => setSelectedId(task.id)}>
             <TableCell className="px-4 max-w-[260px]">
               <button type="button" onClick={() => setSelectedId(task.id)} className="text-left font-medium hover:underline break-words" aria-label={`Open details for ${task.title}`}>{task.title}</button>
               {["urgent", "high"].includes(task.priority) && <p className="mt-1 text-xs text-rose-600 capitalize">{task.priority} priority</p>}
@@ -76,7 +77,7 @@ export function TasksTable({ tasks, allTasks, view, onToggle, onDelete, onEdit, 
                 <TaskRowActions task={task} busy={busyId === task.id} onDetails={() => setSelectedId(task.id)} onComment={() => setCommentsTask(task)} onEdit={() => onEdit(task)} onToggle={() => { if (task.status === "completed") void toggle(task.id, "pending"); else setCompletionTask(task); }} onDelete={() => { void remove(task); }} onUpdated={onUpdated} />
               </div>
             </TableCell>
-          </TableRow>;
+          </DetailsTableRow>;
         })}</TableBody>
       </Table>
     </div>

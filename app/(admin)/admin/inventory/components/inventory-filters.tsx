@@ -186,7 +186,7 @@ export function InventoryFilters({
           <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-9"><Download className="mr-2 h-4 w-4" />Export</Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem disabled={!items.length} onClick={() => exportToCSV(items, exportColumns, `Inventory_Export_${format(new Date(), "yyyy-MM-dd")}`)}>Export current results (CSV)</DropdownMenuItem>
-            {onExportStaffFormClick && <DropdownMenuItem onClick={onExportStaffFormClick}>Download staff asset form</DropdownMenuItem>}
+            {onExportStaffFormClick && <DropdownMenuItem onClick={onExportStaffFormClick}>Staff equipment forms</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
 

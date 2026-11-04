@@ -12,8 +12,6 @@ export type PayrollRunStatus =
   | "closed"
   | "processing";
 
-export type PayrollEntryStatus = "pending" | "approved";
-
 export interface PayrollApprovalHistoryItem {
   from_status: string;
   to_status: string;
@@ -22,8 +20,39 @@ export interface PayrollApprovalHistoryItem {
   actor_name: string;
   actor_email?: string;
   actor_role: string;
+  attachment_ids?: string[];
   note?: string | null;
   created_at: string;
+}
+
+export type PayrollCommentRecipient = "hr" | "account" | "compliance" | "mp" | "md";
+
+export interface PayrollComment {
+  id: number;
+  run_id: string;
+  user_id: string | null;
+  author_name: string;
+  author_role: string;
+  recipient_role: PayrollCommentRecipient | null;
+  stage: string;
+  kind: "comment" | "revision";
+  body: string;
+  created_at: string;
+}
+
+export async function getPayrollComments(runId: string, before?: number, search?: string) {
+  const params = new URLSearchParams();
+  if (before) params.set("before", String(before));
+  if (search?.trim()) params.set("search", search.trim());
+  return api.get<{ data: PayrollComment[]; has_more: boolean; can_comment: boolean }>(`/api/hr/payroll/runs/${runId}/comments${params.size ? `?${params}` : ""}`);
+}
+
+export async function postPayrollComment(runId: string, body: string, kind: PayrollComment["kind"], recipientRole: PayrollCommentRecipient) {
+  return api.post<{ data: PayrollComment }>(`/api/hr/payroll/runs/${runId}/comments`, { body, kind, recipient_role: recipientRole });
+}
+
+export async function readPayrollComments(runId: string, throughId: number) {
+  return api.post(`/api/hr/payroll/runs/${runId}/comments/read`, { through_id: throughId });
 }
 
 export interface PayrollOtherDeduction {
@@ -48,6 +77,7 @@ export interface PayrollEntryUser {
 }
 
 export interface PayrollEntry {
+  staff_review_reasons?: string[];
   id: string;
   run_id: string;
   user_id: string;
@@ -57,6 +87,9 @@ export interface PayrollEntry {
   accommodation_amount?: number;
   is_intern: boolean;
   attendance_days: number;
+  half_day_count?: number;
+  unapproved_leave_days?: number;
+  unauthorized_late_days?: number;
   suspension_days: number;
   other_deductions_amount: number;
   other_deductions?: PayrollOtherDeduction[];
@@ -64,6 +97,9 @@ export interface PayrollEntry {
   additions?: PayrollOtherDeduction[];
   prorated_days: number;
   attendance_suggested_days: number;
+  half_day_suggested_count?: number;
+  unapproved_leave_suggested_days?: number;
+  unauthorized_late_suggested_days?: number;
   compliance_suggested_days: number;
   system_suggested_days: number;
   final_deduction_days: number;
@@ -71,9 +107,7 @@ export interface PayrollEntry {
   deduction_amount: number;
   tax_amount: number;
   net_amount: number;
-  status: PayrollEntryStatus;
   override_note?: string | null;
-  approved_at?: string | null;
   calculation_snapshot?: Record<string, any> | null;
   run?: {
     id: string;
@@ -83,7 +117,21 @@ export interface PayrollEntry {
   };
 }
 
+export interface PayrollSupportingDocument {
+  id: string;
+  name: string;
+  size: number;
+  category: "attendance" | "sanctions" | "todo_reports";
+  version: number;
+  uploaded_at: string;
+  uploaded_by: { id: string; name: string };
+  download_url: string;
+}
+
 export interface PayrollRun {
+  can_upload_documents?: boolean;
+  uploadable_document_categories?: PayrollSupportingDocument["category"][];
+  supporting_documents?: PayrollSupportingDocument[];
   id: string;
   payroll_month: string;
   status: PayrollRunStatus;
@@ -93,8 +141,6 @@ export interface PayrollRun {
   created_at?: string | null;
   summary?: {
     total_entries: number;
-    approved_entries: number;
-    pending_entries: number;
   };
   entries?: PayrollEntry[];
 }
@@ -115,11 +161,13 @@ export async function createPayrollRun(
   payrollMonth: string,
   reset: boolean = false,
   entries?: any[],
+  createNext: boolean = false,
 ): Promise<ApiResponse<{ data: PayrollRun }>> {
   return api.post<{ data: PayrollRun }>("/api/hr/payroll/runs", {
     payroll_month: payrollMonth,
     reset: reset,
     entries: entries,
+    create_next: createNext,
   });
 }
 
@@ -127,7 +175,7 @@ export async function getPayrollRun(runId: string): Promise<ApiResponse<{ data: 
   return api.get<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}`);
 }
 
-export interface PayrollPreviewEntry extends Omit<PayrollEntry, 'id' | 'run_id' | 'user_id' | 'status'> {
+export interface PayrollPreviewEntry extends Omit<PayrollEntry, 'id' | 'run_id' | 'user_id'> {
   user: PayrollEntryUser;
 }
 
@@ -136,8 +184,8 @@ export interface PayrollPreviewResponse {
   entries: PayrollPreviewEntry[];
 }
 
-export async function previewPayroll(month: string): Promise<ApiResponse<{ data: PayrollPreviewResponse }>> {
-  const query = month ? `?month=${encodeURIComponent(month)}` : '';
+export async function previewPayroll(month: string, createNext = false): Promise<ApiResponse<{ data: PayrollPreviewResponse }>> {
+  const query = month ? `?month=${encodeURIComponent(month)}${createNext ? '&create_next=1' : ''}` : '';
   return api.get<{ data: PayrollPreviewResponse }>(`/api/hr/payroll/preview${query}`);
 }
 
@@ -145,6 +193,9 @@ export async function overridePayrollEntry(
   entryId: string,
   payload: {
     attendance_days?: number;
+    half_day_count?: number;
+    unapproved_leave_days?: number;
+    unauthorized_late_days?: number;
     suspension_days?: number;
     prorated_days?: number;
     accommodation_amount?: number;
@@ -166,16 +217,8 @@ export async function overridePayrollEntry(
   return api.patch<{ data: PayrollEntry }>(`/api/hr/payroll/entries/${entryId}/override`, payload);
 }
 
-export async function approvePayrollEntry(entryId: string): Promise<ApiResponse<{ data: PayrollEntry }>> {
-  return api.post<{ data: PayrollEntry }>(`/api/hr/payroll/entries/${entryId}/approve`);
-}
-
 export async function recalculatePayrollEntry(entryId: string): Promise<ApiResponse<{ data: PayrollEntry }>> {
   return api.post<{ data: PayrollEntry }>(`/api/hr/payroll/entries/${entryId}/recalculate`);
-}
-
-export async function closePayrollRun(runId: string): Promise<ApiResponse<{ data: PayrollRun }>> {
-  return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/close`);
 }
 
 export async function transitionPayrollRun(
@@ -204,4 +247,8 @@ export async function getMyPayroll(month?: string): Promise<ApiResponse<{ data: 
 
 export async function getMyPayrollHistory(): Promise<ApiResponse<{ data: PayrollEntry[] }>> {
   return api.get<{ data: PayrollEntry[] }>("/api/my/payroll/history");
+}
+
+export async function refreshPayrollStaff(runId: string, entries: Record<string, unknown>[]) {
+  return api.post<{ data: PayrollRun }>(`/api/hr/payroll/runs/${runId}/refresh-staff`, { entries });
 }

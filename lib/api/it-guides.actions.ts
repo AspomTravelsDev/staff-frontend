@@ -150,6 +150,13 @@ export async function deleteITGuide(id: string): Promise<ActionResult<void>> {
 /**
  * Mark an IT guide as read for the current user
  */
+export async function markAllITGuidesAsRead(): Promise<ActionResult<void>> {
+    return runAction(async (): Promise<void> => {
+        const result = await api.post<{ message: string }>("/api/it-guides/mark-all-read", {});
+        if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    }, "markAllITGuidesAsRead");
+}
+
 export async function markITGuideAsRead(id: string): Promise<ActionResult<void>> {
     return runAction(async (): Promise<void> => {
         const result = await api.post<{ message: string }>(`/api/it-guides/${id}/mark-read`, {});

@@ -193,10 +193,28 @@ function TaskRow({ record }: { record: DailyTaskRecord }) {
           isOpen ? "bg-muted/10" : "",
         )}
       >
-        <TableRow className="cursor-pointer hover:bg-muted/50 border-0">
+        <TableRow
+          className="cursor-pointer hover:bg-muted/50 border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          tabIndex={0}
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen((open) => !open)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setIsOpen((open) => !open);
+            }
+          }}
+        >
           <TableCell>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-9 p-0"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+                aria-label={isOpen ? "Collapse task details" : "Expand task details"}
+              >
                 {isOpen ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (

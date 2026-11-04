@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Check, Wand2, X, PlusCircle } from "lucide-react";
+import { Loader2, Check, Wand2, X, PlusCircle } from "lucide-react";
 
 interface AiTextOption {
   label: string;
@@ -274,9 +274,6 @@ export function AiTextEnhancerModal({
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between p-4 border-b bg-muted/30">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              <Sparkles className="size-4" />
-            </div>
             <div>
               <h3 className="text-sm font-semibold">{title}</h3>
               <p className="text-[11px] text-muted-foreground">
@@ -381,7 +378,7 @@ export function AiTextEnhancerModal({
           {options.length > 0 && (
             <div className="space-y-3 pt-2">
               <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                <Sparkles className="size-3.5" /> 3 AI-Expanded Options (Click &quot;Use This Text&quot;)
+                 3 AI-Expanded Options (Click &quot;Use This Text&quot;)
               </Label>
 
               <div className="space-y-2.5">

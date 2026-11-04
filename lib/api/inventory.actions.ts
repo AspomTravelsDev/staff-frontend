@@ -34,6 +34,9 @@ export interface InventoryItem {
     name: string;
     category: "Laptop" | "Phone" | "Gadget" | "Other";
     serialNumber: string;
+    assetTag?: string;
+    assetType?: "Laptop" | "Laptop charger" | "Phone" | "Phone charger" | "SIM card" | "Other";
+    parentAssetId?: string;
     status: InventoryStatus;
     conditionRating: InventoryConditionRating;
     conditionDetails?: string;
@@ -44,6 +47,7 @@ export interface InventoryItem {
     updatedAt?: string;
     history?: InventoryHistory[];
     openAssignment?: InventoryAssignment | null;
+    currentAssignment?: InventoryAssignment | null;
 }
 
 export interface InventoryHistory {
@@ -108,6 +112,8 @@ export interface InventoryAssignment {
     inventoryItemId: string;
     type?: InventoryAssignmentType;
     clearanceBatchId?: string;
+    issueBatchId?: string;
+    assetSnapshot?: InventoryItem;
     status: InventoryAssignmentStatus;
     initiateNotes?: string;
     staffConditionRating?: InventoryConditionRating;
@@ -166,7 +172,10 @@ export async function getInventory(
                     id: item.id.toString(),
                     name: item.name,
                     category: item.category,
-                    serialNumber: item.serial_number,
+                    serialNumber: item.serial_number ?? "",
+                assetTag: item.asset_tag,
+                assetType: item.asset_type,
+                parentAssetId: item.parent_asset_id?.toString(),
                     status: item.status,
                     conditionRating: item.condition_rating,
                     conditionDetails: item.condition_details,
@@ -237,7 +246,9 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
             const response = await api.post<any>("/api/admin/inventory", {
                 name: payload.name,
                 category: payload.category,
-                serial_number: payload.serialNumber,
+                serial_number: payload.serialNumber === undefined ? undefined : payload.serialNumber.trim() || null,
+                asset_type: payload.assetType,
+                parent_asset_id: payload.parentAssetId === undefined ? undefined : payload.parentAssetId || null,
                 status: payload.status,
                 condition_rating: payload.conditionRating,
                 condition_details: payload.conditionDetails,
@@ -256,7 +267,10 @@ export async function createInventoryItem(payload: InventoryItemPayload): Promis
                 id: item.id.toString(),
                 name: item.name,
                 category: item.category,
-                serialNumber: item.serial_number,
+                serialNumber: item.serial_number ?? "",
+                assetTag: item.asset_tag,
+                assetType: item.asset_type,
+                parentAssetId: item.parent_asset_id?.toString(),
                 status: item.status,
                 conditionRating: item.condition_rating,
                 conditionDetails: item.condition_details,
@@ -280,7 +294,9 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
             const response = await api.patch<any>(`/api/admin/inventory/${id}`, {
                 name: payload.name,
                 category: payload.category,
-                serial_number: payload.serialNumber,
+                serial_number: payload.serialNumber === undefined ? undefined : payload.serialNumber.trim() || null,
+                asset_type: payload.assetType,
+                parent_asset_id: payload.parentAssetId === undefined ? undefined : payload.parentAssetId || null,
                 status: payload.status,
                 condition_rating: payload.conditionRating,
                 condition_details: payload.conditionDetails,
@@ -299,7 +315,10 @@ export async function updateInventoryItem(id: string, payload: Partial<Inventory
                 id: item.id.toString(),
                 name: item.name,
                 category: item.category,
-                serialNumber: item.serial_number,
+                serialNumber: item.serial_number ?? "",
+                assetTag: item.asset_tag,
+                assetType: item.asset_type,
+                parentAssetId: item.parent_asset_id?.toString(),
                 status: item.status,
                 conditionRating: item.condition_rating,
                 conditionDetails: item.condition_details,
@@ -395,7 +414,10 @@ export async function getMyInventory(): Promise<ActionResult<InventoryItem[]>> {
                 id: item.id.toString(),
                 name: item.name,
                 category: item.category,
-                serialNumber: item.serial_number,
+                serialNumber: item.serial_number ?? "",
+                assetTag: item.asset_tag,
+                assetType: item.asset_type,
+                parentAssetId: item.parent_asset_id?.toString(),
                 status: item.status,
                 conditionRating: item.condition_rating,
                 conditionDetails: item.condition_details,
@@ -485,6 +507,15 @@ function mapAssignment(a: any): InventoryAssignment {
         inventoryItemId: a.inventory_item_id?.toString(),
         type: a.type ?? "assignment",
         clearanceBatchId: a.clearance_batch_id ?? undefined,
+        issueBatchId: a.issue_batch_id ?? undefined,
+        assetSnapshot: a.asset_snapshot ? {
+            id: String(a.asset_snapshot.id), name: a.asset_snapshot.name,
+            category: a.asset_snapshot.category, serialNumber: a.asset_snapshot.serial_number ?? "",
+            assetType: a.asset_snapshot.asset_type, assetTag: a.asset_snapshot.asset_tag,
+            parentAssetId: a.asset_snapshot.parent_asset_id?.toString(),
+            conditionRating: a.asset_snapshot.condition_rating, conditionDetails: a.asset_snapshot.condition_details,
+            status: "Storage",
+        } : undefined,
         status: a.status,
         initiateNotes: a.initiate_notes ?? undefined,
         staffConditionRating: a.staff_condition_rating ?? undefined,
@@ -511,7 +542,10 @@ function mapAssignment(a: any): InventoryAssignment {
                   id: a.inventory_item.id.toString(),
                   name: a.inventory_item.name,
                   category: a.inventory_item.category,
-                  serialNumber: a.inventory_item.serial_number,
+                  serialNumber: a.inventory_item.serial_number ?? "",
+                  assetTag: a.inventory_item.asset_tag,
+                  assetType: a.inventory_item.asset_type,
+                  parentAssetId: a.inventory_item.parent_asset_id?.toString(),
                   status: a.inventory_item.status,
                   conditionRating: a.inventory_item.condition_rating,
                   conditionDetails: a.inventory_item.condition_details,
@@ -844,3 +878,49 @@ export async function submitClearanceHandover(
     }, "submitClearanceHandover");
 }
 
+
+export async function issueEquipment(payload: { assigneeId: string; items: { id: string; adminChecklist: GadgetChecklist }[]; notes?: string }): Promise<ActionResult<InventoryAssignment[]>> {
+    return runAction(async () => {
+        const response = await api.post<{ data: unknown[] }>("/api/admin/equipment/issue", {
+            assignee_id: payload.assigneeId, notes: payload.notes,
+            items: payload.items.map((item) => ({ id: item.id, admin_checklist: item.adminChecklist })),
+        });
+        if (!response.success) throw new ExpectedActionError(response.error.error || "Could not issue equipment", response.error.code);
+        return response.data.data.map(mapAssignment);
+    }, "issueEquipment");
+}
+
+export async function acknowledgeEquipment(payload: { batchId: string; agreedToTerms: boolean; items: { id: string; conditionRating: InventoryConditionRating; conditionDetails: string; staffChecklist: GadgetChecklist }[] }): Promise<ActionResult<InventoryAssignment[]>> {
+    return runAction(async () => {
+        const response = await api.post<{ data: unknown[] }>("/api/my-equipment/acknowledge", {
+            batch_id: payload.batchId, agreed_to_terms: payload.agreedToTerms,
+            items: payload.items.map((item) => ({ id: item.id, condition_rating: item.conditionRating, condition_details: item.conditionDetails, staff_checklist: item.staffChecklist })),
+        });
+        if (!response.success) throw new ExpectedActionError(response.error.error || "Could not acknowledge equipment", response.error.code);
+        return response.data.data.map(mapAssignment);
+    }, "acknowledgeEquipment");
+}
+
+export async function returnSelectedEquipment(assigneeId: string, itemIds: string[], notes?: string): Promise<ActionResult<InventoryAssignment[]>> {
+    return runAction(async () => {
+        const response = await api.post<{ data: unknown[] }>("/api/admin/equipment/return", { assignee_id: assigneeId, item_ids: itemIds, notes });
+        if (!response.success) throw new ExpectedActionError(response.error.error || "Could not request return", response.error.code);
+        return response.data.data.map(mapAssignment);
+    }, "returnSelectedEquipment");
+}
+
+export async function getEmployeeEquipment(assigneeId: string): Promise<ActionResult<InventoryItem[]>> {
+    return runAction(async () => {
+        const response = await api.get<{ data: Record<string, unknown>[] }>(`/api/admin/equipment/${encodeURIComponent(assigneeId)}`);
+        if (!response.success) throw new ExpectedActionError(response.error.error || "Could not load equipment", response.error.code);
+        return response.data.data.map((item) => ({
+            id: String(item.id), name: String(item.name), category: item.category as InventoryItem["category"],
+            serialNumber: String(item.serial_number ?? ""), assetTag: item.asset_tag as string,
+            assetType: item.asset_type as InventoryItem["assetType"], parentAssetId: item.parent_asset_id ? String(item.parent_asset_id) : undefined,
+            status: item.status as InventoryStatus, conditionRating: item.condition_rating as InventoryConditionRating,
+            conditionDetails: item.condition_details as string, defaultChecklist: item.default_checklist as GadgetChecklist,
+            currentAssignment: item.current_issue ? mapAssignment(item.current_issue) : null,
+            assignedTo: item.assigned_to as string, openAssignment: item.open_assignment ? mapAssignment(item.open_assignment) : null,
+        }));
+    }, "getEmployeeEquipment");
+}

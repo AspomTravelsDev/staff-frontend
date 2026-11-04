@@ -29,6 +29,7 @@ export type RecruitmentActionResult<T = any> = {
   data?: T;
   error?: string;
   errorCode?: string;
+  analysisReused?: boolean;
 };
 
 export async function createRecruitmentRole(data: {
@@ -131,14 +132,20 @@ export async function reanalyzeCandidate(
   candidateId: string,
   roleId: string
 ): Promise<RecruitmentActionResult<RecruitmentCandidate>> {
-  const response = await api.post<{ data: RecruitmentCandidate }>(
+  const response = await api.post<{ data: RecruitmentCandidate; analysis_reused?: boolean }>(
     `/api/recruitment/candidates/${candidateId}/reanalyze`
   );
   if (!response.success) {
     return { success: false, error: response.error?.error || "Failed to reanalyze candidate" };
   }
   revalidatePath(`/hr/recruitment/${roleId}`);
-  return { success: true, data: response.data.data };
+  return { success: true, data: response.data.data, ...(response.data.analysis_reused !== undefined ? { analysisReused: response.data.analysis_reused } : {}) };
+}
+
+export async function prepareCandidateInterview(candidateId: string) {
+  const response = await api.post<{ data: import("@/lib/types/recruitment").InterviewPreparation }>(`/api/recruitment/candidates/${candidateId}/interview-preparation`);
+  if (!response.success) return { success: false as const, error: response.error.error };
+  return { success: true as const, data: response.data.data };
 }
 
 export async function updateCandidateStatus(

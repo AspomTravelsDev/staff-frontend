@@ -10,6 +10,7 @@ import {
   XCircle,
   CalendarClock,
   Loader2,
+  Eye,
 } from "lucide-react";
 import {
   Card,
@@ -35,6 +36,7 @@ import { deleteAnnouncementAction } from "../actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { EditAnnouncementDialog } from "./edit-announcement-dialog";
+import { AnnouncementPreview } from "./announcement-preview";
 
 interface AnnouncementCardProps {
   announcement: AnnouncementItem;
@@ -96,6 +98,7 @@ export function AnnouncementCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const status = STATUS_CONFIG[announcement.status];
   const type = TYPE_CONFIG[announcement.type];
@@ -146,7 +149,7 @@ export function AnnouncementCard({
           </span>
         </div>
         <CardTitle className="text-base mt-2 leading-snug line-clamp-2">
-          {announcement.title}
+          <button type="button" className="text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setPreviewOpen(true)}>{announcement.title}</button>
         </CardTitle>
       </CardHeader>
 
@@ -158,6 +161,7 @@ export function AnnouncementCard({
 
       <CardFooter className="pt-0 border-t">
         <div className="flex items-center justify-between w-full pt-3 flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setPreviewOpen(true)}><Eye className="mr-1.5 size-4" />Preview</Button>
           {scheduledDate && announcement.status === "pending" && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarClock className="h-3.5 w-3.5" />
@@ -207,6 +211,7 @@ export function AnnouncementCard({
         </div>
       </CardFooter>
 
+      <AnnouncementPreview open={previewOpen} onOpenChange={setPreviewOpen} title={announcement.title} content={announcement.content} type={announcement.type} status={announcement.status} />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

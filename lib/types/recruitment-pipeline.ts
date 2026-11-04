@@ -45,6 +45,7 @@ export interface PipelineDefinition extends PipelineSettings {
   graduate: boolean;
 }
 export interface PipelinePayload {
+  practical_score?: number | null;
   manual_review?: boolean;
   review_note?: string;
   grades?: Record<string, number | null>;
@@ -101,6 +102,13 @@ export interface PipelineContext {
     actor: { name: string };
     created_at: string;
   }[];
+}
+
+export interface PipelinePrefill {
+  records: (Omit<PipelineRecord, "definition"> & { definition: PipelineDefinition | null })[];
+  events: PipelineContext["events"];
+  final_score: number | null;
+  final_review: import("./recruitment-final-review").RecruitmentFinalReview;
 }
 
 export type ManagementDecisionType = "approve" | "hold" | "return" | "decline";

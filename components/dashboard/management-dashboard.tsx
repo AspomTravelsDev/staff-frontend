@@ -1,23 +1,41 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  Briefcase,
   CalendarDays,
   ClipboardCheck,
   Clock,
+  Megaphone,
+  ListTodo,
+  MessageCircle,
+  WalletCards,
   Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AttendanceTrendChart,
-  DepartmentOverviewChart,
-} from "./management-charts";
 import { ManagementRefresh } from "./management-refresh";
 import type { ManagementDashboardSummary } from "@/lib/types/management-dashboard";
+import { QuickLinkButton } from "./quick-link-button";
+import { RecentUpdates } from "./recent-updates";
+import { DashboardCelebrationCard } from "./dashboard-celebration-card";
+import type { AnnouncementItem } from "@/lib/api/announcements";
+
+type SpotlightAward = {
+  id: string;
+  name: string;
+  role: string;
+  image?: string | null;
+  initials: string;
+  awardName: string;
+};
 
 export function ManagementDashboard({
   data,
+  spotlightAwards,
+  announcements,
 }: {
   data: ManagementDashboardSummary;
+  spotlightAwards: SpotlightAward[];
+  announcements: AnnouncementItem[];
 }) {
   const { attendance, employees, leave, decisions } = data;
   const date = new Intl.DateTimeFormat("en-GB", {
@@ -141,6 +159,11 @@ export function ManagementDashboard({
                 </p>
                 <p className="mt-1 text-muted-foreground">Late permitted</p>
               </div>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 border-t pt-2 text-xs">
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground"><span className="size-2 rounded-sm bg-violet-500" />Leave <strong className="text-foreground tabular-nums">{attendance.on_leave}</strong></span>
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground"><span className="size-2 rounded-sm bg-sky-500" />Work from home <strong className="text-foreground tabular-nums">{attendance.work_from_home}</strong></span>
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground"><span className="size-2 rounded-sm bg-amber-500" />Half day <strong className="text-foreground tabular-nums">{attendance.half_day}</strong></span>
             </div>
             <p className="border-t pt-2 text-xs text-muted-foreground">
               {!attendance.working_day
@@ -306,100 +329,28 @@ export function ManagementDashboard({
           ))}
         </div>
       </section>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <Card className="min-w-0 gap-3 py-4 shadow-none">
-          <CardHeader className="px-4 pb-0">
-            <CardTitle className="text-base font-semibold">
-              Attendance trend
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Last 30 days · weekdays · currently active staff
-            </p>
-          </CardHeader>
-          <CardContent className="px-3">
-            <AttendanceTrendChart rows={data.trend} />
-            <details className="mt-3 text-xs">
-              <summary className="cursor-pointer text-muted-foreground">
-                View daily counts
-              </summary>
-              <div className="mt-2 max-h-56 overflow-auto">
-                <table className="w-full text-left tabular-nums">
-                  <caption className="sr-only">
-                    Attendance counts by day
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th className="p-2">Date</th>
-                      <th className="p-2">On time</th>
-                      <th className="p-2">Late</th>
-                      <th className="p-2">Permitted</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.trend.map((row) => (
-                      <tr key={row.date} className="border-t">
-                        <td className="p-2">{row.date}</td>
-                        <td className="p-2">{row.early}</td>
-                        <td className="p-2">{row.late}</td>
-                        <td className="p-2">{row.late_permitted}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          </CardContent>
-        </Card>
-        <Card className="min-w-0 gap-3 py-4 shadow-none">
-          <CardHeader className="px-4 pb-0">
-            <CardTitle className="text-base font-semibold">
-              Department overview
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Active employees and clock-ins today
-            </p>
-          </CardHeader>
-          <CardContent className="px-3">
-            <DepartmentOverviewChart rows={data.departments} />
-            <details className="mt-3 text-xs">
-              <summary className="cursor-pointer text-muted-foreground">
-                View department counts
-              </summary>
-              <div className="mt-2 overflow-auto">
-                <table className="w-full text-left tabular-nums">
-                  <caption className="sr-only">
-                    Employee and attendance counts by department
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th className="p-2">Department</th>
-                      <th className="p-2">Staff</th>
-                      <th className="p-2">Present</th>
-                      <th className="p-2">Leave</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.departments.map((row) => (
-                      <tr key={row.name} className="border-t">
-                        <td className="p-2">{row.name}</td>
-                        <td className="p-2">{row.employees}</td>
-                        <td className="p-2">{row.present}</td>
-                        <td className="p-2">{row.on_leave}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          </CardContent>
-        </Card>
+      <section aria-labelledby="management-quick-links" className="space-y-3">
+        <h2 id="management-quick-links" className="text-sm font-semibold">Quick links</h2>
+        <div className="flex flex-wrap gap-2">
+          <QuickLinkButton icon={Briefcase} title="Recruitment" url="/hr/recruitment" target="_self" color="indigo" />
+          <QuickLinkButton icon={WalletCards} title="Payroll" url="/hr/payroll" target="_self" color="blue" />
+          <QuickLinkButton icon={Megaphone} title="All Announcements" url="/announcements" target="_self" color="amber" />
+          <QuickLinkButton icon={ListTodo} title="Task Tracker" url="/my/task-tracker" target="_self" color="emerald" />
+          <QuickLinkButton icon={MessageCircle} title="Chat" url="/chat" target="_self" color="sky" />
+        </div>
+      </section>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <DashboardCelebrationCard
+          className="h-full"
+          monthlyAwards={spotlightAwards}
+          todayBirthdays={[]}
+          todayAnniversaries={[]}
+        />
+        <RecentUpdates
+          className="h-full"
+          updates={announcements.filter((item) => !item.publish_at || new Date(item.publish_at) <= new Date())}
+        />
       </div>
-      <p className="text-xs text-muted-foreground">
-        On time means clocked in by 9:05 a.m. Lagos. Approved leave is excluded
-        from expected attendance; the leave end date is the resumption date. A
-        missing clock-in is not a confirmed absence. Department accounts are
-        excluded.
-      </p>
     </div>
   );
 }

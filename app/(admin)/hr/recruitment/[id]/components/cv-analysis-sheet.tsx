@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,8 @@ import {
   cvAnalysisFailureMessage,
 } from "@/lib/recruitment/cv-evaluation";
 import type { RecruitmentCandidate } from "@/lib/types/recruitment";
+import type { InterviewPreparation } from "@/lib/types/recruitment";
+import { prepareCandidateInterview } from "@/lib/api/recruitment";
 import { PipelineDisclosure } from "../../components/pipeline-disclosure";
 
 export function CvAnalysisSheet({
@@ -37,6 +39,10 @@ export function CvAnalysisSheet({
   } | null>(null);
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0);
+  const [preparation, setPreparation] = useState<{ source: RecruitmentCandidate; data: InterviewPreparation } | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [preparationError, setPreparationError] = useState("");
+  const preparationLock = useRef(false);
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
@@ -67,6 +73,17 @@ export function CvAnalysisSheet({
   const pending =
     retrying || ["pending", "processing"].includes(evaluation?.status ?? "");
   const score = cvEvaluationScore(data);
+  const interview = preparation?.source === candidate ? preparation.data : loaded ? details.data.interview_preparation : null;
+  async function prepare() {
+    if (preparationLock.current) return;
+    preparationLock.current = true; setPreparing(true); setPreparationError("");
+    try {
+      const result = await prepareCandidateInterview(candidate.id);
+      if (result.success) setPreparation({ source: candidate, data: result.data });
+      else setPreparationError(result.error);
+    } catch { setPreparationError("Interview preparation could not finish. Please retry."); }
+    finally { preparationLock.current = false; setPreparing(false); }
+  }
   return (
     <Sheet
       open
@@ -88,9 +105,11 @@ export function CvAnalysisSheet({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium" role="status">
               {pending
-                ? "Analysis pending"
+                ? "Analysis running"
                 : evaluation?.status === "failed"
                   ? "Analysis failed"
+                  : evaluation?.status === "not_requested"
+                    ? "Analysis not run"
                   : score === null
                     ? "Not scored"
                     : `CV score: ${score}%`}
@@ -136,8 +155,8 @@ export function CvAnalysisSheet({
           )}
           {pending ? (
             <p className="text-xs text-muted-foreground">
-              Analysis is running in the background. You can close this sheet
-              and keep working.
+              Analysis is running. You can close this sheet and keep working;
+              the result will be available when you return.
             </p>
           ) : (
             <>
@@ -172,6 +191,22 @@ export function CvAnalysisSheet({
                   </p>
                 </section>
               )}
+              {!!evaluation?.criteria?.length && <section className="space-y-2 text-xs" aria-label="Role requirement evidence">
+                <h3 className="font-medium">Role requirement evidence</h3>
+                {evaluation.criteria.map((criterion, index) => <div key={index} className="space-y-1 border-b pb-2">
+                  <p className="font-medium">{criterion.requirement} · {{ met: "Shown in CV", not_shown: "Not shown in CV", unclear: "Needs clarification" }[criterion.status]}</p>
+                  <p className="text-muted-foreground">{criterion.evidence}</p>
+                </div>)}
+              </section>}
+              {evaluation?.status === "completed" && <section className="space-y-2 border-t pt-3 text-xs" aria-label="Interview preparation">
+                <h3 className="font-medium">Interview preparation</h3>
+                <p className="text-muted-foreground">Generate detailed questions when you need them. Saved preparation is reused while the CV and role requirements are unchanged.</p>
+                {interview?.status === "stale" && <p>Previous preparation is outdated. Refresh AI screening before generating again.</p>}
+                {interview?.status === "failed" && <p>The previous preparation did not finish. You can try again.</p>}
+                {interview?.probes?.map((probe, index) => <div key={index} className="space-y-1 border-b pb-2"><p className="font-medium">{probe.question}</p><p>CV evidence to clarify: {probe.cv_trigger}</p><p className="text-muted-foreground">Listen for: {probe.what_to_listen_for}</p></div>)}
+                {!interview?.probes?.length && <Button variant="outline" disabled={preparing || interview?.status === "processing"} onClick={() => void prepare()}>{preparing ? "Preparing questions…" : interview?.status === "processing" ? "Preparation running — reload to check" : "Generate interview questions"}</Button>}
+                {preparationError && <p role="alert" className="text-destructive">{preparationError}</p>}
+              </section>}
               {!!evaluation?.suggested_interview_questions?.length && (
                 <PipelineDisclosure title="Suggested follow-up questions">
                   <ul className="list-disc space-y-1 pl-4 text-xs">
@@ -191,7 +226,9 @@ export function CvAnalysisSheet({
                 <RotateCw />
                 {evaluation?.status === "failed"
                   ? "Retry AI analysis"
-                  : "Reanalyse CV"}
+                  : evaluation?.status === "not_requested"
+                    ? "Run AI analysis"
+                    : "Reanalyse CV"}
               </Button>
             </>
           )}
@@ -202,7 +239,8 @@ export function CvAnalysisSheet({
               </p>
             </PipelineDisclosure>
           )}
-          <div className="border-t pt-3">
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <Button variant="outline" onClick={() => setReload(value => value + 1)}>Reload analysis</Button>
             <Button variant="link" className="h-auto p-0" onClick={onManage}>
               Manage status &amp; decision history
             </Button>

@@ -1,303 +1,86 @@
 "use client";
 
-import { cvEvaluationFailed } from "@/lib/recruitment/cv-evaluation";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadCloud, FileText, Loader2 } from "lucide-react";
+import { UploadCloud, Loader2 } from "lucide-react";
 import { uploadCandidateCv } from "@/lib/api/recruitment";
-import { toast } from "sonner";
+import { CV_UPLOAD_LIMIT, cvFileError, runRecruitmentBatch } from "@/lib/recruitment/cv-intake";
 
-interface UploadCvDialogProps {
-  roleId: string;
-  roleTitle: string;
-  trigger?: React.ReactNode;
-  disabled?: boolean;
-}
-
-export function UploadCvDialog({
-  roleId,
-  roleTitle,
-  trigger,
-  disabled = false,
-}: UploadCvDialogProps) {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [open, setOpen] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [candidateName, setCandidateName] = useState("");
-  const [candidateEmail, setCandidateEmail] = useState("");
-  const [candidatePhone, setCandidatePhone] = useState("");
-
-  const [uploading, setUploading] = useState(false);
-  const [uploadStep, setUploadStep] = useState<string>("");
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      const ext = selected.name.split(".").pop()?.toLowerCase();
-      if (!["pdf", "docx", "doc", "txt"].includes(ext || "")) {
-        toast.error(
-          "Please select a PDF or Word document (.pdf, .docx, .doc).",
-        );
-        return;
-      }
-      setFile(selected);
-      // Pre-fill candidate name from filename if empty
-      if (!candidateName) {
-        const rawName = selected.name
-          .replace(/\.[^/.]+$/, "")
-          .replace(/[_-]/g, " ");
-        setCandidateName(rawName);
-      }
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped) {
-      const ext = dropped.name.split(".").pop()?.toLowerCase();
-      if (!["pdf", "docx", "doc", "txt"].includes(ext || "")) {
-        toast.error("Please upload a PDF or Word document.");
-        return;
-      }
-      setFile(dropped);
-      if (!candidateName) {
-        const rawName = dropped.name
-          .replace(/\.[^/.]+$/, "")
-          .replace(/[_-]/g, " ");
-        setCandidateName(rawName);
-      }
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (disabled) {
-      toast.error("Reopen this recruitment role before uploading another CV.");
-      return;
-    }
-    if (!file) {
-      toast.error("Please select a CV document to upload.");
-      return;
-    }
-
+type Intake = { id: string; file: File; name: string; email: string; phone: string; status: "ready" | "uploading" | "uploaded" | "failed" | "duplicate"; error: string; allowDuplicate?: boolean };
+export function UploadCvDialog({ roleId, roleTitle, trigger, disabled = false, screeningOnUpload = false }: { roleId: string; roleTitle: string; trigger?: React.ReactNode; disabled?: boolean; screeningOnUpload?: boolean }) {
+  const router = useRouter(), picker = useRef<HTMLInputElement>(null), running = useRef(false);
+  const [open, setOpen] = useState(false), [rows, setRows] = useState<Intake[]>([]), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  function add(files: FileList | null) {
+    if (!files || running.current || disabled) return;
+    if (rows.length + files.length > CV_UPLOAD_LIMIT) { setError(`Choose up to ${CV_UPLOAD_LIMIT} CVs per session. Remove files before adding more.`); return; }
+    setError("");
+    setRows(previous => [...previous, ...Array.from(files).map(file => ({ id: crypto.randomUUID(), file, name: file.name.replace(/\.[^.]+$/, ""), email: "", phone: "", status: "ready" as const, error: cvFileError(file) }))]);
+    if (picker.current) picker.current.value = "";
+  }
+  function update(id: string, values: Partial<Intake>) { setRows(previous => previous.map(row => row.id === id ? { ...row, ...values } : row)); }
+  async function upload(items: Intake[]) {
+    if (running.current || disabled || !items.length) return;
+    running.current = true; setBusy(true); setError("");
     try {
-      setUploading(true);
-      setUploadStep("Uploading CV…");
-
-      const formData = new FormData();
-      formData.append("cv_file", file);
-      if (candidateName.trim()) formData.append("name", candidateName.trim());
-      if (candidateEmail.trim())
-        formData.append("email", candidateEmail.trim());
-      if (candidatePhone.trim())
-        formData.append("phone", candidatePhone.trim());
-
-      setUploadStep("Saving the applicant record…");
-      const res = await uploadCandidateCv(roleId, formData);
-
-      if (!res.success || !res.data) {
-        toast.error(res.error || "Failed to upload and analyze CV.");
-        return;
-      }
-
-      if (cvEvaluationFailed(res.data))
-        toast.warning(
-          "CV uploaded. AI evaluation failed — use Reanalyze CV to retry.",
-        );
-      else if (
-        ["pending", "processing"].includes(res.data.ai_evaluation?.status ?? "")
-      )
-        toast.success(
-          "CV uploaded. AI screening will continue in the background.",
-        );
-      else
-        toast.success(
-          `Candidate analyzed! Match score: ${res.data.ai_score ?? "N/A"}%`,
-        );
-      setOpen(false);
-      setFile(null);
-      setCandidateName("");
-      setCandidateEmail("");
-      setCandidatePhone("");
+      await runRecruitmentBatch(items, async row => {
+        update(row.id, { status: "uploading", error: "" });
+        try {
+          const body = new FormData(); body.append("cv_file", row.file); body.append("upload_id", row.id);
+          if (row.name.trim()) body.append("name", row.name.trim());
+          if (row.email.trim()) body.append("email", row.email.trim());
+          if (row.phone.trim()) body.append("phone", row.phone.trim());
+          if (row.allowDuplicate) body.append("allow_duplicate", "1");
+          const result = await uploadCandidateCv(roleId, body);
+          update(row.id, result.success ? { status: "uploaded", error: "" } : { status: result.errorCode === "CV_DUPLICATE" ? "duplicate" : "failed", error: result.error ?? "Upload failed. Please retry." });
+        } catch { update(row.id, { status: "failed", error: "Upload could not be confirmed. Retry to check and finish this upload." }); }
+      });
       router.refresh();
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to upload and analyze CV.",
-      );
-    } finally {
-      setUploading(false);
-      setUploadStep("");
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild disabled={disabled}>
-        {trigger || (
-          <Button className="gap-2" disabled={disabled}>
-            <UploadCloud className="h-4 w-4" />
-            Upload Candidate CV
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="w-[95vw] sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Upload Candidate CV
-          </DialogTitle>
-          <DialogDescription>
-            Upload a candidate&apos;s CV for <strong>{roleTitle}</strong>. AI
-            screening runs in the background for the new recruitment flow.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* File Upload Dropzone */}
-          <div onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx,.doc,.txt"
-              className="hidden"
-              onChange={handleFileChange}
-              disabled={uploading}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="h-auto w-full whitespace-normal border-dashed p-4 text-center"
-            >
-              {file ? (
-                <div className="flex flex-col items-center gap-2">
-                  <FileText className="size-5 text-primary" />
-                  <div className="text-sm font-medium text-foreground max-w-[280px] truncate">
-                    {file.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB • Click or drop
-                    another to replace
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <UploadCloud className="size-5 text-muted-foreground" />
-                  <div className="text-sm font-medium">
-                    Click to browse or drop resume here
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Supports PDF or Word documents (.pdf, .docx, up to 15MB)
-                  </div>
-                </div>
-              )}
-            </Button>
-          </div>
-
-          {/* Optional manual contact overrides */}
-          <div className="space-y-3 pt-1">
-            <p className="text-xs font-medium text-muted-foreground">
-              Candidate Details (Optional - auto-extracted by AI if blank)
-            </p>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs">
-                Candidate Name
-              </Label>
-              <Input
-                id="name"
-                placeholder="Leave blank for automatic AI extraction"
-                value={candidateName}
-                onChange={(e) => setCandidateName(e.target.value)}
-                disabled={uploading}
-              />
+    } finally { running.current = false; setBusy(false); }
+  }
+  const pending = rows.filter(row => ["ready", "failed"].includes(row.status) && !cvFileError(row.file));
+  const completed = rows.filter(row => row.status === "uploaded").length;
+  function close(next: boolean) {
+    if (running.current) return;
+    setOpen(next);
+    // Retain unuploaded files if HR closes and returns to the dialog.
+    if (!next && rows.length && completed === rows.length) setRows([]);
+  }
+  return <Dialog open={open} onOpenChange={close}>
+    <DialogTrigger asChild disabled={disabled}>{trigger ?? <Button disabled={disabled}><UploadCloud />Upload CVs</Button>}</DialogTrigger>
+    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl" onInteractOutside={event => { if (busy) event.preventDefault(); }}>
+      <DialogHeader>
+        <DialogTitle>Upload CVs</DialogTitle>
+        <DialogDescription>Add up to 20 candidates for {roleTitle}. Each CV creates one applicant. {screeningOnUpload ? "This role uses the earlier recruitment flow and runs AI screening during upload." : "Run Analyze selected from the applicant list when ready."}</DialogDescription>
+      </DialogHeader>
+      <form onSubmit={event => { event.preventDefault(); void upload(pending); }} className="space-y-4">
+        <input ref={picker} type="file" multiple accept=".pdf,.docx,.doc,.txt" className="hidden" disabled={busy} onChange={event => add(event.target.files)} />
+        <div onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); add(event.dataTransfer.files); }}>
+          <Button type="button" variant="outline" className="h-auto w-full whitespace-normal border-dashed p-4" disabled={busy || rows.length >= CV_UPLOAD_LIMIT} onClick={() => picker.current?.click()}><UploadCloud />Choose or drop CVs · PDF, Word or TXT · 15 MB each</Button>
+        </div>
+        {!!rows.length && <p role="status" aria-live="polite" className="text-sm">{completed} of {rows.length} uploaded{busy ? " · Uploading…" : ""}</p>}
+        <div className="space-y-4">
+          {rows.map((row, index) => <section key={row.id} aria-label={`CV ${index + 1}: ${row.file.name}`} className="space-y-3 border-b pb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0"><p className="break-words text-sm font-medium">{row.file.name}</p><p className="text-xs text-muted-foreground">{(row.file.size / 1024 / 1024).toFixed(2)} MB · {{ ready: "Ready", uploading: "Uploading…", uploaded: "Uploaded", failed: "Upload failed", duplicate: "Possible duplicate" }[row.status]}</p></div>
+              {row.status !== "uploaded" && <Button type="button" variant="ghost" disabled={busy} aria-label={`Remove ${row.file.name}`} onClick={() => setRows(previous => previous.filter(item => item.id !== row.id))}>Remove</Button>}
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Auto-extracted"
-                  value={candidateEmail}
-                  onChange={(e) => setCandidateEmail(e.target.value)}
-                  disabled={uploading}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs">
-                  Phone Number
-                </Label>
-                <Input
-                  id="phone"
-                  placeholder="Auto-extracted"
-                  value={candidatePhone}
-                  onChange={(e) => setCandidatePhone(e.target.value)}
-                  disabled={uploading}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Banner during Upload */}
-          {uploading && (
-            <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 flex items-center gap-3">
-              <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
-              <div className="text-xs text-primary font-medium">
-                {uploadStep}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={uploading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!file || uploading}
-              className="gap-2"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading CV…
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="h-4 w-4" />
-                  Upload CV
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+            {row.status !== "uploaded" && <div className="grid gap-3 sm:grid-cols-3">
+              {([['name', 'Candidate name'], ['email', 'Email (optional)'], ['phone', 'Phone (optional)']] as const).map(([field, label]) => <div key={field} className="space-y-1.5"><Label htmlFor={`${row.id}-${field}`}>{label}</Label><Input id={`${row.id}-${field}`} type={field === "email" ? "email" : "text"} value={row[field]} maxLength={field === "phone" ? 50 : 255} disabled={busy} onChange={event => update(row.id, { [field]: event.target.value, ...(row.status === "duplicate" ? { status: "ready", allowDuplicate: false, error: "" } : {}) })} /></div>)}
+            </div>}
+            {row.error && <p role="alert" className="break-words text-sm text-destructive">{row.error}</p>}
+            {row.status === "duplicate" && <Button type="button" variant="outline" disabled={busy} onClick={() => void upload([{ ...row, allowDuplicate: true }])}>Upload anyway</Button>}
+          </section>)}
+        </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={busy} onClick={() => close(false)}>{completed ? "Done" : "Close"}</Button>
+          <Button type="submit" disabled={busy || disabled || !pending.length}>{busy ? <><Loader2 className="animate-spin" />Uploading…</> : `Upload ${pending.length || ""} CV${pending.length === 1 ? "" : "s"}`}</Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>;
 }

@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Plus, MessageSquare, RefreshCw } from "lucide-react";
 import { Conversation } from "@/types/chat";
+import { toProxiedImageUrl } from "@/lib/utils/image-url";
+import { conversationPreview } from "@/lib/chat-message-state";
 
 interface ChatSidebarProps {
     conversations: Conversation[];
@@ -33,7 +35,7 @@ export function ChatSidebar({
         const query = searchQuery.toLowerCase();
         const name = (conv.name || conv.other_user?.name || "").toLowerCase();
         const email = (conv.other_user?.email || "").toLowerCase();
-        const lastMsg = (conv.last_message?.body || "").toLowerCase();
+        const lastMsg = conv.last_message?.is_deleted ? "" : (conv.last_message?.body || "").toLowerCase();
         return name.includes(query) || email.includes(query) || lastMsg.includes(query);
     });
 
@@ -56,7 +58,7 @@ export function ChatSidebar({
     }
 
     return (
-        <div className="flex flex-col h-full w-full bg-card">
+        <div className="flex min-w-0 flex-col min-h-0 h-full w-full overflow-hidden bg-card">
             {/* Sidebar Header */}
             <div className="p-4 border-b border-border space-y-3">
                 <div className="flex items-center justify-between">
@@ -97,7 +99,7 @@ export function ChatSidebar({
             </div>
 
             {/* Conversation List */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0 min-w-0 [&_[data-slot=scroll-area-viewport]>div]:!block">
                 {loading && conversations.length === 0 ? (
                     <div className="p-3 space-y-3">
                         {[1, 2, 3, 4, 5].map((i) => (
@@ -139,7 +141,7 @@ export function ChatSidebar({
                                 <div
                                     key={conv.id}
                                     onClick={() => onSelectConversation(conv)}
-                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                                    className={`flex min-w-0 max-w-full items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
                                         isSelected
                                             ? "bg-primary/10 text-primary font-medium dark:bg-primary/20"
                                             : "hover:bg-accent/60 text-foreground"
@@ -147,7 +149,7 @@ export function ChatSidebar({
                                 >
                                     <div className="relative shrink-0">
                                         <Avatar className="h-10 w-10 border border-border/50">
-                                            <AvatarImage src={otherUser?.avatar_url || undefined} alt={displayName} />
+                                            <AvatarImage src={toProxiedImageUrl(otherUser?.avatar_url)} alt={displayName} />
                                             <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
                                                 {initials.toUpperCase() || "DM"}
                                             </AvatarFallback>
@@ -167,11 +169,11 @@ export function ChatSidebar({
                                         </div>
 
                                         <div className="flex items-center justify-between gap-2">
-                                            <p className={`text-xs truncate ${hasUnread ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                                                {lastMsg ? lastMsg.body || "Attachment" : "No messages yet"}
+                                            <p className={`min-w-0 flex-1 text-xs truncate ${hasUnread ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                                                {conversationPreview(lastMsg)}
                                             </p>
                                             {hasUnread && (
-                                                <Badge className="bg-primary text-primary-foreground text-[10px] h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center font-bold">
+                                                <Badge className="shrink-0 bg-primary text-primary-foreground text-[10px] h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center font-bold">
                                                     {conv.unread_count}
                                                 </Badge>
                                             )}

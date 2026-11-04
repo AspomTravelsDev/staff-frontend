@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   transitionPayrollRun,
   type PayrollRun,
-  type PayrollApprovalHistoryItem,
 } from "@/lib/api/payroll";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PayrollComments } from "./payroll-comments";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useUser } from "@/providers/user-provider";
@@ -26,7 +27,6 @@ import {
   Clock,
   ArrowRight,
   RotateCcw,
-  History,
   FileCheck2,
   AlertTriangle,
   UserCheck,
@@ -38,7 +38,6 @@ import {
 interface WorkflowStep {
   key: string;
   label: string;
-  roleLabel: string;
   icon: any;
 }
 
@@ -53,12 +52,12 @@ const STAGE_PERMISSIONS: Record<string, string[]> = {
 };
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
-  { key: "draft", label: "HR Draft", roleLabel: "HR Officer", icon: Building2 },
-  { key: "account_review", label: "Accounts", roleLabel: "Accounts Officer", icon: UserCheck },
-  { key: "compliance_review", label: "Compliance", roleLabel: "Compliance Officer", icon: ShieldCheck },
-  { key: "mp_review", label: "MP Review", roleLabel: "Managing Partner", icon: FileCheck2 },
-  { key: "md_approval", label: "MD Sign-off", roleLabel: "Managing Director", icon: Crown },
-  { key: "closed", label: "Closed & Paid", roleLabel: "Finalized", icon: CheckCircle2 },
+  { key: "draft", label: "HR Draft", icon: Building2 },
+  { key: "account_review", label: "Accounts", icon: UserCheck },
+  { key: "compliance_review", label: "Compliance", icon: ShieldCheck },
+  { key: "mp_review", label: "MP Review", icon: FileCheck2 },
+  { key: "md_approval", label: "MD Sign-off", icon: Crown },
+  { key: "closed", label: "Closed & Paid", icon: CheckCircle2 },
 ];
 
 function getStageIndex(status: string): number {
@@ -104,10 +103,12 @@ export function PayrollWorkflowBar({
   currentRun,
   onRefresh,
   isBusy,
+  commentsOpen = false,
 }: {
   currentRun: PayrollRun;
   onRefresh: () => void;
   isBusy: boolean;
+  commentsOpen?: boolean;
 }) {
   const { user } = useUser();
   const userRoles = user?.roles && user.roles.length > 0
@@ -120,11 +121,10 @@ export function PayrollWorkflowBar({
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionNote, setRejectionNote] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
+  const queryClient = useQueryClient();
   const activeIndex = getStageIndex(currentRun.status);
   const isClosed = currentRun.status === "closed";
-  const history: PayrollApprovalHistoryItem[] = currentRun.approval_history || [];
 
   const handleAdvance = async () => {
     setIsTransitioning(true);
@@ -134,6 +134,7 @@ export function PayrollWorkflowBar({
         throw new Error(res.error.error || "Failed to advance workflow stage.");
       }
       toast.success(res.data.message || "Payroll advanced successfully.");
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || "Could not advance stage.");
@@ -157,6 +158,7 @@ export function PayrollWorkflowBar({
       toast.success("Payroll run sent back to HR Draft.");
       setIsRejectModalOpen(false);
       setRejectionNote("");
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || "Could not reject stage.");
@@ -166,12 +168,12 @@ export function PayrollWorkflowBar({
   };
 
   return (
-    <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+    <div className="bg-card border rounded-xl p-3 sm:p-4 space-y-2" data-payroll-tour="workflow">
       {/* Header & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-lg text-foreground">
+            <h3 className="font-semibold text-sm text-foreground">
               Approval Pipeline
             </h3>
             <Badge
@@ -179,33 +181,19 @@ export function PayrollWorkflowBar({
               className={cn(
                 "capitalize font-bold text-xs px-2.5 py-0.5",
                 isClosed
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "bg-amber-50 text-amber-700 border-amber-200",
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                  : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
               )}
             >
               {WORKFLOW_STEPS[activeIndex]?.label || currentRun.status}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Stage {activeIndex + 1} of {WORKFLOW_STEPS.length}:{" "}
-            {WORKFLOW_STEPS[activeIndex]?.roleLabel} Action Required
-          </p>
+
         </div>
 
         {/* Workflow Actions */}
-        <div className="flex items-center gap-2">
-          {history.length > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setShowHistory(!showHistory)}
-            >
-              <History className="h-4 w-4 mr-1.5" />
-              {showHistory ? "Hide History" : `Log History (${history.length})`}
-            </Button>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          <PayrollComments key={currentRun.id} run={currentRun} defaultOpen={commentsOpen} />
 
           {!isClosed && (
             canActOnCurrentStage ? (
@@ -240,107 +228,21 @@ export function PayrollWorkflowBar({
                 variant="outline"
                 className="text-xs py-1 px-3 text-muted-foreground bg-muted/40 border-dashed"
               >
-                Awaiting {WORKFLOW_STEPS[activeIndex]?.roleLabel} Action
+                Awaiting {WORKFLOW_STEPS[activeIndex]?.label}
               </Badge>
             )
           )}
         </div>
       </div>
 
-      {/* Stepper Pipeline */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 pt-1">
+      <ol className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-2 text-xs" aria-label="Payroll approval stages">
         {WORKFLOW_STEPS.map((step, idx) => {
-          const Icon = step.icon;
-          const isCurrent = idx === activeIndex;
-          const isPassed = idx < activeIndex;
-
-          return (
-            <div
-              key={step.key}
-              className={cn(
-                "relative rounded-lg p-3 border transition-all flex flex-col justify-between",
-                isCurrent && "border-primary bg-primary/5 ring-1 ring-primary/20",
-                isPassed && "border-emerald-200 bg-emerald-50/50 text-emerald-800",
-                !isCurrent && !isPassed && "border-slate-100 bg-slate-50/50 opacity-60",
-              )}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span
-                  className={cn(
-                    "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                    isCurrent && "bg-primary text-primary-foreground",
-                    isPassed && "bg-emerald-200 text-emerald-800",
-                    !isCurrent && !isPassed && "bg-slate-200 text-slate-600",
-                  )}
-                >
-                  Step {idx + 1}
-                </span>
-                {isPassed ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                ) : isCurrent ? (
-                  <Clock className="h-4 w-4 text-primary animate-pulse" />
-                ) : (
-                  <Icon className="h-4 w-4 text-slate-400" />
-                )}
-              </div>
-
-              <div>
-                <p className="font-bold text-xs leading-tight text-foreground">
-                  {step.label}
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                  {step.roleLabel}
-                </p>
-              </div>
-            </div>
-          );
+          const Icon = idx < activeIndex || isClosed ? CheckCircle2 : idx === activeIndex ? Clock : step.icon;
+          return <li key={step.key} aria-current={idx === activeIndex ? "step" : undefined} className={cn("flex items-center gap-1.5", idx === activeIndex ? "font-semibold text-primary" : idx < activeIndex ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+            <Icon className="size-3.5 shrink-0" aria-hidden="true" />{step.label}
+          </li>;
         })}
-      </div>
-
-      {/* Audit History Panel */}
-      {showHistory && history.length > 0 && (
-        <div className="border-t pt-4 space-y-3 animate-in fade-in duration-200">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <History className="h-3.5 w-3.5 text-primary" /> Approval Audit Trail
-          </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {history.slice().reverse().map((item, i) => (
-              <div
-                key={i}
-                className="text-xs p-3 rounded-lg border bg-muted/30 space-y-1"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">
-                    {item.actor_name} ({item.actor_role?.toUpperCase()})
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "capitalize text-[10px] px-1.5 py-0",
-                      item.action === "advance"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-rose-50 text-rose-700 border-rose-200",
-                    )}
-                  >
-                    {item.action === "advance" ? "Advanced" : "Rejected"}
-                  </Badge>
-                </div>
-                <p className="text-muted-foreground text-[11px]">
-                  Transitioned from{" "}
-                  <span className="font-medium">{item.from_status}</span> →{" "}
-                  <span className="font-medium">{item.to_status}</span> on{" "}
-                  {new Date(item.created_at).toLocaleString()}
-                </p>
-                {item.note && (
-                  <p className="text-foreground bg-background p-2 rounded border italic mt-1 text-[11px]">
-                    &quot;{item.note}&quot;
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      </ol>
 
       {/* Rejection Dialog */}
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>

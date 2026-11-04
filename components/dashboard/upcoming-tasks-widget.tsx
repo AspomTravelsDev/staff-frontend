@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TaskTrackerItem, TaskTrackerDashboardStats } from "@/lib/types/task-tracker";
 import { getTaskTrackerDashboardSummary, updateTaskTrackerItem } from "@/lib/api/task-tracker";
@@ -23,10 +22,7 @@ import {
   ArrowRight,
   AlertTriangle,
   Clock,
-  CheckCircle2,
-  Plus,
   Flag,
-  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -99,6 +95,14 @@ export function UpcomingTasksWidget({
     return false;
   };
 
+  const now = Date.now();
+  const attentionTasks = tasks
+    .filter(isActiveTask)
+    .map(task => ({ task, timeline: computeTaskTimeline(task.created_at, task.due_date, now) }))
+    .filter(({ timeline }) => timeline.isOverdue || timeline.isDueSoon);
+
+  if (attentionTasks.length === 0) return null;
+
   return (
     <Card className={cn("border border-border/80 shadow-xs flex flex-col justify-between overflow-hidden", className)}>
       <CardHeader className="pb-3 border-b bg-muted/20">
@@ -110,12 +114,12 @@ export function UpcomingTasksWidget({
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold text-foreground">
-                  Upcoming Deadlines & Task Timeline
+                  Tasks needing attention
                 </CardTitle>
              
               </div>
               <CardDescription className="text-xs">
-                See what needs attention first, with time left until each deadline
+                Overdue tasks and deadlines within the next 48 hours
               </CardDescription>
             </div>
           </div>
@@ -150,24 +154,23 @@ export function UpcomingTasksWidget({
         </div>
       </CardHeader>
 
-      <CardContent className="p-3 sm:p-4 flex-1">
-        {tasks.length > 0 ? (
-          <div className="space-y-3.5">
-            {tasks.map((task) => {
-              const timeline = computeTaskTimeline(task.created_at, task.due_date);
+      <CardContent className="p-3 flex-1">
+        {attentionTasks.length > 0 ? (
+          <div className="space-y-2">
+            {attentionTasks.map(({ task, timeline }) => {
 
               return (
                 <div
                   key={task.id}
                   className={cn(
-                    "flex flex-col gap-2.5 p-3 sm:p-3.5 rounded-xl border transition-all text-xs bg-card hover:bg-muted/20 shadow-2xs",
+                    "flex flex-col gap-1.5 px-3 py-2 rounded-xl border text-xs bg-card hover:bg-muted/20",
                     timeline.isOverdue
                       ? "border-rose-300/80 bg-rose-50/20 dark:border-rose-900/50 dark:bg-rose-950/15"
                       : "border-border/80"
                   )}
                 >
                   {/* Top row: Checkbox, Title, Priority, Remaining Badge */}
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1.5 sm:gap-3">
                     <div className="flex items-start gap-2.5 flex-1 min-w-0">
                       {task.is_delegated ? <TaskWorkflowControls task={task} compact showHistory={false} onUpdated={handleTaskUpdated} /> : <Checkbox
                         checked={false}
@@ -195,16 +198,15 @@ export function UpcomingTasksWidget({
                           <TaskStatusBadge task={task} />
                         </div>
 
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5 leading-relaxed">
-                            {task.description}
-                          </p>
-                        )}
+                        <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Flag className="h-3 w-3 shrink-0" />
+                          <span>Due: {timeline.dueFormatted}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Remaining Time Countdown Badge */}
-                    <div className="shrink-0">
+                    <div className="shrink-0 pl-6 sm:pl-0">
                       <Badge
                         variant="outline"
                         className={cn(
@@ -225,61 +227,12 @@ export function UpcomingTasksWidget({
                     </div>
                   </div>
 
-                  {/* Shared seven-day deadline urgency scale */}
-                  {timeline.hasDeadline ? (
-                    <div className="pt-1.5 space-y-1.5 border-t border-border/40">
-                      {/* Timeline Bar Track */}
-                      <div role="meter" aria-label={`Deadline urgency for ${task.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={timeline.urgencyPercent} aria-valuetext={timeline.remainingText} className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800/80 overflow-hidden shadow-inner">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none",
-                            timeline.colorScheme === "rose" && "bg-rose-500",
-                            timeline.colorScheme === "amber" && "bg-amber-500",
-                            timeline.colorScheme === "emerald" && "bg-emerald-500/70",
-                            timeline.colorScheme === "slate" && "bg-slate-400/60"
-                          )}
-                          style={{ width: `${timeline.urgencyPercent}%` }}
-                        />
-                      </div>
 
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Flag className="h-3 w-3 shrink-0" />
-                        <span>Due: {timeline.dueFormatted}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1 border-t border-border/40">
-                      <Calendar className="h-3 w-3" />
-                      <span>No deadline assigned • Manage in Task Tracker</span>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center ring-1 ring-emerald-500/20">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">No urgent deadlines pending</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                All your tracked deliverables and tasks are on track.
-              </p>
-            </div>
-            <Link href="/my/task-tracker">
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 text-xs font-semibold text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add New Deadline
-              </Button>
-            </Link>
-          </div>
-        )}
+        ) : null}
       </CardContent>
       <TaskCompletionDialog task={completionTask} onClose={() => setCompletionTask(null)} onConfirm={handleComplete} />
     </Card>

@@ -31,25 +31,34 @@ export function ApplicantAdvanceDialog({
   onClose,
   onMoved,
   onContinue,
+  initialContext,
+  onContextLoaded,
 }: {
   candidate: RecruitmentCandidate;
   roleId: string;
   onClose: () => void;
   onMoved: (context: PipelineContext) => void;
   onContinue: () => void;
+  initialContext?: PipelineContext;
+  onContextLoaded?: (context: PipelineContext) => void;
 }) {
-  const [context, setContext] = useState<PipelineContext | null>(null),
+  const [context, setContext] = useState<PipelineContext | null>(initialContext ?? null),
     [error, setError] = useState(""),
     [comment, setComment] = useState(""),
     [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0);
   const submitting = useRef(false);
+  const openingContext = useRef(initialContext);
+  const loadedCallback = useRef(onContextLoaded);
+  loadedCallback.current = onContextLoaded;
   useEffect(() => {
+    if (openingContext.current && reload === 0) return;
     let cancelled = false;
     getRecruitmentPipeline(candidate.id)
       .then((data) => {
         if (!cancelled) {
           setContext(data);
+          loadedCallback.current?.(data);
           setError("");
         }
       })

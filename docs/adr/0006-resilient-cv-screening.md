@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-16. Changes ADR-0004's missing-AI-score gate; scored CV results still use the 50% threshold.
+Partially superseded by [ADR-0015](0015-on-demand-cv-analysis.md) for how CV analysis is started and executed. The extraction, bounded provider request, manual review, and score-gate decisions below remain in effect.
 
 ## Decision
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ExportEmployee } from "@/lib/export-confirmation";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,34 +17,20 @@ import { X, Download } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { useEmployees } from "@/lib/api/hooks/use-employees";
-import { TableExportButton } from "@/components/ui/table-export-button";
-import { exportToCSV, type ExportColumn } from "@/lib/utils/export";
-import { formatLagosDateForInput } from "@/lib/utils/attendance";
+import { buildTaskDailySheet } from "@/lib/task-daily-export";
+import { exportToCSV } from "@/lib/utils/export";
 import { ClockInRecord } from "@/lib/api/clock-in";
-
-function formatLagosHHMM(dateString: string | null | undefined): string {
-  if (!dateString) return "";
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Africa/Lagos",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date);
-  } catch (e) {
-    return "";
-  }
-}
+import type { ExportLeave } from "@/lib/export-confirmation";
 
 interface TaskFiltersProps {
   filters: AllTaskFilters;
   records?: DailyTaskRecord[];
   attendance?: ClockInRecord[];
+  approvedLeaves?: ExportLeave[];
+  exportError?: string;
 }
 
-export function TaskFilters({ filters, records, attendance }: TaskFiltersProps) {
+export function TaskFilters({ filters, records, attendance, approvedLeaves = [], exportError }: TaskFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -123,31 +110,16 @@ export function TaskFilters({ filters, records, attendance }: TaskFiltersProps) 
   });
   const employees = employeesData?.items || [];
 
-  // Create a map of date_userId to track daily task records
-  const recordsMap = new Map<string, DailyTaskRecord>();
-  records?.forEach((rec) => {
-    const key = `${rec.date}_${rec.user_id}`;
-    recordsMap.set(key, rec);
-  });
-
-  // Create a set of date_userId keys where a clock-in record exists (wasn't absent)
-  const clockInMap = new Set<string>();
-  attendance?.forEach((record) => {
-    const dateStr = formatLagosDateForInput(record.clock_in_at);
-    if (!dateStr) return;
-    const userId = record.user_id;
-    const key = `${dateStr}_${userId}`;
-    clockInMap.add(key);
-  });
-
   // Identify all unique staff members
-  const employeeMap = new Map<string, { id: string; name: string }>();
+  const employeeMap = new Map<string, ExportEmployee>();
 
   // Add active employees
   employees.forEach((emp) => {
     employeeMap.set(emp.id, {
       id: emp.id,
       name: `${emp.firstName} ${emp.lastName}`.trim(),
+        joinDate: emp.joinDate,
+        contract_type: emp.contract_type,
     });
   });
 
@@ -160,6 +132,9 @@ export function TaskFilters({ filters, records, attendance }: TaskFiltersProps) 
       });
     }
   });
+  const staffOptions = Array.from(employeeMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   let exportEmployees = Array.from(employeeMap.values());
 
@@ -198,117 +173,16 @@ export function TaskFilters({ filters, records, attendance }: TaskFiltersProps) 
     }
   }
 
-  // Generate rows for each day in range
-  const pivotedRows: any[] = [];
-  if (startStr && endStr) {
-    const [sYear, sMonth, sDay] = startStr.split("-").map(Number);
-    const [eYear, eMonth, eDay] = endStr.split("-").map(Number);
-
-    const startDateObj = new Date(sYear, sMonth - 1, sDay);
-    const endDateObj = new Date(eYear, eMonth - 1, eDay);
-
-    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-    const curr = new Date(startDateObj);
-    while (curr <= endDateObj) {
-      const y = curr.getFullYear();
-      const m = String(curr.getMonth() + 1).padStart(2, "0");
-      const dStr = String(curr.getDate()).padStart(2, "0");
-      const dateKey = `${y}-${m}-${dStr}`;
-
-      const shortYear = String(y).slice(-2);
-      const formattedDate = `${dStr}/${m}/${shortYear}`;
-      const dayName = daysOfWeek[curr.getDay()];
-
-      const row: any = {
-        day: dayName,
-        date: formattedDate,
-      };
-
-      exportEmployees.forEach((emp) => {
-        const key = `${dateKey}_${emp.id}`;
-        const record = recordsMap.get(key);
-        const hasClockIn = clockInMap.has(key);
-
-        const hasTodo = !!(record && record.first_saved_at);
-        const hasReport = !!(record && record.report_submitted_at);
-
-        row[`${emp.id}_todo`] = hasTodo ? "TODO" : (hasClockIn ? "nil" : "absent");
-        row[`${emp.id}_report`] = hasReport ? "REPORT" : (hasClockIn ? "nil" : "absent");
-      });
-
-      pivotedRows.push(row);
-      curr.setDate(curr.getDate() + 1);
-    }
-  }
-
-  const pivotedExportColumns: ExportColumn<any>[] = [
-    {
-      header: "Day",
-      key: "day",
-    },
-    {
-      header: "Date",
-      key: "date",
-    },
-    ...exportEmployees.flatMap((emp) => [
-      {
-        header: `${emp.name} (Todo)`,
-        key: (row: any) => row[`${emp.id}_todo`] || "",
-      },
-      {
-        header: `${emp.name} (Report)`,
-        key: (row: any) => row[`${emp.id}_report`] || "",
-      },
-    ]),
-  ];
-
-  const exportColumns = [
-    { header: "Staff ID", key: (r: DailyTaskRecord) => r.user?.staff_id || "" },
-    { header: "Name", key: (r: DailyTaskRecord) => r.user?.name || "" },
-    { header: "Email", key: (r: DailyTaskRecord) => r.user?.email || "" },
-    { header: "Date", key: (r: DailyTaskRecord) => r.date },
-    { header: "Total Tasks", key: (r: DailyTaskRecord) => r.total_tasks },
-    { header: "Completed", key: (r: DailyTaskRecord) => r.completed_count },
-    { header: "Ongoing", key: (r: DailyTaskRecord) => r.ongoing_count },
-    {
-      header: "Progress %",
-      key: (r: DailyTaskRecord) =>
-        r.total_tasks > 0
-          ? Math.round((r.completed_count / r.total_tasks) * 100) + "%"
-          : "0%",
-    },
-    {
-      header: "Report Status",
-      key: (r: DailyTaskRecord) =>
-        r.report_submitted ? "Submitted" : "Pending",
-    },
-    {
-      header: "First Saved",
-      key: (r: DailyTaskRecord) =>
-        r.first_saved_at ? format(new Date(r.first_saved_at), "HH:mm") : "-",
-    },
-    {
-      header: "Submitted At",
-      key: (r: DailyTaskRecord) =>
-        r.report_submitted_at
-          ? format(new Date(r.report_submitted_at), "HH:mm")
-          : "-",
-    },
-    {
-      header: "Task List",
-      key: (r: DailyTaskRecord) =>
-        r.tasks
-          .map((t) => (t.completed ? "[x] " : "[ ] ") + t.text)
-          .join(" | "),
-    },
-  ];
+  const { rows: pivotedRows, columns: pivotedExportColumns, dailyRowCount } = buildTaskDailySheet({
+    employees: exportEmployees, records, attendance, leaves: approvedLeaves, startDate: startStr, endDate: endStr,
+  });
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center bg-card p-4 rounded-lg border">
       <div className="grid gap-2 w-full sm:w-auto">
         <label className="text-sm font-medium">Date Range</label>
         <DatePickerWithRange
+          applyOnConfirm
           date={dateRange}
           setDate={handleDateRangeChange}
           className="w-full sm:w-65"
@@ -320,16 +194,16 @@ export function TaskFilters({ filters, records, attendance }: TaskFiltersProps) 
         <Select
           value={filters.user_id || "all"}
           onValueChange={handleUserChange}
-          disabled={isLoadingEmployees}
+          disabled={isLoadingEmployees && staffOptions.length === 0}
         >
           <SelectTrigger className="w-full sm:w-45">
             <SelectValue placeholder="All Staff" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Staff</SelectItem>
-            {employees.map((employee) => (
+            {staffOptions.map((employee) => (
               <SelectItem key={employee.id} value={employee.id}>
-                {employee.firstName} {employee.lastName}
+                {employee.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -359,17 +233,15 @@ export function TaskFilters({ filters, records, attendance }: TaskFiltersProps) 
         </Select>
       </div>
 
+      {exportError && <p role="alert" className="text-xs text-destructive">{exportError} Refresh the page to export accurate totals.</p>}
       <div className="flex items-center gap-2 mt-auto ml-auto">
-        {records && records.length > 0 && (
+        {dailyRowCount > 0 && (
           <>
-            <TableExportButton
-              data={records}
-              columns={exportColumns}
-              filename={`Staff_Tasks_${filters.start_date || filters.date || "Export"}`}
-            />
             <Button
               variant="outline"
               size="sm"
+              disabled={!!exportError || isLoadingEmployees}
+              title={exportError || "Weekdays only. Approved leave and absent days are counted separately from missed submissions."}
               onClick={() =>
                 exportToCSV(
                   pivotedRows,

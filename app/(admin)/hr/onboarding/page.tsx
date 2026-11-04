@@ -24,8 +24,8 @@ export default async function HROnboardingDocumentsPage() {
             Onboarding Documents
           </h1>
           <p className="text-muted-foreground">
-            Manage onboarding documents including General, NYSC, Checklist, SOP,
-            Job Description, Guide, and Other.
+            Manage onboarding resources for new staff, including general
+            documents, NYSC, checklists, SOPs, job descriptions, and guides.
           </p>
         </div>
         <UploadDocumentDialog departments={departments} />

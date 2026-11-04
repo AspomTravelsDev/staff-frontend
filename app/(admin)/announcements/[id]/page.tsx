@@ -36,10 +36,10 @@ export default async function AnnouncementPage({ params }: PageProps) {
           asChild
           className="-ml-3 text-muted-foreground hover:text-foreground transition-all duration-300"
         >
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/announcements" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4 text-primary animate-in slide-in-from-right-1 fade-in duration-700" />
             <span className="font-medium tracking-tight">
-              Back to Dashboard
+              Back to Newsletter & Announcements
             </span>
           </Link>
         </Button>

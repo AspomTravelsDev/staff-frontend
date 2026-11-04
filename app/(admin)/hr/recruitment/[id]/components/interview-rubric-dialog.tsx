@@ -25,7 +25,6 @@ import {
   Save,
   Send,
   Loader2,
-  Sparkles,
   ClipboardList,
   User,
   Award,
@@ -570,7 +569,6 @@ export function InterviewRubricDialog({
                         </div>
                         {!standalone && item.aiSuggest !== undefined && (
                           <div className="flex items-center gap-1 text-[10px] text-primary">
-                            <Sparkles className="h-2.5 w-2.5" />
                             <span>AI suggested: {item.aiSuggest}</span>
                           </div>
                         )}
@@ -760,7 +758,6 @@ export function InterviewRubricDialog({
             {!standalone && <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
                   5. AI Post-Interview Debrief & Synthesis
                 </h3>
                 {postInterviewEvaluation && !analyzing && (
@@ -905,7 +902,6 @@ export function InterviewRubricDialog({
                     onClick={() => handleSaveAndAnalyze(false)}
                     disabled={saving || analyzing}
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
                     Analyze with AI
                   </Button>
                 </div>
@@ -972,9 +968,7 @@ export function InterviewRubricDialog({
               >
                 {analyzing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5" />
-                )}
+                ) : null}
                 {analyzing ? "Analyzing..." : "Save & Analyze with AI"}
               </Button>
 

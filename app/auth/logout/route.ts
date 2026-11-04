@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeReturnPath } from "@/lib/auth/return-path";
 import { clearSession } from "@/lib/auth/session";
 
 /**
@@ -12,5 +13,7 @@ export async function GET(request: NextRequest) {
     await clearSession();
 
     // Redirect to login page
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", safeReturnPath(request.nextUrl.searchParams.get("redirect")));
+    return NextResponse.redirect(loginUrl, 303);
 }

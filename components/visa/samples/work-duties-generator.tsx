@@ -13,7 +13,6 @@ import {
   Copy,
   Check,
   RefreshCw,
-  Sparkles,
   SlidersHorizontal,
   Edit3,
   AlignLeft,
@@ -124,7 +123,7 @@ export function WorkDutiesGenerator({
             </div>
           </div>
           <Badge variant="outline" className="hidden sm:inline-flex gap-1 border-primary/30 text-primary">
-            <Sparkles className="size-3" /> AI Generator
+             AI Generator
           </Badge>
         </div>
       </CardHeader>
@@ -223,7 +222,7 @@ export function WorkDutiesGenerator({
             disabled={loading}
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-2 px-6"
           >
-            {loading ? <RefreshCw className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+            {loading ? <RefreshCw className="size-3.5 animate-spin" /> : null}
             {options.length > 0 ? "Regenerate 6 Options" : "Generate 6 Paragraph Options"}
           </Button>
         </div>

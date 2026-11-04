@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { TaskStatusDialog } from "./task-status-dialog";
 import { ReassignTaskDialog } from "./reassign-task-dialog";
 import { TaskHistoryDetails } from "./task-history-details";
+import { getProxiedImageUrl } from "@/lib/utils";
 
 type Action = Exclude<Parameters<typeof runTaskWorkflow>[1]["action"], "update_status">;
 interface HistoryEvent { id: number; type: string; details: Record<string, unknown>; created_at: string; user?: { name: string } | null }
@@ -54,10 +55,25 @@ export function TaskSubmissionDetails({ task, compact = false }: { task: TaskTra
       <p className="text-muted-foreground">{!task.submission_due_date || new Date(task.submitted_at) <= new Date(task.submission_due_date) ? "Submitted on time" : "Submitted past deadline"}</p>
       <p className="whitespace-pre-wrap break-words">{task.submission_note}</p>
       {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline break-all">Open submitted work</a>}
+      {!!task.submission_attachments?.length && <div className="space-y-1 pt-1"><p className="font-medium">Proof of work</p>{task.submission_attachments.map(file => <a key={file.id} href={getProxiedImageUrl(file.download_url)} target="_blank" rel="noopener noreferrer" className="block break-all text-emerald-700 underline">{file.name}</a>)}</div>}
     </div>}
     {task.review_feedback && <p className="whitespace-pre-wrap rounded-md border p-3"><strong>Reviewer feedback: </strong>{task.review_feedback}</p>}
     {task.original_due_date && (!task.due_date || new Date(task.original_due_date).getTime() !== new Date(task.due_date).getTime()) && <p className="text-muted-foreground">Original deadline: {formatReadableDate(task.original_due_date)}</p>}
   </div>;
+}
+
+function ReviewSubmissionEvidence({ task }: { task: TaskTrackerItem }) {
+  if (!task.submitted_at) return null;
+  const safeUrl = task.submission_url && /^https?:\/\//i.test(task.submission_url) ? task.submission_url : null;
+  return <section className="space-y-2 rounded-md border bg-muted/20 p-3 text-sm">
+    <h3 className="font-medium">Submitted work</h3>
+    {task.submission_note && <p className="whitespace-pre-wrap break-words text-muted-foreground">{task.submission_note}</p>}
+    {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="block break-all text-emerald-700 underline">Open submitted work</a>}
+    {!!task.submission_attachments?.length && <div className="space-y-1">
+      <p className="text-xs font-medium text-muted-foreground">Proof of work</p>
+      {task.submission_attachments.map(file => <a key={file.id} href={getProxiedImageUrl(file.download_url)} target="_blank" rel="noopener noreferrer" className="block break-all text-emerald-700 underline">{file.name}</a>)}
+    </div>}
+  </section>;
 }
 
 export function TaskWorkflowControls({ task, onUpdated, compact = false, showHistory = true, renderControls }: { task: TaskTrackerItem; onUpdated: (task: TaskTrackerItem) => void; compact?: boolean; showHistory?: boolean; renderControls?: (controls: ReactNode) => ReactNode }) {
@@ -67,6 +83,8 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
   const canUpdateStatus = task.can_submit || (!task.is_delegated && task.can_manage);
   const [note, setNote] = useState("");
   const [url, setUrl] = useState("");
+  const [proofFiles, setProofFiles] = useState<File[]>([]);
+  const proofInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -85,7 +103,7 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
     }).catch(() => { if (active) setHistoryError(true); }).finally(() => { if (active) setLoadingHistory(false); });
     return () => { active = false; };
   }, [historyOpen, task.id]);
-  const openAction = (next: Action) => { setNote(""); setUrl(""); setAction(next); };
+  const openAction = (next: Action) => { setNote(""); setUrl(""); setProofFiles([]); if (proofInputRef.current) proofInputRef.current.value = ""; setAction(next); };
   const startWork = async () => {
     if (savingRef.current) return;
     savingRef.current = true;
@@ -103,10 +121,24 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
     savingRef.current = true;
     setSaving(true);
     try {
-      const res = await runTaskWorkflow(task.id, { action, note: note.trim(), url: url.trim() || null });
-      if (res.success) { onUpdated(res.data.data); setAction(null); toast.success(res.data.message || "Task updated"); }
-      else toast.error(res.error?.error || "Could not update task");
-    } catch { toast.error("Could not update task. Please try again."); }
+      if (action === "submit" && proofFiles.length > 0) {
+        const formData = new FormData();
+        formData.append("action", action);
+        formData.append("note", note.trim());
+        if (url.trim()) formData.append("url", url.trim());
+        proofFiles.forEach(file => formData.append("attachments[]", file, file.name));
+        const response = await fetch(`/api/task-tracker/${task.id}/workflow`, { method: "POST", body: formData });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || body.error || "Could not submit task proof");
+        onUpdated(body.data);
+        setAction(null);
+        toast.success(body.message || "Task submitted for approval");
+      } else {
+        const res = await runTaskWorkflow(task.id, { action, note: note.trim(), url: url.trim() || null });
+        if (res.success) { onUpdated(res.data.data); setAction(null); toast.success(res.data.message || "Task updated"); }
+        else toast.error(res.error?.error || "Could not update task");
+      }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update task. Please try again."); }
     finally { savingRef.current = false; setSaving(false); }
   };
   const controls = <>
@@ -131,12 +163,14 @@ export function TaskWorkflowControls({ task, onUpdated, compact = false, showHis
     {statusOpen && <TaskStatusDialog task={task} open onOpenChange={setStatusOpen} onUpdated={onUpdated} />}
     {reassignOpen && <ReassignTaskDialog task={task} open onOpenChange={setReassignOpen} onUpdated={onUpdated} />}
     <Dialog open={action !== null} onOpenChange={open => { if (!open && !saving) setAction(null); }}>
-      <DialogContent>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader><DialogTitle>{action ? dialogLabels[action] : "Task action"}</DialogTitle><DialogDescription><strong className="break-words">{task.title}</strong>. {action === "submit" ? "Confirm that your work is ready for review. Add a completion note below. The task will be completed once your assigner accepts it." : action === "accept" ? `Accept ${task.user?.name ? `${task.user.name}'s submitted work` : "the submitted work"} and mark this task as completed? Timeliness uses the submission time, so review delays do not count against staff.` : action === "cancel" ? "Cancellation keeps the task and its history for accountability." : "This action will be recorded in the shared history."}</DialogDescription></DialogHeader>
         <form onSubmit={save} className="space-y-4">
+          {(action === "accept" || action === "request_changes") && <ReviewSubmissionEvidence task={task} />}
           <div className="space-y-2"><Label htmlFor={`note-${task.id}`}>{action === "submit" ? "Completion note" : "Feedback / note"}{action === "submit" || action === "request_changes" ? " (required)" : " (optional)"}</Label>
             <Textarea id={`note-${task.id}`} value={note} onChange={e => setNote(e.target.value)} required={action === "submit" || action === "request_changes"} maxLength={5000} disabled={saving} /></div>
           {action === "submit" && <div className="space-y-2"><Label htmlFor={`url-${task.id}`}>Work link (optional)</Label><Input id={`url-${task.id}`} type="url" placeholder="https://…" value={url} onChange={e => setUrl(e.target.value)} pattern="https?://.*" maxLength={2000} disabled={saving} /></div>}
+          {action === "submit" && <div className="space-y-2"><Label htmlFor={`proof-${task.id}`}>Proof of completed work (optional)</Label><Input ref={proofInputRef} id={`proof-${task.id}`} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" disabled={saving} onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length > 5) { toast.error("You can attach up to 5 files."); event.target.value = ""; setProofFiles([]); return; } const oversized = files.find(file => file.size > 10 * 1024 * 1024); if (oversized) { toast.error(`${oversized.name} is larger than 10 MB.`); event.target.value = ""; setProofFiles([]); return; } setProofFiles(files); }} /><p className="text-xs text-muted-foreground">Images and common documents; up to 5 files, 10 MB each.</p>{proofFiles.length > 0 && <ul className="space-y-1 text-xs text-muted-foreground">{proofFiles.map((file, index) => <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2"><span className="truncate">{file.name}</span><Button type="button" size="sm" variant="ghost" className="h-7 px-2" disabled={saving} onClick={() => { setProofFiles(current => current.filter((_, fileIndex) => fileIndex !== index)); if (proofInputRef.current) proofInputRef.current.value = ""; }}>Remove</Button></li>)}</ul>}</div>}
           <DialogFooter><Button type="button" variant="outline" disabled={saving} onClick={() => setAction(null)}>Back</Button><Button disabled={saving || ((action === "submit" || action === "request_changes") && !note.trim())}>{saving ? "Saving…" : action ? confirmLabels[action] : "Save"}</Button></DialogFooter>
         </form>
       </DialogContent>

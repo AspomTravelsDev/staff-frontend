@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { InventoryItem, InventoryItemPayload } from "@/lib/api/inventory";
+import { assetTypes } from "@/lib/equipment-form";
+import { InventoryItem, InventoryItemPayload, getInventory } from "@/lib/api/inventory";
 import { EMPTY_GADGET_CHECKLIST, GadgetChecklistFields } from "@/components/inventory/gadget-checklist-fields";
 
 import {
@@ -36,7 +37,9 @@ const formSchema = z
   .object({
     name: z.string().min(1, "Device name is required"),
     category: z.enum(["Laptop", "Phone", "Gadget", "Other"]),
-    serialNumber: z.string().min(1, "Serial number is required"),
+    serialNumber: z.string(),
+    assetType: z.enum(assetTypes),
+    parentAssetId: z.string().optional(),
     status: z.enum(["Storage", "Assigned", "Repairs"]),
     conditionRating: z.enum(["Excellent", "Good", "Fair", "Poor", "Broken"]),
     conditionDetails: z.string().optional(),
@@ -79,6 +82,7 @@ interface ManageInventoryDialogProps {
   initialData?: InventoryItem | null;
   onSubmit: (data: InventoryItemPayload) => Promise<void>;
   employees: Employee[];
+  items?: InventoryItem[];
   isLoadingEmployees?: boolean;
 }
 
@@ -87,10 +91,11 @@ export function ManageInventoryDialog({
   onOpenChange,
   initialData,
   onSubmit,
-  employees,
-  isLoadingEmployees = false,
+  items = [],
 }: ManageInventoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [parentOptions, setParentOptions] = useState<InventoryItem[]>(items);
 
   // employeesData and isLoadingEmployees will be passed as props
   const isEditing = !!initialData;
@@ -102,6 +107,8 @@ export function ManageInventoryDialog({
     defaultValues: {
       name: initialData?.name || "",
       category: initialData?.category || "Laptop",
+      assetType: initialData?.assetType || (initialData?.category === "Phone" ? "Phone" : "Laptop"),
+      parentAssetId: initialData?.parentAssetId || "",
       serialNumber: initialData?.serialNumber || "",
       status: initialData?.status || "Storage",
       conditionRating: initialData?.conditionRating || "Good",
@@ -123,6 +130,8 @@ export function ManageInventoryDialog({
       form.reset({
         name: initialData.name || "",
         category: initialData.category || "Laptop",
+        assetType: initialData.assetType || (initialData.category === "Laptop" || initialData.category === "Phone" ? initialData.category : "Other"),
+        parentAssetId: initialData.parentAssetId || "",
         serialNumber: initialData.serialNumber || "",
         status: initialData.status || "Storage",
         conditionRating: initialData.conditionRating || "Good",
@@ -141,6 +150,8 @@ export function ManageInventoryDialog({
       form.reset({
         name: "",
         category: "Laptop",
+        assetType: "Laptop",
+        parentAssetId: "",
         serialNumber: "",
         status: "Storage",
         conditionRating: "Good",
@@ -159,6 +170,28 @@ export function ManageInventoryDialog({
 
   const selectedStatus = form.watch("status");
 
+  const selectedType = form.watch("assetType");
+  useEffect(() => {
+    if (!open || !["Laptop charger", "Phone charger", "SIM card"].includes(selectedType)) return;
+    let cancelled = false;
+    async function loadParents() {
+      try {
+        const parents: InventoryItem[] = [];
+        let page = 1;
+        let pages = 1;
+        do {
+          const result = await getInventory({ category: selectedType === "Laptop charger" ? "Laptop" : "Phone", limit: 100, page });
+          parents.push(...result.items);
+          pages = result.pagination.total_pages;
+          page++;
+        } while (page <= pages && !cancelled);
+        if (!cancelled) setParentOptions(parents);
+      } catch { /* Existing loaded choices remain available; server validates the link. */ }
+    }
+    loadParents();
+    return () => { cancelled = true; };
+  }, [open, selectedType]);
+
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
@@ -166,6 +199,8 @@ export function ManageInventoryDialog({
         name: values.name,
         category: values.category,
         serialNumber: values.serialNumber,
+        assetType: values.assetType,
+        parentAssetId: values.parentAssetId,
         status: values.status,
         conditionRating: values.conditionRating,
         conditionDetails: values.conditionDetails,
@@ -222,6 +257,8 @@ export function ManageInventoryDialog({
               )}
             />
 
+            <FormField control={form.control} name="assetType" render={({ field }) => <FormItem><FormLabel>Asset type</FormLabel><Select value={field.value} onValueChange={(value) => { field.onChange(value); form.setValue("parentAssetId", ""); form.setValue("category", value === "Laptop" ? "Laptop" : value === "Phone" ? "Phone" : "Other"); }}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{assetTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+            {["Laptop charger", "Phone charger", "SIM card"].includes(form.watch("assetType")) && <FormField control={form.control} name="parentAssetId" render={({ field }) => <FormItem><FormLabel>Linked device (optional)</FormLabel><Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}><FormControl><SelectTrigger><SelectValue placeholder="Choose matching device" /></SelectTrigger></FormControl><SelectContent><SelectItem value="none">No linked device</SelectItem>{parentOptions.filter((item) => item.id !== initialData?.id && (item.assetType || item.category) === (form.watch("assetType") === "Laptop charger" ? "Laptop" : "Phone")).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} · {item.serialNumber || item.assetTag}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -255,9 +292,9 @@ export function ManageInventoryDialog({
                 name="serialNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Serial Number</FormLabel>
+                    <FormLabel>Serial number (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="SN-12345" {...field} />
+                      <Input placeholder="Leave blank if none; asset reference is generated" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

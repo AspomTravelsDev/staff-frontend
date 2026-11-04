@@ -5,28 +5,31 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ManageInventoryDialog } from "./inventory-dialog";
 import type { Employee } from "@/lib/api/employees";
-import { createInventoryItem, InventoryItemPayload } from "@/lib/api/inventory";
+import { createInventoryItem, InventoryItemPayload, InventoryItem } from "@/lib/api/inventory";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 interface InventoryAddButtonProps {
   employees: Employee[];
+  items?: InventoryItem[];
 }
 
-export function InventoryAddButton({ employees }: InventoryAddButtonProps) {
+export function InventoryAddButton({ employees, items }: InventoryAddButtonProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const handleCreate = async (data: InventoryItemPayload) => {
-    toast.promise(createInventoryItem(data), {
+    const request = createInventoryItem(data);
+    toast.promise(request, {
       loading: "Adding inventory item...",
       success: () => {
         router.refresh();
         setOpen(false);
         return "Item added successfully";
       },
-      error: (err: any) => err.message || "Failed to add item",
+      error: (err: Error) => err.message || "Failed to add item",
     });
+    await request;
   };
 
   return (
@@ -40,6 +43,7 @@ export function InventoryAddButton({ employees }: InventoryAddButtonProps) {
         onOpenChange={setOpen}
         onSubmit={handleCreate}
         employees={employees}
+        items={items}
       />
     </>
   );

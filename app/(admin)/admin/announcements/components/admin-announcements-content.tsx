@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Megaphone } from "lucide-react";
 import {
   Card,
@@ -30,10 +31,11 @@ interface AdminAnnouncementsContentProps {
 export function AdminAnnouncementsContent({
   initialAnnouncements,
 }: AdminAnnouncementsContentProps) {
+  const queryClient = useQueryClient();
   const [announcements, setAnnouncements] =
     useState<AnnouncementItem[]>(initialAnnouncements);
   const [statusFilter, setStatusFilter] = useState<AnnouncementStatus | "all">(
-    "all",
+    "pending",
   );
   const [typeFilter, setTypeFilter] = useState<
     "all" | "announcement" | "newsletter"
@@ -59,6 +61,7 @@ export function AdminAnnouncementsContent({
   }, [announcements, statusFilter, typeFilter]);
 
   const handleUpdate = (id: string, updated: Partial<AnnouncementItem>) => {
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     if (updated.id === "__deleted__") {
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
     } else {
@@ -74,7 +77,7 @@ export function AdminAnnouncementsContent({
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Megaphone className="h-6 w-6" />
-          Announcements Management
+          Announcement Reviews
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
           Review, approve, or reject staff announcements and newsletter

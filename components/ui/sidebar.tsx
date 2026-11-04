@@ -164,6 +164,7 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const mobileContentRef = React.useRef<HTMLDivElement>(null);
 
   if (collapsible === "none") {
     return (
@@ -184,6 +185,12 @@ function Sidebar({
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
+          ref={mobileContentRef}
+          tabIndex={-1}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            mobileContentRef.current?.focus();
+          }}
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"

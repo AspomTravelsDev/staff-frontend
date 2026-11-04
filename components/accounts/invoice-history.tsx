@@ -289,7 +289,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
               </TableHeader>
               <TableBody>
                 {invoices.map((invoice) => {
-                  const subtotal = Number(invoice.subtotal);
+                  const subtotal = Number(invoice.total ?? (Number(invoice.subtotal) - Number(invoice.discount_amount || 0)));
                   const balance = Number(invoice.balance_due);
                   const isPaid = invoice.status === "paid" || (subtotal > 0 && balance <= 0 && invoice.status !== "unpaid" && invoice.status !== "partially_paid");
 
@@ -314,7 +314,7 @@ export function InvoiceHistory({ onLoadInvoice, refreshKey, onDeleteSuccess }: I
                         {invoice.due_date}
                       </TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">
-                        {formatInvoiceMoney(invoice.subtotal, invoice.currency)}
+                        {formatInvoiceMoney(invoice.total ?? (Number(invoice.subtotal) - Number(invoice.discount_amount || 0)), invoice.currency)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-slate-500">
                         {formatInvoiceMoney(invoice.deposit, invoice.currency)}

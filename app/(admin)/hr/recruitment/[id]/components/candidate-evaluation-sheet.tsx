@@ -36,7 +36,6 @@ import {
   Loader2,
   ExternalLink,
   ClipboardList,
-  Sparkles,
   AlertCircle,
   XCircle,
   Lightbulb,
@@ -331,7 +330,6 @@ export function CandidateEvaluationSheet({
             <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4">
               <div className="flex items-center justify-between gap-2 border-b border-primary/10 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
                   <span className="text-xs font-bold uppercase tracking-wider text-primary">
                     Post-Interview AI Debrief & Hiring Verdict
                   </span>

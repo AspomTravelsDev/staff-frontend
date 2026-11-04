@@ -1,35 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { updateUser } from "@/lib/api/employees";
 import type { Employee } from "@/lib/api/employees";
 import {
   calculatePayrollEntry,
-  calculateMonthlyTax,
   isTaxExempt,
 } from "@/lib/payroll/calculations";
-
-const CONTRACT_TYPES = [
-  { value: "full_time", label: "Full Time" },
-  { value: "part_time", label: "Part Time" },
-  { value: "contract", label: "Contract" },
-  { value: "nysc", label: "NYSC" },
-  { value: "intern", label: "Intern" },
-];
 
 function formatNGN(amount: number) {
   return new Intl.NumberFormat("en-NG", {
@@ -76,19 +59,17 @@ interface EditSalarySheetProps {
 
 export function EditSalarySheet({ employee, open, onClose, onSaved }: EditSalarySheetProps) {
   const [grossPayInput, setGrossPayInput] = useState("");
-  const [contractType, setContractType] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state when employee changes
-  useMemo(() => {
+  useEffect(() => {
     if (employee) {
       setGrossPayInput(employee.gross_pay ?? "");
-      setContractType(employee.contract_type ?? "full_time");
     }
   }, [employee]);
 
   const parsedGross = parseFloat(grossPayInput.replace(/,/g, "")) || 0;
-  const { tax, net } = getEstimatedNet(parsedGross, contractType, employee?.joinDate ?? null);
+  const { tax, net } = getEstimatedNet(parsedGross, employee?.contract_type ?? null, employee?.joinDate ?? null);
 
   const originalGross = parseFloat(employee?.gross_pay ?? "0") || 0;
   const grossChanged = parsedGross !== originalGross;
@@ -103,15 +84,13 @@ export function EditSalarySheet({ employee, open, onClose, onSaved }: EditSalary
 
     setIsSaving(true);
     try {
-      const updated = await updateUser(employee.id, {
+      await updateUser(employee.id, {
         gross_pay: parsedGross || null,
-        contract_type: contractType || null,
       });
 
       const updatedEmployee: Employee = {
         ...employee,
         gross_pay: String(parsedGross),
-        contract_type: contractType,
       };
 
       onSaved(updatedEmployee);
@@ -175,25 +154,6 @@ export function EditSalarySheet({ employee, open, onClose, onSaved }: EditSalary
                 </span>
               </p>
             )}
-          </div>
-
-          {/* Contract Type */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-contract-type" className="text-sm font-medium">
-              Contract Type
-            </Label>
-            <Select value={contractType} onValueChange={setContractType}>
-              <SelectTrigger id="edit-contract-type" className="h-10">
-                <SelectValue placeholder="Select contract type" />
-              </SelectTrigger>
-              <SelectContent>
-                {CONTRACT_TYPES.map((ct) => (
-                  <SelectItem key={ct.value} value={ct.value}>
-                    {ct.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Live Net Preview */}

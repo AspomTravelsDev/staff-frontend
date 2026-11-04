@@ -7,6 +7,10 @@ export async function deleteApplicationAction(...args: Parameters<typeof actions
   return callAction(() => actions.deleteApplicationAction(...args));
 }
 
+export async function updateApplicationEmploymentStatusAction(...args: Parameters<typeof actions.updateApplicationEmploymentStatusAction>): Promise<ActionData<Awaited<ReturnType<typeof actions.updateApplicationEmploymentStatusAction>>>> {
+  return callAction(() => actions.updateApplicationEmploymentStatusAction(...args));
+}
+
 export async function generateDocumentsAction(...args: Parameters<typeof actions.generateDocumentsAction>): Promise<ActionData<Awaited<ReturnType<typeof actions.generateDocumentsAction>>>> {
   return callAction(() => actions.generateDocumentsAction(...args));
 }

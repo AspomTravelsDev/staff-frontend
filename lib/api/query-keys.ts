@@ -142,6 +142,7 @@ export const queryKeys = {
         all: ["compliance"] as const,
         lists: () => [...queryKeys.compliance.all, "list"] as const,
         list: (filters?: QueryFilters) => [...queryKeys.compliance.lists(), filters] as const,
+        detail: (id: string) => [...queryKeys.compliance.all, "detail", id] as const,
         stats: () => ["compliance", "stats"] as const,
     },
     payroll: {

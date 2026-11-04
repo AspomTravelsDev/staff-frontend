@@ -9,6 +9,8 @@ import {
 } from "@/lib/api/clock-in";
 import { getEmployees } from "@/lib/api/employees";
 import { AttendanceClient } from "./components/attendance-client";
+import { getApprovedLeaveForExport } from "@/lib/api/leave";
+import { getWorkFromHomeRequests, type WorkFromHomeRequest } from "@/lib/api/work-from-home";
 
 export default async function GlobalAttendancePage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -43,7 +45,7 @@ export default async function GlobalAttendancePage(props: {
     100,
     lateClockOutsOnly,
   ).catch(() => null);
-  const [historyRes, statsRes, employeesRes] = await Promise.all([
+  const [historyRes, statsRes, employeesRes, leaveRes, wfhRes] = await Promise.all([
     historyPromise,
     getAllClockInStats(from, to, userId, lateClockOutsOnly).catch(() => ({
       success: false,
@@ -52,10 +54,15 @@ export default async function GlobalAttendancePage(props: {
     getEmployees({ limit: 500, status: "Active" }).catch(() => ({
       items: [],
     })),
+    getApprovedLeaveForExport(from, to, userId).catch(() => null),
+    getWorkFromHomeRequests({ status: "approved", from, to, per_page: 100 }).catch(() => ({ success: false, data: null })),
   ]);
 
   const stats = statsRes.success && statsRes.data ? statsRes.data.data : null;
   const employees = employeesRes.items || [];
+  const approvedLeaves = leaveRes ?? [];
+  const wfhPayload = wfhRes.success ? wfhRes.data?.data : null;
+  const approvedWorkFromHome: WorkFromHomeRequest[] = Array.isArray(wfhPayload) ? wfhPayload : (wfhPayload?.data || []);
 
   return (
     <AttendanceClient
@@ -69,6 +76,9 @@ export default async function GlobalAttendancePage(props: {
       }
       stats={stats}
       employees={employees}
+      approvedLeaves={approvedLeaves}
+      leaveFailed={leaveRes === null}
+      approvedWorkFromHome={approvedWorkFromHome}
       initialFrom={from}
       initialTo={to}
       initialUserId={userId}

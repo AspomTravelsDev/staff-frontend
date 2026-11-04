@@ -10,7 +10,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateDocx } from "@/lib/docx-generator";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, User, Building, DollarSign, ShieldCheck, Sparkles } from "lucide-react";
+import { Download, FileText, Loader2, User, Building, DollarSign, ShieldCheck } from "lucide-react";
 import { AiTextEnhancerModal } from "@/components/visa/ai-text-enhancer-modal";
 
 export function ExplanationLetterForm() {
@@ -243,7 +243,7 @@ export function ExplanationLetterForm() {
                     onClick={() => openAiEnhancer("Enhance Source of Funds with AI", "source_of_funds", "source_of_funds")}
                     className="h-6 text-[11px] text-primary gap-1 p-0 hover:bg-transparent hover:underline"
                   >
-                    <Sparkles className="size-3" /> Enhance with AI
+                     Enhance with AI
                   </Button>
                 </div>
                 <Textarea
@@ -274,7 +274,7 @@ export function ExplanationLetterForm() {
                     onClick={() => openAiEnhancer("Enhance Home & Economic Ties with AI", "home_ties", "home_ties_summary")}
                     className="h-6 text-[11px] text-primary gap-1 p-0 hover:bg-transparent hover:underline"
                   >
-                    <Sparkles className="size-3" /> Enhance with AI
+                     Enhance with AI
                   </Button>
                 </div>
                 <Textarea

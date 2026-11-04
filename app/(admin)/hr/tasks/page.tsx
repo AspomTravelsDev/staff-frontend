@@ -5,6 +5,7 @@ import { getDailyTasksOverview } from "@/lib/api/tasks";
 import { BackfillReportDialog } from "./components/backfill-report-dialog";
 import { format } from "date-fns";
 import { getAllClockInsForFilters } from "@/lib/api/clock-in";
+import { getApprovedLeaveForExport } from "@/lib/api/leave";
 
 interface PageProps {
   searchParams: Promise<{
@@ -39,9 +40,11 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
   const fromDate = filters.start_date || filters.date;
   const toDate = filters.end_date || filters.date;
 
-  const [overview, attendanceRecords] = await Promise.all([
+  const [overview, attendanceResult, leaveResult, exportOverview] = await Promise.all([
     getDailyTasksOverview(filters),
-    getAllClockInsForFilters(fromDate, toDate, filters.user_id).catch(() => []),
+    getAllClockInsForFilters(fromDate, toDate, filters.user_id).then(data => ({ data, error: "" })).catch(() => ({ data: [], error: "Attendance could not be loaded." })),
+    getApprovedLeaveForExport(fromDate, toDate, filters.user_id).then(data => ({ data, error: "" })).catch(() => ({ data: [], error: "Leave records could not be loaded." })),
+    filters.report_submitted !== undefined ? getDailyTasksOverview({ ...filters, report_submitted: undefined }) : Promise.resolve(null),
   ]);
 
   const records = overview.data;
@@ -69,8 +72,10 @@ export default async function HRTasksPage({ searchParams }: PageProps) {
 
       <TaskFilters
         filters={filters}
-        records={records}
-        attendance={attendanceRecords}
+        records={exportOverview?.data ?? records}
+        attendance={attendanceResult.data}
+        approvedLeaves={leaveResult.data}
+        exportError={attendanceResult.error || leaveResult.error}
       />
 
       <AllTasksTable records={records} isLoading={false} />

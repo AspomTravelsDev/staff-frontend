@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 import { getTodayBirthdays, getTodayAnniversaries } from "@/lib/api/employees";
-import { getMyLeaveStats } from "@/lib/api/leave";
+import { getMyLeaveStats, getMyLeaveRequests } from "@/lib/api/leave";
 import { RecentUpdates } from "@/components/dashboard/recent-updates";
 import { UpcomingTasksWidget } from "@/components/dashboard/upcoming-tasks-widget";
 import { getTaskTrackerDashboardSummary } from "@/lib/api/task-tracker";
@@ -44,6 +44,7 @@ import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { getRolesMetadataContract } from "@/lib/auth/roles-metadata";
 import { getRates } from "@/lib/api/rates";
 import { getAnnouncements } from "@/lib/api/announcements";
+import { getMyWorkFromHomeRequests } from "@/lib/api/work-from-home";
 import { getRandomCheatsheetItems } from "@/lib/api/cheatsheet";
 import { CheatsheetCard } from "@/components/dashboard/cheatsheet-card";
 import { DashboardTour, DashboardTourButton } from "./components/dashboard-tour";
@@ -51,7 +52,40 @@ import { DashboardTour, DashboardTourButton } from "./components/dashboard-tour"
 export default async function Page() {
   const user = await getCurrentUser();
   if (userHasAnyRole(user, ["mp", "md"])) {
-    return renderDataPage(async () => <ManagementDashboard data={await getManagementDashboard()} />, "Unable to load management overview");
+    return renderDataPage(async () => {
+      const [managementData, awards, announcementsResult] = await Promise.all([
+        getManagementDashboard(),
+        getAllAwards().catch(() => []),
+        getAnnouncements({ status: "approved", limit: 50 }).catch(() => ({
+          items: [],
+          pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
+        })),
+      ]);
+      const previousMonth = new Date();
+      previousMonth.setMonth(previousMonth.getMonth() - 1);
+      const previousMonthKey = `${previousMonth.getFullYear()}-${String(previousMonth.getMonth() + 1).padStart(2, "0")}`;
+      const spotlightAwards = awards
+        .filter((award) => {
+          const type = award.award_type?.toLowerCase().replace(/[-\s]+/g, "_");
+          return (type === "staff_of_the_month" || type === "employee_of_the_month") && award.month === previousMonthKey;
+        })
+        .map((award) => ({
+          id: award.id,
+          name: award.user?.name ?? "Unknown",
+          role: award.user?.department || award.user?.role || "Staff",
+          image: toProxiedImageUrl(award.image?.url || award.user?.image_url) || null,
+          initials: award.user ? getInitials(award.user.name) : "EM",
+          awardName: award.award_name || "Staff of the Month",
+        }));
+
+      return (
+        <ManagementDashboard
+          data={managementData}
+          spotlightAwards={spotlightAwards}
+          announcements={announcementsResult.items ?? []}
+        />
+      );
+    }, "Unable to load management overview");
   }
 
   const now = new Date();
@@ -73,6 +107,8 @@ export default async function Page() {
     cheatsheetItems,
     myLeaveStats,
     taskTrackerSummaryResponse,
+    workFromHomeResponse,
+    leaveRequests,
   ] = await Promise.all([
     getClockInHistory(formatDate(startOfMonth), formatDate(now)),
     getAllAwards().catch(() => []),
@@ -107,7 +143,12 @@ export default async function Page() {
       success: false as const,
       error: { code: "500", error: "Failed" },
     })),
+    getMyWorkFromHomeRequests().catch(() => ({ success: false as const, error: { code: "500", error: "Failed" } })),
+    getMyLeaveRequests().catch(() => []),
   ]);
+
+  const wfhPayload = workFromHomeResponse.success ? workFromHomeResponse.data?.data : null;
+  const approvedWfhRequests = Array.isArray(wfhPayload) ? wfhPayload : (wfhPayload?.data || []);
 
   const taskTrackerData = taskTrackerSummaryResponse.success
     ? taskTrackerSummaryResponse.data
@@ -149,13 +190,20 @@ export default async function Page() {
         return recordDate === dayStr;
       });
 
+      const isApprovedWfh = approvedWfhRequests.some((request: {status: string; start_date: string; end_date: string}) => request.status === "approved" && dayStr >= request.start_date && dayStr <= request.end_date);
+      const isApprovedLeave = leaveRequests.some((request) => request.status.toLowerCase() === "approved" && dayStr >= request.startDate && dayStr < request.endDate);
+      if (isApprovedLeave) return "leave" as AttendanceStatus;
+      if (isApprovedWfh) return "work-from-home" as AttendanceStatus;
+
       if (!record) {
         return "absent" as AttendanceStatus;
       }
 
       const { status } = getAttendanceStatusInfo(record);
+      if (record.is_half_day) return "half-day" as AttendanceStatus;
       return status === "proxy" ? "flagged" : status;
     });
+    totalAttendance = attendanceStatuses.filter((status) => !["absent", "placeholder", "leave"].includes(status)).length;
   }
 
   const spotlightAwards = allAwards
@@ -283,8 +331,8 @@ export default async function Page() {
           />
           <QuickLinkButton
             icon={Baby}
-            title="Aspom Birth Services"
-            url="https://aspombirthservices.com/faq/"
+            title="ABS Health Connect"
+            url="https://abshealthconnect.com"
             color="green"
           />
           <QuickLinkButton
@@ -362,12 +410,14 @@ export default async function Page() {
       </div>
 
       {/* Upcoming Personal Tasks & Deadlines Widget */}
-      <div id="tour-dashboard-tasks" className="w-full">
-        <UpcomingTasksWidget
-          initialTasks={taskTrackerData.data}
-          stats={taskTrackerData.stats}
-        />
-      </div>
+      {taskTrackerData.data.length > 0 && (
+        <div id="tour-dashboard-tasks" className="w-full">
+          <UpcomingTasksWidget
+            initialTasks={taskTrackerData.data}
+            stats={taskTrackerData.stats}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-4 items-stretch">
         <div id="tour-dashboard-updates" className="w-full lg:w-5/7 flex flex-col">

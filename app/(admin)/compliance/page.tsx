@@ -1,22 +1,26 @@
 import { renderDataPage } from "@/lib/api/render-data-page";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { userHasAnyRole } from "@/types/user-types";
-import { ComplianceStatsCards } from "./components/compliance-stats";
+import { canManageCompliance } from "@/lib/compliance-access";
 import { AddOccurrenceDialog } from "./components/add-occurrence-dialog";
 import {
   getComplianceIssues,
-  getComplianceStats,
   getComplianceSanctionGrid,
+  getComplianceMonthlyReview,
   Severity,
   ComplianceStatus,
 } from "@/lib/api/compliance";
 import { getEmployees } from "@/lib/api/employees";
 import { ComplianceClientManager } from "./components/compliance-client-manager";
-import { SanctionLadderGrid } from "./components/sanction-ladder-grid";
+import { SanctionGridSection } from "./components/sanction-grid-section";
+import { MonthlyComplianceReview } from "./components/monthly-compliance-review";
+import type { CorrectionFilter } from "@/lib/types/compliance";
 
 interface PageProps {
   searchParams: Promise<{
+    month?: string;
+    grid_window_end?: string;
+    correction?: CorrectionFilter;
     status?: ComplianceStatus;
     severity?: Severity;
     type?: string;
@@ -36,25 +40,26 @@ export default async function CompliancePage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["super", "mp", "md", "admin", "hr", "compliance", "office-operations"])) {
+  if (!canManageCompliance(user)) {
     redirect("/dashboard");
   }
 
   const page = params.page ? parseInt(params.page) : 1;
 
   // Fetch data
-  const [issuesData, stats, employeesData, sanctionGrid] = await Promise.all([
+  const [issuesData, employeesData, sanctionGrid, monthlyReview] = await Promise.all([
     getComplianceIssues({
       limit: 500,
       page,
       status: params.status,
+      correction: params.correction,
       severity: params.severity,
       date_from: params.date_from,
       date_to: params.date_to,
     }),
-    getComplianceStats(),
     getEmployees({ limit: 1000, status: "Active" }),
-    getComplianceSanctionGrid(),
+    getComplianceSanctionGrid({ window_end: params.grid_window_end }),
+    getComplianceMonthlyReview(params.month),
   ]);
 
   const employees = employeesData.items;
@@ -66,42 +71,34 @@ export default async function CompliancePage({ searchParams }: PageProps) {
   const { items: issues } = issuesData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Compliance Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Monitor and manage company-wide compliance and occurrences.
+            Manage compliance queries, review staff responses, and track corrective actions.
           </p>
         </div>
         <AddOccurrenceDialog employees={employees} departments={departments} />
       </div>
 
-      {/* Stats Cards */}
-      <ComplianceStatsCards stats={stats} />
-
-      <SanctionLadderGrid
-        items={sanctionGrid.items}
-        steps={sanctionGrid.steps}
-        windowStart={sanctionGrid.windowStart}
-        windowEnd={sanctionGrid.windowEnd}
-        periodLabel={sanctionGrid.periodLabel}
-        title="Sanction Grid"
-        description="Company-wide disciplinary ladder for the active calendar half-year (Jan-Jun or Jul-Dec). Resolved (No Action) records are excluded."
-      />
+      <SanctionGridSection key={sanctionGrid.windowEnd} data={sanctionGrid} />
 
       <ComplianceClientManager
         initialIssues={issues}
         isAdmin={true}
         serverFilters={{
+          correction: params.correction,
           status: params.status,
           severity: params.severity,
           date_from: params.date_from,
           date_to: params.date_to,
         }}
       />
+
+      <MonthlyComplianceReview data={monthlyReview} />
     </div>
   );
 

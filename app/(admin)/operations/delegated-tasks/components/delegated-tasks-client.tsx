@@ -6,7 +6,6 @@ import { useState, useTransition, useMemo, type ReactNode } from "react";
 import type {
   TaskTrackerItem,
   CompanyDelegatedTaskStats,
-  TaskPriority,
 } from "@/lib/types/task-tracker";
 import {
   getCompanyDelegatedTasks,
@@ -14,7 +13,6 @@ import {
 } from "@/lib/api/task-tracker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -31,36 +29,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ListTodo,
   Search,
   AlertTriangle,
   Clock,
   CheckCircle2,
-  Calendar,
-  ArrowRight,
+  CalendarClock,
   Bell,
-  Sparkles,
   FilterX,
   RotateCw,
   Send,
-  CalendarClock,
-  ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
-  Rows,
-  LayoutGrid,
-  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { CreateTaskDialog } from "@/app/(admin)/my/task-tracker/components/create-task-dialog";
 import { TaskCommentsDialog } from "@/app/(admin)/my/task-tracker/components/task-comments-dialog";
-import { TaskWorkflowControls, TaskSubmissionDetails, isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
-import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
+import { isActiveTask } from "@/app/(admin)/my/task-tracker/components/task-workflow-controls";
+import { DelegatedTasksTable } from "./delegated-tasks-table";
 import { DelegatedTasksTour, DelegatedTasksTourButton } from "./delegated-tasks-tour";
 import { StatsCard } from "@/components/stats-card";
 
@@ -74,29 +63,6 @@ interface DelegatedTasksClientProps {
     search?: string;
   };
 }
-
-const PRIORITY_STYLES: Record<TaskPriority, { label: string; badgeClass: string; dotClass: string }> = {
-  urgent: {
-    label: "Urgent",
-    badgeClass: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800",
-    dotClass: "bg-red-500",
-  },
-  high: {
-    label: "High",
-    badgeClass: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-300 dark:border-orange-800",
-    dotClass: "bg-orange-500",
-  },
-  medium: {
-    label: "Medium",
-    badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800",
-    dotClass: "bg-amber-500",
-  },
-  low: {
-    label: "Low",
-    badgeClass: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-300 dark:border-slate-800",
-    dotClass: "bg-slate-400",
-  },
-};
 
 function FilterStatCard({
   active,
@@ -144,11 +110,11 @@ export function DelegatedTasksClient({
   const [tasks, setTasks] = useState<TaskTrackerItem[]>(initialTasks);
   const [stats, setStats] = useState<CompanyDelegatedTaskStats>(initialStats);
   const [searchQuery, setSearchQuery] = useState(initialFilters?.search || "");
-  const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.status || "all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.status || "pending");
   const [departmentFilter, setDepartmentFilter] = useState<string>(initialFilters?.department || "all");
+  const [assignerFilter, setAssignerFilter] = useState("all");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState<string>(initialFilters?.priority || "all");
-  const [viewDensity, setViewDensity] = useState<"compact" | "comfortable">("compact");
-  const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [isPending, startTransition] = useTransition();
@@ -210,6 +176,9 @@ export function DelegatedTasksClient({
           return false;
         }
       }
+
+      if (assignerFilter !== "all" && task.assigned_by_user_id !== assignerFilter) return false;
+      if (assigneeFilter !== "all" && task.user_id !== assigneeFilter) return false;
 
       // Priority filter
       if (priorityFilter !== "all" && task.priority !== priorityFilter) {
@@ -290,7 +259,7 @@ export function DelegatedTasksClient({
       // 5. Fallback: recent created_at first
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [tasks, searchQuery, priorityFilter, departmentFilter, statusFilter]);
+  }, [tasks, searchQuery, priorityFilter, departmentFilter, statusFilter, assignerFilter, assigneeFilter]);
 
   // Pagination logic
   const totalItems = filteredAndSortedTasks.length;
@@ -301,29 +270,23 @@ export function DelegatedTasksClient({
 
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
-    statusFilter !== "all" ||
+    statusFilter !== "pending" ||
     departmentFilter !== "all" ||
-    priorityFilter !== "all";
+    priorityFilter !== "all" || assignerFilter !== "all" || assigneeFilter !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
-    setStatusFilter("all");
+    setStatusFilter("pending");
     setDepartmentFilter("all");
     setPriorityFilter("all");
+    setAssignerFilter("all");
+    setAssigneeFilter("all");
     setCurrentPage(1);
   };
 
   const handleStatusFilterChange = (newStatus: string) => {
     setStatusFilter(newStatus);
     setCurrentPage(1);
-  };
-
-  // Toggle individual card expansion
-  const toggleExpand = (id: string) => {
-    setExpandedTaskIds((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
   };
 
   // Open Nudge Dialog
@@ -388,38 +351,6 @@ export function DelegatedTasksClient({
           >
             <Send className="h-3.5 w-3.5" /> Quick Assign
           </Button>
-          {/* Density Switcher */}
-          <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border text-xs">
-            <button
-              type="button"
-              onClick={() => setViewDensity("compact")}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer",
-                viewDensity === "compact"
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              title="Compact View (fits more on screen)"
-            >
-              <Rows className="h-3.5 w-3.5" />
-              <span>Compact</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewDensity("comfortable")}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer",
-                viewDensity === "comfortable"
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              title="Comfortable View"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Detailed</span>
-            </button>
-          </div>
-
           <Button
             variant="outline"
             size="sm"
@@ -435,14 +366,14 @@ export function DelegatedTasksClient({
 
       {/* KPI Cards Grid */}
       <div id="tour-delegated-stats" className="grid gap-4 md:grid-cols-5">
+        <FilterStatCard active={statusFilter === "pending"} color="sky" onClick={() => handleStatusFilterChange("pending")}>
+          <StatsCard title="Active Tasks" icon={Clock} value={stats.pending} description="Open work, including overdue" iconClassName="text-sky-500" className="h-full" />
+        </FilterStatCard>
         <FilterStatCard active={statusFilter === "all"} color="emerald" onClick={() => handleStatusFilterChange("all")}>
           <StatsCard title="Total Delegated" icon={ListTodo} value={stats.total} description="All delegated tasks" iconClassName="text-emerald-600" className="h-full" />
         </FilterStatCard>
         <FilterStatCard active={statusFilter === "overdue"} color="red" onClick={() => handleStatusFilterChange("overdue")}>
           <StatsCard title="Overdue" icon={AlertTriangle} value={stats.overdue} description="Past deadline" iconClassName="text-red-500" className="h-full" />
-        </FilterStatCard>
-        <FilterStatCard active={statusFilter === "pending"} color="sky" onClick={() => handleStatusFilterChange("pending")}>
-          <StatsCard title="Active" icon={Clock} value={stats.pending} description="Open work, including overdue" iconClassName="text-sky-500" className="h-full" />
         </FilterStatCard>
         <FilterStatCard active={statusFilter === "due_soon"} color="amber" onClick={() => handleStatusFilterChange("due_soon")}>
           <StatsCard title="Due Soon" icon={CalendarClock} value={stats.due_soon} description="Due within 48 hours" iconClassName="text-amber-500" className="h-full" />
@@ -535,6 +466,9 @@ export function DelegatedTasksClient({
             </SelectContent>
           </Select>
 
+          <Select value={assignerFilter} onValueChange={(value) => { setAssignerFilter(value); setCurrentPage(1); }}><SelectTrigger className="h-8 min-w-[150px] text-xs" aria-label="Filter by assigner"><SelectValue placeholder="Assigned by" /></SelectTrigger><SelectContent><SelectItem value="all">All assigners</SelectItem>{Array.from(new Map(tasks.filter((task) => task.assigned_by).map((task) => [task.assigned_by!.id, task.assigned_by!])).values()).sort((a, b) => a.name.localeCompare(b.name)).map((person) => <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>)}</SelectContent></Select>
+          <Select value={assigneeFilter} onValueChange={(value) => { setAssigneeFilter(value); setCurrentPage(1); }}><SelectTrigger className="h-8 min-w-[150px] text-xs" aria-label="Filter by assignee"><SelectValue placeholder="Assigned to" /></SelectTrigger><SelectContent><SelectItem value="all">All assignees</SelectItem>{Array.from(new Map(tasks.filter((task) => task.user).map((task) => [task.user!.id, task.user!])).values()).sort((a, b) => a.name.localeCompare(b.name)).map((person) => <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>)}</SelectContent></Select>
+
           {/* Clear Filters */}
           {hasActiveFilters && (
             <Button
@@ -587,291 +521,7 @@ export function DelegatedTasksClient({
         </div>
       </div>
 
-      {/* Task List */}
-      <div id="tour-delegated-list" className="space-y-2">
-        {paginatedTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center rounded-xl border border-dashed bg-muted/20">
-            <div className="p-3 rounded-full bg-muted mb-3">
-              <ListTodo className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">No delegated deliverables found</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mt-1">
-              {hasActiveFilters
-                ? "No tasks match your current filters. Try changing or clearing your search criteria."
-                : "No cross-delegated deliverables are currently recorded in the portal."}
-            </p>
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="mt-4 text-xs"
-              >
-                Clear All Filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          paginatedTasks.map((task) => {
-            const isCompleted = task.status === "completed";
-            const isOverdue = task.is_overdue;
-            const priorityInfo = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.medium;
-            const hasPendingExtension = isActiveTask(task) && task.extension_status === "pending";
-            const isExpanded = viewDensity === "comfortable" || !!expandedTaskIds[task.id];
-
-            return (
-              <div
-                key={task.id}
-                onClick={() => viewDensity === "compact" && toggleExpand(task.id)}
-                className={cn(
-                  "rounded-lg border bg-card transition-all hover:border-muted-foreground/30 shadow-2xs overflow-hidden cursor-pointer select-none",
-                  isOverdue && !isCompleted && "border-red-300 dark:border-red-900/60 bg-red-50/15 dark:bg-red-950/10",
-                  hasPendingExtension && "border-purple-300 dark:border-purple-900/60 bg-purple-50/15 dark:bg-purple-950/10",
-                  isCompleted && "opacity-75 bg-muted/20 hover:opacity-100"
-                )}
-              >
-                {/* Main Compact Row */}
-                <div className="flex flex-col items-stretch gap-2.5 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:py-2.5">
-                  {/* Left: Indicator + Priority + Title */}
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {/* Status Icon */}
-                    <div className="shrink-0">
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      ) : isOverdue ? (
-                        <AlertTriangle className="h-4 w-4 text-red-600 animate-pulse" />
-                      ) : hasPendingExtension ? (
-                        <Sparkles className="h-4 w-4 text-purple-600" />
-                      ) : (
-                        <Clock className="h-4 w-4 text-sky-500" />
-                      )}
-                    </div>
-
-                    {/* Priority Dot/Badge */}
-                    <Badge
-                      variant="outline"
-                      className={cn("text-[10px] font-semibold px-1.5 py-0 h-4.5 shrink-0 hidden sm:inline-flex", priorityInfo.badgeClass)}
-                    >
-                      {priorityInfo.label}
-                    </Badge>
-
-                    {/* Title */}
-                    <div className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block font-medium text-xs sm:text-sm text-foreground truncate",
-                        isCompleted && "line-through text-muted-foreground font-normal"
-                      )}
-                      title={task.title}
-                    >
-                      {task.title}
-                    </span>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground break-words">
-                      Assigned <time dateTime={task.created_at} title={formatReadableDate(task.created_at)}>{formatReadableDate(task.created_at, { includeTime: false })}</time>
-                      {" · "}Department: {task.user?.department || "Not specified"}
-                    </p>
-                    </div>
-                    <TaskStatusBadge task={task} />
-
-                    {/* Extension Badge on Row */}
-                    {hasPendingExtension && (
-                      <Badge className="bg-purple-600 text-white text-[9px] px-1.5 py-0 h-4 font-bold shrink-0">
-                        Ext Req
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Center: Assigner ➔ Assignee Flow */}
-                  <div className="hidden md:flex items-center gap-1.5 text-xs shrink-0 bg-muted/50 px-2 py-0.5 rounded-md border text-muted-foreground">
-                    <span className="font-medium text-foreground truncate max-w-[110px]" title={task.assigned_by?.name || "Assigner"}>
-                      {task.assigned_by?.name || "Assigner"}
-                    </span>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="font-semibold text-emerald-700 dark:text-emerald-400 truncate max-w-[110px]" title={task.user?.name || "Assignee"}>
-                      {task.user?.name || "Assignee"}
-                    </span>
-                    {task.user?.department && (
-                      <span className="text-[10px] text-muted-foreground font-normal">
-                        ({task.user.department})
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Right: Deadline Badge + Nudge + Expand Chevron */}
-                  <div className="flex flex-wrap items-center gap-2 min-w-0">
-                    {/* Due Date Indicator */}
-                    {task.due_date ? (
-                      <div
-                        className={cn(
-                          "flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border shrink-0",
-                          isOverdue && !isCompleted
-                            ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border-red-200 dark:border-red-900 font-bold"
-                            : isCompleted
-                            ? "bg-muted text-muted-foreground border-transparent"
-                            : "bg-muted/60 text-foreground border-muted"
-                        )}
-                        title={formatReadableDate(task.due_date)}
-                      >
-                        <Calendar className="h-3 w-3" />
-                        <span>
-                          {isOverdue && !isCompleted
-                            ? `Overdue · ${formatReadableDate(task.due_date)}`
-                            : formatReadableDate(task.due_date)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground italic hidden sm:inline-block">No due date</span>
-                    )}
-
-                    {/* Nudge Button */}
-                    {task.can_comment && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setCommentsTask(task);
-                        }}
-                        className="h-7 gap-1 px-2 text-[11px] shrink-0"
-                        title="Open task discussion"
-                      >
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="hidden sm:inline">Comments</span>
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={!isActiveTask(task)}
-                      onClick={(e) => handleOpenNudge(task, e)}
-                      className={cn(
-                        "h-7 px-2 text-[11px] font-semibold gap-1 transition-all shrink-0",
-                        isOverdue
-                          ? "border-red-300 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-                          : "text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                      )}
-                      title="Send email and portal reminder to assignee"
-                    >
-                      <Bell className="h-3 w-3" />
-                      <span className="hidden sm:inline">Nudge</span>
-                    </Button>
-
-                    {/* Expand/Collapse Chevron (in Compact mode) */}
-                    {viewDensity === "compact" && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpand(task.id);
-                        }}
-                        className="p-1 text-muted-foreground hover:text-foreground rounded-md transition-colors"
-                        title={isExpanded ? "Collapse" : "Expand Details"}
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Expanded Details Drawer */}
-                {isExpanded && (
-                  <div className="px-3 pb-3 pt-1 border-t bg-muted/15 space-y-2.5 text-xs text-muted-foreground animate-in fade-in-50 duration-150">
-                    <TaskSubmissionDetails task={task} />
-                    <TaskWorkflowControls task={task} onUpdated={updated => { setTasks(current => current.map(t => t.id === updated.id ? updated : t)); void refreshTasks(); }} />
-                    {/* Full Description if present */}
-                    {task.description ? (
-                      <div className="space-y-1">
-                        <span className="font-semibold text-foreground text-[11px] uppercase tracking-wider">
-                          Description:
-                        </span>
-                        <p className="text-foreground whitespace-pre-line leading-relaxed bg-background p-2.5 rounded-md border text-xs">
-                          {task.description}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="italic text-[11px] text-muted-foreground">No description provided.</div>
-                    )}
-
-                    {/* Extension Request Banner if pending */}
-                    {hasPendingExtension && (
-                      <div className="p-2.5 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 text-xs text-purple-900 dark:text-purple-200 flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 font-semibold text-[11px]">
-                          <Sparkles className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                          <span>Deadline Extension Requested by Assignee</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-purple-800 dark:text-purple-300">
-                          {task.extension_requested_due_date && (
-                            <span>
-                              Requested Date:{" "}
-                              <strong>{formatReadableDate(task.extension_requested_due_date)}</strong>
-                            </span>
-                          )}
-                          {task.extension_reason && (
-                            <span>
-                              Reason: <em>&ldquo;{task.extension_reason}&rdquo;</em>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Detailed Delegation Cards & Timestamps */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                      {/* Avatars & Departments */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Assigner */}
-                        <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border text-foreground">
-                          <span className="text-[10px] text-muted-foreground uppercase font-semibold">From:</span>
-                          <Avatar className="h-4 w-4">
-                            <AvatarImage src={task.assigned_by?.image_url || undefined} />
-                            <AvatarFallback className="text-[9px]">
-                              {task.assigned_by?.name ? task.assigned_by.name[0] : "A"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-xs">{task.assigned_by?.name || "Assigner"}</span>
-                          {task.assigned_by?.department && (
-                            <span className="text-[10px] text-muted-foreground">({task.assigned_by.department})</span>
-                          )}
-                        </div>
-
-                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
-
-                        {/* Assignee */}
-                        <div className="flex items-center gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 px-2 py-1 rounded border border-emerald-200/60 dark:border-emerald-800/40 text-foreground">
-                          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold">To:</span>
-                          <Avatar className="h-4 w-4">
-                            <AvatarImage src={task.user?.image_url || undefined} />
-                            <AvatarFallback className="text-[9px]">
-                              {task.user?.name ? task.user.name[0] : "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-xs">{task.user?.name || "Assignee"}</span>
-                          {task.user?.department && (
-                            <span className="text-[10px] text-muted-foreground">({task.user.department})</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Timestamps */}
-                      <div className="flex items-center gap-3 text-[11px] self-end sm:self-auto">
-                        {task.completed_at && (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                            ✓ Completed {formatReadableDate(task.completed_at)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
+      <DelegatedTasksTable tasks={paginatedTasks} allTasks={tasks} onNudge={handleOpenNudge} onComment={setCommentsTask} onUpdated={updated => { setTasks(current => current.map(task => task.id === updated.id ? { ...task, ...updated } : task)); void refreshTasks(); }} />
 
       {/* Pagination Footer */}
       {totalPages > 1 && (

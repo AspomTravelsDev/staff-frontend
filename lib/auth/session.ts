@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
+import { redirectToSessionLogin } from "./recover-session";
 import { validateToken } from "./api";
 import { User, LoginUser } from "@/types/user-types";
 
@@ -56,7 +58,7 @@ export async function clearSession(): Promise<void> {
  * Get current user from session
  * Validates token with backend when USE_REAL_API is enabled
  */
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
     const token = await getAuthToken();
 
     if (!token) {
@@ -67,10 +69,13 @@ export async function getCurrentUser(): Promise<User | null> {
     const result = await validateToken(token);
 
     if (!result.success) {
-        // Token is invalid - cannot clear session here (Next.js restriction)
-        // Session will be cleared by the logout route handler
-        return null;
+        if (result.error.code === "UNAUTHENTICATED" || result.error.code === "HTTP_401") {
+            return redirectToSessionLogin();
+        }
+        throw new Error("Session verification is temporarily unavailable. Please try again.");
     }
 
+    if (!result.data?.id) throw new Error("Session verification is temporarily unavailable. Please try again.");
+
     return result.data;
-}
+});

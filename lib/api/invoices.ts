@@ -59,6 +59,10 @@ export interface Invoice {
   membership_welcome_text: string | null;
   items: InvoiceItem[];
   subtotal: number;
+  discount_type?: "none" | "fixed" | "percentage";
+  discount_value?: number;
+  discount_amount?: number;
+  total?: number;
   deposit: number;
   balance_due: number;
   status: "paid" | "unpaid" | "partially_paid";

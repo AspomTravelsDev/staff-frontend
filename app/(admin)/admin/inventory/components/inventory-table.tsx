@@ -1,5 +1,6 @@
 "use client";
 
+import { equipmentIssueRecords } from "@/lib/equipment-form";
 import { useState } from "react";
 import { useSort } from "@/lib/hooks/use-sort";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
   getInventoryItemAssignments,
+  getEmployeeEquipment,
   InventoryItemPayload,
 } from "@/lib/api/inventory";
 import { downloadAssetFormPdf } from "@/components/inventory/asset-form-pdf-button";
@@ -60,7 +62,10 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItem, InventoryAssignment } from "@/lib/api/inventory";
+import { InventoryItem } from "@/lib/api/inventory";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BulkAssignmentDialog } from "./bulk-assignment-dialog";
+import { DetailsTableRow } from "@/components/ui/details-table-row";
 
 import type { Employee } from "@/lib/api/employees";
 
@@ -81,18 +86,19 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
   const [itemToAssign, setItemToAssign] = useState<InventoryItem | null>(null);
   const [itemToClear, setItemToClear] = useState<InventoryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
   const { sortedData: sorted, sortConfig, handleSort } = useSort(items);
+  const eligible = sorted.filter((item) => item.status === "Storage" && !item.openAssignment);
+  const selectedItems = eligible.filter((item) => selectedIds.includes(item.id));
+  const allEligibleSelected = eligible.length > 0 && eligible.every((item) => selectedIds.includes(item.id));
+  const someEligibleSelected = eligible.some((item) => selectedIds.includes(item.id));
 
   const handleDownloadAssetForm = async (item: InventoryItem) => {
     try {
-      if (item.openAssignment) {
-        await downloadAssetFormPdf(item.openAssignment);
-        return;
-      }
-
       toast.loading(`Fetching asset form for ${item.name}...`, { id: "pdf-download" });
-      const assignments = await getInventoryItemAssignments(item.id);
+      const assignments = (await getInventoryItemAssignments(item.id)).filter((assignment) => !assignment.type || assignment.type === "assignment");
       toast.dismiss("pdf-download");
 
       if (assignments.length === 0) {
@@ -112,24 +118,10 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
     const emp = employees.find((e) => e.id === item.assignedTo);
     const staffName = emp ? `${emp.firstName} ${emp.lastName}` : item.assignedTo;
 
-    // Find all items assigned to this staff member
-    const staffAssignedItems = items.filter(
-      (i) => i.status === "Assigned" && i.assignedTo === item.assignedTo
-    );
-
-    toast.loading(`Gathering asset declaration form for ${staffName}...`, { id: "staff-all-pdf" });
+    toast.loading(`Gathering current equipment for ${staffName}...`, { id: "staff-all-pdf" });
     try {
-      const assignmentPromises = staffAssignedItems.map(async (i) => {
-        if (i.openAssignment) return i.openAssignment;
-        const itemAssignments = await getInventoryItemAssignments(i.id);
-        return itemAssignments[0] || null;
-      });
-
-      const fetchedAssignments = await Promise.all(assignmentPromises);
-      const validAssignments = fetchedAssignments.filter(
-        (a): a is InventoryAssignment => a !== null
-      );
-
+      const current = await getEmployeeEquipment(item.assignedTo);
+      const validAssignments = equipmentIssueRecords(current, { id: item.assignedTo!, name: staffName, phone: emp?.phone, mobile_phone: emp?.mobile_phone, department: emp?.department, role: emp?.role });
       toast.dismiss("staff-all-pdf");
 
       if (validAssignments.length === 0) {
@@ -138,7 +130,7 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
       }
 
       const filename = `Asset_Declaration_${staffName.replace(/\s+/g, "_")}.pdf`;
-      await downloadAssetFormPdf(undefined, validAssignments, filename);
+      await downloadAssetFormPdf(undefined, validAssignments, filename, { current: true });
     } catch (error: unknown) {
       toast.dismiss("staff-all-pdf");
       toast.error((error instanceof Error ? error.message : undefined) || "Failed to download staff asset declaration PDF.");
@@ -210,9 +202,16 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
   };
 
   return (
-    <div className="rounded-md border bg-card">
+    <div className="space-y-3">
+      {selectedItems.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/30 p-3">
+        <p className="text-sm font-medium">{selectedItems.length} available {selectedItems.length === 1 ? "device" : "devices"} selected</p>
+        <div className="flex gap-2"><Button size="sm" onClick={() => setBulkAssignOpen(true)} disabled={selectedItems.length > 50}>Assign selected</Button><Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>Clear selection</Button></div>
+        {selectedItems.length > 50 && <p className="w-full text-xs text-destructive">A single batch can include up to 50 devices.</p>}
+      </div>}
+      <div className="rounded-md border bg-card">
       <Table>
         <TableHeader className="max-sm:hidden"><TableRow>
+          <TableHead><Checkbox aria-label="Select all available devices" checked={allEligibleSelected ? true : someEligibleSelected ? "indeterminate" : false} onCheckedChange={(checked) => setSelectedIds(checked === true ? eligible.map((item) => item.id) : [])} /></TableHead>
           <TableHead aria-sort={sortConfig?.key === "name" ? (sortConfig.direction === "asc" ? "ascending" : "descending") : "none"}><button className="inline-flex items-center" onClick={() => handleSort("name")}>Device {sortIcon("name")}</button></TableHead>
           <TableHead>Held by</TableHead>
           <TableHead aria-sort={sortConfig?.key === "status" ? (sortConfig.direction === "asc" ? "ascending" : "descending") : "none"}><button className="inline-flex items-center" onClick={() => handleSort("status")}>Status {sortIcon("status")}</button></TableHead>
@@ -221,10 +220,11 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         </TableRow></TableHeader>
         <TableBody>
           {sorted.length === 0 ? (
-            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No assets match your search or filters.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No assets match your search or filters.</TableCell></TableRow>
           ) : sorted.map((item) => (
-            <TableRow key={item.id} className="max-sm:grid max-sm:grid-cols-[1fr_auto] max-sm:gap-x-3 max-sm:p-3 [&>td]:max-sm:p-1">
-              <TableCell><button onClick={() => setDetailItem(item)} className="text-left font-medium underline-offset-4 hover:underline focus-visible:underline">{item.name}</button><div className="mt-1 text-xs text-muted-foreground break-all">{item.serialNumber}</div></TableCell>
+            <DetailsTableRow key={item.id} detailLabel={`Open details for ${item.name}`} onOpenDetails={() => setDetailItem(item)} className="max-sm:grid max-sm:grid-cols-[1fr_auto] max-sm:gap-x-3 max-sm:p-3 [&>td]:max-sm:p-1">
+              <TableCell className="max-sm:col-start-2 max-sm:row-start-2"><Checkbox aria-label={`Select ${item.name}`} checked={selectedIds.includes(item.id)} disabled={item.status !== "Storage" || !!item.openAssignment} onCheckedChange={(checked) => setSelectedIds((current) => checked === true ? [...new Set([...current, item.id])] : current.filter((id) => id !== item.id))} /></TableCell>
+              <TableCell><button onClick={() => setDetailItem(item)} className="text-left font-medium underline-offset-4 hover:underline focus-visible:underline">{item.name}</button><div className="mt-1 text-xs text-muted-foreground break-all">{item.serialNumber || item.assetTag}</div></TableCell>
               <TableCell className="max-sm:col-start-1 max-sm:row-start-2 max-sm:text-muted-foreground">{holder(item)}</TableCell>
               <TableCell className="max-sm:col-start-1 max-sm:row-start-3"><Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>{item.openAssignment && <p className="mt-1 max-w-56 text-xs text-muted-foreground">{formatAssignmentStatus(item.openAssignment.status)}{item.openAssignment.assignee?.name ? ` :  ${item.openAssignment.assignee.name}` : ""}</p>}</TableCell>
               <TableCell className="hidden md:table-cell"><span className={["Poor", "Broken"].includes(item.conditionRating) ? "font-medium text-destructive" : "text-muted-foreground"}>{item.conditionRating}</span></TableCell>
@@ -289,16 +289,19 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div></TableCell>
-              </TableRow>
+            </DetailsTableRow>
             ))}</TableBody>
       </Table>
+      </div>
+
+      <BulkAssignmentDialog open={bulkAssignOpen} onOpenChange={setBulkAssignOpen} items={selectedItems} employees={employees} />
 
       <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader><SheetTitle>{detailItem?.name}</SheetTitle><SheetDescription>Asset details and supporting records.</SheetDescription></SheetHeader>
           {detailItem && <div className="space-y-6 px-4 pb-6">
             <dl className="grid grid-cols-2 gap-4 text-sm">
-              {[["Serial number", detailItem.serialNumber], ["Category", detailItem.category], ["Held by", holder(detailItem)], ["Status", detailItem.status], ["Condition", detailItem.conditionRating]].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-medium break-words">{value}</dd></div>)}
+              {[["Serial number", detailItem.serialNumber || "Not applicable"], ["Asset reference", detailItem.assetTag || "Legacy item"], ["Asset type", detailItem.assetType || detailItem.category], ["Category", detailItem.category], ["Held by", holder(detailItem)], ["Status", detailItem.status], ["Condition", detailItem.conditionRating]].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-medium break-words">{value}</dd></div>)}
             </dl>
             {detailItem.openAssignment && <section><h3 className="font-medium">Current progress</h3><p className="mt-2 text-sm">{formatAssignmentStatus(detailItem.openAssignment.status)} : {detailItem.openAssignment.assignee?.name}</p><p className="mt-2 text-sm text-muted-foreground">Review this process in the approvals or clearance tab.</p></section>}
             {detailItem.conditionDetails && <section><h3 className="font-medium">Condition notes</h3><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{detailItem.conditionDetails}</p></section>}
@@ -317,6 +320,7 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
         open={!!itemToEdit}
         onOpenChange={(open) => !open && setItemToEdit(null)}
         initialData={itemToEdit}
+        items={items}
         onSubmit={handleUpdate}
         employees={employees}
       />

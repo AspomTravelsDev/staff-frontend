@@ -16,6 +16,8 @@ export interface SalaryBreakdown {
 }
 
 export type ApplicationStatus = 'pending' | 'invited' | 'in_progress' | 'completed';
+/** Standard outcome key or a custom label, validated to 40 characters by the API. */
+export type EmploymentOutcome = string;
 
 export interface UploadedFile {
     fileName: string;
@@ -294,6 +296,11 @@ export interface OnboardingApplication {
     position_title: string;
     salary_gross: number;
     status: ApplicationStatus;
+    employment_status?: EmploymentOutcome | null;
+    employment_status_note?: string | null;
+    employment_status_updated_at?: string | null;
+    employment_status_updated_by?: string | null;
+    employment_status_updater?: { id: string; name: string } | null;
 
     // The main data blob (all form steps + employment_terms)
     form_data: Partial<OnboardingFormData> & {

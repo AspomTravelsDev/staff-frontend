@@ -23,9 +23,7 @@ import {
   Briefcase,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   FileText,
-  Send,
   MapPin,
   ShieldCheck,
   RotateCcw,
@@ -85,7 +83,7 @@ export function LateRequestDetailsSheet({
 
       if (res.success) {
         toast.success(
-          `Late permission request ${action === "approved" ? "approved" : "rejected"} successfully!`
+          `Attendance request ${action === "approved" ? "approved" : "rejected"} successfully!`
         );
         if (res.data?.data) {
           setCurrentRequest(res.data.data);
@@ -104,8 +102,8 @@ export function LateRequestDetailsSheet({
       } else {
         toast.error(res.error?.error || "Failed to process review");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to process review");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to process review");
     } finally {
       setActionLoading(false);
     }
@@ -254,10 +252,10 @@ export function LateRequestDetailsSheet({
             <div className="rounded-xl border bg-card p-3.5 space-y-1">
               <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
                 <Clock className="size-3.5 text-amber-500" />
-                Expected Arrival Time
+                Request time
               </span>
               <p className="text-base font-bold text-amber-600 dark:text-amber-400">
-                {currentRequest.expected_arrival_time}
+                {currentRequest.request_type === "half_day" || currentRequest.request_type === "early_departure" ? `Half day · ${currentRequest.expected_clock_out_time || "time not specified"}` : `Late arrival · ${currentRequest.expected_arrival_time || "time not specified"}`}
               </p>
               <span className="text-[10px] text-muted-foreground">
                 Notice sent in advance to HR

@@ -96,27 +96,27 @@ export function BioData({ formData, applicationId }: BioDataProps) {
       <h3 className="text-lg font-semibold px-1">Applicant Bio Data</h3>
 
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="flex h-auto w-full max-w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-4 sm:overflow-visible">
+        <TabsList className="flex w-full max-w-full items-stretch gap-1 overflow-x-auto border border-border bg-muted/60 p-1 group-data-horizontal/tabs:h-auto sm:grid sm:grid-cols-4 sm:overflow-visible">
           <TabsTrigger
-            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            className="h-auto min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center text-sm leading-tight text-muted-foreground hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground sm:min-w-0 sm:flex-1 sm:whitespace-normal"
             value="personal"
           >
             Personal Info
           </TabsTrigger>
           <TabsTrigger
-            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            className="h-auto min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center text-sm leading-tight text-muted-foreground hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground sm:min-w-0 sm:flex-1 sm:whitespace-normal"
             value="professional"
           >
             Professional
           </TabsTrigger>
           <TabsTrigger
-            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            className="h-auto min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center text-sm leading-tight text-muted-foreground hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground sm:min-w-0 sm:flex-1 sm:whitespace-normal"
             value="background"
           >
             Account & Background
           </TabsTrigger>
           <TabsTrigger
-            className="min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center leading-tight sm:min-w-0 sm:flex-1 sm:whitespace-normal"
+            className="h-auto min-h-10 min-w-max flex-none whitespace-nowrap px-3 py-2 text-center text-sm leading-tight text-muted-foreground hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground sm:min-w-0 sm:flex-1 sm:whitespace-normal"
             value="guarantors"
           >
             Guarantors & Referee

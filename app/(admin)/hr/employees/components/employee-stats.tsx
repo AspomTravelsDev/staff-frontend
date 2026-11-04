@@ -7,12 +7,16 @@ interface EmployeeStatsCardsProps {
   stats: EmployeeStats;
   employees: Employee[];
   asOf: string;
+  onSelect: (filter: "active" | "inactive" | "new-joiners") => void;
+  activeFilter: "all" | "active" | "inactive" | "new-joiners";
 }
 
 export function EmployeeStatsCards({
   stats,
   employees,
   asOf,
+  onSelect,
+  activeFilter,
 }: EmployeeStatsCardsProps) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -21,6 +25,8 @@ export function EmployeeStatsCards({
         icon={Users}
         value={stats.totalActive}
         description="Currently active staff"
+        onClick={() => onSelect("active")}
+        active={activeFilter === "active"}
         iconClassName="text-green-600"
       />
 
@@ -29,6 +35,8 @@ export function EmployeeStatsCards({
         icon={UserMinus}
         value={stats.totalInactive}
         description="Former staff members"
+        onClick={() => onSelect("inactive")}
+        active={activeFilter === "inactive"}
         iconClassName="text-muted-foreground"
       />
 
@@ -39,6 +47,8 @@ export function EmployeeStatsCards({
         icon={UserPlus}
         value={stats.newJoiners}
         description="Joined this month"
+        onClick={() => onSelect("new-joiners")}
+        active={activeFilter === "new-joiners"}
         iconClassName="text-blue-500"
       />
     </div>

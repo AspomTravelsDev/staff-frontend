@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getRecruitmentRole } from "@/lib/api/recruitment";
 import type { RoleDetailResponse } from "@/lib/types/recruitment";
+import { recruitmentPipelinePrefills } from "@/lib/recruitment/pipeline-prefills";
 import { RoleHeader } from "./components/role-header";
 import { CandidatesTable } from "./components/candidates-table";
 import { RecruitmentPipelineBoard } from "./components/recruitment-pipeline-board";
@@ -82,6 +83,8 @@ export default async function RecruitmentRolePage({
         key={`${query.applicant ?? "board"}:${query.panel ?? ""}`}
         role={role}
         candidates={candidates}
+        initialContexts={recruitmentPipelinePrefills(roleData)}
+        initialFinalReviews={Object.fromEntries(Object.entries(roleData.pipeline_prefills ?? {}).map(([candidateId, prefill]) => [candidateId, prefill.final_review]))}
         initialApplicantId={query.applicant}
         initialStatusOpen={query.panel === "status"}
         initialSettingsOpen={query.settings === "1"}

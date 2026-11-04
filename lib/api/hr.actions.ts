@@ -5,7 +5,7 @@ import { ExpectedActionError, type ActionResult } from "./action-result";
 
 import { api, apiClient } from "./client";
 import { revalidatePath } from "next/cache";
-import type { OnboardingApplication, CreateApplicationRequest } from "@/lib/types/hr";
+import type { OnboardingApplication, CreateApplicationRequest, EmploymentOutcome } from "@/lib/types/hr";
 import type { ContactVerificationStatus } from "@/lib/types/form-data";
 
 // ─── Authenticated endpoints (HR/Super admin) ───
@@ -31,6 +31,23 @@ export async function getApplication(id: string): Promise<ActionResult<Onboardin
         if (!response.success) throw new ExpectedActionError(response.error.error, response.error.code);
         return response.data.data;
     }, "getApplication");
+}
+
+export async function updateApplicationEmploymentStatus(
+    id: string,
+    payload: { employment_status: EmploymentOutcome | null; employment_status_note?: string },
+): Promise<ActionResult<OnboardingApplication>> {
+    return runAction(async (): Promise<OnboardingApplication> => {
+        const response = await api.patch<{ message: string; data: OnboardingApplication }>(
+            `/api/onboarding-applications/${id}/employment-status`,
+            payload,
+        );
+        if (!response.success) throw new ExpectedActionError(response.error.error, response.error.code);
+        revalidatePath(`/hr/applications/${id}`);
+        revalidatePath("/hr/applications");
+        revalidatePath("/it/onboarding");
+        return response.data.data;
+    }, "updateApplicationEmploymentStatus");
 }
 
 export async function createApplication(data: CreateApplicationRequest): Promise<ActionResult<OnboardingApplication>> {

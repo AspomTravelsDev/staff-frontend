@@ -1,3 +1,4 @@
+import { equipmentIssueRecords } from "@/lib/equipment-form";
 import { renderDataPage } from "@/lib/api/render-data-page";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
@@ -32,6 +33,8 @@ export default async function MyInventoryPage() {
     (a) => a.status === "return_pending_staff"
   );
 
+  const currentEquipment = equipmentIssueRecords(myItems, { id: user.id, name: user.name, phone: user.phone, mobile_phone: user.mobile_phone, department: user.department || undefined, role: user.role }, allAssignments);
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -41,10 +44,11 @@ export default async function MyInventoryPage() {
             Devices and equipment currently assigned to you
           </p>
         </div>
-        {allAssignments.length > 0 && (
+        {currentEquipment.length > 0 && (
           <AssetFormPdfButton
-            assignments={allAssignments}
-            label="Download Staff Asset Form (PDF)"
+            assignments={currentEquipment}
+            current
+            label="Current equipment form (PDF)"
           />
         )}
       </div>

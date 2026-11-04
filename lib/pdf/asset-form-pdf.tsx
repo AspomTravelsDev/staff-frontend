@@ -7,6 +7,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { InventoryAssignment } from "@/lib/api/inventory";
+import { equipmentFormRows } from "@/lib/equipment-form";
 import { getRoleLabel } from "@/types/user-types";
 import { format } from "date-fns";
 
@@ -14,7 +15,7 @@ const formatPdfDate = (dateStr?: string | Date | null): string => {
   if (!dateStr) return "—";
   try {
     return format(new Date(dateStr), "dd MMM yyyy, HH:mm");
-  } catch (e) {
+  } catch {
     return String(dateStr);
   }
 };
@@ -91,9 +92,9 @@ const styles = StyleSheet.create({
   },
   colSN: { width: "6%", textAlign: "center" },
   colAsset: { width: "20%" },
-  colModel: { width: "26%" },
-  colSerial: { width: "24%", fontFamily: "Times-Bold" },
-  colState: { width: "24%", textAlign: "left" },
+  colModel: { width: "24%", paddingRight: 5 },
+  colSerial: { width: "24%", paddingRight: 5, fontSize: 9, fontFamily: "Times-Bold" },
+  colState: { width: "26%", textAlign: "left" },
   checklistSection: {
     border: "0.8pt solid #64748b",
     padding: 7,
@@ -220,11 +221,15 @@ interface AssetFormPdfProps {
   assignment?: InventoryAssignment | null;
   assignments?: InventoryAssignment[];
   title?: string;
+  blank?: boolean;
+  current?: boolean;
 }
 
 export function AssetFormPdfDocument({
   assignment,
   assignments,
+  blank = false,
+  current = false,
 }: AssetFormPdfProps) {
   const itemsList: InventoryAssignment[] = assignments
     ? assignments
@@ -232,7 +237,24 @@ export function AssetFormPdfDocument({
     ? [assignment]
     : [];
 
-  const mainAssignment = itemsList[0];
+  const documentItems = itemsList.map((item) => ({ ...item, inventoryItem: current ? item.inventoryItem : item.assetSnapshot ?? item.inventoryItem }));
+  const mainAssignment = { ...documentItems[0] };
+  const sameStaff = documentItems.length > 0 && documentItems.every((item) => item.assignee?.id === documentItems[0].assignee?.id);
+  const signature = (role: "staff" | "officer" | "compliance") => {
+    const entries = documentItems.map((item) => ({
+      name: role === "staff" ? item.assignee?.name : role === "officer" ? item.officer?.name : item.complianceOfficer?.name,
+      date: role === "staff" ? item.staffDecidedAt : role === "officer" ? item.officerDecidedAt : item.complianceDecidedAt,
+      decision: role === "staff" ? item.staffDecision : role === "officer" ? item.officerDecision : item.complianceDecision,
+    }));
+    const complete = sameStaff && entries.every((entry) => entry.name && entry.date && entry.decision === "approved");
+    return {
+      name: complete ? Array.from(new Set(entries.map((entry) => entry.name))).join(" / ") : "",
+      dates: complete ? Array.from(new Set(entries.map((entry) => formatPdfDate(entry.date)))).join("; ") : "",
+    };
+  };
+  const staffSignature = signature("staff");
+  const officerSignature = signature("officer");
+  const complianceSignature = signature("compliance");
   const assigneeName = mainAssignment?.assignee?.name || "________________________";
   const rawRole = mainAssignment?.assignee?.role;
   const assigneeRole = getRoleLabel(rawRole) || rawRole || "Staff Member";
@@ -241,15 +263,16 @@ export function AssetFormPdfDocument({
     mainAssignment?.assignee?.phone?.trim(),
     mainAssignment?.assignee?.mobile_phone?.trim(),
   ].filter((phone, index, phones): phone is string => Boolean(phone) && phones.indexOf(phone) === index);
-  const formattedDate = formatPdfDate(mainAssignment?.createdAt || new Date());
 
-  const displayItems = [...itemsList];
+  const displayItems = documentItems;
+  const formRows = equipmentFormRows(itemsList, current);
 
   return (
     <Document title={`Asset Declaration Undertaking - ${assigneeName}`}>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- React PDF Image is not an HTML image. */}
           <Image src={COMPANY_LOGO_URL} style={styles.logo} />
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>ASSET DECLARATION UNDERTAKING</Text>
@@ -275,38 +298,27 @@ export function AssetFormPdfDocument({
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
             <Text style={styles.colSN}>S/N</Text>
-            <Text style={styles.colAsset}>ASSET</Text>
+            <Text style={styles.colAsset}>ASSET TYPE</Text>
             <Text style={styles.colModel}>MODEL</Text>
             <Text style={styles.colSerial}>SERIAL NUMBER</Text>
-            <Text style={styles.colState}>CURRENT STATE</Text>
+            <Text style={styles.colState}>STATE / COMMENT</Text>
           </View>
 
-          {displayItems.map((item, idx) => (
-            <View key={item.id || idx} style={styles.tableRow}>
+          {formRows.map((row, idx) => {
+            const item = row.assignment;
+            const asset = current ? item?.inventoryItem : item?.assetSnapshot ?? item?.inventoryItem;
+            return <View key={item?.id || `slot-${idx}`} style={styles.tableRow} wrap={false}>
               <Text style={styles.colSN}>{idx + 1}</Text>
-              <Text style={styles.colAsset}>
-                {item.inventoryItem?.category || "Gadget"}
-              </Text>
-              <Text style={styles.colModel}>
-                {item.inventoryItem?.name || "Equipment"}
-              </Text>
-              <Text style={styles.colSerial}>
-                {item.inventoryItem?.serialNumber || "—"}
-              </Text>
-              <Text style={styles.colState}>
-                {item.staffConditionDetails ||
-                  item.staffNotes ||
-                  (item.staffConditionRating ? `${item.staffConditionRating}` : "") ||
-                  item.inventoryItem?.conditionDetails ||
-                  item.inventoryItem?.conditionRating ||
-                  "Good"}
-              </Text>
-            </View>
-          ))}
+              <Text style={styles.colAsset}>{row.type}</Text>
+              <Text style={styles.colModel}>{asset?.name || ""}</Text>
+              <Text style={styles.colSerial}>{asset?.serialNumber || (asset?.assetTag ? `Asset ref: ${asset.assetTag}` : "")}</Text>
+              <Text style={styles.colState}>{item ? (current ? asset?.conditionDetails || asset?.conditionRating : item.staffConditionDetails || item.staffConditionRating || asset?.conditionDetails || asset?.conditionRating) : blank ? "" : "Not issued"}</Text>
+            </View>;
+          })}
         </View>
 
-        <Text style={styles.undertakingHeader}>Staff Device Checklist (Final Inspection)</Text>
-        {displayItems.map((item, idx) => {
+        {!current && displayItems.some((item) => item.staffChecklist) && <Text style={styles.undertakingHeader}>Staff Device Checklist (Final Inspection)</Text>}
+        {!current && displayItems.filter((item) => item.staffChecklist).map((item, idx) => {
           const checklist = item.staffChecklist;
           const labels: Record<string, string> = {
             screen: "Screen & Display",
@@ -339,6 +351,8 @@ export function AssetFormPdfDocument({
           );
         })}
 
+        {current && <Text style={styles.acknowledgementText}>Current custody list. Names and dates below reflect recorded approvals for these items, not a new signing event. Multiple dates represent separate item acknowledgements. Unrecorded or incomplete approvals remain blank.</Text>}
+        <>
         {/* Undertaking Heading */}
         <Text style={styles.undertakingHeader}>List of Asset Allotted</Text>
         <Text style={styles.undertakingSubheader}>
@@ -422,14 +436,12 @@ export function AssetFormPdfDocument({
           <View style={styles.sigBlockCenter}>
             <View style={styles.sigUnderline}>
               <Text style={styles.sigNameText}>
-                {mainAssignment?.staffDecidedAt ? assigneeName : ""}
+                {staffSignature.name}
               </Text>
             </View>
             <Text style={styles.sigTitleText}>EMPLOYEE SIGNATURE</Text>
             <Text style={styles.sigDateText}>
-              {mainAssignment?.staffDecidedAt
-                ? `Date: ${formatPdfDate(mainAssignment.staffDecidedAt)}`
-                : "Date: ________________"}
+              {staffSignature.dates ? `Date: ${staffSignature.dates}` : "Date: ________________"}
             </Text>
           </View>
 
@@ -437,16 +449,12 @@ export function AssetFormPdfDocument({
           <View style={styles.sigBlockCenter}>
             <View style={styles.sigUnderline}>
               <Text style={styles.sigNameText}>
-                {mainAssignment?.officerDecidedAt && mainAssignment?.officer?.name
-                  ? mainAssignment.officer.name
-                  : ""}
+                {officerSignature.name}
               </Text>
             </View>
             <Text style={styles.sigTitleText}>IN THE PRESENCE OF (IT / ADMIN OFFICER)</Text>
             <Text style={styles.sigDateText}>
-              {mainAssignment?.officerDecidedAt
-                ? `Date: ${formatPdfDate(mainAssignment.officerDecidedAt)}`
-                : "Date: ________________"}
+              {officerSignature.dates ? `Date: ${officerSignature.dates}` : "Date: ________________"}
             </Text>
           </View>
         </View>
@@ -456,20 +464,17 @@ export function AssetFormPdfDocument({
           <View style={[styles.sigBlockCenter, { width: "50%" }]}>
             <View style={styles.sigUnderline}>
               <Text style={styles.sigNameText}>
-                {mainAssignment?.complianceDecidedAt && mainAssignment?.complianceOfficer?.name
-                  ? mainAssignment.complianceOfficer.name
-                  : ""}
+                {complianceSignature.name}
               </Text>
             </View>
             <Text style={styles.sigTitleText}>COMPLIANCE OFFICER VERIFICATION</Text>
             <Text style={styles.sigDateText}>
-              {mainAssignment?.complianceDecidedAt
-                ? `Date: ${formatPdfDate(mainAssignment.complianceDecidedAt)}`
-                : "Date: ________________"}
+              {complianceSignature.dates ? `Date: ${complianceSignature.dates}` : "Date: ________________"}
             </Text>
           </View>
         </View>
 
+        </>
         {/* Footer */}
         <View style={styles.footer}>
           <Text>ASPOM Travel Agency — Official Asset Declaration Form</Text>

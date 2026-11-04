@@ -450,7 +450,10 @@ export function AdminAttendanceTable({
                     <TableCell>{formatLagosDate(record.clock_in_at)}</TableCell>
                     <TableCell>{formatLagosTime(record.clock_in_at)}</TableCell>
                     <TableCell>
-                      <AttendanceClockOut record={record} />
+                      <div className="flex flex-col items-start gap-1">
+                        <AttendanceClockOut record={record} />
+                        {record.is_half_day && <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">Half day · before 4 PM</Badge>}
+                      </div>
                     </TableCell>
 
                     <TableCell>

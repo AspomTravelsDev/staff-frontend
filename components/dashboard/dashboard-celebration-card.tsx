@@ -6,10 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Crown,
   Cake,
-  Sparkles,
   Gift,
   Heart,
-  Stars,
   Trophy,
   PartyPopper,
   ChevronLeft,
@@ -76,9 +74,7 @@ export function DashboardCelebrationCard({
             <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full scale-110 animate-pulse" />
             <Cake className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-pink-500 animate-bounce z-10 drop-shadow-md" />
             <Gift className="absolute -left-6 top-0 h-6 w-6 text-pink-500 animate-pulse" />
-            <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-pink-500 animate-pulse delay-75" />
             <Heart className="absolute -left-2 bottom-0 h-4 w-4 text-pink-500 animate-pulse delay-150" />
-            <Stars className="absolute -right-4 -bottom-2 h-7 w-7 text-pink-500 animate-bounce delay-300" />
             <Avatar className="h-36 w-36 rounded-xl ring-4 ring-pink-500 ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
               <AvatarImage
                 src={toProxiedImageUrl(primaryBirthday.image_url)}
@@ -119,10 +115,7 @@ export function DashboardCelebrationCard({
           <div className="relative mb-4 group sm:mb-6">
             <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full scale-110 animate-pulse" />
             <Trophy className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-amber-500 animate-bounce z-10 drop-shadow-md" />
-            <Stars className="absolute -left-6 top-0 h-6 w-6 text-amber-500 animate-pulse" />
-            <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-amber-500 animate-pulse delay-75" />
             <PartyPopper className="absolute -left-2 bottom-0 h-4 w-4 text-amber-500 animate-pulse delay-150" />
-            <Stars className="absolute -right-4 -bottom-2 h-7 w-7 text-amber-500 animate-bounce delay-300" />
             <Avatar className="h-36 w-36 rounded-xl ring-4 ring-amber-500 ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
               <AvatarImage
                 src={toProxiedImageUrl(primaryAnniversary.image_url)}
@@ -157,8 +150,6 @@ export function DashboardCelebrationCard({
             <div className="relative mb-4 group sm:mb-6">
               <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-110 animate-pulse" />
               <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 h-10 w-10 text-primary fill-primary animate-bounce z-10 drop-shadow-md" />
-              <Sparkles className="absolute -left-6 top-0 h-6 w-6 text-primary fill-primary/20 animate-pulse" />
-              <Sparkles className="absolute -right-6 top-8 h-5 w-5 text-primary fill-primary/20 animate-pulse delay-75" />
               <Avatar className="h-36 w-36 rounded-xl ring-4 ring-primary ring-offset-4 ring-offset-background shadow-2xl relative z-0 sm:h-44 sm:w-44">
                 <AvatarImage
                   src={award.image || ""}

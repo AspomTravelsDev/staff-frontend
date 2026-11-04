@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { RolesTable } from "./components/roles-table";
 import { CreateRoleDialog } from "./components/create-role-dialog";
 import { StandaloneRubricDialog } from "./components/standalone-rubric-dialog";
+import { StandaloneRecruitmentEmailDialog } from "./components/standalone-recruitment-email-dialog";
+import { getStandaloneEmailComposer } from "@/lib/api/standalone-recruitment-email";
 import { Briefcase, Users, UserCheck, Clock } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { userHasAnyRole } from "@/types/user-types";
@@ -15,19 +17,16 @@ export default async function RecruitmentPage() {
   let roles: any[] = [];
   let hrRequests: any[] = [];
 
-  try {
-    const rolesData = await getRecruitmentRoles();
-    roles = rolesData || [];
-  } catch (error) {
-    console.error("[Recruitment Page] Failed to fetch recruitment roles:", error);
-  }
-
-  try {
-    const reqResponse = await getAllHrRequests();
+  const [rolesResult, requestsResult, composerResult] = await Promise.allSettled([
+    getRecruitmentRoles(), getAllHrRequests(), canEdit ? getStandaloneEmailComposer() : Promise.resolve(null),
+  ]);
+  if (rolesResult.status === "fulfilled") roles = rolesResult.value || [];
+  else console.error("[Recruitment Page] Failed to fetch recruitment roles:", rolesResult.reason);
+  if (requestsResult.status === "fulfilled") {
+    const reqResponse = requestsResult.value;
     hrRequests = reqResponse.data?.data || reqResponse.data || [];
-  } catch (error) {
-    console.error("[Recruitment Page] Failed to fetch hr requests:", error);
-  }
+  } else console.error("[Recruitment Page] Failed to fetch hr requests:", requestsResult.reason);
+  const emailComposer = composerResult.status === "fulfilled" ? composerResult.value : null;
 
   const activeRolesCount = roles.filter((r) => r.status === "active").length;
   const totalCandidates = roles.reduce((sum, r) => sum + (r.total_candidates || 0), 0);
@@ -48,6 +47,7 @@ export default async function RecruitmentPage() {
           <div id="tour-create-rubric" className="w-full sm:w-auto">
             <StandaloneRubricDialog className="h-10 w-full sm:w-auto" />
           </div>
+          {canEdit && <StandaloneRecruitmentEmailDialog initialData={emailComposer} className="h-10 w-full sm:w-auto" />}
           {canEdit && <div id="tour-create-role" className="w-full sm:w-auto">
             <CreateRoleDialog hrRequests={hrRequests} triggerClassName="h-10 w-full sm:w-auto" />
           </div>}

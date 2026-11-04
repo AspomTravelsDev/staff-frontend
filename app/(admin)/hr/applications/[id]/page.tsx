@@ -16,6 +16,7 @@ import { ApplicationExportButton } from "../components/application-export-button
 import { ApplicationTimeline } from "./components/application-timeline";
 import { AddressVerificationToggle } from "./components/address-verification-toggle";
 import { ContactVerificationSelect } from "./components/contact-verification-select";
+import { EmploymentOutcomeActionButton, EmploymentOutcomeBadge } from "../components/update-employment-status-dialog";
 
 export default async function ApplicationDetailPage({
   params,
@@ -135,10 +136,13 @@ export default async function ApplicationDetailPage({
               {application.application_id}
             </h1>
             {getStatusBadge(application.status)}
+            <span className="text-xs text-muted-foreground">Staff outcome</span>
+            <EmploymentOutcomeBadge status={application.employment_status} />
           </div>
           <p className="text-muted-foreground">{application.position_title}</p>
         </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <EmploymentOutcomeActionButton application={application} />
           <ApplicationExportButton
             applications={[application]}
             filename={application.application_id || "hr-application"}
@@ -152,6 +156,15 @@ export default async function ApplicationDetailPage({
           </Button>
         </div>
       </div>
+
+      {(application.employment_status_note || application.employment_status_updated_at) && (
+        <div className="-mt-4 space-y-1 text-sm text-muted-foreground">
+          {application.employment_status_note && <p>Outcome note: {application.employment_status_note}</p>}
+          {application.employment_status_updated_at && (
+            <p className="text-xs">Last updated {new Date(application.employment_status_updated_at).toLocaleString("en-NG")} by {application.employment_status_updater?.name || "HR"}</p>
+          )}
+        </div>
+      )}
 
       {/* Applicant Information */}
       <Card>

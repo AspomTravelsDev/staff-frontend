@@ -182,6 +182,9 @@ export interface User {
     exit_type?: UserExitType | string | null;
     exit_date?: string | null; // ISO date string (YYYY-MM-DD)
     exit_reason?: string | null;
+    is_blacklisted?: boolean;
+    blacklist_reason?: string | null;
+    blacklisted_at?: string | null;
     is_supervisor: boolean;
     gross_pay: string;
     date_joined: string | null; // ISO date string (YYYY-MM-DD)
@@ -189,6 +192,9 @@ export interface User {
     updated_at: string;
     dob: string | null;
     contract_type: "full_time" | "part_time" | "contract" | "nysc" | "intern" | null;
+    contract_start_date?: string | null;
+    contract_end_date?: string | null;
+    contract_history?: { id: string; contract_type: string; start_date: string; end_date: string | null; change_reason?: string | null; changed_by?: string | null }[];
     is_department_account: boolean;
 }
 

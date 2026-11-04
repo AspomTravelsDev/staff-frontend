@@ -61,7 +61,9 @@ export async function getTaskUpdateReceipt(id: string, kind?: "comment") {
 }
 
 export async function markTaskUpdatesViewed(id: string, throughId: number, kind?: "comment") {
-  return api.post<{ message: string }>(`/api/task-tracker/${id}/updates/mark-viewed`, { through_id: throughId, kind });
+  const result = await api.post<{ message: string }>(`/api/task-tracker/${id}/updates/mark-viewed`, { through_id: throughId, kind });
+  if (result.success) revalidatePath("/my/task-tracker");
+  return result;
 }
 
 interface TaskTrackerListResponse {

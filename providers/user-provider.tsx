@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode } from "react";
+import { installSessionRecovery } from "@/lib/auth/browser-session";
 import { User } from "@/types/user-types";
 
 interface UserContextType {
@@ -15,6 +16,7 @@ interface UserProviderProps {
 }
 
 export function UserProvider({ children, user }: UserProviderProps) {
+  useEffect(() => user ? installSessionRecovery() : undefined, [user]);
   return (
     <UserContext.Provider value={{ user }}>{children}</UserContext.Provider>
   );

@@ -10,6 +10,9 @@ import type { User, UserExitType, EmailRestriction } from "@/types/user-types";
 // ============================================================================
 
 export interface Employee {
+    is_blacklisted?: boolean;
+    blacklist_reason?: string | null;
+    blacklisted_at?: string | null;
     email_restriction?: EmailRestriction | null;
     id: string;
     staff_id: string;
@@ -32,6 +35,9 @@ export interface Employee {
     exit_reason?: string | null;
     dob: string | null;
     contract_type: string | null;
+    contract_start_date?: string | null;
+    contract_end_date?: string | null;
+    contract_history?: { id: string; contract_type: string; start_date: string; end_date: string | null; change_reason?: string | null; changed_by?: string | null }[];
     gross_pay: string;
     image_url: string | null;
 }
@@ -44,6 +50,7 @@ export interface EmployeeStats {
 }
 
 export interface EmployeeFilters {
+    is_blacklisted?: boolean;
     page?: number;
     limit?: number;
     search?: string;
@@ -76,6 +83,9 @@ function mapUserToEmployee(user: User): Employee {
     const lastName = nameParts.slice(1).join(" ") || "";
 
     return {
+        is_blacklisted: user.is_blacklisted ?? false,
+        blacklist_reason: user.blacklist_reason,
+        blacklisted_at: user.blacklisted_at,
         email_restriction: user.email_restriction,
         id: user.id,
         staff_id: user.staff_id,
@@ -98,6 +108,9 @@ function mapUserToEmployee(user: User): Employee {
         exit_reason: user.exit_reason || null,
         dob: user.dob,
         contract_type: user.contract_type,
+        contract_start_date: user.contract_start_date || null,
+        contract_end_date: user.contract_end_date || null,
+        contract_history: user.contract_history || [],
         gross_pay: user.gross_pay,
         image_url: user.image_url,
     };
@@ -111,6 +124,7 @@ export async function getEmployees(
     filters: EmployeeFilters = {}
 ): Promise<PaginatedResponse<Employee>> {
     const params = new URLSearchParams();
+    if (filters.is_blacklisted !== undefined) params.set("is_blacklisted", String(filters.is_blacklisted));
 
     // Map frontend status filter to backend is_active
     if (filters.status === "Active") {
@@ -223,6 +237,7 @@ export async function getEmployeeStats(): Promise<EmployeeStats> {
  * Update user active status
  */
 export interface UpdateUserStatusData {
+    is_blacklisted?: boolean;
     is_active: boolean;
     exit_type?: string | null;
     exit_date?: string | null;
@@ -264,6 +279,8 @@ export async function retryEmailRestoration(userId: string): Promise<EmailRestri
  * Update user details
  */
 export interface UpdateUserRequest {
+    is_blacklisted?: boolean;
+    blacklist_reason?: string | null;
     staff_id?: string | null;
     tax_id?: string | null;
     name?: string;
@@ -282,7 +299,26 @@ export interface UpdateUserRequest {
     exit_reason?: string | null;
     date_joined?: string | null; // ISO date string (YYYY-MM-DD)
     dob?: string | null;
-    contract_type?: string | null;
+}
+
+export interface EmployeeContractPeriodInput {
+    id?: string;
+    contract_type: string;
+    start_date: string;
+    end_date: string | null;
+    change_reason: string;
+}
+
+export async function updateEmployeeContractPeriods(
+    userId: string,
+    periods: EmployeeContractPeriodInput[],
+): Promise<User> {
+    const result = await api.patch<{ message: string; code: string; data: User }>(
+        `/api/users/${userId}/contract-periods`,
+        { periods },
+    );
+    if (!result.success) throw new Error(result.error.error || "Failed to update contract periods");
+    return result.data.data;
 }
 
 export async function updateUser(

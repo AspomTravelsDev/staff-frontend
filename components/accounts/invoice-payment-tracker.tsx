@@ -50,7 +50,7 @@ export function InvoicePaymentTracker({ invoice, onInvoiceUpdated, onDataChanged
   }, [loadPayments]);
 
   const paidAmount = Number(invoice.deposit || 0);
-  const balanceDue = Math.max(0, Number(invoice.subtotal || 0) - paidAmount);
+  const balanceDue = Math.max(0, Number(invoice.total ?? (Number(invoice.subtotal) - Number(invoice.discount_amount || 0))) - paidAmount);
 
   const handleRecordPayment = async () => {
     const parsedAmount = Number(amount);
@@ -123,7 +123,7 @@ export function InvoicePaymentTracker({ invoice, onInvoiceUpdated, onDataChanged
         <div className="grid grid-cols-3 gap-3 rounded-lg bg-slate-50 p-3">
           <div>
             <p className="text-[10px] font-bold uppercase text-slate-500">Invoice Total</p>
-            <p className="text-sm font-bold tabular-nums">{formatCurrency(Number(invoice.subtotal))}</p>
+            <p className="text-sm font-bold tabular-nums">{formatCurrency(Number(invoice.total ?? (Number(invoice.subtotal) - Number(invoice.discount_amount || 0))))}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase text-slate-500">Paid</p>

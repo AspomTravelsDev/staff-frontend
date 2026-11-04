@@ -13,12 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { PipelineDisclosure } from "../../components/pipeline-disclosure";
 import {
   getRecruitmentPipeline,
@@ -40,6 +34,7 @@ export function ApplicantStageForm({
   viewStage,
   onDone,
   closing = false,
+  onReject,
 }: {
   initial: PipelineContext;
   onUpdate: (context: PipelineContext) => void;
@@ -49,6 +44,7 @@ export function ApplicantStageForm({
   viewStage?: import("@/lib/types/recruitment-pipeline").PipelineStage;
   onDone?: () => void;
   closing?: boolean;
+  onReject?: () => void;
 }) {
   const [context, setContext] = useState(initial);
   const stage = viewStage ?? context.candidate.pipeline_stage!;
@@ -205,6 +201,16 @@ export function ApplicantStageForm({
           ? "The oral interview could not be completed. Your draft is retained. Please retry."
           : "The applicant could not be moved. Your draft is retained. Please retry.",
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function reject() {
+    if (busy || closing || !onReject) return;
+    setBusy(true);
+    setError("");
+    try {
+      if (await flush()) onReject();
     } finally {
       setBusy(false);
     }
@@ -578,46 +584,26 @@ export function ApplicantStageForm({
         </>
       )}
       {stage === "practical" && (
-        <>
-          <p className="text-xs text-muted-foreground">
-            Review the completed exercise and enter marks. Required checks
-            remain separate from the total.
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Use any practical exercise suited to the role, then record your score.
           </p>
-          <Accordion
-            type="multiple"
-            defaultValue={definition.practical_modules
-              .slice(0, 1)
-              .map((task) => task.id)}
-            className="border"
-          >
-            {definition.practical_modules.map((task) => (
-              <AccordionItem key={task.id} value={task.id}>
-                <AccordionTrigger>{task.name}</AccordionTrigger>
-                <AccordionContent className="pb-2">
-                  <PipelineDisclosure title="Task and assessor guide">
-                    <div className="space-y-2 text-xs leading-relaxed">
-                      <p>{task.scenario}</p>
-                      <ul className="list-disc space-y-1 pl-4">
-                        {task.tasks.map((text, i) => (
-                          <li key={i}>{text}</li>
-                        ))}
-                      </ul>
-                      <p className="text-muted-foreground">
-                        {task.assessor_guide}
-                      </p>
-                    </div>
-                  </PipelineDisclosure>
-                  {criterionRows(
-                    task.criteria.map((criterion) => ({
-                      ...criterion,
-                      label: `${criterion.label}${criterion.required ? ` · minimum ${criterion.minimum ?? 1}/${criterion.max}` : ""}`,
-                    })),
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </>
+          <div className="space-y-1.5">
+            <Label htmlFor="practical-score">Practical score (out of 10)</Label>
+            <Input
+              id="practical-score"
+              type="number"
+              min={0}
+              max={10}
+              step={0.1}
+              required
+              disabled={disabled}
+              className="max-w-40"
+              value={payload.practical_score !== undefined ? payload.practical_score ?? "" : record?.results?.score_100 != null ? record.results.score_100 / 10 : ""}
+              onChange={(event) => field("practical_score", event.target.value === "" ? null : Number(event.target.value))}
+            />
+          </div>
+        </div>
       )}
       {stage === "management_review" && (
         <>
@@ -758,7 +744,7 @@ export function ApplicantStageForm({
             ))}
         </div>
       )}
-      <div className="flex justify-end gap-2 border-t pt-3">
+      <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
         {onDone && (
           <Button
             type="button"
@@ -767,6 +753,11 @@ export function ApplicantStageForm({
             onClick={onDone}
           >
             {closing ? "Saving…" : "Close"}
+          </Button>
+        )}
+        {onReject && stage === context.candidate.pipeline_stage && context.candidate.pipeline_outcome === "active" && ["call_screening", "oral_interview", "written_exam", "practical"].includes(stage) && (
+          <Button type="button" variant="destructive" disabled={busy || saving || closing} onClick={() => void reject()}>
+            Reject &amp; review email
           </Button>
         )}
         {editable && (

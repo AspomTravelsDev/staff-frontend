@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Eye, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Eye, MoreHorizontal, Trash, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -25,15 +25,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteApplicationAction } from "../actions";
+import { UpdateEmploymentStatusDialog } from "./update-employment-status-dialog";
+import type { EmploymentOutcome } from "@/lib/types/hr";
 
 interface ApplicationActionsProps {
   id: string;
   step: number;
+  employmentStatus?: EmploymentOutcome | null;
+  employmentStatusNote?: string | null;
 }
 
-export function ApplicationActions({ id, step }: ApplicationActionsProps) {
+export function ApplicationActions({ id, step, employmentStatus, employmentStatusNote }: ApplicationActionsProps) {
   const [isPending, startTransition] = useTransition();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEmploymentDialog, setShowEmploymentDialog] = useState(false);
 
   const onCopyLink = () => {
     const url = `${window.location.origin}/applicant/${id}`;
@@ -82,6 +87,10 @@ export function ApplicationActions({ id, step }: ApplicationActionsProps) {
               View
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setShowEmploymentDialog(true)}>
+            <UserRoundCog className="mr-2 h-4 w-4" />
+            {employmentStatus ? "Change staff outcome" : "Set staff outcome"}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => setShowDeleteDialog(true)}
@@ -114,6 +123,14 @@ export function ApplicationActions({ id, step }: ApplicationActionsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UpdateEmploymentStatusDialog
+        applicationId={id}
+        initialStatus={employmentStatus}
+        initialNote={employmentStatusNote}
+        open={showEmploymentDialog}
+        onOpenChange={setShowEmploymentDialog}
+      />
     </>
   );
 }

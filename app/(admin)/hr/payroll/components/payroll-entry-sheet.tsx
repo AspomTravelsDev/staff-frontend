@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, Save, CheckCircle2, X, RotateCcw, Calendar, PlusCircle, Sliders } from "lucide-react";
+import { Info, Save, X, RotateCcw, Calendar, PlusCircle, Sliders } from "lucide-react";
 import {
   calculateAccommodationAmount,
   calculateMonthlyTax,
@@ -39,10 +39,14 @@ const round2 = (val: number) => Math.round(val * 100) / 100;
 interface Props {
   entry: PayrollEntry;
   isPersisted?: boolean;
+  canEdit?: boolean;
   inSheet?: boolean;
   onClose: () => void;
   onSave: (updated: {
     attendance_days?: number;
+    half_day_count?: number;
+    unapproved_leave_days?: number;
+    unauthorized_late_days?: number;
     suspension_days?: number;
     prorated_days?: number;
     accommodation_amount?: number;
@@ -60,7 +64,6 @@ interface Props {
     net_amount?: number;
     calculation_snapshot?: Record<string, any>;
   }) => Promise<void>;
-  onApprove: (entryId: string) => Promise<void>;
   onRecalculate?: (entryId: string) => Promise<void>;
   payrollMonth?: string;
 }
@@ -128,16 +131,19 @@ function normalizeAdditions(entry: PayrollEntry): AdditionInput[] {
 export function PayrollEntrySheet({
   entry,
   isPersisted = true,
+  canEdit = false,
   inSheet = false,
   onClose,
   onSave,
-  onApprove,
   onRecalculate,
   payrollMonth,
 }: Props) {
   const [attendanceDays, setAttendanceDays] = useState<string>(
     `${entry.attendance_days ?? 0}`,
   );
+  const [halfDayCount, setHalfDayCount] = useState<string>(`${entry.half_day_count ?? 0}`);
+  const [unapprovedLeaveDays, setUnapprovedLeaveDays] = useState<string>(`${entry.unapproved_leave_days ?? 0}`);
+  const [unauthorizedLateDays, setUnauthorizedLateDays] = useState<string>(`${entry.unauthorized_late_days ?? entry.unauthorized_late_suggested_days ?? 0}`);
   const [suspensionDays, setSuspensionDays] = useState<string>(
     `${entry.suspension_days ?? 0}`,
   );
@@ -199,7 +205,6 @@ export function PayrollEntrySheet({
   const [note, setNote] = useState<string>(entry.override_note ?? "");
   const [isAccommodationOverride, setIsAccommodationOverride] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   const [customActualGross, setCustomActualGross] = useState<string>("");
@@ -210,6 +215,9 @@ export function PayrollEntrySheet({
 
   useEffect(() => {
     setAttendanceDays(`${entry.attendance_days ?? 0}`);
+    setHalfDayCount(`${entry.half_day_count ?? 0}`);
+    setUnapprovedLeaveDays(`${entry.unapproved_leave_days ?? 0}`);
+    setUnauthorizedLateDays(`${entry.unauthorized_late_days ?? entry.unauthorized_late_suggested_days ?? 0}`);
     setSuspensionDays(`${entry.suspension_days ?? 0}`);
     setProratedDays(`${entry.prorated_days ?? 0}`);
     setAccommodationAmount(
@@ -405,6 +413,9 @@ export function PayrollEntrySheet({
     };
 
     const att = parse(attendanceDays);
+    const halfCount = parse(halfDayCount);
+    const unapprovedLeave = parse(unapprovedLeaveDays);
+    const unauthorizedLate = parse(unauthorizedLateDays);
     const susp = parse(suspensionDays);
     const prorated = parse(proratedDays);
 
@@ -440,6 +451,9 @@ export function PayrollEntrySheet({
       proratedDays: prorated,
       accommodationAmount: parse(accommodationAmount),
       attendanceDays: att,
+      halfDayCount: halfCount,
+      unapprovedLeaveDays: unapprovedLeave,
+      unauthorizedLateDays: unauthorizedLate,
       suspensionDays: susp,
       otherDeductions: otherDeductionsPayload,
       additions: additionsPayload,
@@ -459,6 +473,9 @@ export function PayrollEntrySheet({
       proratedDays: prorated,
       accommodationAmount: parse(accommodationAmount),
       attendanceDays: att,
+      halfDayCount: halfCount,
+      unapprovedLeaveDays: unapprovedLeave,
+      unauthorizedLateDays: unauthorizedLate,
       suspensionDays: susp,
       otherDeductions: otherDeductionsPayload,
       additions: additionsPayload,
@@ -478,6 +495,9 @@ export function PayrollEntrySheet({
       proratedDays: prorated,
       accommodationAmount: parse(accommodationAmount),
       attendanceDays: att,
+      halfDayCount: halfCount,
+      unapprovedLeaveDays: unapprovedLeave,
+      unauthorizedLateDays: unauthorizedLate,
       suspensionDays: susp,
       otherDeductions: otherDeductionsPayload,
       additions: additionsPayload,
@@ -497,6 +517,9 @@ export function PayrollEntrySheet({
       proratedDays: prorated,
       accommodationAmount: parse(accommodationAmount),
       attendanceDays: att,
+      halfDayCount: halfCount,
+      unapprovedLeaveDays: unapprovedLeave,
+      unauthorizedLateDays: unauthorizedLate,
       suspensionDays: susp,
       otherDeductions: otherDeductionsPayload,
       additions: additionsPayload,
@@ -516,6 +539,9 @@ export function PayrollEntrySheet({
       proratedDays: prorated,
       accommodationAmount: parse(accommodationAmount),
       attendanceDays: att,
+      halfDayCount: halfCount,
+      unapprovedLeaveDays: unapprovedLeave,
+      unauthorizedLateDays: unauthorizedLate,
       suspensionDays: susp,
       otherDeductions: otherDeductionsPayload,
       additions: additionsPayload,
@@ -530,6 +556,10 @@ export function PayrollEntrySheet({
       actualGross: result.gross_salary,
       accommodation: result.accommodation_amount,
       attAmount: round2(att * result.daily_rate),
+      halfDayAmount: round2(halfCount * 0.5 * result.daily_rate),
+      unapprovedLeaveAmount: round2(unapprovedLeave * result.daily_rate),
+      unauthorizedLateAmount: round2(result.calculation_snapshot.unauthorized_late_deduction || 0),
+      unauthorizedLateDeductionDays: Number(result.calculation_snapshot.unauthorized_late_deduction_days || 0),
       suspAmount: round2(susp * result.daily_rate),
       othAmount: result.other_deductions_amount,
       addAmount: result.additions_amount,
@@ -548,6 +578,9 @@ export function PayrollEntrySheet({
     };
   }, [
     attendanceDays,
+    halfDayCount,
+    unapprovedLeaveDays,
+    unauthorizedLateDays,
     suspensionDays,
     proratedDays,
     accommodationAmount,
@@ -564,9 +597,8 @@ export function PayrollEntrySheet({
     entry.user,
   ]);
 
-  async function handleSave(approveAfter = false) {
-    if (approveAfter) setIsPublishing(true);
-    else setIsSaving(true);
+  async function handleSave() {
+    setIsSaving(true);
 
     try {
       const parse = (val: string) => {
@@ -592,6 +624,9 @@ export function PayrollEntrySheet({
 
       await onSave({
         attendance_days: parse(attendanceDays),
+        half_day_count: parse(halfDayCount),
+        unapproved_leave_days: parse(unapprovedLeaveDays),
+        unauthorized_late_days: parse(unauthorizedLateDays),
         suspension_days: parse(suspensionDays),
         prorated_days: parse(proratedDays),
         accommodation_amount: parse(accommodationAmount),
@@ -611,20 +646,13 @@ export function PayrollEntrySheet({
         calculation_snapshot: computed.fullOutput.calculation_snapshot,
       });
 
-      if (approveAfter) {
-        await onApprove(entry.id);
-        toast.success("Payroll entry published.");
-        onClose();
-      } else {
-        toast.success("Override saved.");
-      }
+      toast.success("Payroll changes saved.");
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to process request.",
       );
     } finally {
       setIsSaving(false);
-      setIsPublishing(false);
     }
   }
 
@@ -643,20 +671,15 @@ export function PayrollEntrySheet({
     }
   }
 
-  const isApproved = entry.status === "approved";
-
   const body = (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b">
+      <div className="flex items-start justify-between gap-3 border-b px-4 py-3 sm:items-center sm:p-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl font-bold tracking-tight">
               {entry.user?.name ?? "Staff"}
             </h2>
-            <Badge variant={isApproved ? "default" : "secondary"}>
-              {entry.status}
-            </Badge>
             {entry.user?.exit_date && (
               <Badge variant="outline" className="text-xs px-2 py-0.5 border-rose-300 text-rose-600 bg-rose-50 font-semibold">
                 Exit: {entry.user.exit_date.split(" ")[0]} {entry.user.exit_type ? `(${entry.user.exit_type})` : ""}
@@ -674,45 +697,45 @@ export function PayrollEntrySheet({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
+        <div className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-5">
           {/* Left Column (Tabbed Inputs) */}
           <div className="lg:col-span-3 space-y-4">
             {/* Sleek 1-Line Salary Overview Banner */}
-            <div className="grid grid-cols-3 gap-3 p-3 bg-muted/40 border rounded-xl shadow-2xs">
-              <div className="space-y-0.5">
+            <div className="grid grid-cols-2 gap-3 rounded-xl border bg-muted/40 p-3 shadow-2xs sm:grid-cols-3">
+              <div className="min-w-0 space-y-0.5">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Contract Salary</p>
-                <p className="text-sm font-bold text-slate-800">{money(computed.baseSalary)}</p>
+                <p className="break-words text-sm font-bold text-slate-800">{money(computed.baseSalary)}</p>
               </div>
-              <div className="space-y-0.5 border-l pl-3">
+              <div className="min-w-0 space-y-0.5 border-l pl-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Actual Gross</p>
-                <p className="text-sm font-bold text-slate-800">{money(computed.actualGross)}</p>
+                <p className="break-words text-sm font-bold text-slate-800">{money(computed.actualGross)}</p>
               </div>
-              <div className="space-y-0.5 border-l pl-3">
+              <div className="col-span-2 min-w-0 space-y-0.5 border-t pt-2 sm:col-span-1 sm:border-l sm:border-t-0 sm:pt-0 sm:pl-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Daily Rate</p>
-                <p className="text-sm font-bold text-slate-800">{money(computed.dailyRate)} <span className="text-[10px] text-muted-foreground font-normal">/work day</span></p>
+                <p className="break-words text-sm font-bold text-slate-800">{money(computed.dailyRate)} <span className="text-[10px] text-muted-foreground font-normal">/work day</span></p>
               </div>
             </div>
 
             {/* 3 Input Tabs */}
             <Tabs defaultValue="attendance" className="w-full">
-              <TabsList className="grid grid-cols-3 w-full h-10 bg-muted/70 p-1 rounded-xl">
-                <TabsTrigger value="attendance" className="text-xs font-semibold gap-1.5 cursor-pointer">
+              <TabsList className="grid h-auto min-h-11 w-full grid-cols-3 rounded-xl bg-muted/70 p-1">
+                <TabsTrigger value="attendance" className="min-h-10 gap-1 px-1 text-[10px] font-semibold cursor-pointer sm:text-xs sm:gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
                   <span>Attendance</span>
                 </TabsTrigger>
-                <TabsTrigger value="items" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                <TabsTrigger value="items" className="min-h-10 gap-1 px-1 text-[10px] font-semibold cursor-pointer sm:text-xs sm:gap-1.5">
                   <PlusCircle className="h-3.5 w-3.5" />
-                  <span>Additions & Deductions</span>
+                  <span className="sm:hidden">Items</span><span className="hidden sm:inline">Additions &amp; Deductions</span>
                   {(otherDeductions.length > 0 || additions.length > 0) && (
                     <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 min-w-4 justify-center">
                       {otherDeductions.length + additions.length}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="overrides" className="text-xs font-semibold gap-1.5 cursor-pointer">
+                <TabsTrigger value="overrides" className="min-h-10 gap-1 px-1 text-[10px] font-semibold cursor-pointer sm:text-xs sm:gap-1.5">
                   <Sliders className="h-3.5 w-3.5" />
-                  <span>Overrides & Notes</span>
+                  <span className="sm:hidden">More</span><span className="hidden sm:inline">Overrides &amp; Notes</span>
                   {(customActualGross !== "" || customTaxAmount !== "" || customDailyRate !== "" || customNetAmount !== "" || note.trim() !== "") && (
                     <span className="h-2 w-2 rounded-full bg-amber-500" />
                   )}
@@ -721,6 +744,7 @@ export function PayrollEntrySheet({
 
               {/* TAB 1: ATTENDANCE & PRORATION */}
               <TabsContent value="attendance" className="space-y-4 pt-2 animate-in fade-in duration-200">
+                <fieldset disabled={!canEdit} className="block space-y-4">
                 {/* Proration Adjustment (Resumption / Resignation) */}
                 <div className="border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors space-y-4">
                   <div className="space-y-2">
@@ -1054,6 +1078,47 @@ export function PayrollEntrySheet({
                   </div>
                 </div>
 
+                {/* Half Days */}
+                <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
+                  <div className="space-y-2">
+                    <Label htmlFor="half-days" className="text-xs font-semibold text-slate-700">Number of Half Days</Label>
+                    <div className="relative">
+                      <Input id="half-days" type="number" min="0" step="1" value={halfDayCount} onChange={(e) => { setHalfDayCount(e.target.value); setCustomTaxAmount(""); setCustomDailyRate(""); setCustomNetAmount(""); }} className="pr-24 bg-background text-xs h-9" />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">half days</div>
+                    </div>
+                    {Number(entry.half_day_suggested_count) > 0 ? <p className="text-[10px] text-orange-600 font-medium">Suggested: {entry.half_day_suggested_count} half days ({Number(entry.half_day_suggested_count) * 0.5} deduction days)</p> : <p className="text-[10px] text-muted-foreground">Each half day deducts 0.5 of a working day&apos;s pay.</p>}
+                  </div>
+                  <div className="flex flex-col justify-center items-end text-right"><span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Half-Day Deduction</span><span className="text-base font-bold text-red-600 mt-1">-{money(computed.halfDayAmount)}</span></div>
+                </div>
+
+                {/* Unapproved Leave */}
+                <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
+                  <div className="space-y-2">
+                    <Label htmlFor="unapproved-leave-days" className="text-xs font-semibold text-slate-700">Unapproved Leave (Working Days)</Label>
+                    <div className="relative">
+                      <Input id="unapproved-leave-days" type="number" min="0" step="0.5" value={unapprovedLeaveDays} onChange={(e) => { setUnapprovedLeaveDays(e.target.value); setCustomTaxAmount(""); setCustomDailyRate(""); setCustomNetAmount(""); }} className="pr-24 bg-background text-xs h-9" />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">working days</div>
+                    </div>
+                    {Number(entry.unapproved_leave_suggested_days) > 0 ? <p className="text-[10px] text-orange-600 font-medium">Suggested unapproved leave: {entry.unapproved_leave_suggested_days} working days</p> : <p className="text-[10px] text-muted-foreground">Pending or rejected leave requests during this payroll period.</p>}
+                  </div>
+                  <div className="flex flex-col justify-center items-end text-right"><span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Unapproved Leave Deduction</span><span className="text-base font-bold text-red-600 mt-1">-{money(computed.unapprovedLeaveAmount)}</span></div>
+                </div>
+
+                {/* Unauthorized late arrivals */}
+                <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
+                  <div className="space-y-2">
+                    <Label htmlFor="unauthorized-late-days" className="text-xs font-semibold text-slate-700">Unauthorized Late Days (Working Days)</Label>
+                    <div className="relative">
+                      <Input id="unauthorized-late-days" type="number" min="0" step="1" value={unauthorizedLateDays} onChange={(e) => { setUnauthorizedLateDays(e.target.value); setCustomTaxAmount(""); setCustomDailyRate(""); setCustomNetAmount(""); }} className="pr-24 bg-background text-xs h-9" />
+                      <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">late days</div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      First 2 late days free; each one after deducts 1 day.
+                    </p>
+                  </div>
+                  <div className="flex flex-col justify-center items-end text-right"><span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Late Arrival Deduction ({computed.unauthorizedLateDeductionDays} days)</span><span className="text-base font-bold text-red-600 mt-1">-{money(computed.unauthorizedLateAmount)}</span></div>
+                </div>
+
                 {/* Suspension Period */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
@@ -1061,7 +1126,7 @@ export function PayrollEntrySheet({
                       htmlFor="susp-days"
                       className="text-xs font-semibold text-slate-700"
                     >
-                      Suspension Period (Working Days)
+                      Compliance deductions (days)
                     </Label>
                     <div className="relative">
                       <Input
@@ -1083,7 +1148,7 @@ export function PayrollEntrySheet({
                     </div>
                     {Number(entry.compliance_suggested_days) > 0 ? (
                       <p className="text-[10px] text-orange-600 font-medium">
-                        Suggested: {entry.compliance_suggested_days} working days
+                        Suggested: {entry.compliance_suggested_days} days · occurrences and suspensions
                       </p>
                     ) : (
                       <p className="text-[10px] text-muted-foreground">
@@ -1093,17 +1158,19 @@ export function PayrollEntrySheet({
                   </div>
                   <div className="flex flex-col justify-center items-end text-right">
                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                      Suspension Deduction
+                      Compliance deduction
                     </span>
                     <span className="text-base font-bold text-red-600 mt-1">
                       -{money(computed.suspAmount)}
                     </span>
                   </div>
                 </div>
+                </fieldset>
               </TabsContent>
 
               {/* TAB 2: ADDITIONS & DEDUCTIONS */}
               <TabsContent value="items" className="space-y-4 pt-2 animate-in fade-in duration-200">
+                <fieldset disabled={!canEdit} className="contents">
                 {/* Other Deductions */}
                 <div className="border rounded-xl p-4 bg-muted/5 space-y-3">
                   <div className="flex items-center justify-between">
@@ -1311,10 +1378,12 @@ export function PayrollEntrySheet({
                     </span>
                   </div>
                 </div>
+                </fieldset>
               </TabsContent>
 
               {/* TAB 3: ADVANCED OVERRIDES & NOTES */}
               <TabsContent value="overrides" className="space-y-4 pt-2 animate-in fade-in duration-200">
+                <fieldset disabled={!canEdit} className="contents">
                 <div className="border rounded-xl p-4 bg-muted/5 space-y-4">
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
                     Manual Calculation Overrides
@@ -1404,7 +1473,7 @@ export function PayrollEntrySheet({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="custom-daily-rate" className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                          <span>Daily Rate (per working day)</span>
+                          <span>Daily rate (after tax)</span>
                           {customDailyRate !== "" ? (
                             <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-300">Overridden</Badge>
                           ) : (
@@ -1424,6 +1493,7 @@ export function PayrollEntrySheet({
                       <div className="relative">
                         <Input
                           id="custom-daily-rate"
+                          aria-describedby="daily-rate-basis"
                           type="number"
                           step="0.01"
                           placeholder={String(computed.autoPlaceholders.dailyRate)}
@@ -1438,6 +1508,7 @@ export function PayrollEntrySheet({
                           NGN
                         </div>
                       </div>
+                      <p id="daily-rate-basis" className="text-xs text-muted-foreground">Auto: after-tax pay ÷ working days. Other deductions apply afterwards.</p>
                     </div>
 
                     {/* Net Pay Override */}
@@ -1498,6 +1569,7 @@ export function PayrollEntrySheet({
                     className="bg-background text-xs h-9"
                   />
                 </div>
+                </fieldset>
               </TabsContent>
             </Tabs>
           </div>
@@ -1608,10 +1680,19 @@ export function PayrollEntrySheet({
                     </span>
                   </div>
                 )}
+                {computed.halfDayAmount > 0 && (
+                  <div className="flex justify-between items-center text-red-600"><span className="italic">Half Days ({halfDayCount} × 0.5 working days):</span><span className="font-semibold">-{money(computed.halfDayAmount)}</span></div>
+                )}
+                {computed.unapprovedLeaveAmount > 0 && (
+                  <div className="flex justify-between items-center text-red-600"><span className="italic">Unapproved Leave ({unapprovedLeaveDays} working days):</span><span className="font-semibold">-{money(computed.unapprovedLeaveAmount)}</span></div>
+                )}
+                {computed.unauthorizedLateAmount > 0 && (
+                  <div className="flex justify-between items-center text-red-600"><span className="italic">Unauthorized late arrivals ({unauthorizedLateDays} days = {computed.unauthorizedLateDeductionDays} deduction days):</span><span className="font-semibold">-{money(computed.unauthorizedLateAmount)}</span></div>
+                )}
                 {computed.suspAmount > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span className="italic">
-                      Suspension Ded. ({suspensionDays} working days):
+                      Compliance deduction ({suspensionDays} working days):
                     </span>
                     <span className="font-semibold">
                       -{money(computed.suspAmount)}
@@ -1654,17 +1735,17 @@ export function PayrollEntrySheet({
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t mt-auto flex gap-3">
-        <Button variant="outline" onClick={onClose} className="flex-1">
+      <div className="mt-auto grid grid-cols-2 gap-2 border-t p-3 sm:flex sm:gap-3 sm:p-6">
+        <Button variant="outline" onClick={onClose} className="min-h-11">
           Cancel
         </Button>
-        {isPersisted && (
+        {isPersisted && canEdit && (
           <>
             {onRecalculate && (
               <Button
                 variant="outline"
-                className="text-orange-600 border-orange-100 hover:bg-orange-50"
-                disabled={isSaving || isPublishing || isRecalculating}
+                className="min-h-11 text-orange-600 border-orange-100 hover:bg-orange-50"
+                disabled={isSaving || isRecalculating}
                 onClick={handleRecalculate}
                 title="Reset to system suggested values"
               >
@@ -1677,24 +1758,11 @@ export function PayrollEntrySheet({
             )}
             <Button
               variant="secondary"
-              disabled={isSaving || isPublishing || isRecalculating}
-              onClick={() => handleSave(false)}
+              className="min-h-11"
+              disabled={isSaving || isRecalculating}
+              onClick={handleSave}
             >
-              {isSaving ? "Saving..." : <Save className="h-4 w-4" />}
-            </Button>
-            <Button
-              className="flex-2 gap-2"
-              disabled={isSaving || isPublishing}
-              onClick={() => handleSave(true)}
-            >
-              {isPublishing ? (
-                "Publishing..."
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  {isApproved ? "Update & Re-Publish" : "Save & Publish"}
-                </>
-              )}
+              {isSaving ? "Saving..." : <><Save className="h-4 w-4" /> Save changes</>}
             </Button>
           </>
         )}

@@ -37,29 +37,40 @@ export function ApplicantStatusDialog({
   onClose,
   onSaved,
   onViewStage,
+  initialAction = "",
+  initialContext,
+  onContextLoaded,
 }: {
   candidate: RecruitmentCandidate;
   roleId: string;
   onClose: () => void;
   onSaved: (context: PipelineContext) => void;
+  initialAction?: string;
+  initialContext?: PipelineContext;
+  onContextLoaded?: (context: PipelineContext) => void;
   onViewStage: (
     stage: import("@/lib/types/recruitment-pipeline").PipelineStage,
   ) => void;
 }) {
-  const [context, setContext] = useState<PipelineContext | null>(null),
+  const [context, setContext] = useState<PipelineContext | null>(initialContext ?? null),
     [error, setError] = useState(""),
-    [action, setAction] = useState(""),
+    [action, setAction] = useState(initialAction),
     [reason, setReason] = useState(""),
     [date, setDate] = useState(""),
     [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0);
   const inFlight = useRef(false);
+  const openingContext = useRef(initialContext);
+  const loadedCallback = useRef(onContextLoaded);
+  loadedCallback.current = onContextLoaded;
   useEffect(() => {
+    if (openingContext.current && reload === 0) return;
     let cancelled = false;
     getRecruitmentPipeline(candidate.id)
       .then((data) => {
         if (!cancelled) {
           setContext(data);
+          loadedCallback.current?.(data);
           setError("");
         }
       })
@@ -290,7 +301,7 @@ export function ApplicantStatusDialog({
                 (action === "hold" && !date)
               }
             >
-              {busy ? "Saving…" : "Record decision"}
+              {busy ? "Saving…" : action === "reject" ? "Reject & review email" : "Record decision"}
             </Button>
           </DialogFooter>
         </form>

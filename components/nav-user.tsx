@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
+import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
 import { logoutAction } from "@/app/(admin)/actions";
 import { useUser } from "@/providers/user-provider";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
@@ -36,7 +36,7 @@ export function NavUser() {
   const { user } = useUser();
 
   const img_url = toProxiedImageUrl(user?.image_url);
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   if (!user) return null;
 
@@ -96,7 +96,7 @@ export function NavUser() {
             {!user.is_department_account && (
               <>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem asChild onSelect={() => { if (isMobile) setOpenMobile(false); }}>
                     <Link
                       href="/my/profile"
                       className="flex items-center gap-2"
