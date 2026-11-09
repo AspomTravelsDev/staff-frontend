@@ -1,37 +1,56 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Target } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { StatsCard } from "@/components/stats-card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 import { callAction } from "@/lib/api/action-result";
-import { listDepartmentKpis, saveDepartmentKpi } from "@/lib/api/department-kpi.actions";
-import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList } from "@/lib/types/department-kpi";
+import { listDepartmentKpis, listKpiCategories, saveDepartmentKpi, saveKpiCategory } from "@/lib/api/department-kpi.actions";
+import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList, KpiCategory } from "@/lib/types/department-kpi";
 
 const queryKey = ["performance", "department-kpis"] as const;
-const selectClass = "h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+const sortOptions = ["category", "name", "status"] as const;
+const pageSizeOptions = [10, 25, 50] as const;
 
-function emptyKpi(department: string): DepartmentKpiInput {
-  return { department, name: "", description: "", expectation: "", applies_to: "all_staff", is_active: true };
+function SortIcon({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
+  if (!active) return <ArrowUpDown className="size-3.5 text-muted-foreground" aria-hidden="true" />;
+  return direction === "asc"
+    ? <ArrowUp className="size-3.5" aria-hidden="true" />
+    : <ArrowDown className="size-3.5" aria-hidden="true" />;
+}
+
+function emptyKpi(): DepartmentKpiInput {
+  return { name: "", description: "", expectation: "", measurement_method: "", scoring_guide: { 1: "", 2: "", 3: "", 4: "", 5: "" }, applies_to: "all_staff", is_active: true, category_id: null };
 }
 
 export function DepartmentKpiManager({ initialData }: { initialData: DepartmentKpiList }) {
   const client = useQueryClient();
   const { data, error, isFetching, refetch } = useQuery({ queryKey, queryFn: () => callAction(listDepartmentKpis), initialData });
-  const [department, setDepartment] = useState(() =>
-    initialData.departments.find((value) => initialData.items.some((item) => item.department === value && item.is_active))
-    ?? initialData.departments.find((value) => initialData.items.some((item) => item.department === value))
-    ?? initialData.departments[0] ?? ""
-  );
+  const categories = useQuery({ queryKey: ["performance", "kpi-categories"], queryFn: () => callAction(listKpiCategories) });
+  const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState("active");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof pageSizeOptions)[number]>(10);
   const [editor, setEditor] = useState<{ id: string | null; values: DepartmentKpiInput } | null>(null);
+  const [categoryEditor, setCategoryEditor] = useState<{ id: string | null; name: string; description: string; departments: string[]; is_active: boolean } | null>(null);
+  const [viewing, setViewing] = useState<DepartmentKpi | null>(null);
   const [saveError, setSaveError] = useState("");
+  const [categorySaveError, setCategorySaveError] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
 
@@ -39,7 +58,6 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
     mutationFn: ({ id, values }: { id: string | null; values: DepartmentKpiInput }) => callAction(() => saveDepartmentKpi(id, values)),
     onSuccess: (saved) => {
       client.setQueryData<DepartmentKpiList>(queryKey, (old) => old ? { ...old, items: [...old.items.filter((item) => item.id !== saved.id), saved] } : old);
-      setDepartment(saved.department);
       setStatus(saved.is_active ? "active" : "inactive");
       setSearch("");
       setEditor(null);
@@ -50,19 +68,29 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
     },
     onError: (failure) => setSaveError(failure instanceof Error ? failure.message : "Unable to save. Please try again."),
   });
+  const saveCategory = useMutation({
+    mutationFn: () => categoryEditor ? saveKpiCategory(categoryEditor.id, categoryEditor) : Promise.reject(new Error("No category selected")),
+    onSuccess: () => { setCategoryEditor(null); setCategorySaveError(""); void categories.refetch(); void client.invalidateQueries({ queryKey }); toast.success("KPI category saved"); },
+    onError: (failure) => setCategorySaveError(failure instanceof Error ? failure.message : "Unable to save this category."),
+  });
 
   function openEditor(kpi?: DepartmentKpi) {
     setSaveError("");
-    setEditor({ id: kpi?.id ?? null, values: kpi ? { department: kpi.department, name: kpi.name, description: kpi.description, expectation: kpi.expectation, applies_to: kpi.applies_to, is_active: kpi.is_active } : emptyKpi(department) });
+    setEditor({ id: kpi?.id ?? null, values: kpi ? { category_id: kpi.category_id ?? null, name: kpi.name, description: kpi.description, expectation: kpi.expectation, measurement_method: kpi.measurement_method, scoring_guide: kpi.scoring_guide, applies_to: kpi.applies_to, is_active: kpi.is_active } : emptyKpi() });
     requestAnimationFrame(() => { nameRef.current?.focus(); nameRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); });
+  }
+
+  function openCategoryEditor(category?: KpiCategory) {
+    setCategorySaveError("");
+    setCategoryEditor(category ? { id: category.id, name: category.name, description: category.description ?? "", departments: category.departments, is_active: category.is_active } : { id: null, name: "", description: "", departments: [], is_active: true });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editor || save.isPending) return;
-    const values = { ...editor.values, name: editor.values.name.trim(), description: editor.values.description.trim(), expectation: editor.values.expectation.trim() };
-    if (!values.name || !values.description || !values.expectation) {
-      setSaveError("Enter a KPI name, description, and target or expectation.");
+    const values = { ...editor.values, name: editor.values.name.trim(), description: editor.values.description.trim(), expectation: editor.values.expectation.trim(), measurement_method: editor.values.measurement_method.trim(), scoring_guide: Object.fromEntries([1, 2, 3, 4, 5].map((score) => [score, editor.values.scoring_guide[score as 1 | 2 | 3 | 4 | 5].trim()])) as DepartmentKpiInput["scoring_guide"] };
+    if (!values.name || !values.description || !values.expectation || values.measurement_method.length < 10 || Object.values(values.scoring_guide).some((guide) => guide.length < 5)) {
+      setSaveError("Complete the KPI details, measurement method, target, and all five scoring descriptions.");
       return;
     }
     setSaveError("");
@@ -73,62 +101,135 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
     setEditor((old) => old ? { ...old, values: { ...old.values, [key]: value } } : old);
   }
 
-  const departmentItems = data.items.filter((item) => item.department === department);
+  function toggleSort(nextSort: (typeof sortOptions)[number]) {
+    if (sort === nextSort) {
+      setSortDirection((value) => value === "asc" ? "desc" : "asc");
+      return;
+    }
+    setSort(nextSort);
+    setSortDirection("asc");
+  }
+
+  const departmentItems = data.items.filter((item) => department === "all" || item.category?.name === department);
   const activeCount = departmentItems.filter((item) => item.is_active).length;
-  const items = departmentItems.filter((item) => (status === "all" || item.is_active === (status === "active")) && `${item.name} ${item.description} ${item.expectation}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  const [sort, setSort] = useState<(typeof sortOptions)[number]>("category");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const items = departmentItems.filter((item) => (status === "all" || item.is_active === (status === "active")) && `${item.category?.name ?? ""} ${item.name} ${item.description} ${item.expectation}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => {
+    const comparison = sort === "name"
+      ? a.name.localeCompare(b.name)
+      : sort === "status"
+        ? Number(b.is_active) - Number(a.is_active) || a.name.localeCompare(b.name)
+        : (a.category?.name ?? "").localeCompare(b.category?.name ?? "") || a.name.localeCompare(b.name);
+    return sortDirection === "asc" ? comparison : -comparison;
+  });
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const visibleItems = items.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [department, status, search, sort, sortDirection, pageSize]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">Department KPIs</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">Set the criteria and expectations staff will use in their performance appraisals.</p>
-          <p className="text-sm text-muted-foreground">{data.items.length} KPIs in the catalogue · {data.items.filter((item) => item.is_active).length} active · {data.items.filter((item) => !item.is_active).length} inactive. Choose a department below to view its KPIs.</p>
-        </div>
-        <Button ref={addRef} size="lg" disabled={!!editor || !department} onClick={() => openEditor()}><Plus aria-hidden="true" />Add KPI</Button>
-      </header>
+    <div className="flex flex-1 flex-col gap-6">
+      <PerformancePageHeader
+        eyebrow="Performance setup"
+        title="Department KPIs"
+        description="Build the criteria staff use in monthly appraisals. Keep targets specific, measurable, and easy to review."
+        icon={Target}
+        actions={<Button ref={addRef} disabled={!!editor || !!categoryEditor || !data.departments.length} onClick={() => openEditor()}><Plus aria-hidden="true" />Add KPI</Button>}
+      />
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="grid gap-2"><Label htmlFor="department-filter">Department</Label><select id="department-filter" className={selectClass} value={department} disabled={!!editor} onChange={(event) => setDepartment(event.target.value)}>{data.departments.map((value) => <option key={value}>{value}</option>)}</select></div>
-        <div className="grid gap-2"><Label htmlFor="status-filter">Status</Label><select id="status-filter" className={selectClass} value={status} onChange={(event) => setStatus(event.target.value)}><option value="active">Active</option><option value="inactive">Inactive</option><option value="all">All statuses</option></select></div>
-        <div className="grid min-w-48 flex-1 gap-2 sm:max-w-sm"><Label htmlFor="kpi-search">Find a KPI</Label><Input id="kpi-search" className="h-9" placeholder="Search names and expectations" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-      </div>
-
-      {error && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">Unable to refresh KPIs. Your last loaded list is shown.<Button variant="outline" disabled={isFetching} onClick={() => void refetch()}>Retry</Button></div>}
-
-      {editor && (
-        <section aria-labelledby="kpi-editor-title" className="rounded-xl border p-4 sm:p-6">
-          <h2 id="kpi-editor-title" className="text-lg font-semibold">{editor.id ? "Edit KPI" : "Add KPI"} · {editor.values.department}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Use a clear expectation that staff and reviewers can assess consistently.</p>
-          <form onSubmit={submit} className="mt-5 max-w-3xl space-y-4">
-            <fieldset disabled={save.isPending} className="space-y-4 disabled:opacity-60">
-              <div className="grid gap-2"><Label htmlFor="kpi-name">KPI name</Label><Input ref={nameRef} id="kpi-name" required maxLength={180} value={editor.values.name} onChange={(event) => field("name", event.target.value)} placeholder="e.g. Timely completion of assigned work" /></div>
-              <div className="grid gap-2"><Label htmlFor="kpi-description">What is measured?</Label><Textarea id="kpi-description" required maxLength={3000} value={editor.values.description} onChange={(event) => field("description", event.target.value)} placeholder="Describe the responsibility or result being assessed." /></div>
-              <div className="grid gap-2"><Label htmlFor="kpi-expectation">Target or expectation</Label><Textarea id="kpi-expectation" required maxLength={3000} value={editor.values.expectation} onChange={(event) => field("expectation", event.target.value)} placeholder="e.g. Complete at least 90% of assigned tasks by the agreed deadline." /></div>
-              <div className="flex flex-wrap gap-4">
-                <div className="grid gap-2"><Label htmlFor="kpi-applies">Applies to</Label><select id="kpi-applies" className={selectClass} value={editor.values.applies_to} onChange={(event) => field("applies_to", event.target.value as DepartmentKpiInput["applies_to"])}><option value="all_staff">All department staff</option><option value="supervisors">Supervisors only</option></select></div>
-                <div className="grid gap-2"><Label htmlFor="kpi-active">Status</Label><select id="kpi-active" className={selectClass} value={editor.values.is_active ? "active" : "inactive"} onChange={(event) => field("is_active", event.target.value === "active")}><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-              </div>
-              <p className="text-xs text-muted-foreground">Inactive KPIs are kept for reference and excluded from future appraisals. Changes will not alter appraisals already opened.</p>
-            </fieldset>
-            {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
-            <div className="flex gap-2"><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save KPI"}</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => { setEditor(null); setSaveError(""); addRef.current?.focus(); }}>Cancel</Button></div>
-          </form>
-        </section>
-      )}
-
-      <section aria-label={`${department} KPIs`} className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-semibold">{department}</h2><p className="text-sm text-muted-foreground" aria-live="polite">{activeCount} active · {departmentItems.length - activeCount} inactive</p></div>
-        {items.length === 0 ? (
-          <div className="rounded-xl border border-dashed px-6 py-12 text-center"><Target className="mx-auto mb-3 size-7 text-muted-foreground" aria-hidden="true" /><h3 className="font-medium">{departmentItems.length === 0 ? "No KPIs for this department yet" : "No matching KPIs"}</h3><p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{departmentItems.length === 0 ? "Add the first KPI to define what good performance looks like for this department." : "Try another search or status filter."}</p>{departmentItems.length === 0 && <Button className="mt-4" variant="outline" disabled={!!editor} onClick={() => openEditor()}>Add first KPI</Button>}</div>
-        ) : <ul className="divide-y rounded-xl border">{items.map((kpi) => (
-          <li key={kpi.id} className="p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3"><div className="min-w-0 space-y-2"><h3 className="break-words font-semibold">{kpi.name}</h3><div className="flex flex-wrap gap-2"><Badge variant="secondary">{kpi.applies_to === "supervisors" ? "Supervisors only" : "All department staff"}</Badge>{!kpi.is_active && <Badge variant="outline">Inactive</Badge>}</div></div><Button variant="outline" disabled={!!editor} aria-label={`Edit ${kpi.name}`} onClick={() => openEditor(kpi)}><Pencil aria-hidden="true" />Edit</Button></div>
-            <p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted-foreground">{kpi.description}</p>
-            <p className="mt-3 whitespace-pre-wrap break-words text-sm"><span className="font-medium">Expectation: </span>{kpi.expectation}</p>
-          </li>
-        ))}</ul>}
+      <section aria-label="KPI totals" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatsCard title="Total KPIs" icon={Target} value={data.items.length} description={`Across ${categories.data?.items.length ?? 0} categories`} compact />
+        <StatsCard title="Active KPIs" icon={ListFilter} value={data.items.filter((item) => item.is_active).length} description="Available for new appraisal periods" iconClassName="text-green-600" compact />
+        <StatsCard title="Inactive KPIs" icon={Pencil} value={data.items.filter((item) => !item.is_active).length} description="Kept in the catalogue for reference" iconClassName="text-muted-foreground" compact />
+        <StatsCard title="Departments covered" icon={Building2} value={new Set(categories.data?.items.flatMap((item) => item.departments) ?? []).size} description={`Of ${data.departments.length} available departments`} iconClassName="text-blue-600" compact />
       </section>
+
+      <Tabs defaultValue="kpis" className="w-full space-y-4">
+        <TabsList aria-label="KPI management sections">
+          <TabsTrigger value="kpis">KPI catalogue</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+        </TabsList>
+        <TabsContent value="categories" className="space-y-4">
+          <section aria-labelledby="category-management-heading" className="space-y-3 rounded-xl border bg-card p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 id="category-management-heading" className="text-lg font-semibold">Category management</h2><p className="mt-1 text-sm text-muted-foreground">Choose which departments receive each category’s active KPIs in future appraisal periods.</p></div><Button variant="outline" disabled={!!editor || !!categoryEditor} onClick={() => openCategoryEditor()}><Plus aria-hidden="true" />Add category</Button></div>
+            {categories.error && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive"><span>Unable to load categories.</span><Button type="button" size="sm" variant="outline" disabled={categories.isFetching} onClick={() => void categories.refetch()}>Retry</Button></div>}
+            <div className="overflow-hidden rounded-lg border"><Table><TableHeader className="bg-muted/50"><TableRow><TableHead>Category</TableHead><TableHead>Departments</TableHead><TableHead>KPIs</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+              {categories.isLoading && <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Loading categories…</TableCell></TableRow>}
+              {!categories.isLoading && !categories.error && !categories.data?.items.length && <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No categories yet. Add a category to group KPIs by performance area.</TableCell></TableRow>}
+              {(categories.data?.items ?? []).map((category) => <TableRow key={category.id}><TableCell className="min-w-48"><p className="font-medium">{category.name}</p><p className="mt-1 text-xs text-muted-foreground">{category.description || "No description"}</p></TableCell><TableCell className="min-w-48">{category.departments.length ? category.departments.join(", ") : <span className="text-muted-foreground">None assigned</span>}</TableCell><TableCell className="whitespace-nowrap">{category.kpis.filter((kpi) => kpi.is_active).length} active · {category.kpis.length} total</TableCell><TableCell><Badge variant={category.is_active ? "default" : "secondary"}>{category.is_active ? "Active" : "Inactive"}</Badge></TableCell><TableCell className="text-right"><Button type="button" size="sm" variant="outline" disabled={!!editor || !!categoryEditor} onClick={() => openCategoryEditor(category)}><Pencil aria-hidden="true" />Edit</Button></TableCell></TableRow>)}
+            </TableBody></Table></div>
+          </section>
+        </TabsContent>
+        <TabsContent value="kpis" className="space-y-4">
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3 sm:p-4">
+        <div className="relative min-w-0 flex-1 sm:max-w-md"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="kpi-search" aria-label="Search KPI names and targets" className="h-10 pl-9" placeholder="Search KPI name, measure, or target…" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
+          <div className="flex flex-wrap items-center gap-2"><Label htmlFor="department-filter" className="text-sm">Category</Label><Select value={department} disabled={!!editor} onValueChange={setDepartment}><SelectTrigger id="department-filter" className="w-47.5"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{categories.data?.items.map((value) => <SelectItem key={value.id} value={value.name}>{value.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="flex flex-wrap items-center gap-2"><Label htmlFor="status-filter" className="text-sm">Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger id="status-filter" className="w-37.5"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="all">All statuses</SelectItem></SelectContent></Select></div>
+          <div className="flex flex-wrap items-center gap-2"><Label htmlFor="page-size" className="text-sm">Show</Label><Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value) as (typeof pageSizeOptions)[number])}><SelectTrigger id="page-size" className="w-22.5"><SelectValue /></SelectTrigger><SelectContent>{pageSizeOptions.map((value) => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select><span className="text-sm text-muted-foreground">per page</span></div>
+        </div>
+
+        {error && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-3 text-sm text-destructive">Unable to refresh KPIs. Your loaded list is shown.<Button variant="outline" disabled={isFetching} onClick={() => void refetch()}>Retry</Button></div>}
+
+        <Dialog open={!!editor} onOpenChange={(open) => { if (!open && !save.isPending) { setEditor(null); setSaveError(""); } }}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogHeader><DialogTitle>{editor?.id ? "Edit KPI" : "Add KPI"}</DialogTitle><DialogDescription>Define how the result is measured and what each rating means. All five score descriptions are required.</DialogDescription></DialogHeader>
+          {editor && <form onSubmit={submit} className="space-y-4">
+            <fieldset disabled={save.isPending} className="grid gap-4 sm:grid-cols-2 disabled:opacity-60">
+              <div className="grid gap-2 sm:col-span-2"><Label htmlFor="kpi-category">Category</Label><Select required value={editor.values.category_id ?? ""} onValueChange={(value) => field("category_id", value)}><SelectTrigger id="kpi-category"><SelectValue placeholder="Choose a category" /></SelectTrigger><SelectContent>{categories.data?.items.filter((category) => category.is_active).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="grid gap-2"><Label htmlFor="kpi-active">Status</Label><Select value={editor.values.is_active ? "active" : "inactive"} onValueChange={(value) => field("is_active", value === "active")}><SelectTrigger id="kpi-active"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></div>
+              <div className="grid gap-2 sm:col-span-2"><Label htmlFor="kpi-name">KPI name</Label><Input ref={nameRef} id="kpi-name" required maxLength={180} value={editor.values.name} onChange={(event) => field("name", event.target.value)} placeholder="e.g. Timely completion of assigned work" /></div>
+              <div className="grid gap-2 sm:col-span-2"><Label htmlFor="kpi-description">What is measured?</Label><Textarea id="kpi-description" required maxLength={3000} rows={3} value={editor.values.description} onChange={(event) => field("description", event.target.value)} placeholder="Describe the responsibility or result being assessed." /></div>
+              <div className="grid gap-2 sm:col-span-2"><Label htmlFor="kpi-expectation">Target or expectation</Label><Textarea id="kpi-expectation" required maxLength={3000} rows={3} value={editor.values.expectation} onChange={(event) => field("expectation", event.target.value)} placeholder="e.g. Complete at least 90% of assigned tasks by the agreed deadline." /></div>
+              <div className="grid gap-2 sm:col-span-2"><Label htmlFor="kpi-measurement">How is it measured?</Label><Textarea id="kpi-measurement" required minLength={10} maxLength={3000} rows={3} value={editor.values.measurement_method} onChange={(event) => field("measurement_method", event.target.value)} placeholder="Name the evidence source, calculation, and review period. e.g. Email timestamps: replies within one business hour ÷ eligible confirmation emails, measured monthly." /><p className="text-xs text-muted-foreground">Specify the evidence source, calculation or counting rule, and monthly review period.</p></div>
+              <fieldset className="space-y-3 sm:col-span-2"><legend className="text-sm font-medium">What does each rating mean?</legend><p className="text-xs text-muted-foreground">Write observable results or behaviors for this KPI. Make the bands distinct and cover below target through exceptional performance.</p><div className="grid gap-3">{([1, 2, 3, 4, 5] as const).map((score) => <div key={score} className="grid gap-2"><Label htmlFor={`kpi-score-${score}`}>{score} · {(["Well below expectations", "Below expectations", "Meets expectations", "Exceeds expectations", "Substantially exceeds expectations"] as const)[score - 1]}</Label><Textarea id={`kpi-score-${score}`} required minLength={5} maxLength={1000} rows={2} value={editor.values.scoring_guide[score]} onChange={(event) => field("scoring_guide", { ...editor.values.scoring_guide, [score]: event.target.value })} placeholder={score === 3 ? "Describe the result that meets the target." : `Describe the observable result for rating ${score}.`} /></div>)}</div></fieldset>
+              <div className="grid gap-2 sm:col-span-2"><Label htmlFor="kpi-applies">Who should be assessed?</Label><Select value={editor.values.applies_to} onValueChange={(value) => field("applies_to", value as DepartmentKpiInput["applies_to"])}><SelectTrigger id="kpi-applies"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all_staff">All staff in assigned departments</SelectItem><SelectItem value="supervisors">Supervisors in assigned departments</SelectItem></SelectContent></Select></div>
+            </fieldset>
+            <p className="text-xs text-muted-foreground">Inactive KPIs are excluded from future appraisals. Changes do not alter periods that are already open.</p>
+            {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+            <DialogFooter><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save KPI"}</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => { setEditor(null); setSaveError(""); addRef.current?.focus(); }}>Cancel</Button></DialogFooter>
+          </form>
+          }
+          </DialogContent>
+        </Dialog>
+
+        <Sheet open={!!viewing} onOpenChange={(open) => { if (!open) setViewing(null); }}>
+          <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+            <SheetHeader className="border-b px-6 py-5"><SheetTitle>{viewing?.name ?? "KPI details"}</SheetTitle><SheetDescription>{viewing ? `${viewing.category?.name ?? "Uncategorised"} · ${viewing.applies_to === "supervisors" ? "Supervisors" : "All staff"}` : ""}</SheetDescription></SheetHeader>
+            {viewing && <div className="space-y-6 px-6 py-5"><Badge variant={viewing.is_active ? "outline" : "secondary"}>{viewing.is_active ? "Active" : "Inactive"}</Badge><section className="space-y-2"><h3 className="text-sm font-semibold">What is measured?</h3><p className="whitespace-pre-wrap text-sm leading-6">{viewing.description}</p></section><section className="space-y-2 border-t pt-5"><h3 className="text-sm font-semibold">Target or expectation</h3><p className="whitespace-pre-wrap text-sm leading-6">{viewing.expectation}</p></section><section className="space-y-2 border-t pt-5"><h3 className="text-sm font-semibold">Measurement method</h3><p className="whitespace-pre-wrap text-sm leading-6">{viewing.measurement_method}</p></section><section className="space-y-3 border-t pt-5"><h3 className="text-sm font-semibold">Rating guidance</h3>{([1, 2, 3, 4, 5] as const).map((score) => <p key={score} className="text-sm"><strong>{score}:</strong> {viewing.scoring_guide[score]}</p>)}</section><Button variant="outline" onClick={() => { openEditor(viewing); setViewing(null); }}><Pencil aria-hidden="true" />Edit KPI</Button></div>}
+          </SheetContent>
+        </Sheet>
+
+        <div className="overflow-hidden rounded-lg border bg-card"><div className="flex items-center justify-between gap-4 border-b px-4 py-3"><div><h2 className="text-base font-semibold">KPI catalogue</h2><p className="mt-0.5 text-xs text-muted-foreground">Select a column heading to sort, or an action to view or edit a criterion.</p></div><Badge variant="secondary" className="shrink-0 tabular-nums">{items.length} shown</Badge></div><Table><TableHeader className="bg-muted/50"><TableRow><TableHead aria-sort={sort === "category" ? sortDirection === "asc" ? "ascending" : "descending" : "none"}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => toggleSort("category")}>Category<SortIcon active={sort === "category"} direction={sortDirection} /></button></TableHead><TableHead aria-sort={sort === "name" ? sortDirection === "asc" ? "ascending" : "descending" : "none"}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => toggleSort("name")}>KPI<SortIcon active={sort === "name"} direction={sortDirection} /></button></TableHead><TableHead>Measure / target</TableHead><TableHead>Applies to</TableHead><TableHead aria-sort={sort === "status" ? sortDirection === "asc" ? "ascending" : "descending" : "none"}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => toggleSort("status")}>Status<SortIcon active={sort === "status"} direction={sortDirection} /></button></TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+          {!items.length && <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">{departmentItems.length === 0 ? "No KPIs are set up for this category yet." : "No KPIs match these filters."}</TableCell></TableRow>}
+          {visibleItems.map((kpi) => <TableRow key={kpi.id}>
+          <TableCell className="whitespace-nowrap py-3.5"><Badge variant="secondary">{kpi.category?.name ?? "Uncategorised"}</Badge></TableCell><TableCell className="min-w-44 py-3.5"><p className="font-medium">{kpi.name}</p></TableCell><TableCell className="min-w-64 max-w-xl py-3.5"><p className="line-clamp-1 whitespace-pre-wrap text-sm">{kpi.description}</p><p className="mt-1 line-clamp-1 whitespace-pre-wrap text-xs text-muted-foreground"><span className="font-medium">Target: </span>{kpi.expectation}</p><p className="mt-1 line-clamp-1 whitespace-pre-wrap text-xs text-muted-foreground"><span className="font-medium">Measured by: </span>{kpi.measurement_method}</p></TableCell><TableCell className="whitespace-nowrap py-3.5"><Badge variant="outline">{kpi.applies_to === "supervisors" ? "Supervisors" : "All staff"}</Badge></TableCell><TableCell className="py-3.5"><Badge variant={kpi.is_active ? "default" : "secondary"}>{kpi.is_active ? "Active" : "Inactive"}</Badge></TableCell><TableCell className="py-3.5 text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${kpi.name}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44"><DropdownMenuItem onSelect={() => setViewing(kpi)}><Eye className="mr-2 size-4" />View details</DropdownMenuItem><DropdownMenuItem onSelect={() => openEditor(kpi)}><Pencil className="mr-2 size-4" />Edit KPI</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell>
+        </TableRow>)}
+        </TableBody></Table></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">Showing {items.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, items.length)} of {items.length} KPIs</p>
+          <Pagination className="mx-0 w-auto justify-end">
+            <PaginationContent>
+              <PaginationItem><PaginationPrevious href="#" aria-disabled={page === 1} className={page === 1 ? "pointer-events-none opacity-50" : undefined} onClick={(event) => { event.preventDefault(); setPage((value) => Math.max(1, value - 1)); }} /></PaginationItem>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).slice(Math.max(0, page - 2), page + 1).map((value) => <PaginationItem key={value}><PaginationLink href="#" isActive={value === page} onClick={(event) => { event.preventDefault(); setPage(value); }}>{value}</PaginationLink></PaginationItem>)}
+              <PaginationItem><PaginationNext href="#" aria-disabled={page === pageCount} className={page === pageCount ? "pointer-events-none opacity-50" : undefined} onClick={(event) => { event.preventDefault(); setPage((value) => Math.min(pageCount, value + 1)); }} /></PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      </section>
+        </TabsContent>
+      </Tabs>
+      <Dialog open={!!categoryEditor} onOpenChange={(open) => { if (!open && !saveCategory.isPending) setCategoryEditor(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>{categoryEditor?.id ? "Edit KPI category" : "Add KPI category"}</DialogTitle><DialogDescription>Choose the departments that receive this category’s active KPIs when future appraisal periods are opened. Existing appraisal periods keep their saved criteria.</DialogDescription></DialogHeader>
+          {categoryEditor && <form onSubmit={(event) => { event.preventDefault(); if (!categoryEditor.name.trim() || !categoryEditor.departments.length) return; saveCategory.mutate(); }} className="space-y-4"><div className="grid gap-2"><Label htmlFor="kpi-category-name">Category name</Label><Input id="kpi-category-name" required maxLength={180} value={categoryEditor.name} onChange={(event) => setCategoryEditor({ ...categoryEditor, name: event.target.value })} placeholder="e.g. Client service" /></div><div className="grid gap-2"><Label htmlFor="kpi-category-description">Description</Label><Textarea id="kpi-category-description" maxLength={3000} rows={3} value={categoryEditor.description} onChange={(event) => setCategoryEditor({ ...categoryEditor, description: event.target.value })} placeholder="Describe the shared performance area." /></div><fieldset className="space-y-2"><legend className="text-sm font-medium">Departments that answer this category</legend><div className="grid gap-2 sm:grid-cols-2">{data.departments.map((value) => <label key={value} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={categoryEditor.departments.includes(value)} onChange={(event) => setCategoryEditor({ ...categoryEditor, departments: event.target.checked ? [...categoryEditor.departments, value] : categoryEditor.departments.filter((department) => department !== value) })} />{value}</label>)}</div></fieldset><div className="flex items-center gap-2"><input id="kpi-category-active" type="checkbox" checked={categoryEditor.is_active} onChange={(event) => setCategoryEditor({ ...categoryEditor, is_active: event.target.checked })} /><Label htmlFor="kpi-category-active">Active for future monthly assessments</Label></div>{categorySaveError && <p role="alert" className="text-sm text-destructive">{categorySaveError}</p>}<DialogFooter><Button type="submit" disabled={saveCategory.isPending || !categoryEditor.departments.length}>{saveCategory.isPending ? "Saving…" : "Save category"}</Button><Button type="button" variant="outline" disabled={saveCategory.isPending} onClick={() => setCategoryEditor(null)}>Cancel</Button></DialogFooter></form>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,14 +4,16 @@ import { api } from "./client";
 import { ExpectedActionError } from "./action-result";
 import { runAction } from "./run-action";
 import type { SelfAssessmentInput } from "@/lib/types/performance-appraisal";
-import type { ReviewDetail, ReviewSummary } from "@/lib/types/performance-review";
+import type { ReviewDetail, ReviewQueueFilters, ReviewQueueResponse } from "@/lib/types/performance-review";
 
-export async function listAssignedReviews() {
+export async function listAvailableReviews(filters: ReviewQueueFilters) {
   return runAction(async () => {
-    const result = await api.get<{ data: { items: ReviewSummary[] } }>("/api/performance/reviews");
+    const params = new URLSearchParams({ search: filters.search, status: filters.status, type: filters.type, department: filters.department, page: String(filters.page) });
+    if (filters.month) params.set("month", filters.month);
+    const result = await api.get<{ data: ReviewQueueResponse }>(`/api/performance/reviews?${params.toString()}`);
     if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
     return result.data.data;
-  }, "listAssignedReviews");
+  }, "listAvailableReviews");
 }
 
 export async function getAssignedReview(id: string) {

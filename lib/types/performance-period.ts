@@ -14,10 +14,13 @@ export interface PeriodStaff {
 export interface PeriodAssignment {
   employee_id: string;
   reviewer_id: string | null;
+  hr_reviewer_id?: string | null;
+  compliance_reviewer_id?: string | null;
   mp_reviewer_id: string | null;
 }
 
 export interface PeriodInput {
+  type?: "monthly_kpi" | "appraisal";
   month: string;
   submission_deadline: string;
   assignments: PeriodAssignment[];
@@ -25,6 +28,7 @@ export interface PeriodInput {
 }
 
 export interface PerformancePeriod extends PeriodInput {
+  type: "monthly_kpi" | "appraisal";
   id: string;
   status: "draft" | "open" | "closed";
   version: number;
@@ -33,9 +37,12 @@ export interface PerformancePeriod extends PeriodInput {
 
 export interface PeriodCriterion {
   id: string;
+  key_result_area?: string | null;
   name: string;
   description: string;
   expectation: string;
+  measurement_method: string | null;
+  scoring_guide: Record<1 | 2 | 3 | 4 | 5, string> | null;
   applies_to: "all_staff" | "supervisors";
 }
 

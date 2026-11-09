@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DocumentFolder } from "@/types/file-types";
-import { moveVisaFolderAction } from "../actions";
+import { moveScopedFolderAction } from "@/lib/api/document-folder-actions";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -38,12 +38,14 @@ interface MoveFolderDialogProps {
   folder: DocumentFolder;
   allFolders: DocumentFolder[];
   trigger: React.ReactNode;
+  scope?: "visa" | "hr";
 }
 
 export function MoveFolderDialog({
   folder,
   allFolders,
   trigger,
+  scope = "visa",
 }: MoveFolderDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("root");
@@ -116,7 +118,7 @@ export function MoveFolderDialog({
     setIsSubmitting(true);
     try {
       const targetParentId = selectedParentId === "root" ? null : selectedParentId;
-      const result = await moveVisaFolderAction(folder.id, targetParentId);
+      const result = await moveScopedFolderAction(scope, folder.id, targetParentId);
 
       if (result.error) {
         toast.error(result.error);

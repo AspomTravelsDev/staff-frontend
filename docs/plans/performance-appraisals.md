@@ -2,6 +2,10 @@
 
 Date: 2026-10-21. Updated: 2026-10-28. Status: all five monthly appraisal slices implemented and validated, including completed-only HR results and the full three-route journey.
 
+Updated 2026-11-06: the shared system now supports a second `appraisal` period type for June/December Appraisals. See [ADR-0035](../adr/0035-shared-performance-appraisal-cycles.md). The Appraisal uses the supplied 49-item rubric, a self → supervisor/Compliance → Management rating flow, structured comments, management-derived total and average scores, and HR read-only completed results. Monthly KPI periods retain their own type and behavior.
+
+Updated 2026-11-06: HR and Super Admin manage one official supervisor per department at `/hr/department-supervisors` by choosing from that department’s active staff. Saving also sets the selected user’s `is_supervisor` flag for tool access. New appraisals route ordinary staff to the explicit department assignment; that assignment is snapshotted when an appraisal starts, so reassignment does not change an in-flight review.
+
 ## First release
 
 Deliver one complete monthly flow: Compliance maintains department KPIs; staff self-assess; an assigned supervisor assesses; MP assesses and completes; HR sees completed results. Use equal KPI weighting and a shared 1–5 scale. Create periods manually. Weekly reports, six-monthly reviews, custom requests, scheduling, notifications, and advanced analytics follow later.
@@ -127,7 +131,7 @@ Next at the end of this slice was step 4 (assigned reviewer workflow); its imple
 
 ## Assigned reviewer workflow implementation status (2026-10-28)
 
-Step 4 is implemented at `/my/performance/reviews`. **Reviews to Complete** appears for individual supervisors and staff with an explicit primary/secondary Compliance or MP role. The assigned queue supports search, ready/waiting/submitted views, draft continuation and read-only history. Appraisals appear only after staff submit their self-assessment. MP can see an assigned appraisal while waiting for its intermediate reviewer, but cannot write until the preceding stage is submitted.
+Step 4 is implemented at `/performance/reviews` as the shared **Performance Reviews** department workspace. Individual supervisors and staff with an explicit primary/secondary HR, Compliance or MP role see all appraisals with a submitted self-assessment. The queue shows current stage and each stage's progress, while review actions and detail access remain limited to the assigned reviewers. It supports search, ready/waiting/submitted views, draft continuation and read-only history. MP can see an assigned appraisal while waiting for its intermediate reviewer, but cannot write until the preceding stage is submitted. The former `/my/performance/reviews` paths redirect to the shared workspace.
 
 Review detail shows saved staff/period metadata, the full 1–5 scale, earlier submitted assessments in disclosures, saved KPI criteria, the assessor's own draft, optional criterion comments/evidence, and an overall comment. All ratings begin unanswered. MP must give a final comment and independent ratings; the interface previews their equally weighted mean. Confirmation submits the current answers and locks the assessment. Intermediate submission advances to MP; MP submission saves the final score to two decimal places, completion time and workflow event. Existing self/intermediate ratings remain separate.
 

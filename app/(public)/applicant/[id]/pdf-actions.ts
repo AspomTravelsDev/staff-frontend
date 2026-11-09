@@ -77,9 +77,22 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
                     continue;
                 }
 
+                // Some file responses use application/octet-stream even for images.
+                // React-PDF needs the actual image MIME type to decode a data URI.
+                const normalizedContentType = contentType.split(';', 1)[0].trim().toLowerCase();
+                const imageMimeType = buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+                    ? 'image/png'
+                    : buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+                        ? 'image/jpeg'
+                        : null;
+                if (!imageMimeType) {
+                    console.error(`fetchImageAsBase64: File is not a supported PNG/JPEG image (response type ${normalizedContentType}) from ${candidateUrl}`);
+                    continue;
+                }
+
                 const base64 = buffer.toString('base64');
-                console.log(`fetchImageAsBase64: Successfully fetched image (${base64.length} chars, ${contentType})`);
-                return `data:${contentType};base64,${base64}`;
+                console.log(`fetchImageAsBase64: Successfully fetched image (${base64.length} chars, ${imageMimeType})`);
+                return `data:${imageMimeType};base64,${base64}`;
             } catch (candidateError) {
                 console.error(`fetchImageAsBase64: Candidate fetch failed for ${candidateUrl}:`, candidateError);
             }

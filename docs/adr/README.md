@@ -16,7 +16,7 @@
 | [0011: Management page access](0011-management-page-access.md) | Accepted | 2026-10-16 |
 | [0012: Invoice currency](0012-invoice-currency.md) | Accepted | 2026-10-16 |
 | [0013: Management overview](0013-management-overview.md) | Accepted | 2026-10-16 |
-| [0014: Department KPI snapshots and staged appraisals](0014-performance-kpi-snapshots.md) | Accepted (monthly flow complete) | 2026-10-28 |
+| [0014: Monthly KPI windows and staged appraisals](0014-performance-kpi-snapshots.md) | Accepted | 2026-11-05 |
 | [0015: On-demand CV analysis](0015-on-demand-cv-analysis.md) | Accepted | 2026-10-23 |
 | [0016: Company inventory register](0016-company-inventory-register.md) | Accepted | 2026-10-24 |
 | [0017: Onboarding verification preservation](0017-onboarding-verification-preservation.md) | Accepted | 2026-10-27 |
@@ -34,3 +34,4 @@
 | [0032: Bulk CV intake and compact screening](0032-bulk-cv-and-compact-screening.md) | Accepted | 2026-11-01 |
 | [0033: Standalone recruitment emails](0033-standalone-recruitment-emails.md) | Accepted | 2026-11-01 |
 | [0034: Birth Services information desk](0034-birth-services-information-desk.md) | Accepted | 2026-11-01 |
+| [0035: Shared monthly KPI and June/December Appraisal cycles](0035-shared-performance-appraisal-cycles.md) | Accepted | 2026-11-06 |

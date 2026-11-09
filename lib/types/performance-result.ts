@@ -1,4 +1,4 @@
-import type { AppraisalAssessment } from "./performance-appraisal";
+import type { AppraisalAssessment, AppraisalType } from "./performance-appraisal";
 import type { PeriodCriterion, ReviewerRoute } from "./performance-period";
 
 export interface PerformanceResult {
@@ -9,9 +9,14 @@ export interface PerformanceResult {
   is_supervisor: boolean;
   reviewer_route: ReviewerRoute;
   reviewer_name: string | null;
+  hr_reviewer_name: string | null;
+  compliance_reviewer_name: string | null;
   mp_reviewer_name: string;
   month: string;
+  type: AppraisalType;
   final_score: string;
+  total_score: number | null;
+  total_max_score: number | null;
   completed_at: string;
 }
 
@@ -23,6 +28,7 @@ export interface PerformanceResultDetail extends PerformanceResult {
 export interface PerformanceResultFilters {
   search?: string;
   department?: string;
+  type?: "monthly_kpi" | "appraisal";
   month?: string;
   page?: number;
 }

@@ -17,7 +17,7 @@ export interface RecruitmentEmailRecord {
 export interface RecruitmentEmailField {
   key: string;
   label: string;
-  type: "text" | "textarea" | "date" | "datetime-local" | "number" | "url" | "select";
+  type: "text" | "textarea" | "date" | "time" | "datetime-local" | "number" | "url" | "select";
   required: boolean;
   options?: Record<string, string>;
   when?: { field: string; value: string };

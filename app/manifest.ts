@@ -12,6 +12,11 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#16a34a",
     orientation: "portrait-primary",
     scope: "/",
+    // Chromium uses this when an in-scope portal URL launches the installed app.
+    // Browsers without Launch Handler support continue to open the URL normally.
+    launch_handler: {
+      client_mode: "navigate-existing",
+    },
     icons: [
       {
         src: "/android-chrome-192x192.png",

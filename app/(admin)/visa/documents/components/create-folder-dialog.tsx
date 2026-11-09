@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FolderPlus, Loader2, Pencil } from "lucide-react";
-import { createVisaFolderAction, updateVisaFolderAction } from "../actions";
+import { createScopedFolderAction, updateScopedFolderAction } from "@/lib/api/document-folder-actions";
 import { toast } from "sonner";
 import { DocumentFolder } from "@/types/file-types";
 
@@ -22,12 +22,14 @@ interface CreateFolderDialogProps {
   folder?: DocumentFolder;
   parentId?: string | null;
   trigger?: React.ReactNode;
+  scope?: "visa" | "hr";
 }
 
 export function CreateFolderDialog({
   folder: existingFolder,
   parentId,
   trigger,
+  scope = "visa",
 }: CreateFolderDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -57,8 +59,8 @@ export function CreateFolderDialog({
       setError(null);
 
       const result = isEditing
-        ? await updateVisaFolderAction(existingFolder.id, name)
-        : await createVisaFolderAction(name, parentId);
+        ? await updateScopedFolderAction(scope, existingFolder.id, { name })
+        : await createScopedFolderAction(scope, name, parentId);
 
       if (result.error) {
         setError(result.error);
@@ -98,7 +100,7 @@ export function CreateFolderDialog({
           <DialogDescription>
             {isEditing
               ? "Change the name of this folder."
-              : "Create a new folder to organize checklists and template files."}
+              : "Create a folder to organize documents. Folder names are for organization; document department and category remain separate metadata."}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,7 +114,7 @@ export function CreateFolderDialog({
                 setName(e.target.value);
                 setError(null);
               }}
-              placeholder="e.g. Canada Visitor Visa"
+              placeholder={scope === "visa" ? "e.g. Canada Visitor Visa" : "e.g. Policies and Handbooks"}
               disabled={isPending}
             />
           </div>

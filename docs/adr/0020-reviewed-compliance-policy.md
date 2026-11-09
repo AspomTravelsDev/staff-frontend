@@ -16,8 +16,11 @@ window, but their outcomes are never rewritten. New decisions use the revised
 policy from 2026-10-29. A termination review is a discretionary reviewed action,
 not a numeric automatic termination threshold.
 
-Queries, correction follow-up, counted occurrences, and approved payroll deductions
-remain distinct. A first accidental client-data error is recorded for correction
+Queries, correction follow-up, counted occurrences, and payroll deductions
+remain distinct. Most offences count as one occurrence; severity, evidence and
+impact may justify a higher occurrence value or stricter action when documented
+in the review. Attendance deductions are verified for exceptions and recording
+errors, reviewed by HR and approved by Compliance at month-end. A first accidental client-data error is recorded for correction
 with zero occurrences. Similar repeated errors require a link to documented prior
 feedback. Related consequences of one incident do not count again without a
 documented separate breach. Monthly payroll suggestions remain subject to the

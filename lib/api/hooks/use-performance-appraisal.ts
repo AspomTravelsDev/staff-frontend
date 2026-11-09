@@ -21,6 +21,7 @@ export function useSaveSelfAppraisal() {
       client.setQueryData(queryKeys.performance.appraisals.detail(appraisal.id), appraisal);
       void client.invalidateQueries({ queryKey: queryKeys.performance.appraisals.lists() });
       void client.invalidateQueries({ queryKey: queryKeys.performance.stats() });
+      void client.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }

@@ -140,6 +140,7 @@ export const SiteHeader = () => {
         }
         let displayCount = 0;
         let chatItems: { conversation_id: string; sender_name: string; count: number }[] | undefined = undefined;
+        let performanceItems: { id: number; title: string; body: string; count: number; url: string }[] | undefined = undefined;
 
         if (typeof count === "object" && count !== null) {
           displayCount = count.count;
@@ -154,6 +155,9 @@ export const SiteHeader = () => {
           }
           if (key === "chatMessages" && count.items) {
             chatItems = count.items;
+          }
+          if (key === "performanceAppraisalUpdates" && count.performance_items) {
+            performanceItems = count.performance_items;
           }
           // Dynamic routing for announcements
           if (key === "unreadAnnouncements") {
@@ -176,6 +180,7 @@ export const SiteHeader = () => {
           label,
           url: targetUrl,
           items: chatItems,
+          performanceItems,
           recruitmentItems: typeof count === "object" && count !== null ? count.recruitment_items ?? count.payroll_items : undefined,
           taskItems: typeof count === "object" && count !== null ? count.task_items : undefined,
           paymentItems: typeof count === "object" && count !== null ? count.payment_items : undefined,
@@ -183,7 +188,7 @@ export const SiteHeader = () => {
       }
       return acc;
     },
-    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; recruitmentItems?: { id: string; title: string; body: string; count: number; url: string }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[]; paymentItems?: { id: string; title: string; message: string; count: number; url: string }[] }>,
+    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; performanceItems?: { id: number; title: string; body: string; count: number; url: string }[]; recruitmentItems?: { id: string; title: string; body: string; count: number; url: string }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[]; paymentItems?: { id: string; title: string; message: string; count: number; url: string }[] }>,
   );
 
   const totalNotifications =
@@ -191,6 +196,32 @@ export const SiteHeader = () => {
       (sum, item) => sum + item.count,
       0,
     ) + todayBirthdays.length + todayAnniversaries.length;
+
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    const badgeNavigator = navigator as Navigator & {
+      setAppBadge?: (count?: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+
+    if (!user) {
+      void badgeNavigator.clearAppBadge?.().catch(() => undefined);
+      return;
+    }
+    if (!notifications) return;
+
+    // Keep the app icon aligned with the notification bell, excluding birthday
+    // and work-anniversary cards that are not unread notifications.
+    const unreadCount = Math.max(
+      0,
+      totalNotifications - todayBirthdays.length - todayAnniversaries.length,
+    );
+    if (unreadCount > 0) {
+      void badgeNavigator.setAppBadge?.(unreadCount).catch(() => undefined);
+    } else {
+      void badgeNavigator.clearAppBadge?.().catch(() => undefined);
+    }
+  }, [notifications, todayAnniversaries.length, todayBirthdays.length, totalNotifications, user]);
 
   return (
     <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 border-b">
@@ -296,6 +327,12 @@ export const SiteHeader = () => {
                               return data.taskItems.map(task => <Link key={`task-${task.task_id}`} href={`/my/task-tracker?view=${task.view}&task=${encodeURIComponent(task.task_id)}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0">
                                 <div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{task.body}</p></div>
                                 <span className="shrink-0 rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600">{task.count}</span>
+                              </Link>);
+                            }
+                            if (key === "performanceAppraisalUpdates" && data.performanceItems?.length) {
+                              return data.performanceItems.map(item => <Link key={`performance-${item.id}`} href={item.url} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0">
+                                <div className="min-w-0"><p className="truncate text-sm font-medium">{item.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{item.body}</p></div>
+                                <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">{item.count}</span>
                               </Link>);
                             }
                             if (key === "chatMessages" && data.items && data.items.length > 0) {

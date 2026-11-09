@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationFormData } from "@/lib/types/form-data";
 import { AddressVerificationToggle } from "./address-verification-toggle";
+import Image from "next/image";
+import { getProxiedImageUrl } from "@/lib/utils";
 
 interface BioDataProps {
   formData: ApplicationFormData & {
@@ -32,6 +34,11 @@ const InfoRow = ({
 );
 export function BioData({ formData, applicationId }: BioDataProps) {
   const { personal, employmentFinance, legal, guarantorReferee } = formData;
+  const passportPhoto = formData.media?.passportPhoto;
+  const passportPhotoSource = passportPhoto?.fileId
+    ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/files/download/${passportPhoto.fileId}`
+    : passportPhoto?.storagePath;
+  const passportPhotoUrl = getProxiedImageUrl(passportPhotoSource);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -126,6 +133,25 @@ export function BioData({ formData, applicationId }: BioDataProps) {
         <TabsContent value="personal" className="mt-4 space-y-6">
           <Card>
             <CardContent className="pt-6 space-y-6">
+              {passportPhotoUrl && (
+                <div className="flex items-start gap-4 rounded-lg border p-4">
+                  <Image
+                    src={passportPhotoUrl}
+                    alt="Applicant passport photograph"
+                    width={112}
+                    height={136}
+                    unoptimized
+                    className="h-[136px] w-28 rounded-md border object-cover"
+                  />
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold">Passport photograph</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {passportPhoto?.fileName || "Uploaded passport photograph"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Basic Details */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <InfoRow label="Title" value={personal?.title} />

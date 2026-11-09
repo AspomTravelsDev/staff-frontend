@@ -14,6 +14,7 @@ export type NotificationCountValue =
           recruitment_items?: { id: string; title: string; body: string; count: number; url: string }[];
           payroll_items?: { id: string; title: string; body: string; count: number; url: string }[];
           payment_items?: { id: string; title: string; message: string; count: number; url: string }[];
+          performance_items?: { id: number; title: string; body: string; count: number; url: string }[];
       };
 
 type NotificationCounts = Record<string, NotificationCountValue>;

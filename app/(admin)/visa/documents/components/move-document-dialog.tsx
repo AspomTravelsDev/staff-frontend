@@ -9,11 +9,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DocumentFile, DocumentFolder } from "@/types/file-types";
-import { moveVisaDocumentAction } from "../actions";
+import { moveScopedDocumentAction } from "@/lib/api/document-folder-actions";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -39,17 +49,20 @@ interface MoveDocumentDialogProps {
   document: DocumentFile;
   allFolders: DocumentFolder[];
   trigger: React.ReactNode;
+  scope?: "visa" | "hr";
 }
 
 export function MoveDocumentDialog({
   document,
   allFolders,
   trigger,
+  scope = "visa",
 }: MoveDocumentDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string>("root");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Map for fast O(1) folder lookups
   const foldersById = useMemo(
@@ -118,7 +131,7 @@ export function MoveDocumentDialog({
     try {
       // Map "root" back to null on server side
       const targetFolderId = selectedFolderId === "root" ? null : selectedFolderId;
-      const result = await moveVisaDocumentAction(document.id, targetFolderId);
+      const result = await moveScopedDocumentAction(scope, document.id, targetFolderId);
 
       if (result.error) {
         toast.error(result.error);
@@ -378,7 +391,7 @@ export function MoveDocumentDialog({
             Cancel
           </Button>
           <Button
-            onClick={handleMove}
+            onClick={() => setConfirmOpen(true)}
             disabled={isSubmitting || isCurrentLocationSelected}
             className="text-xs"
           >
@@ -393,6 +406,29 @@ export function MoveDocumentDialog({
           </Button>
         </div>
       </DialogContent>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm document move?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Move &quot;{document.title}&quot; to {destinationPathString}? Its department, category, and other metadata will remain unchanged.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await handleMove();
+                setConfirmOpen(false);
+              }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirm move
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

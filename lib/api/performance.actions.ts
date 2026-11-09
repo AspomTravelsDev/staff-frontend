@@ -11,6 +11,7 @@ export async function getCompletedResults(filters: PerformanceResultFilters = {}
     if (filters.search) params.set("search", filters.search);
     if (filters.department) params.set("department", filters.department);
     if (filters.month) params.set("month", filters.month);
+    if (filters.type) params.set("type", filters.type);
     if (filters.page) params.set("page", String(filters.page));
     const result = await api.get<{ data: PerformanceResults }>(`/api/performance/results${params.size ? `?${params}` : ""}`);
     if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);

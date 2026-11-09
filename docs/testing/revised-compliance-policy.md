@@ -11,13 +11,23 @@
 - A threshold crossed again after a previous sanction is flagged for review.
   Re-entering the same threshold does not by itself justify increased punishment.
 - Missed clock-in, clock-out, to-do lists and reports retain half an occurrence
-  each. Both clock records missing on one date total one occurrence and a proposed
-  full-day deduction.
+  each for compliance counting. For attendance deductions, a missing clock-in and
+  a missing clock-out are tracked separately: each attracts a half-day deduction
+  from its third occurrence. If both are missing, each half-day deduction applies,
+  subject to verification of approved leave/corrections and genuine system or
+  recording errors.
 - Lateness counting for payroll is per calendar month; the third and each later
-  unauthorized late day suggests one day's deduction.
+  unauthorized late day attracts one day's deduction.
 - Missed to-do lists and end-of-day reports are separate monthly categories.
   First/second misses receive warnings; the third and each later miss suggests a
-  half-day deduction. A suggestion is not approval to deduct pay.
+  half-day deduction.
+- Most offences count as one occurrence. Severity, evidence and impact may justify
+  a higher occurrence value or stricter action; the review must document its basis.
+- Attendance safeguards: notify a supervisor/HR promptly about missing submissions
+  or clocking records; verify approved leave, authorised off-site work, system
+  failures and other valid explanations before classifying an absence or applying
+  a deduction; HR reviews monthly deductions and Compliance approves them at
+  month-end; payslips are sent before salary payment for reconciliation.
 - Occurrence points and a reviewed deduction may coexist. Payroll avoids adding
   the same attendance deduction twice through attendance and compliance.
 - A repeated mistake is similar to a previously corrected/coached error. Linking

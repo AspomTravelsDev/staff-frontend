@@ -30,6 +30,7 @@ import {
   ArrowLeft,
   Copy,
   Reply,
+  UploadCloud,
 } from "lucide-react";
 import { Conversation, Message, MessageAttachment } from "@/types/chat";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
@@ -81,6 +82,7 @@ export function ChatWindow({
   // Composer state
   const [inputBody, setInputBody] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -91,6 +93,7 @@ export function ChatWindow({
   const [deleting, setDeleting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dragDepthRef = useRef(0);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -600,37 +603,38 @@ export function ChatWindow({
     ".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.bmp,.webp,.txt";
   const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      const validFiles: File[] = [];
+  function addFiles(filesArray: File[]) {
+    const validFiles: File[] = [];
 
-      filesArray.forEach((file) => {
-        const isValidType =
-          ALLOWED_MIME_TYPES.includes(file.type) ||
-          ALLOWED_MIME_TYPES.some(
-            (type) =>
-              type.startsWith("image/") && file.type.startsWith("image/"),
-          );
-        const isValidSize = file.size <= MAX_FILE_SIZE_BYTES;
+    filesArray.forEach((file) => {
+      const isValidType =
+        ALLOWED_MIME_TYPES.includes(file.type) ||
+        ALLOWED_MIME_TYPES.some(
+          (type) =>
+            type.startsWith("image/") && file.type.startsWith("image/"),
+        );
+      const isValidSize = file.size <= MAX_FILE_SIZE_BYTES;
 
-        if (!isValidType) {
-          toast.error(
-            `"${file.name}" is not a supported file format. Allowed: PDF, Word, Excel, CSV, Images (PNG, JPG, WebP, GIF), Text.`,
-          );
-        } else if (!isValidSize) {
-          toast.error(
-            `"${file.name}" exceeds the maximum 10MB file size limit.`,
-          );
-        } else {
-          validFiles.push(file);
-        }
-      });
-
-      if (validFiles.length > 0) {
-        setSelectedFiles((prev) => [...prev, ...validFiles]);
+      if (!isValidType) {
+        toast.error(
+          `"${file.name}" is not a supported file format. Allowed: PDF, Word, Excel, CSV, Images (PNG, JPG, WebP, GIF), Text.`,
+        );
+      } else if (!isValidSize) {
+        toast.error(
+          `"${file.name}" exceeds the maximum 10MB file size limit.`,
+        );
+      } else {
+        validFiles.push(file);
       }
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
     }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) addFiles(Array.from(e.target.files));
 
     // Reset input value so re-selecting the same file works
     if (e.target) {
@@ -640,6 +644,39 @@ export function ChatWindow({
 
   function removeFile(index: number) {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleDragEnter(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    if (sending || editingMessage) return;
+    dragDepthRef.current += 1;
+    setIsDraggingFiles(true);
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = sending || editingMessage ? "none" : "copy";
+  }
+
+  function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDraggingFiles(false);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDraggingFiles(false);
+    if (sending || editingMessage) {
+      toast.info(sending ? "Wait for this message to finish sending." : "Finish editing before attaching files.");
+      return;
+    }
+    addFiles(Array.from(event.dataTransfer.files));
   }
 
   function formatFileSize(bytes: number): string {
@@ -676,7 +713,22 @@ export function ChatWindow({
     (titleName.split(" ")[0]?.[0] || "") + (titleName.split(" ")[1]?.[0] || "");
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 bg-background min-w-0">
+    <div
+      className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col bg-background"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDraggingFiles && (
+        <div className="pointer-events-none absolute inset-2 z-50 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/95 shadow-lg" role="status" aria-live="polite">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"><UploadCloud className="size-6" /></span>
+            <span className="font-semibold">Drop files to attach</span>
+            <span className="text-sm text-muted-foreground">Files up to 10 MB · Send when you’re ready</span>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="p-3 sm:p-4 border-b border-border flex items-center justify-between gap-2 bg-card shrink-0">
         <div className="flex flex-1 items-center gap-2 sm:gap-3 min-w-0">

@@ -72,6 +72,7 @@ self.addEventListener("push", (event) => {
     data: {
       url: "/",
     },
+    unreadCount: null,
   };
 
   if (event.data) {
@@ -83,6 +84,12 @@ self.addEventListener("push", (event) => {
         icon: parsed.icon || notificationData.icon,
         badge: parsed.badge || notificationData.badge,
         data: parsed.data || { url: parsed.url || "/" },
+        unreadCount:
+          typeof parsed.unreadCount === "number"
+            ? parsed.unreadCount
+            : typeof parsed.data?.unreadCount === "number"
+              ? parsed.data.unreadCount
+              : null,
         actions: parsed.actions || [],
         tag: parsed.tag || undefined,
         renotify: parsed.renotify || false,
@@ -92,7 +99,7 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  event.waitUntil(
+  const work = [
     self.registration.showNotification(notificationData.title, {
       body: notificationData.body,
       icon: notificationData.icon,
@@ -101,8 +108,18 @@ self.addEventListener("push", (event) => {
       actions: notificationData.actions,
       tag: notificationData.tag,
       renotify: notificationData.renotify,
-    })
-  );
+    }),
+  ];
+
+  if (typeof notificationData.unreadCount === "number") {
+    const badgeUpdate =
+      notificationData.unreadCount > 0
+        ? self.navigator.setAppBadge?.(notificationData.unreadCount)
+        : self.navigator.clearAppBadge?.();
+    if (badgeUpdate) work.push(badgeUpdate.catch(() => undefined));
+  }
+
+  event.waitUntil(Promise.all(work));
 });
 
 // Handle notification click to navigate user
@@ -145,9 +162,12 @@ self.addEventListener("message", (event) => {
 
   if (event.data.action === "clear_all_notifications") {
     event.waitUntil(
-      self.registration.getNotifications().then((notifications) => {
-        return Promise.all(notifications.map((n) => n.close()));
-      })
+      Promise.all([
+        self.registration.getNotifications().then((notifications) => {
+          return Promise.all(notifications.map((n) => n.close()));
+        }),
+        self.navigator.clearAppBadge?.().catch(() => undefined),
+      ])
     );
   } else if (event.data.action === "clear_notification_tag" && event.data.tag) {
     event.waitUntil(

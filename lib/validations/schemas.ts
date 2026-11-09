@@ -1,265 +1,260 @@
 import { z } from 'zod'
 
 /**
- * Zod validation schemas for each form step
- * Ensures strict validation before storing in form_data JSONB
+ * Schemas for the public new-staff onboarding payload in form_data.
+ * Optional browser inputs are allowed to arrive as null or empty strings.
+ * Unknown keys are preserved because HR adds correction and workflow metadata.
  */
+const optionalText = z.string().nullish()
+const dateText = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).nullish()
+const yearMonthText = z.string().regex(/^\d{4}-\d{2}$/).or(z.literal('')).nullish()
 
-// Step 1: KYC & Personal Data Schema
+const uploadedFileSchema = z.object({
+    fileName: z.string().nullish(),
+    storagePath: z.string().nullish(),
+    uploadedAt: z.string().nullish(),
+    fileSize: z.number().nonnegative().nullish(),
+    base64: z.string().nullish(),
+    fileId: z.string().nullish(),
+}).passthrough()
+
+// Step 1: personal information
 export const personalDataSchema = z.object({
-    title: z.string().optional(),
+    title: optionalText,
     firstName: z.string().min(2, 'First name must be at least 2 characters'),
-    middleName: z.string().optional(),
+    middleName: optionalText,
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
-    birthplace: z.string().optional(),
+    birthplace: optionalText,
     gender: z.enum(['male', 'female', 'other']),
-    religion: z.string().optional(),
+    religion: optionalText,
     nationality: z.string().min(2, 'Nationality is required'),
     maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']),
-    languagesSpoken: z.array(z.string()).optional(),
-
-    // Identification
+    languagesSpoken: z.array(z.string()).nullish(),
     identification: z.object({
-        nationalIdOrVotersCardNo: z.string().optional(),
-        passportNo: z.string().optional(),
-        passportExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional(),
-    }).optional(),
-
+        nationalIdOrVotersCardNo: optionalText,
+        passportNo: optionalText,
+        passportExpiryDate: dateText,
+    }).passthrough().nullish(),
     phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
-    alternatePhoneNumber: z.string().optional(),
+    alternatePhoneNumber: optionalText,
     email: z.string().email('Invalid email address'),
-
     residentialAddress: z.object({
         houseNumber: z.string().min(1, 'House number is required'),
         address: z.string().min(5, 'Address is required'),
-        busStop: z.string().optional(),
+        busStop: optionalText,
         city: z.string().min(2, 'City is required'),
         state: z.string().min(2, 'State is required'),
         country: z.string().min(2, 'Country is required'),
-        postalCode: z.string().optional(),
-    }),
-
+        postalCode: optionalText,
+    }).passthrough(),
     nearestLandmark: z.string().min(5, 'Nearest landmark is required for verification'),
-    gateColor: z.string().optional(),
-    houseColor: z.string().optional(),
-    buildingDescription: z.string().optional(),
-
+    gateColor: optionalText,
+    houseColor: optionalText,
+    buildingDescription: optionalText,
     emergencyContact: z.object({
         name: z.string().min(2, 'Emergency contact name is required'),
         relationship: z.string().min(2, 'Relationship is required'),
         phoneNumber: z.string().min(10, 'Emergency contact phone is required'),
-        address: z.string().optional(),
-    }),
-})
+        address: optionalText,
+    }).passthrough(),
+}).passthrough()
 
-// Step 2: Employment & Finance Schema
+// Step 2: these fields match the object built by the live employment form.
 export const employmentFinanceSchema = z.object({
     bankDetails: z.object({
         accountNumber: z.string().min(10, 'Valid account number is required'),
-        accountName: z.string().optional(),
+        accountName: optionalText,
         bankName: z.string().min(2, 'Bank name is required'),
-        branchName: z.string().optional(),
-        sortCode: z.string().optional(),
-    }),
+    }).passthrough(),
+    education: z.array(z.object({
+        institution: z.string().min(2, 'Institution name is required'),
+        qualification: optionalText,
+        fieldOfStudy: optionalText,
+        startYear: z.string().regex(/^\d{4}$/, 'Valid year required (YYYY)'),
+        endYear: z.string().regex(/^\d{4}$/, 'Valid year required (YYYY)'),
+        grade: optionalText,
+    }).passthrough()).min(1, 'At least one educational qualification is required'),
+    previousEmployment: z.array(z.object({
+        employer: optionalText,
+        position: optionalText,
+        startDate: yearMonthText,
+        endDate: yearMonthText,
+        year: optionalText,
+        reasonForLeaving: optionalText,
+    }).passthrough()).optional(),
+    certifications: z.array(z.record(z.string(), z.unknown())).optional(),
+}).passthrough()
 
-    education: z.array(
-        z.object({
-            institution: z.string().min(2, 'Institution name is required'),
-            qualification: z.string().optional(),
-            fieldOfStudy: z.string().optional(),
-            startYear: z.string().regex(/^\d{4}$/, 'Valid year required (YYYY)'),
-            endYear: z.string().regex(/^\d{4}$/, 'Valid year required (YYYY)'),
-            grade: z.string().optional(),
-        })
-    ).min(1, 'At least one educational qualification is required'),
-
-    previousEmployment: z.array(
-        z.object({
-            companyName: z.string().optional(),
-            employer: z.string().optional(),
-            position: z.string().min(2, 'Position is required'),
-            startDate: z.string().regex(/^\d{4}-\d{2}$/, 'Format: YYYY-MM').optional(),
-            endDate: z.string().regex(/^\d{4}-\d{2}$/, 'Format: YYYY-MM').optional(),
-            year: z.string().optional(),
-            reasonForLeaving: z.string().optional(),
-        })
-    ).optional(),
-
-    certifications: z.array(
-        z.object({
-            name: z.string().min(2, 'Certification name is required'),
-            issuingOrganization: z.string().min(2, 'Issuing organization is required'),
-            issueDate: z.string().regex(/^\d{4}-\d{2}$/, 'Format: YYYY-MM').optional(),
-            expiryDate: z.string().regex(/^\d{4}-\d{2}$/, 'Format: YYYY-MM').optional(),
-        })
-    ).optional(),
-})
-
-// Step 3: NDA & Legal Agreements Schema
+// Step 3: the live form saves only these four agreements and timestamps.
 export const legalAgreementsSchema = z.object({
-    ndaAccepted: z.literal(true, {
-        message: 'You must accept the NDA to proceed',
-    }),
-    ndaAcceptedAt: z.string().optional(),
+    ndaAccepted: z.literal(true, { message: 'You must accept the NDA to proceed' }),
+    ndaAcceptedAt: optionalText,
+    nonCompeteAccepted: z.literal(true, { message: 'You must accept the non-compete clause' }),
+    nonCompeteAcceptedAt: optionalText,
+    confidentialityAccepted: z.literal(true, { message: 'You must accept the confidentiality agreement' }),
+    confidentialityAcceptedAt: optionalText,
+    termsAccepted: z.literal(true, { message: 'You must accept the terms and conditions' }),
+    termsAcceptedAt: optionalText,
+}).passthrough()
 
-    nonCompeteAccepted: z.literal(true, {
-        message: 'You must accept the non-compete clause',
-    }),
-    nonCompeteAcceptedAt: z.string().optional(),
+const guarantorSchema = z.object({
+    firstName: z.string().min(1),
+    middleName: optionalText,
+    lastName: z.string().min(1),
+    ageDob: dateText,
+    phoneNumber: z.string().min(10, 'Valid phone number is required'),
+    alternatePhoneNumber: optionalText,
+    email: z.string().email('Valid email is required').or(z.literal('')).nullish(),
+    address: z.object({
+        street: optionalText,
+        homeAddress: optionalText,
+        city: optionalText,
+        state: optionalText,
+        country: optionalText,
+    }).passthrough().nullish(),
+    occupation: optionalText,
+    employerName: optionalText,
+    employerAddress: optionalText,
+    relationship: z.string().min(2, 'Relationship is required'),
+    yearsKnown: z.number().min(0).nullish(),
+    characterAssessment: optionalText,
+    liabilityAccepted: z.boolean(),
+    liabilityAcceptedAt: optionalText,
+    passportPhoto: uploadedFileSchema.nullish(),
+    signature: optionalText,
+    witness: z.object({
+        name: optionalText,
+        occupation: optionalText,
+        phone: optionalText,
+        address: optionalText,
+        signature: optionalText,
+    }).passthrough().nullish(),
+    verification: z.record(z.string(), z.unknown()).optional(),
+}).passthrough()
 
-    confidentialityAccepted: z.literal(true, {
-        message: 'You must accept the confidentiality agreement',
-    }),
-    confidentialityAcceptedAt: z.string().optional(),
+const refereeAssessmentSchema = z.object({
+    howLongKnown: optionalText,
+    capacity: optionalText,
+    lastContact: optionalText,
+    abilityToGetAlong: optionalText,
+    primarySkills: optionalText,
+    areasToImprove: optionalText,
+    collaborationComfort: optionalText,
+    characterOpinion: optionalText,
+    trustworthyWithConfidentialInfo: z.boolean().nullish(),
+    observedIllegalActivity: optionalText,
+    recommendForPosition: optionalText,
+}).passthrough()
 
-    legalDeclaration: z.object({
-        hasConvictions: z.boolean(),
-        convictionDetails: z.string().optional(),
-        hasMedicalConditions: z.boolean(),
-        medicalConditionDetails: z.string().optional(),
-    }).refine(
-        (data) => {
-            if (data.hasConvictions && !data.convictionDetails) return false
-            if (data.hasMedicalConditions && !data.medicalConditionDetails) return false
-            return true
-        },
-        { message: 'Please provide details when applicable' }
-    ),
+const refereeSchema = z.object({
+    fullName: z.string().min(2, 'Referee full name is required'),
+    nameOfReferee: optionalText,
+    phoneNumber: z.string().min(10, 'Valid phone number is required'),
+    phoneNumberAlternate: optionalText,
+    emailAddress: z.string().email('Valid email is required').or(z.literal('')).nullish(),
+    organization: z.string().min(1, 'Organization is required'),
+    address: z.string().min(1, 'Address is required'),
+    occupation: z.string().min(1, 'Occupation is required'),
+    position: optionalText,
+    relationshipType: z.enum(['professional', 'academic']),
+    yearsKnown: z.number().min(0).nullish(),
+    howLongKnown: z.string().min(1, 'How long you have known the applicant is required'),
+    professionalAssessment: optionalText,
+    assessment: refereeAssessmentSchema.optional(),
+    signature: optionalText,
+    passportPhoto: uploadedFileSchema.nullish(),
+    verification: z.record(z.string(), z.unknown()).optional(),
+}).passthrough()
 
-    termsAccepted: z.literal(true, {
-        message: 'You must accept the terms and conditions',
-    }),
-    termsAcceptedAt: z.string().optional(),
-})
-
-// Step 4: Guarantor & Referee Schema
+// Step 4 and 5 are saved together under guarantorReferee.
 export const guarantorRefereeSchema = z.object({
-    guarantor: z.object({
-        firstName: z.string().optional(),
-        middleName: z.string().optional(),
-        lastName: z.string().optional(),
-        fullName: z.string().min(2, 'Guarantor full name is required'),
-        ageDob: z.string().optional(),
+    guarantors: z.array(guarantorSchema).length(2, 'Two guarantors are required'),
+    referee: refereeSchema,
+}).passthrough()
 
-        phoneNumber: z.string().min(10, 'Valid phone number is required'),
-        alternatePhoneNumber: z.string().optional(),
-        email: z.string().email('Valid email is required').optional().or(z.literal('')),
-
-        address: z.object({
-            street: z.string().optional(),
-            homeAddress: z.string().optional(),
-            city: z.string().optional(),
-            state: z.string().optional(),
-            country: z.string().optional(),
-        }).optional(),
-
-        occupation: z.string().min(2, 'Occupation is required'),
-        position: z.string().optional(),
-        employerName: z.string().optional(),
-        employerAddress: z.string().optional(),
-
-        relationship: z.string().min(2, 'Relationship is required'),
-        yearsKnown: z.number().min(0).optional(),
-
-        characterAssessment: z.string().optional(),
-
-        liabilityAccepted: z.literal(true, {
-            message: 'Guarantor must accept liability declaration',
-        }),
-        liabilityAcceptedAt: z.string().optional(),
-
-        signature: z.string().optional(),
-
-        witness: z.object({
-            name: z.string().optional(),
-            occupation: z.string().optional(),
-            phone: z.string().optional(),
-            address: z.string().optional(),
-            signature: z.string().optional(),
-        }).optional(),
-    }),
-
-    referee: z.object({
-        fullName: z.string().optional(),
-        nameOfReferee: z.string().min(2, 'Referee full name is required'),
-
-        phoneNumber: z.string().min(10, 'Valid phone number is required'),
-        phoneNumberAlternate: z.string().optional(),
-        emailAddress: z.string().email('Valid email is required').optional().or(z.literal('')),
-
-        organization: z.string().optional(),
-        address: z.string().optional(),
-        occupation: z.string().min(2, 'Occupation is required'),
-        position: z.string().optional(),
-
-        relationshipType: z.enum(['professional', 'academic', 'personal']).optional(),
-        yearsKnown: z.number().min(0).optional(),
-        howLongKnown: z.string().optional(),
-
-        professionalAssessment: z.string().optional(),
-        assessment: z.object({
-            howLongKnown: z.string().optional(),
-            capacity: z.string().optional(),
-            lastContact: z.string().optional(),
-            abilityToGetAlong: z.string().optional(),
-            primarySkills: z.string().optional(),
-            areasToImprove: z.string().optional(),
-            collaborationComfort: z.string().optional(),
-            characterOpinion: z.string().optional(),
-            trustworthyWithConfidentialInfo: z.boolean().optional(),
-            observedIllegalActivity: z.string().optional(),
-            recommendForPosition: z.string().optional(),
-        }).optional(),
-
-        signature: z.string().optional(),
-    }),
-})
-
-// Step 5: Media Upload Schema
+// Step 6: all uploaded assets saved by the live form.
 export const mediaDataSchema = z.object({
-    passportPhoto: z.object({
-        fileName: z.string().optional(),
-        storagePath: z.string().optional(),
-        uploadedAt: z.string().optional(),
-        fileSize: z.number().max(5 * 1024 * 1024, 'File size must be less than 5MB').optional(),
-        base64: z.string().optional(),
-    }).optional(),
+    passportPhoto: uploadedFileSchema.nullish(),
+    signature: uploadedFileSchema.nullish(),
+    validId: uploadedFileSchema.nullish(),
+    oLevelResults: uploadedFileSchema.nullish(),
+    nyscCertificate: uploadedFileSchema.nullish(),
+    universityCertificate: uploadedFileSchema.nullish(),
+    birthCertificate: uploadedFileSchema.nullish(),
+    resumeCv: uploadedFileSchema.nullish(),
+    utilityBill: uploadedFileSchema.nullish(),
+    ndaWitnessSignature: uploadedFileSchema.nullish(),
+}).passthrough()
 
-    signature: z.object({
-        fileName: z.string().optional(),
-        storagePath: z.string().optional(),
-        uploadedAt: z.string().optional(),
-        fileSize: z.number().max(2 * 1024 * 1024, 'Signature size must be less than 2MB').optional(),
-        base64: z.string().optional(),
-    }).optional(),
+const documentsSchema = z.object({
+    formsDownloaded: z.boolean(),
+    downloadedAt: optionalText,
+    dressCodeAcknowledged: z.boolean(),
+    dressCodeAcknowledgedAt: optionalText,
+}).passthrough()
 
-    ndaWitnessSignature: z.object({
-        fileName: z.string().optional(),
-        storagePath: z.string().optional(),
-        uploadedAt: z.string().optional(),
-        fileSize: z.number().max(2 * 1024 * 1024, 'Signature size must be less than 2MB').optional(),
-        base64: z.string().optional(),
-    }).optional(),
-})
+const signedDocumentsSchema = z.object({
+    guarantor1Signed: uploadedFileSchema.optional(),
+    guarantor2Signed: uploadedFileSchema.optional(),
+    refereeSigned: uploadedFileSchema.optional(),
+    ndaSigned: uploadedFileSchema.optional(),
+}).catchall(uploadedFileSchema)
 
-// Complete Form Schema (for final submission validation)
+const generatedPdfSchema = z.object({
+    storagePath: z.string(),
+    generatedAt: z.string(),
+    fileSize: z.number().nonnegative(),
+    fileId: z.string().optional(),
+}).passthrough()
+
+// Full public onboarding payload. HR-owned workflow data is explicitly kept
+// permissive so parsing applicant sections never drops it during corrections.
 export const completeFormDataSchema = z.object({
     personal: personalDataSchema,
     employmentFinance: employmentFinanceSchema,
     legal: legalAgreementsSchema,
     guarantorReferee: guarantorRefereeSchema,
     media: mediaDataSchema.refine(
-        (data) => data.passportPhoto && data.signature,
-        { message: 'Both passport photo and signature are required' }
+        (data) => Boolean(
+            data.passportPhoto?.storagePath &&
+            data.signature?.storagePath &&
+            data.validId?.storagePath &&
+            data.oLevelResults?.storagePath &&
+            data.nyscCertificate?.storagePath &&
+            data.universityCertificate?.storagePath &&
+            data.birthCertificate?.storagePath &&
+            data.resumeCv?.storagePath &&
+            data.utilityBill?.storagePath
+        ),
+        { message: 'All required applicant documents must be uploaded' }
     ),
-
-    currentStep: z.number().min(1).max(5),
-    completedSteps: z.array(z.number()),
-    lastUpdated: z.string(),
-    submittedAt: z.string().optional(),
-})
+    documents: documentsSchema.refine(
+        (data) => data.formsDownloaded && data.dressCodeAcknowledged,
+        { message: 'Required onboarding documents must be acknowledged' }
+    ),
+    signedDocuments: signedDocumentsSchema.refine(
+        (data) => Boolean(
+            data.guarantor1Signed?.storagePath &&
+            data.guarantor2Signed?.storagePath &&
+            data.refereeSigned?.storagePath &&
+            data.ndaSigned?.storagePath
+        ),
+        { message: 'All required signed documents must be uploaded' }
+    ),
+    generatedPdfs: z.record(z.string(), z.union([generatedPdfSchema, z.string()])).optional(),
+    currentStep: z.number().int().min(1).max(8),
+    completedSteps: z.array(z.number().int().min(1).max(8)),
+    lastUpdated: z.string().optional(),
+    submittedAt: optionalText,
+    employment_terms: z.record(z.string(), z.unknown()).optional(),
+    recruitment_offer: z.record(z.string(), z.unknown()).optional(),
+    review: z.record(z.string(), z.unknown()).optional(),
+    reviewHistory: z.array(z.record(z.string(), z.unknown())).optional(),
+    address_verification: z.record(z.string(), z.unknown()).optional(),
+    address_verified: z.boolean().optional(),
+    verificationHistory: z.array(z.record(z.string(), z.unknown())).optional(),
+}).passthrough()
 
 // Export types inferred from schemas
 export type PersonalDataInput = z.infer<typeof personalDataSchema>

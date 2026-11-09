@@ -1,29 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppraisalHistory, useAppraisalStats } from "@/lib/api/hooks/use-performance-appraisal";
-import type { AppraisalStats, AppraisalSummary } from "@/lib/types/performance-appraisal";
-import { AppraisalStatsCards } from "./appraisal-stats-cards";
-import { AppraisalTable } from "./appraisal-table";
+import { startDevelopmentAppraisal, startMyAppraisal } from "@/lib/api/performance-appraisal.actions";
+import { markAppraisalCompletionNotificationsViewed } from "@/lib/api/performance-appraisal";
+import { callAction } from "@/lib/api/action-result";
+import { appraisalStatusLabel } from "@/lib/performance-self-assessment";
+import type { AppraisalAvailability, AppraisalStats, AppraisalSummary, AppraisalType } from "@/lib/types/performance-appraisal";
+import { PerformanceMetric } from "@/components/performance/performance-page-header";
 
-export function MyPerformanceWorkspace({ initialAppraisals, initialStats }: { initialAppraisals: AppraisalSummary[]; initialStats: AppraisalStats }) {
+export function MyPerformanceWorkspace({ initialAppraisals, initialStats, initialAvailability, allowDevelopmentStart = false }: { initialAppraisals: AppraisalSummary[]; initialStats: AppraisalStats; initialAvailability: AppraisalAvailability; allowDevelopmentStart?: boolean }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const markedReadOnVisit = useRef(false);
   const history = useAppraisalHistory(initialAppraisals);
   const stats = useAppraisalStats(initialStats);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const items = (history.data ?? initialAppraisals).filter((item) => `${item.month} ${item.department}`.toLowerCase().includes(search.toLowerCase())
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const appraisals = history.data ?? initialAppraisals;
+  const nextAction = useMemo(() => appraisals.find((item) => item.can_edit_self), [appraisals]);
+  const items = appraisals.filter((item) => `${item.month} ${item.department}`.toLowerCase().includes(search.toLowerCase())
     && (filter === "all" || (filter === "action" ? item.can_edit_self : !item.can_edit_self)));
 
-  return <div className="space-y-6">
-    <header className="space-y-1"><h1 className="text-2xl font-bold">My Performance</h1><p className="max-w-2xl text-sm text-muted-foreground">Complete your assigned monthly self-assessments and follow their review progress. HR opens each period and assigns its KPI criteria and reviewers.</p></header>
-    {(history.error || stats.error) && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Unable to refresh your appraisals. The last loaded information is shown below.</p><Button variant="outline" onClick={() => { void history.refetch(); void stats.refetch(); }}>Retry loading</Button></div>}
-    <AppraisalStatsCards stats={stats.data ?? initialStats} />
-    <section className="space-y-4" aria-labelledby="appraisals-heading"><h2 id="appraisals-heading" className="text-lg font-semibold">Assigned appraisals</h2>
-      <div className="grid max-w-2xl gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="appraisal-search">Search month or department</Label><Input id="appraisal-search" placeholder="e.g. 2026-10" value={search} onChange={(event) => setSearch(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="appraisal-status">Show</Label><select id="appraisal-status" className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All appraisals</option><option value="action">Needs my self-assessment</option><option value="history">In review, completed or closed</option></select></div></div>
-      <AppraisalTable appraisals={items} hasAnyAppraisals={!!history.data?.length} />
-    </section>
+  async function startTestAppraisal(type: AppraisalType) {
+    setStarting(true);
+    setStartError(null);
+    try {
+      const appraisal = await callAction(() => (allowDevelopmentStart ? startDevelopmentAppraisal : startMyAppraisal)(type));
+      await Promise.all([history.refetch(), stats.refetch()]);
+      router.push(`/my/performance/${appraisal.id}`);
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : "Unable to start the appraisal.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (markedReadOnVisit.current) return;
+    markedReadOnVisit.current = true;
+    void markAppraisalCompletionNotificationsViewed()
+      .then(() => queryClient.invalidateQueries({ queryKey: ["notifications"] }))
+      .catch((error) => console.error("Failed to mark appraisal notifications as read:", error));
+  }, [queryClient]);
+
+  return <div className="flex min-w-0 flex-col gap-5">
+    <header className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold">My Performance</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Start an available assessment and follow its review to the final result.</p>
+      </div>
+      {nextAction ? <Button asChild><Link href={`/my/performance/${nextAction.id}`}>{nextAction.self_status === "draft" ? "Continue assessment" : "View assessment"}<ArrowRight className="ml-2 size-4" /></Link></Button>
+        : !(initialAvailability.periods?.some((period) => period.can_start) || allowDevelopmentStart) && <p className="pt-1 text-sm text-muted-foreground">No assessment due right now.</p>}
+    </header>
+    {(history.error || stats.error) && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><p>Couldn’t refresh your appraisal details.</p><Button variant="outline" size="sm" onClick={() => { void history.refetch(); void stats.refetch(); }}>Try again</Button></div>}
+    {startError && <p role="alert" className="-mt-3 text-sm text-destructive">{startError}</p>}
+    {(initialAvailability.periods?.some((period) => period.can_start) || allowDevelopmentStart) && <section className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4" aria-label="Start an assessment">
+      <span className="mr-1 text-sm font-medium">Available now</span>
+      {(initialAvailability.periods ?? []).filter((period) => period.can_start).map((period) => <Button key={`${period.type}-${period.month}`} onClick={() => void startTestAppraisal(period.type)} disabled={starting}>{starting ? "Starting…" : `${period.type === "appraisal" ? "Appraisal" : "Monthly KPI"} · ${period.month}`}<ArrowRight className="ml-2 size-4" /></Button>)}
+      {allowDevelopmentStart && !(initialAvailability.periods ?? []).some((period) => period.type === "monthly_kpi" && period.can_start) && <Button variant="outline" onClick={() => void startTestAppraisal("monthly_kpi")} disabled={starting}>{starting ? "Starting…" : "Start test monthly KPI"}</Button>}
+      {allowDevelopmentStart && !(initialAvailability.periods ?? []).some((period) => period.type === "appraisal" && period.can_start) && <Button variant="outline" onClick={() => void startTestAppraisal("appraisal")} disabled={starting}>{starting ? "Starting…" : "Start test Appraisal"}</Button>}
+    </section>}
+    <section aria-label="Appraisal summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4"><PerformanceMetric label="Assigned" value={(stats.data ?? initialStats).total_appraisals} detail="All appraisal types" /><PerformanceMetric label="Needs your input" value={(stats.data ?? initialStats).pending_self_appraisal} detail="Awaiting submission" tone="amber" /><PerformanceMetric label="Completed" value={(stats.data ?? initialStats).completed_appraisals} detail="Finished appraisals" tone="primary" /><PerformanceMetric label="Average score" value={(stats.data ?? initialStats).average_rating === null ? "—" : `${(stats.data ?? initialStats).average_rating?.toFixed(2)} / 5`} detail="Across completed reviews" /></section>
+    <Card><CardHeader className="pb-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><CardTitle>Appraisal history</CardTitle><CardDescription>Monthly KPI and June/December Appraisal cycles.</CardDescription></div><div className="flex flex-wrap gap-2"><div className="relative min-w-48"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search appraisal history" className="pl-9" placeholder="Search month or department" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-44" aria-label="Filter appraisal history"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All appraisals</SelectItem><SelectItem value="action">Needs my assessment</SelectItem><SelectItem value="history">In review or complete</SelectItem></SelectContent></Select></div></div></CardHeader><CardContent className="pt-0">
+      {!items.length ? <div className="border-t py-8 text-center"><p className="font-medium">{appraisals.length ? "No matching appraisals" : "No appraisal history yet"}</p><p className="mt-1 text-sm text-muted-foreground">{appraisals.length ? "Adjust your search or filter." : "Your appraisals will appear here."}</p></div> : <ul className="divide-y border-y">{items.map((item) => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-medium">{item.type === "appraisal" ? "Appraisal" : "Monthly KPI"} · {item.month}</h3><Badge variant={item.can_edit_self ? "outline" : "secondary"}>{appraisalStatusLabel(item)}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{item.department}{item.final_score !== null ? ` · Average ${Number(item.final_score).toFixed(2)} / 5${item.total_score !== null ? ` · Total ${item.total_score} / ${item.total_max_score}` : ""}` : ""}</p></div><Button variant="outline" size="sm" asChild><Link href={`/my/performance/${item.id}`}>{item.can_edit_self ? item.self_status === "draft" ? "Continue" : "Assess" : "View"}<ArrowRight className="ml-2 size-4" /></Link></Button></li>)}</ul>}
+    </CardContent></Card>
   </div>;
 }

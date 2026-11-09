@@ -10,7 +10,7 @@ export default async function DepartmentKpisPage() {
   return renderDataPage(async () => {
     const user = await getCurrentUser();
     if (!user) redirect("/login");
-    if (!user.is_active || user.is_department_account || !userHasRole(user, "compliance")) redirect("/dashboard");
+    if (!user.is_active || user.is_department_account || (!userHasRole(user, "compliance") && !userHasRole(user, "super"))) redirect("/dashboard");
     const initialData = await callAction(listDepartmentKpis);
     return <DepartmentKpiManager initialData={initialData} />;
   }, "Unable to load department KPIs");

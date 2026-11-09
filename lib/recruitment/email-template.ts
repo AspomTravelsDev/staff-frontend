@@ -13,6 +13,7 @@ export function emailFieldsComplete(definitions: RecruitmentEmailField[], fields
     if (field.type === "number") return /^\d+$/.test(value) && +value >= 1 && +value <= 480;
     if (field.type === "select") return !!field.options?.[value];
     if (field.type === "url") { try { return new URL(value).protocol === "https:"; } catch { return false; } }
+    if (field.type === "time") return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
     if (field.type === "date" || field.type === "datetime-local") return !Number.isNaN(Date.parse(value));
     return true;
   }) && !(fields.deadline && fields.questions_date && String(fields.deadline).slice(0, 10) < String(fields.questions_date));
@@ -30,6 +31,9 @@ export function previewRecruitmentEmail(template: string, definitions: Recruitme
         value = date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lagos" });
         if (field.type === "datetime-local") value += ` at ${raw.slice(11)} (WAT)`;
       }
+    } else if (field.type === "time" && /^([01]\d|2[0-3]):[0-5]\d$/.test(raw)) {
+      const [hour, minute] = raw.split(":").map(Number);
+      value = `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
     }
     values[field.key] = value;
   }
