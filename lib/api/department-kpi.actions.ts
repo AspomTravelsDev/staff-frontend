@@ -23,6 +23,14 @@ export async function saveDepartmentKpi(id: string | null, data: DepartmentKpiIn
   }, "saveDepartmentKpi");
 }
 
+export async function deleteAllDepartmentKpis() {
+  return runAction(async () => {
+    const result = await api.delete<{ message: string }>("/api/performance/kpis");
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "deleteAllDepartmentKpis");
+}
+
 export async function saveDepartmentKpisBulk(items: DepartmentKpiInput[]) {
   return runAction(async () => {
     const result = await api.post<{ data: DepartmentKpi[] }>("/api/performance/kpis/bulk", { items });

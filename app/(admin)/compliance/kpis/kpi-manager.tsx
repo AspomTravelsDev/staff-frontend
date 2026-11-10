@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Papa, { type ParseResult } from "papaparse";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2, Download, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2, Download, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 import { callAction } from "@/lib/api/action-result";
-import { listDepartmentKpis, listKpiCategories, saveDepartmentKpi, saveDepartmentKpisBulk, saveKpiCategory } from "@/lib/api/department-kpi.actions";
+import { deleteAllDepartmentKpis, listDepartmentKpis, listKpiCategories, saveDepartmentKpi, saveDepartmentKpisBulk, saveKpiCategory } from "@/lib/api/department-kpi.actions";
 import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList, KpiCategory } from "@/lib/types/department-kpi";
 
 const queryKey = ["performance", "department-kpis"] as const;
@@ -39,7 +40,7 @@ function emptyKpi(): DepartmentKpiInput {
   return { name: "", description: "", expectation: "", measurement_method: "", scoring_guide: { 1: "", 2: "", 3: "", 4: "", 5: "" }, applies_to: "all_staff", is_active: true, category_id: null };
 }
 
-export function DepartmentKpiManager({ initialData }: { initialData: DepartmentKpiList }) {
+export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { initialData: DepartmentKpiList; isSuperAdmin?: boolean }) {
   const client = useQueryClient();
   const { data, error, isFetching, refetch } = useQuery({ queryKey, queryFn: () => callAction(listDepartmentKpis), initialData });
   const categories = useQuery({ queryKey: ["performance", "kpi-categories"], queryFn: () => callAction(listKpiCategories) });
@@ -55,6 +56,21 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
   const [categorySaveError, setCategorySaveError] = useState("");
   const [importError, setImportError] = useState("");
   const [importing, setImporting] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+
+  const deleteAll = useMutation({
+    mutationFn: () => callAction(deleteAllDepartmentKpis),
+    onSuccess: () => {
+      client.setQueryData<DepartmentKpiList>(queryKey, (old) => old ? { ...old, items: [] } : old);
+      void client.invalidateQueries({ queryKey });
+      toast.success("All department KPIs deleted successfully");
+      setConfirmDeleteAll(false);
+    },
+    onError: (failure) => {
+      toast.error(failure instanceof Error ? failure.message : "Unable to delete KPIs.");
+      setConfirmDeleteAll(false);
+    },
+  });
   const nameRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -214,8 +230,38 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
         title="Department KPIs"
         description="Build the criteria staff use in monthly appraisals. Keep targets specific, measurable, and easy to review."
         icon={Target}
-        actions={<div className="flex flex-wrap gap-2"><input ref={importRef} className="sr-only" type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /><Button variant="outline" disabled={!!editor || !!categoryEditor || importing} onClick={downloadTemplate}><Download aria-hidden="true" />Template</Button><Button variant="outline" disabled={!!editor || !!categoryEditor || importing || !categories.data?.items.length} onClick={() => importRef.current?.click()}><Upload aria-hidden="true" />{importing ? "Importing…" : "Import CSV"}</Button><Button ref={addRef} disabled={!!editor || !!categoryEditor || !data.departments.length} onClick={() => openEditor()}><Plus aria-hidden="true" />Add KPI</Button></div>}
+        actions={<div className="flex flex-wrap gap-2"><input ref={importRef} className="sr-only" type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /><Button variant="outline" disabled={!!editor || !!categoryEditor || importing} onClick={downloadTemplate}><Download aria-hidden="true" />Template</Button><Button variant="outline" disabled={!!editor || !!categoryEditor || importing || !categories.data?.items.length} onClick={() => importRef.current?.click()}><Upload aria-hidden="true" />{importing ? "Importing…" : "Import CSV"}</Button>{isSuperAdmin && Boolean(data.items.length) && (
+            <Button
+              variant="destructive"
+              disabled={!!editor || !!categoryEditor || importing || deleteAll.isPending}
+              onClick={() => setConfirmDeleteAll(true)}
+            >
+              <Trash2 aria-hidden="true" />
+              {deleteAll.isPending ? "Deleting…" : "Delete All"}
+            </Button>
+          )}<Button ref={addRef} disabled={!!editor || !!categoryEditor || !data.departments.length} onClick={() => openEditor()}><Plus aria-hidden="true" />Add KPI</Button></div>}
       />
+      <AlertDialog open={confirmDeleteAll} onOpenChange={setConfirmDeleteAll}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete all department KPIs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all {data.items.length} KPIs from the catalogue. Existing appraisals will retain their criteria snapshots, but past references will be unlinked. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteAll.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteAll.isPending}
+              onClick={() => deleteAll.mutate()}
+            >
+              {deleteAll.isPending ? "Deleting…" : "Yes, delete all KPIs"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={!!importError} onOpenChange={(open) => { if (!open) setImportError(""); }}>
         <DialogContent>
           <DialogHeader>

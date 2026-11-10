@@ -12,6 +12,6 @@ export default async function DepartmentKpisPage() {
     if (!user) redirect("/login");
     if (!user.is_active || user.is_department_account || (!userHasRole(user, "compliance") && !userHasRole(user, "super"))) redirect("/dashboard");
     const initialData = await callAction(listDepartmentKpis);
-    return <DepartmentKpiManager initialData={initialData} />;
+    return <DepartmentKpiManager initialData={initialData} isSuperAdmin={userHasRole(user, "super")} />;
   }, "Unable to load department KPIs");
 }
