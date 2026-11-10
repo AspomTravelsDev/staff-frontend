@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { DocumentFile } from "@/types/file-types";
+import { isAllowedDocumentFile, DOCUMENT_ACCEPT_STRING } from "@/lib/utils/document-mime-types";
 
 const ONBOARDING_DOCUMENT_CATEGORIES = [
   { value: "general", label: "General" },
@@ -89,16 +90,8 @@ export function UploadDocumentDialog({
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    const allowedTypes = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    ];
-
-    if (!allowedTypes.includes(selectedFile.type)) {
-      setError("Only PDF, Word, and PowerPoint files are allowed.");
+    if (!isAllowedDocumentFile(selectedFile)) {
+      setError("Only PDF, Word, Excel, and PowerPoint files are allowed.");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
@@ -177,7 +170,7 @@ export function UploadDocumentDialog({
           <DialogDescription>
             {isEditing
               ? "Update document metadata for this document."
-              : "Upload a PDF, Word, or PowerPoint document. Max file size is 2MB."}
+              : "Upload a PDF, Word, Excel, or PowerPoint document. Max file size is 2MB."}
           </DialogDescription>
         </DialogHeader>
 
@@ -244,7 +237,7 @@ export function UploadDocumentDialog({
               <Input
                 id="file"
                 type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx"
+                accept={DOCUMENT_ACCEPT_STRING}
                 onChange={handleFileChange}
                 ref={fileInputRef}
                 disabled={isPending}

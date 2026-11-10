@@ -6,6 +6,9 @@ import {
   Download,
   Trash2,
   FileText,
+  FileSpreadsheet,
+  Presentation,
+  FileImage,
   MoreVertical,
   HardDrive,
   Pencil,
@@ -34,6 +37,7 @@ import {
 import { deleteDocumentAction } from "../actions";
 import { useState, useEffect } from "react";
 import { getFileDownloadToken } from "@/lib/api/files";
+import { getFileExtension } from "@/lib/utils/document-mime-types";
 import { toast } from "sonner";
 import {
   Tooltip,
@@ -181,10 +185,24 @@ export function DocumentGrid({
         </div>
       );
     }
+    if (ext === "xls" || ext === "xlsx" || ext === "csv") {
+      return (
+        <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+          <FileSpreadsheet className="h-6 w-6 text-emerald-600" />
+        </div>
+      );
+    }
     if (ext === "ppt" || ext === "pptx") {
       return (
         <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-          <FileText className="h-6 w-6 text-orange-500" />
+          <Presentation className="h-6 w-6 text-orange-500" />
+        </div>
+      );
+    }
+    if (ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "webp") {
+      return (
+        <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+          <FileImage className="h-6 w-6 text-purple-500" />
         </div>
       );
     }

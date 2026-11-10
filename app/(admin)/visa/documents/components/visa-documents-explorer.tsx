@@ -85,7 +85,7 @@ export function VisaDocumentsExplorer({
       {isFileDragActive && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/5">
           <div className="rounded-md bg-background px-4 py-3 text-sm font-medium shadow-sm">
-            Drop PDF documents to upload
+            Drop documents to upload
           </div>
         </div>
       )}

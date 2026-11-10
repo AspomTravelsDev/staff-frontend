@@ -60,6 +60,8 @@ export interface AppraisalSummary {
   final_score: string | null;
   total_score: number | null;
   total_max_score: number | null;
+  current_stage: "reviewer" | "supervisor" | "hr" | "compliance" | "mp" | null;
+  review_progress: { stage: "self" | "reviewer" | "supervisor" | "hr" | "compliance" | "mp"; status: "waiting" | "ready" | "completed" }[];
 }
 
 export interface PerformanceAppraisal extends AppraisalSummary {

@@ -8,6 +8,17 @@ export function formatPerformanceMonth(value: string): string {
     .format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
+export function formatPerformanceDate(value: string): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 export function reviewStageLabel(review: Pick<ReviewSummary, "reviewer_route" | "type"> & { stage: NonNullable<ReviewSummary["stage"]> }): string {
   const labels = { reviewer: review.reviewer_route === "compliance" ? "Compliance assessment" : "Supervisor assessment", supervisor: review.type === "appraisal" ? "Supervisor assessment" : "Supervisor review", hr: "HR review", compliance: review.type === "appraisal" ? "Compliance assessment" : "Compliance review", mp: review.type === "appraisal" ? "Management assessment" : "MP assessment" };
   return labels[review.stage];

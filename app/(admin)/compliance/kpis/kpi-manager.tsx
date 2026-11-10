@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Papa, { type ParseResult } from "papaparse";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList, KpiCategory 
 const queryKey = ["performance", "department-kpis"] as const;
 const sortOptions = ["category", "name", "status"] as const;
 const pageSizeOptions = [10, 25, 50] as const;
+const importHeaders = ["category", "name", "description", "expectation", "measurement_method", "applies_to", "is_active", "score_1", "score_2", "score_3", "score_4", "score_5"];
 
 function SortIcon({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
   if (!active) return <ArrowUpDown className="size-3.5 text-muted-foreground" aria-hidden="true" />;
@@ -51,8 +53,11 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
   const [viewing, setViewing] = useState<DepartmentKpi | null>(null);
   const [saveError, setSaveError] = useState("");
   const [categorySaveError, setCategorySaveError] = useState("");
+  const [importError, setImportError] = useState("");
+  const [importing, setImporting] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   const save = useMutation({
     mutationFn: ({ id, values }: { id: string | null; values: DepartmentKpiInput }) => callAction(() => saveDepartmentKpi(id, values)),
@@ -101,6 +106,69 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
     setEditor((old) => old ? { ...old, values: { ...old.values, [key]: value } } : old);
   }
 
+  function downloadTemplate() {
+    const csv = Papa.unparse({
+      fields: importHeaders,
+      data: [["Quality", "Work is accurate and precise", "Describe the result being measured", "State the expected outcome", "Explain how the result is measured", "all_staff", "true", "Below standard", "Needs improvement", "Meets standard", "Exceeds standard", "Exceptional"]],
+    });
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "department-kpi-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importFile(file: File) {
+    setImportError("");
+    setImporting(true);
+    try {
+      const parsed = await new Promise<ParseResult<Record<string, string>>>((resolve, reject) => {
+        Papa.parse<Record<string, string>>(file, { header: true, skipEmptyLines: true, complete: resolve, error: reject });
+      });
+      const categoryMap = new Map((categories.data?.items ?? []).map((category) => [category.name.trim().toLowerCase(), category.id]));
+      const errors: string[] = [];
+      const pendingRows: { categoryName: string; input: Omit<DepartmentKpiInput, "category_id"> }[] = [];
+      parsed.data.forEach((row, index) => {
+        const line = index + 2;
+        const categoryName = (row.category ?? "").trim();
+        const appliesTo = !row.applies_to?.trim() || row.applies_to.trim() === "all_staff" ? "all_staff" : row.applies_to.trim() === "supervisors" ? "supervisors" : null;
+        const scoringGuide: DepartmentKpiInput["scoring_guide"] = {
+          1: row.score_1?.trim() ?? "",
+          2: row.score_2?.trim() ?? "",
+          3: row.score_3?.trim() ?? "",
+          4: row.score_4?.trim() ?? "",
+          5: row.score_5?.trim() ?? "",
+        };
+        if (!categoryName) errors.push(`Row ${line}: category is required.`);
+        if (!row.name?.trim() || !row.description?.trim() || !row.expectation?.trim() || !row.measurement_method?.trim()) errors.push(`Row ${line}: name, description, expectation, and measurement_method are required.`);
+        if (!appliesTo) errors.push(`Row ${line}: applies_to must be all_staff or supervisors.`);
+        if (Object.values(scoringGuide).some((value) => value.length < 5)) errors.push(`Row ${line}: every score description must be at least 5 characters.`);
+        if (categoryName && appliesTo) pendingRows.push({ categoryName, input: { name: row.name.trim(), description: row.description.trim(), expectation: row.expectation.trim(), measurement_method: row.measurement_method.trim(), applies_to: appliesTo, is_active: row.is_active?.trim().toLowerCase() !== "false", scoring_guide: { 1: scoringGuide[1], 2: scoringGuide[2], 3: scoringGuide[3], 4: scoringGuide[4], 5: scoringGuide[5] } } });
+      });
+      if (errors.length) throw new Error(errors.slice(0, 8).join(" "));
+      let createdCategories = 0;
+      for (const row of pendingRows) {
+        const key = row.categoryName.toLowerCase();
+        if (!categoryMap.has(key)) {
+          const category = await callAction(() => saveKpiCategory(null, { name: row.categoryName, description: "", is_active: true, departments: [] }));
+          categoryMap.set(key, category.id);
+          createdCategories++;
+        }
+      }
+      for (const row of pendingRows) {
+        await callAction(() => saveDepartmentKpi(null, { ...row.input, category_id: categoryMap.get(row.categoryName.toLowerCase()) ?? null }));
+      }
+      await Promise.all([refetch(), categories.refetch()]);
+      toast.success(`${pendingRows.length} KPI${pendingRows.length === 1 ? "" : "s"} imported${createdCategories ? ` · ${createdCategories} categor${createdCategories === 1 ? "y" : "ies"} created` : ""}`);
+    } catch (failure) {
+      setImportError(failure instanceof Error ? failure.message : "Unable to import this file.");
+    } finally {
+      setImporting(false);
+      if (importRef.current) importRef.current.value = "";
+    }
+  }
+
   function toggleSort(nextSort: (typeof sortOptions)[number]) {
     if (sort === nextSort) {
       setSortDirection((value) => value === "asc" ? "desc" : "asc");
@@ -140,8 +208,24 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
         title="Department KPIs"
         description="Build the criteria staff use in monthly appraisals. Keep targets specific, measurable, and easy to review."
         icon={Target}
-        actions={<Button ref={addRef} disabled={!!editor || !!categoryEditor || !data.departments.length} onClick={() => openEditor()}><Plus aria-hidden="true" />Add KPI</Button>}
+        actions={<div className="flex flex-wrap gap-2"><input ref={importRef} className="sr-only" type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /><Button variant="outline" disabled={!!editor || !!categoryEditor || importing} onClick={downloadTemplate}><Download aria-hidden="true" />Template</Button><Button variant="outline" disabled={!!editor || !!categoryEditor || importing || !categories.data?.items.length} onClick={() => importRef.current?.click()}><Upload aria-hidden="true" />{importing ? "Importing…" : "Import CSV"}</Button><Button ref={addRef} disabled={!!editor || !!categoryEditor || !data.departments.length} onClick={() => openEditor()}><Plus aria-hidden="true" />Add KPI</Button></div>}
       />
+      <Dialog open={!!importError} onOpenChange={(open) => { if (!open) setImportError(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import could not be completed</DialogTitle>
+            <DialogDescription>
+              No KPIs were imported. Fix the rows below and try again.
+            </DialogDescription>
+          </DialogHeader>
+          <div role="alert" className="max-h-64 overflow-y-auto rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {importError}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setImportError("")}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <section aria-label="KPI totals" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatsCard title="Total KPIs" icon={Target} value={data.items.length} description={`Across ${categories.data?.items.length ?? 0} categories`} compact />

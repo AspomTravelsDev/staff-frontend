@@ -99,6 +99,7 @@ export function DepartmentSupervisorManager({ initialDepartments }: { initialDep
                         {department.supervisor ? <span className="font-medium">
                           {department.supervisor.name}
                           {department.supervisor.staff_id && <span className="ml-2 text-sm font-normal text-muted-foreground">{department.supervisor.staff_id}</span>}
+                          {department.supervisor.department && <span className="ml-2 text-sm font-normal text-muted-foreground">({department.supervisor.department})</span>}
                         </span> : <span className="text-sm text-muted-foreground">Unassigned</span>}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -109,12 +110,12 @@ export function DepartmentSupervisorManager({ initialDepartments }: { initialDep
                             </SelectTrigger>
                             <SelectContent className="max-h-72">
                               {department.staff.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>
-                                {candidate.name}{candidate.staff_id ? ` · ${candidate.staff_id}` : ""}
+                                {candidate.name}{candidate.staff_id ? ` · ${candidate.staff_id}` : ""}{candidate.department ? ` · ${candidate.department}` : ""}
                               </SelectItem>)}
                             </SelectContent>
                           </Select>
                           {busy && <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="size-3 animate-spin" /> Saving</span>}
-                        </div> : <span className="text-sm text-muted-foreground">No active staff in this department</span>}
+                        </div> : <span className="text-sm text-muted-foreground">No eligible active staff found</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" disabled={!department.supervisor || isPending} onClick={() => clear(department)}>
@@ -128,7 +129,7 @@ export function DepartmentSupervisorManager({ initialDepartments }: { initialDep
               </TableBody>
             </Table>
           </div>
-          <p className="border-t px-4 py-3 text-xs text-muted-foreground">Selecting a staff member assigns them immediately and enables their supervisor access. The department assignment determines who receives new appraisal reviews.</p>
+          <p className="border-t px-4 py-3 text-xs text-muted-foreground">Choose any eligible active staff member, including someone from another department. The department assignment determines who receives new appraisal reviews; the supervisor flag grants review-page access.</p>
         </CardContent>
       </Card>
     </div>

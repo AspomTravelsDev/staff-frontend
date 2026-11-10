@@ -15,6 +15,9 @@ import {
   Download,
   Trash2,
   FileText,
+  FileSpreadsheet,
+  Presentation,
+  FileImage,
   Loader2,
   Pencil,
   ExternalLink,
@@ -34,6 +37,7 @@ import {
 import { deleteDocumentAction } from "../actions";
 import { useState, useEffect } from "react";
 import { getFileDownloadToken } from "@/lib/api/files";
+import { getFileExtension } from "@/lib/utils/document-mime-types";
 import { toast } from "sonner";
 import { UploadDocumentDialog } from "./upload-document-dialog";
 
@@ -171,8 +175,14 @@ export function DocumentListTable({
     if (ext === "doc" || ext === "docx") {
       return <FileText className="h-4 w-4 text-blue-500 shrink-0" />;
     }
+    if (ext === "xls" || ext === "xlsx" || ext === "csv") {
+      return <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />;
+    }
     if (ext === "ppt" || ext === "pptx") {
-      return <FileText className="h-4 w-4 text-orange-500 shrink-0" />;
+      return <Presentation className="h-4 w-4 text-orange-500 shrink-0" />;
+    }
+    if (ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "webp") {
+      return <FileImage className="h-4 w-4 text-purple-500 shrink-0" />;
     }
     return <FileText className="h-4 w-4 text-gray-500 shrink-0" />;
   };

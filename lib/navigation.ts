@@ -154,7 +154,6 @@ export const departmentNav: NavItem[] = [
     icon: ClipboardList,
     allowedRoles: ["compliance", "super"],
     requiresExplicitRole: true,
-    disabled: process.env.NODE_ENV === "production",
   },
   {
     title: "Invite Staff",
@@ -214,7 +213,7 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["hr", "compliance", "office-operations"],
   },
   {
-    title: "Delegated Deliverables",
+    title: "Office Task Tracker",
     url: "/operations/delegated-tasks",
     icon: ListTodo,
     allowedRoles: ["office-operations", "compliance", "mp", "md"],

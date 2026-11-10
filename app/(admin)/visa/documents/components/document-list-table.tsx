@@ -15,6 +15,9 @@ import {
   Download,
   Trash2,
   FileText,
+  FileSpreadsheet,
+  Presentation,
+  FileImage,
   Loader2,
   Folder,
   ArrowUp,
@@ -50,6 +53,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, Pencil, FolderSymlink } from "lucide-react";
+import { getFileExtension } from "@/lib/utils/document-mime-types";
 import { UploadDocumentDialog } from "./upload-document-dialog";
 import { CreateFolderDialog } from "./create-folder-dialog";
 import { MoveDocumentDialog } from "./move-document-dialog";
@@ -98,6 +102,30 @@ export function DocumentListTable({
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [pendingDrop, setPendingDrop] = useState<{ folderId: string | null; documentIds: string[] } | null>(null);
+  const renderDocumentIcon = (originalName: string | undefined, size: "lg" | "sm" = "sm") => {
+    const ext = getFileExtension(originalName);
+    const className = size === "lg"
+      ? "h-10 w-10 shrink-0 group-hover:scale-105 transition-transform"
+      : "h-4 w-4 shrink-0";
+
+    if (ext === "pdf") {
+      return <FileText className={`${className} text-red-500`} />;
+    }
+    if (ext === "doc" || ext === "docx") {
+      return <FileText className={`${className} text-blue-500`} />;
+    }
+    if (ext === "xls" || ext === "xlsx" || ext === "csv") {
+      return <FileSpreadsheet className={`${className} text-emerald-600`} />;
+    }
+    if (ext === "ppt" || ext === "pptx") {
+      return <Presentation className={`${className} text-orange-500`} />;
+    }
+    if (ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "webp") {
+      return <FileImage className={`${className} text-purple-500`} />;
+    }
+    return <FileText className={`${className} text-slate-500`} />;
+  };
+
   const [isMoving, setIsMoving] = useState(false);
   const [isDeletingSelected, setIsDeletingSelected] = useState(false);
   const [confirmDeleteSelectedOpen, setConfirmDeleteSelectedOpen] = useState(false);
@@ -706,12 +734,12 @@ export function DocumentListTable({
 
                 {/* Card Content centered */}
                 <div className="flex flex-col items-center justify-center flex-1 w-full mt-3 min-w-0">
-                  <FileText className="h-10 w-10 text-red-500 shrink-0 group-hover:scale-105 transition-transform" />
+                  {renderDocumentIcon(doc.original_name, "lg")}
                   <span className="font-semibold text-slate-800 text-center text-xs mt-2 line-clamp-2 w-full px-1" title={doc.title}>
                     {doc.title}
                   </span>
                   <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mt-0.5">
-                    {doc.category_label || doc.category} • {(doc.file_size / 1024 / 1024).toFixed(2)} MB
+                    {(getFileExtension(doc.original_name) || "file").toUpperCase()} • {doc.category_label || doc.category} • {(doc.file_size / 1024 / 1024).toFixed(2)} MB
                   </span>
                 </div>
 
@@ -885,7 +913,7 @@ export function DocumentListTable({
                         aria-label={`Select ${doc.title}`}
                         onClick={(event) => event.stopPropagation()}
                       />
-                      <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                      {renderDocumentIcon(doc.original_name, "sm")}
                       <div className="flex flex-col">
                         <span>{doc.title}</span>
                         {doc.description && (

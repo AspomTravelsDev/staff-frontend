@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { callAction } from "@/lib/api/action-result";
 import { getAssignedReview, saveReviewDraft, submitReview } from "@/lib/api/performance-review.actions";
 import { queryKeys } from "@/lib/api/query-keys";
 import { appraisalRatingScale, assessmentValues, formatAppraisalTime } from "@/lib/performance-self-assessment";
-import { formatPerformanceMonth, reviewStageLabel, reviewStatusLabel } from "@/lib/performance-review";
+import { formatPerformanceDate, formatPerformanceMonth, reviewStageLabel, reviewStatusLabel } from "@/lib/performance-review";
+import type { AppraisalAssessment } from "@/lib/types/performance-appraisal";
 import type { ReviewDetail } from "@/lib/types/performance-review";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 
@@ -42,12 +43,63 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
     : review.stage === "hr" ? review.compliance_reviewer_name ? "Compliance" : "MP" : "MP";
   const previousRatings = review.preceding_assessments.filter((assessment) => assessment.answers.some((answer) => answer.rating !== null));
   const staffAssessment = review.preceding_assessments.find((assessment) => assessment.stage === "self");
+  const otherPreviousRatings = previousRatings.filter((assessment) => assessment.stage !== "self");
   const staffRatings = staffAssessment?.answers.flatMap((answer) => answer.rating === null ? [] : [answer.rating]) ?? [];
   const staffAverage = staffRatings.length ? staffRatings.reduce((sum, rating) => sum + rating, 0) / staffRatings.length : null;
   const ownRatings = values.answers.flatMap((answer) => answer.rating === null ? [] : [answer.rating]);
   const ownTotal = ownRatings.reduce((sum, rating) => sum + rating, 0);
   const ownAverage = ownRatings.length ? ownTotal / ownRatings.length : null;
+  const supervisorAssessment = review.preceding_assessments.find(
+    (assessment) =>
+      assessment.stage === "supervisor" ||
+      (assessment.stage === "reviewer" && review.reviewer_route === "supervisor"),
+  );
   const appraisalScaleLabels = ["Unsatisfactory · <50%", "Requires improvement · 50–69%", "Satisfactory · 70–80%", "Exceeded expectations · 81–90%", "Exceptional · >90%"];
+
+  function assessmentAverage(assessment: AppraisalAssessment | undefined) {
+    const ratings =
+      assessment?.answers.flatMap((answer) =>
+        answer.rating === null ? [] : [answer.rating],
+      ) ?? [];
+    return ratings.length
+      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+      : null;
+  }
+
+  const supervisorAverage = assessmentAverage(supervisorAssessment);
+  const managementAverage = isMp ? ownAverage : null;
+
+  function updateRating(index: number, value: string) {
+    const numericValue = value === "" ? null : Number(value);
+    setValues((previous) => ({
+      ...previous,
+      answers: previous.answers.map((answer, answerIndex) =>
+        answerIndex === index
+          ? {
+              ...answer,
+              rating:
+                numericValue !== null && numericValue >= 1 && numericValue <= 5
+                  ? (numericValue as 1 | 2 | 3 | 4 | 5)
+                  : null,
+            }
+          : answer,
+      ),
+    }));
+    setError("");
+  }
+
+  function focusNextRating(
+    event: KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const inputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>("[data-review-rating]"),
+    );
+    const nextInput = inputs[index + 1];
+    nextInput?.focus();
+  }
 
   function previousStageLabel(stage: string): string {
     if (stage === "self") return "Staff";
@@ -113,21 +165,81 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
 
   return <div className="space-y-6 pb-8">
     <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push("/performance/reviews")}>Back to Performance Reviews</Button>
-    <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${review.submission_deadline}`} icon={ClipboardList} actions={<Badge variant="outline">{reviewStatusLabel(review)}</Badge>} />
+    <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${formatPerformanceDate(review.submission_deadline)}`} icon={ClipboardList} actions={<Badge variant="outline">{reviewStatusLabel(review)}</Badge>} />
     {error && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{error}</p><p>If this review changed elsewhere, reload its saved version. Reloading discards unsaved edits on this page.</p><Button variant="outline" disabled={pending} onClick={() => reload.mutate()}>Reload saved review</Button></div>}
     {review.final_score !== null && <p className="text-lg font-semibold tabular-nums">{review.type === "appraisal" ? `Final total ${review.total_score ?? "—"} / ${review.total_max_score ?? "—"} · ` : "Final score: "}{Number(review.final_score).toFixed(2)} / 5</p>}
     <section aria-labelledby="previous-assessments-heading" className="space-y-3">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="previous-assessments-heading" className="text-lg font-semibold">Ratings submitted so far</h2>
-          {staffAverage !== null && <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-1.5">
-            <span className="text-xs text-muted-foreground">Staff average</span>
-            <span className="text-sm font-semibold tabular-nums">{staffAverage.toFixed(2)} / 5</span>
-          </div>}
         </div>
         <p className="text-sm text-muted-foreground">Earlier scores are read-only. Add your review comment below.</p>
       </div>
-      {previousRatings.length ? <div className="overflow-hidden rounded-lg border"><Table><TableHeader><TableRow><TableHead className="min-w-56"><span>{isStructured ? "Key result area / indicator" : "KPI"}</span><Badge variant="outline" className="mt-1.5 border-primary/20 bg-primary/5 text-primary">{formatPerformanceMonth(review.month)}</Badge></TableHead>{previousRatings.map((assessment) => <TableHead key={assessment.id} className="min-w-36">{previousStageLabel(assessment.stage)}<span className="mt-0.5 block text-[10px] font-normal">{formatAppraisalTime(assessment.submitted_at)}</span></TableHead>)}</TableRow></TableHeader><TableBody>{review.criteria.map((criterion) => <TableRow key={criterion.id}><TableCell className="max-w-80 font-medium">{criterion.key_result_area && <span className="mb-1 block text-xs font-normal text-muted-foreground">{criterion.key_result_area}</span>}{criterion.name}</TableCell>{previousRatings.map((assessment) => { const rating = assessment.answers.find((answer) => answer.criterion_id === criterion.id)?.rating; const scale = appraisalRatingScale.find((item) => item.value === rating); return <TableCell key={assessment.id}><span className="font-semibold tabular-nums">{scale ? `${scale.value} / 5` : "—"}</span>{scale && <span className="mt-0.5 block text-xs text-muted-foreground">{isStructured ? appraisalScaleLabels[scale.value - 1] : scale.label}</span>}</TableCell>; })}</TableRow>)}</TableBody></Table></div> : <p className="rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">No earlier {isStructured ? "ratings" : "KPI ratings"} are available for this review.</p>}
+      {isStructured && <div className="grid gap-3 sm:grid-cols-3" aria-label="Assessment averages">
+        {[
+          ["Staff average", staffAverage],
+          ["Supervisor average", supervisorAverage],
+          ["Management average", managementAverage],
+        ].map(([label, average]) => (
+          <div key={label as string} className="rounded-lg border bg-muted/30 px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground">{label as string}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">
+              {typeof average === "number" ? `${average.toFixed(2)} / 5` : "—"}
+            </p>
+          </div>
+        ))}
+      </div>}
+      {previousRatings.length || isStructured ? (
+        <div className="space-y-3">
+          {isStructured && (
+            <div className="sticky top-2 z-10 rounded-lg border border-primary/20 bg-card/95 p-3 shadow-sm backdrop-blur">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide">Rating scale</p>
+                {appraisalScaleLabels.map((label, index) => (
+                  <div key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">{index + 1}</span>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">Press Enter in a rating field to move to the next criterion.</p>
+            </div>
+          )}
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-56">{isStructured ? "Key result area / indicator" : "KPI"}</TableHead>
+                  {staffAssessment && <TableHead className="min-w-36">Staff</TableHead>}
+                  {isStructured && <TableHead className="w-36 min-w-36">{isMp ? "Management rating" : "Your rating"}</TableHead>}
+                  {otherPreviousRatings.map((assessment) => <TableHead key={assessment.id} className="min-w-36">{previousStageLabel(assessment.stage)}</TableHead>)}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {review.criteria.map((criterion, index) => {
+                  const staffRating = staffAssessment?.answers.find((answer) => answer.criterion_id === criterion.id)?.rating;
+                  const staffScale = appraisalRatingScale.find((item) => item.value === staffRating);
+                  return (
+                    <TableRow key={criterion.id}>
+                      <TableCell className="max-w-80 font-medium">
+                        {criterion.key_result_area && <span className="mb-1 block text-xs font-normal text-muted-foreground">{criterion.key_result_area}</span>}
+                        {criterion.name}
+                      </TableCell>
+                      {staffAssessment && <TableCell>{staffScale ? <><span className="font-semibold tabular-nums">{staffScale.value} / 5</span><span className="mt-0.5 block text-xs text-muted-foreground">{appraisalScaleLabels[staffScale.value - 1]}</span></> : "—"}</TableCell>}
+                      {isStructured && <TableCell><Input data-review-rating className="h-11 w-20 border-2 border-primary/40 bg-primary/5 px-3 text-center text-lg font-semibold tabular-nums shadow-sm focus-visible:border-primary focus-visible:bg-background" type="number" min={1} max={5} step={1} inputMode="numeric" aria-label={`${isMp ? "Management" : "Your"} rating for ${criterion.name}`} value={values.answers[index]?.rating?.toString() ?? ""} onKeyDown={(event) => focusNextRating(event, index)} onChange={(event) => updateRating(index, event.target.value)} /></TableCell>}
+                      {otherPreviousRatings.map((assessment) => {
+                        const rating = assessment.answers.find((answer) => answer.criterion_id === criterion.id)?.rating;
+                        const scale = appraisalRatingScale.find((item) => item.value === rating);
+                        return <TableCell key={assessment.id}>{scale ? <><span className="font-semibold tabular-nums">{scale.value} / 5</span><span className="mt-0.5 block text-xs text-muted-foreground">{appraisalScaleLabels[scale.value - 1]}</span></> : "—"}</TableCell>;
+                      })}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : <p className="rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">No earlier KPI ratings are available for this review.</p>}
       {isStructured && staffAssessment && Object.values(staffAssessment.section_comments ?? {}).some(Boolean) && <section className="grid gap-3 sm:grid-cols-2">{Object.entries(staffAssessment.section_comments ?? {}).filter(([, comment]) => !!comment).map(([key, comment]) => <div key={key} className="rounded-lg border bg-muted/20 p-4"><h3 className="text-sm font-semibold">{sectionCommentLabels[key] ?? "Staff comment"}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{comment}</p></div>)}</section>}
       {review.preceding_assessments.some((assessment) => assessment.stage !== "self") && <div className="space-y-3 border-t pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -165,7 +277,7 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
     {!review.can_review ? <><p className="text-sm text-muted-foreground">{review.blocked_reason}</p>{review.assessment && <section className="space-y-2 rounded-lg border p-4"><div><h2 className="font-semibold">Your saved comment</h2><p className="text-xs text-muted-foreground">{review.assessment.submitted_at ? `Submitted ${formatAppraisalTime(review.assessment.submitted_at)}` : `Draft saved ${formatAppraisalTime(review.assessment.updated_at)}`}</p></div>{Object.entries(review.assessment.section_comments ?? {}).filter(([, comment]) => !!comment).map(([key, comment]) => <div key={key}><p className="text-xs font-medium text-muted-foreground">{sectionCommentLabels[key] ?? "Comment"}</p><p className="whitespace-pre-wrap break-words text-sm">{comment}</p></div>)}{review.assessment.comment && <p className="whitespace-pre-wrap break-words text-sm">{review.assessment.comment}</p>}</section>}</> : <>
       <form onSubmit={submit} noValidate className="space-y-6"><fieldset disabled={pending} className="min-w-0 space-y-6"><legend className="sr-only">Your review comment</legend>
         <div className="flex justify-end text-sm" aria-live="polite"><p className="text-muted-foreground">{dirty ? "Unsaved changes" : review.assessment ? `Draft saved ${formatAppraisalTime(review.assessment.updated_at)}` : "Not yet saved"}</p></div>
-        {isStructured && <section id="appraisal-ratings" className="space-y-3"><div><h2 className="font-semibold">Your ratings</h2><p className="text-sm text-muted-foreground">Choose a whole number from 1 to 5 for each indicator. Fractions are not accepted.</p></div><div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-primary/5 px-4 py-3"><div><p className="text-xs text-muted-foreground">Current total</p><p className="text-lg font-semibold tabular-nums">{ownTotal} / {review.criteria.length * 5}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Current average</p><p className="text-lg font-semibold tabular-nums">{ownAverage === null ? "—" : ownAverage.toFixed(2)} / 5 <span className="text-xs font-normal">({ownRatings.length}/{review.criteria.length} rated)</span></p></div></div><div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead className="min-w-64">Key result area / indicator</TableHead><TableHead className="w-56">Rating</TableHead></TableRow></TableHeader><TableBody>{review.criteria.map((criterion, index) => <TableRow key={criterion.id}><TableCell><span className="block text-xs text-muted-foreground">{criterion.key_result_area}</span><span className="font-medium">{criterion.name}</span></TableCell><TableCell><Select value={values.answers[index]?.rating?.toString() ?? ""} onValueChange={(value) => { setValues((previous) => ({ ...previous, answers: previous.answers.map((answer, answerIndex) => answerIndex === index ? { ...answer, rating: Number(value) as 1 | 2 | 3 | 4 | 5 } : answer) })); setError(""); }}><SelectTrigger aria-label={`Rating for ${criterion.name}`}><SelectValue placeholder="Choose 1–5" /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 5].map((score) => <SelectItem key={score} value={String(score)}>{score} · {["Unsatisfactory (<50%)", "Requires improvement (50–69%)", "Satisfactory (70–80%)", "Exceeded expectations (81–90%)", "Exceptional (>90%)"][score - 1]}</SelectItem>)}</SelectContent></Select></TableCell></TableRow>)}</TableBody></Table></div></section>}
+        {isStructured && <div id="appraisal-ratings" className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-primary/5 px-4 py-3"><div><p className="text-xs text-muted-foreground">Your current total</p><p className="text-lg font-semibold tabular-nums">{ownTotal} / {review.criteria.length * 5}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Your current average</p><p className="text-lg font-semibold tabular-nums">{ownAverage === null ? "—" : ownAverage.toFixed(2)} / 5 <span className="text-xs font-normal">({ownRatings.length}/{review.criteria.length} rated)</span></p></div></div>}
         {isStructured ? (isMp ? [{ key: "management_comment", label: "Management comment" }] : [{ key: "improvement_areas", label: "Improvement areas" }, { key: "recommendation", label: "Suggestion / recommendation" }, { key: "justification", label: "Justification" }]).map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`review-section-${key}`}>{label} (required)</Label><Textarea id={`review-section-${key}`} required maxLength={5000} value={values.section_comments?.[key as keyof NonNullable<typeof values.section_comments>] ?? ""} onChange={(event) => { setValues((previous) => ({ ...previous, section_comments: { ...previous.section_comments, [key]: event.target.value } })); setError(""); }} /></div>) : <div className="space-y-2"><Label htmlFor="review-overall-comment">{isMp ? "Final comment (required)" : "Overall comment (required)"}</Label><Textarea id="review-overall-comment" required maxLength={5000} value={values.comment ?? ""} onChange={(event) => { setValues((previous) => ({ ...previous, comment: event.target.value })); setError(""); }} placeholder={isMp ? "Summarize performance and agreed development priorities." : "Summarize performance and any support or development needed."} /></div>}
         <div className="space-y-3 border-t pt-4"><p className="text-sm text-muted-foreground">Your draft is private. {isMp ? "Completing this appraisal locks your assessment and saves the final result." : `Submitting locks your assessment and advances the appraisal to ${nextReviewer}.`}</p><div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={() => save.mutate(false)}>Save review draft</Button><Button type="submit">{isMp ? "Complete appraisal" : `Submit review to ${nextReviewer}`}</Button></div></div>
       </fieldset></form>

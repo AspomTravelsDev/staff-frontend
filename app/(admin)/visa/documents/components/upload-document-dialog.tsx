@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { DocumentFile } from "@/types/file-types";
+import { isAllowedDocumentFile, DOCUMENT_ACCEPT_STRING } from "@/lib/utils/document-mime-types";
 
 interface UploadDocumentDialogProps {
   document?: DocumentFile;
@@ -105,9 +106,9 @@ export function UploadDocumentDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const invalidFile = files.find((selectedFile) => selectedFile.type !== "application/pdf");
+    const invalidFile = files.find((selectedFile) => !isAllowedDocumentFile(selectedFile));
     if (invalidFile) {
-      setError(`"${invalidFile.name}" is not a PDF file.`);
+      setError(`"${invalidFile.name}" is not a supported file type. Allowed formats: PDF, Word, Excel, PowerPoint, Text, Image.`);
       setFile(null);
       setSelectedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -139,7 +140,7 @@ export function UploadDocumentDialog({
         const formDataList = selectedFiles.map((selectedFile) => {
           const formData = new FormData();
           formData.append("file", selectedFile);
-          formData.append("title", selectedFile.name.replace(/\.pdf$/i, ""));
+          formData.append("title", selectedFile.name.replace(/\.[^/.]+$/, ""));
           if (description) formData.append("description", description);
           if (tags) formData.append("tags", tags);
           if (scope === "hr") {
@@ -226,7 +227,7 @@ export function UploadDocumentDialog({
           <DialogDescription>
             {isEditing
               ? "Update the document details."
-              : "Upload one or more PDF documents. Each file must be 2MB or smaller."}
+              : "Upload one or more documents (PDF, Word, Excel, PowerPoint). Each file must be 2MB or smaller."}
           </DialogDescription>
         </DialogHeader>
 
@@ -308,12 +309,12 @@ export function UploadDocumentDialog({
 
           <div className="grid gap-2">
             <Label htmlFor="file">
-              {isEditing ? "Replace PDF (Optional)" : "Select PDF files *"}
+              {isEditing ? "Replace file (Optional)" : "Select document files *"}
             </Label>
             <Input
               id="file"
               type="file"
-              accept=".pdf"
+              accept={DOCUMENT_ACCEPT_STRING}
               multiple={!isEditing && allowMultiple}
               onChange={handleFileChange}
               ref={fileInputRef}
@@ -330,7 +331,7 @@ export function UploadDocumentDialog({
 
           {selectedFiles.length > 1 && !error ? (
             <div className="text-sm text-muted-foreground">
-              Selected: <span className="font-medium text-foreground">{selectedFiles.length} PDF files</span>
+              Selected: <span className="font-medium text-foreground">{selectedFiles.length} files</span>
             </div>
           ) : file && !error && (
             <div className="text-sm text-muted-foreground">
