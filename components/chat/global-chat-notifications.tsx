@@ -7,19 +7,12 @@ import { getEchoInstance } from "@/lib/echo";
 import { useUser } from "@/providers/user-provider";
 import { Message } from "@/types/chat";
 
-interface ConversationOverview {
-  id: string;
-  name?: string | null;
-  other_user?: {
-    name?: string | null;
-  } | null;
-}
-
 const CHAT_ROUTE_PREFIX = "/chat";
 
 export function GlobalChatNotifications() {
   const pathname = usePathname();
   const { user } = useUser();
+  const userId = user?.id;
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -36,8 +29,6 @@ export function GlobalChatNotifications() {
     if (pathname?.startsWith(CHAT_ROUTE_PREFIX)) return;
 
     let isMounted = true;
-    const channels: string[] = [];
-
     async function subscribeToConversations() {
       try {
         const echo = getEchoInstance();
@@ -46,80 +37,28 @@ export function GlobalChatNotifications() {
           return;
         }
 
-        const response = await fetch("/api/conversations", {
-          cache: "no-store",
-          credentials: "include",
-          headers: {
-            Accept: "application/json",
-          },
-        });
+        if (!userId) return;
 
-        if (!response.ok) {
-          console.warn(
-            "GlobalChatNotifications: failed to load conversations",
-            response.status,
-            await response.text(),
-          );
-          return;
-        }
+        const channelName = `App.Models.User.${userId}`;
+        const channel = echo.private(channelName);
+        channel.listen(".MessageSent", (event: { message: Message }) => {
+          if (!isMounted || !user || event.message.sender?.id === user.id) return;
 
-        const result = await response.json();
-        const conversations: ConversationOverview[] = result.data ?? [];
+          const senderName = event.message.sender?.name || "Someone";
+          const bodyText = event.message.body ? event.message.body : "Sent an attachment.";
+          audioRef.current?.play().catch(() => {});
+          toast.success(`New message in Chat: ${senderName}${event.message.body ? "" : " sent an attachment."}`);
 
-        conversations.forEach((conversation) => {
-          const channelName = `conversation.${conversation.id}`;
-          const channel = echo.private(channelName);
-
-          channel.subscribed(() => {
-            console.info("GlobalChatNotifications: subscribed to", channelName);
-          });
-          channel.error((error: unknown) => {
-            console.warn(
-              "GlobalChatNotifications channel error",
-              channelName,
-              error,
-            );
-          });
-          console.info("GlobalChatNotifications: subscribing to", channelName);
-
-          channel.listen(".MessageSent", (event: { message: Message }) => {
-            console.info(
-              "GlobalChatNotifications: received MessageSent",
-              channelName,
-              event,
-            );
-            if (!isMounted) return;
-            if (!user) return;
-            if (event.message.sender?.id === user.id) return;
-
-            const senderName = event.message.sender?.name || "Someone";
-            const conversationLabel =
-              conversation.name || conversation.other_user?.name || "Chat";
-            const bodyText = event.message.body
-              ? event.message.body
-              : "Sent an attachment.";
-
-            audioRef.current?.play().catch(() => {
-              // ignore play errors
+          if (
+            document.visibilityState !== "visible" &&
+            "Notification" in window &&
+            Notification.permission === "granted"
+          ) {
+            new Notification(`New message from ${senderName}`, {
+              body: bodyText,
+              tag: `chat-${event.message.conversation_id}`,
             });
-
-            toast.success(
-              `New message in ${conversationLabel}: ${senderName}${event.message.body ? "" : " sent an attachment."}`,
-            );
-
-            if (
-              document.visibilityState !== "visible" &&
-              "Notification" in window &&
-              Notification.permission === "granted"
-            ) {
-              new Notification(`New message from ${senderName}`, {
-                body: bodyText,
-                tag: `chat-${conversation.id}`,
-              });
-            }
-          });
-
-          channels.push(channelName);
+          }
         });
       } catch (error) {
         console.warn("Unable to subscribe to chat notifications:", error);
@@ -131,15 +70,9 @@ export function GlobalChatNotifications() {
     return () => {
       isMounted = false;
       const echo = getEchoInstance();
-      channels.forEach((channelName) => {
-        try {
-          echo?.leave(channelName);
-        } catch {
-          // ignore cleanup errors
-        }
-      });
+      if (user?.id) echo?.leave(`App.Models.User.${user.id}`);
     };
-  }, [pathname]);
+  }, [pathname, user, userId]);
 
   return null;
 }

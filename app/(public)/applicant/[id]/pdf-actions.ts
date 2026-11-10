@@ -40,6 +40,7 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
                     // Fallback
                     targetUrl = targetUrl.replace('http://localhost:8000', apiUrl).replace('http://127.0.0.1:8000', apiUrl);
                 }
+
             }
         } else if (targetUrl.startsWith('/')) {
             targetUrl = `${apiUrl}${targetUrl}`;
@@ -103,6 +104,31 @@ async function fetchImageAsBase64(imageUrl: string | undefined): Promise<string 
         console.error(`fetchImageAsBase64: Error converting image to base64 from ${imageUrl}:`, error);
         return undefined;
     }
+}
+
+function getPublicOnboardingFileUrl(applicationId: string, fileId: string): string {
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
+    return `${apiUrl}/api/public/onboarding-applications/${applicationId}/files/${encodeURIComponent(fileId)}`;
+}
+
+async function fetchOnboardingImageAsBase64(
+    applicationId: string,
+    image?: { storagePath?: string; fileId?: string },
+): Promise<string | undefined> {
+    if (!image) return undefined;
+
+    const canonicalUrl = image.fileId
+        ? getPublicOnboardingFileUrl(applicationId, image.fileId)
+        : undefined;
+
+    for (const candidate of [canonicalUrl, image.storagePath]) {
+        if (candidate) {
+            const result = await fetchImageAsBase64(candidate);
+            if (result) return result;
+        }
+    }
+
+    return undefined;
 }
 
 /** Helper to read the company logo from the public directory and convert to base64 */
@@ -246,7 +272,7 @@ export async function downloadPdfFormsAction(
         // Generate Guarantor 1 PDF
         const guarantor1 = formData.guarantorReferee?.guarantors?.[0]
         if (guarantor1) {
-            const base64Photo = await fetchImageAsBase64(guarantor1.passportPhoto?.storagePath);
+            const base64Photo = await fetchOnboardingImageAsBase64(uuid, guarantor1.passportPhoto);
 
             const result = await generateAndUploadPdf(
                 uuid,
@@ -275,7 +301,7 @@ export async function downloadPdfFormsAction(
         // Generate Guarantor 2 PDF
         const guarantor2 = formData.guarantorReferee?.guarantors?.[1]
         if (guarantor2) {
-            const base64Photo = await fetchImageAsBase64(guarantor2.passportPhoto?.storagePath);
+            const base64Photo = await fetchOnboardingImageAsBase64(uuid, guarantor2.passportPhoto);
 
             const result = await generateAndUploadPdf(
                 uuid,
@@ -304,7 +330,7 @@ export async function downloadPdfFormsAction(
         // Generate Referee PDF
         const referee = formData.guarantorReferee?.referee
         if (referee) {
-            const base64Photo = await fetchImageAsBase64(referee.passportPhoto?.storagePath);
+            const base64Photo = await fetchOnboardingImageAsBase64(uuid, referee.passportPhoto);
 
             const result = await generateAndUploadPdf(
                 uuid,

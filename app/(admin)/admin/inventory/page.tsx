@@ -24,6 +24,7 @@ interface InventoryPageProps {
     status?: string;
     condition_rating?: string;
     tab?: string;
+    page?: string;
   }>;
 }
 
@@ -69,7 +70,8 @@ export default async function InventoryPage({
     clearanceComplianceQueue,
   ] = await Promise.all([
     getInventory({
-      limit: 500,
+      page: Number(params.page) > 0 ? Number(params.page) : 1,
+      limit: 50,
       category: params.category,
       status: params.status as InventoryStatus,
       conditionRating: params.condition_rating as InventoryConditionRating,
@@ -103,6 +105,7 @@ export default async function InventoryPage({
         userRole={user.role}
         userRoles={activeRoles}
         initialItems={inventoryData.items}
+        inventoryPagination={inventoryData.pagination}
         employees={employees}
         officerAssignments={officerAssignments}
         complianceAssignments={complianceAssignments}

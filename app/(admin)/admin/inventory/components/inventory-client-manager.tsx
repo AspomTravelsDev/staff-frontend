@@ -20,6 +20,12 @@ interface InventoryClientManagerProps {
   userRole?: string;
   userRoles?: string[];
   initialItems: InventoryItem[];
+  inventoryPagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
   employees: Employee[];
   officerAssignments: InventoryAssignment[];
   complianceAssignments: InventoryAssignment[];
@@ -37,6 +43,7 @@ export function InventoryClientManager({
   userRole,
   userRoles,
   initialItems,
+  inventoryPagination,
   employees,
   officerAssignments,
   complianceAssignments,
@@ -122,6 +129,12 @@ export function InventoryClientManager({
     router.push(pathname);
   };
 
+  const handleInventoryPageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const filteredItems = useMemo(() => {
     if (!search?.trim()) return initialItems;
 
@@ -199,6 +212,35 @@ export function InventoryClientManager({
             onExportStaffFormClick={() => handleTabChange("equipment")}
           />
           <InventoryTable items={filteredItems} employees={employees} />
+          {inventoryPagination.total_pages > 1 && (
+            <div className="flex items-center justify-between gap-3 border-t pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {(inventoryPagination.page - 1) * inventoryPagination.limit + 1}-
+                {Math.min(inventoryPagination.page * inventoryPagination.limit, inventoryPagination.total)} of {inventoryPagination.total}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={inventoryPagination.page <= 1}
+                  onClick={() => handleInventoryPageChange(inventoryPagination.page - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  Page {inventoryPagination.page} of {inventoryPagination.total_pages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={inventoryPagination.page >= inventoryPagination.total_pages}
+                  onClick={() => handleInventoryPageChange(inventoryPagination.page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="equipment"><StaffEquipment employees={employees} canIssue={isOfficer} /></TabsContent>
@@ -281,4 +323,3 @@ export function InventoryClientManager({
     </>
   );
 }
-

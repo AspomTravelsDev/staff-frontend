@@ -21,23 +21,31 @@ export default function ChatPage() {
     const [newChatOpen, setNewChatOpen] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
     const conversationsRequestRef = useRef(0);
+    const conversationsLoadedAtRef = useRef(0);
 
-    const loadConversations = useCallback(async (isSilent = false) => {
+    const loadConversations = useCallback(async (isSilent = false, force = false) => {
+        if (isSilent && !force && Date.now() - conversationsLoadedAtRef.current < 30_000) {
+            return;
+        }
         if (!isSilent) setLoading(true);
         const requestId = ++conversationsRequestRef.current;
         try {
             const data = await getConversations();
-            if (requestId === conversationsRequestRef.current) setConversations(data);
-        } catch (err: any) {
+            if (requestId === conversationsRequestRef.current) {
+                setConversations(data);
+                conversationsLoadedAtRef.current = Date.now();
+            }
+        } catch (err: unknown) {
             if (!isSilent) {
-                toast.error("Failed to load conversations: " + (err?.message || "Unknown error"));
+                const message = err instanceof Error ? err.message : "Unknown error";
+                toast.error("Failed to load conversations: " + message);
             }
         } finally {
             if (!isSilent) setLoading(false);
         }
     }, []);
     const refreshConversationsSilently = useCallback(() => {
-        void loadConversations(true);
+        void loadConversations(true, true);
     }, [loadConversations]);
     const handleMessageChanged = useCallback((message: Message) => {
         ++conversationsRequestRef.current;
@@ -49,7 +57,7 @@ export default function ChatPage() {
         const refreshIfVisible = () => {
             if (document.visibilityState === "visible") void loadConversations(true);
         };
-        const interval = window.setInterval(refreshIfVisible, 15000);
+        const interval = window.setInterval(refreshIfVisible, 60000);
         document.addEventListener("visibilitychange", refreshIfVisible);
         window.addEventListener("focus", refreshIfVisible);
 
