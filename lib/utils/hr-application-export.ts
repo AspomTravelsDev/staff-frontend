@@ -173,6 +173,9 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
     { header: "Referee Phone", key: (app) => stringify(getPath(app.form_data, "guarantorReferee.referee.phoneNumber")) },
     { header: "Referee Organization", key: (app) => stringify(getPath(app.form_data, "guarantorReferee.referee.organization")) },
     { header: "Referee Position", key: (app) => stringify(getPath(app.form_data, "guarantorReferee.referee.position")) },
+    { header: "Guarantor 1 Passport Photo", key: (app) => stringify(getPath(app.form_data, "guarantorReferee.guarantors.0.passportPhoto.storagePath")) },
+    { header: "Guarantor 2 Passport Photo", key: (app) => stringify(getPath(app.form_data, "guarantorReferee.guarantors.1.passportPhoto.storagePath")) },
+    { header: "Referee Passport Photo", key: (app) => stringify(getPath(app.form_data, "guarantorReferee.referee.passportPhoto.storagePath")) },
 
     {
         header: "Media Signature Uploaded",

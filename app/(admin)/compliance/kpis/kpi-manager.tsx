@@ -20,7 +20,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 import { callAction } from "@/lib/api/action-result";
-import { listDepartmentKpis, listKpiCategories, saveDepartmentKpi, saveKpiCategory } from "@/lib/api/department-kpi.actions";
+import { listDepartmentKpis, listKpiCategories, saveDepartmentKpi, saveDepartmentKpisBulk, saveKpiCategory } from "@/lib/api/department-kpi.actions";
 import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList, KpiCategory } from "@/lib/types/department-kpi";
 
 const queryKey = ["performance", "department-kpis"] as const;
@@ -156,8 +156,14 @@ export function DepartmentKpiManager({ initialData }: { initialData: DepartmentK
           createdCategories++;
         }
       }
-      for (const row of pendingRows) {
-        await callAction(() => saveDepartmentKpi(null, { ...row.input, category_id: categoryMap.get(row.categoryName.toLowerCase()) ?? null }));
+      const preparedItems = pendingRows.map((row) => ({
+        ...row.input,
+        category_id: categoryMap.get(row.categoryName.toLowerCase()) ?? null,
+      }));
+      const chunkSize = 100;
+      for (let i = 0; i < preparedItems.length; i += chunkSize) {
+        const chunk = preparedItems.slice(i, i + chunkSize);
+        await callAction(() => saveDepartmentKpisBulk(chunk));
       }
       await Promise.all([refetch(), categories.refetch()]);
       toast.success(`${pendingRows.length} KPI${pendingRows.length === 1 ? "" : "s"} imported${createdCategories ? ` · ${createdCategories} categor${createdCategories === 1 ? "y" : "ies"} created` : ""}`);
