@@ -31,6 +31,22 @@ export async function deleteAllDepartmentKpis() {
   }, "deleteAllDepartmentKpis");
 }
 
+export async function bulkDeleteDepartmentKpis(ids: string[]) {
+  return runAction(async () => {
+    const result = await api.post<{ message: string }>("/api/performance/kpis/bulk-delete", { ids });
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "bulkDeleteDepartmentKpis");
+}
+
+export async function bulkUpdateDepartmentKpisStatus(ids: string[], is_active: boolean) {
+  return runAction(async () => {
+    const result = await api.patch<{ message: string }>("/api/performance/kpis/bulk-status", { ids, is_active });
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "bulkUpdateDepartmentKpisStatus");
+}
+
 export async function saveDepartmentKpisBulk(items: DepartmentKpiInput[]) {
   return runAction(async () => {
     const result = await api.post<{ data: DepartmentKpi[] }>("/api/performance/kpis/bulk", { items });
@@ -56,3 +72,20 @@ export async function saveKpiCategory(id: string | null, data: Pick<KpiCategory,
     return result.data.data;
   }, "saveKpiCategory");
 }
+
+export async function bulkDeleteKpiCategories(ids: string[]) {
+  return runAction(async () => {
+    const result = await api.post<{ message: string }>("/api/performance/kpi-categories/bulk-delete", { ids });
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "bulkDeleteKpiCategories");
+}
+
+export async function bulkUpdateKpiCategoriesStatus(ids: string[], is_active: boolean) {
+  return runAction(async () => {
+    const result = await api.patch<{ message: string }>("/api/performance/kpi-categories/bulk-status", { ids, is_active });
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "bulkUpdateKpiCategoriesStatus");
+}
+
