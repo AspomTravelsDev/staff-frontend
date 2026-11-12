@@ -10,6 +10,8 @@
 
 **Repeated mistake**: An error similar to one for which correction or coaching was previously documented.
 
+
+
 **Recommended step**: The disciplinary step indicated by the employee's occurrence total, subject to a recorded human decision.
 
 **Recorded sanction**: A disciplinary action actually confirmed by an authorized reviewer, distinct from a recommendation.
