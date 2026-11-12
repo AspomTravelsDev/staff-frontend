@@ -188,4 +188,17 @@ export async function markAllAnnouncementsAsRead(): Promise<void> {
     if (!result.success) throw new Error(result.error.error);
 }
 
+/**
+ * Mark a specific announcement and all published announcements as read in a single server action round-trip
+ * without forcing an immediate full re-render of the current /announcements/[id] route.
+ */
+export async function trackAnnouncementView(id: string): Promise<void> {
+    await Promise.all([
+        api.post<{ message: string }>(`/api/announcements/${id}/read`),
+        api.post<{ message: string }>("/api/announcements/mark-all-read", {}),
+    ]);
+    revalidatePath("/dashboard");
+    revalidatePath("/my/announcement");
+}
+
 

@@ -372,7 +372,10 @@ export async function getUpcomingBirthdays(month?: number): Promise<Employee[]> 
  * Get users with birthdays today
  */
 export async function getTodayBirthdays(): Promise<Employee[]> {
-    const result = await api.get<UsersApiResponse>("/api/birthdays/today");
+    const result = await api.get<UsersApiResponse>("/api/birthdays/today", {
+        cache: "force-cache",
+        next: { revalidate: 3600 },
+    });
     if (!result.success) {
         throw new Error(result.error.error);
     }
@@ -398,9 +401,23 @@ export async function getUpcomingAnniversaries(month?: number): Promise<Employee
  * Get users with work anniversaries today
  */
 export async function getTodayAnniversaries(): Promise<Employee[]> {
-    const result = await api.get<UsersApiResponse>("/api/anniversaries/today");
+    const result = await api.get<UsersApiResponse>("/api/anniversaries/today", {
+        cache: "force-cache",
+        next: { revalidate: 3600 },
+    });
     if (!result.success) {
         throw new Error(result.error.error);
     }
     return result.data.data.map(mapUserToEmployee);
+}
+
+export async function getTodayCelebrations(): Promise<{
+    birthdays: Employee[];
+    anniversaries: Employee[];
+}> {
+    const [birthdays, anniversaries] = await Promise.all([
+        getTodayBirthdays().catch(() => []),
+        getTodayAnniversaries().catch(() => []),
+    ]);
+    return { birthdays, anniversaries };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { markAllAnnouncementsAsRead, markAnnouncementAsRead } from "@/lib/api/announcements";
+import { trackAnnouncementView } from "@/lib/api/announcements";
 
 export function AnnouncementReadTracker({ id }: { id: string }) {
   const marked = useRef(false);
@@ -10,7 +10,7 @@ export function AnnouncementReadTracker({ id }: { id: string }) {
     if (marked.current) return;
     marked.current = true;
 
-    Promise.all([markAnnouncementAsRead(id), markAllAnnouncementsAsRead()]).catch(console.error);
+    trackAnnouncementView(id).catch(console.error);
   }, [id]);
 
   return null;

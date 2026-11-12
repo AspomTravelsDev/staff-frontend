@@ -23,11 +23,11 @@ export function useTodayAttendance(initialStatus?: ClockInRecord | null) {
     },
     enabled: !!user && !user.is_department_account,
     initialData: initialStatus && new Date(new Date(initialStatus.clock_in_at).getTime() + 60 * 60 * 1000).toISOString().slice(0, 10) !== day ? undefined : initialStatus,
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    refetchOnReconnect: "always",
-    refetchInterval: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false,
+    refetchInterval: (q) => (q.state.data?.clock_out_at ? false : 300_000),
   });
 
   useEffect(() => {
@@ -35,17 +35,14 @@ export function useTodayAttendance(initialStatus?: ClockInRecord | null) {
       setDay(lagosDay());
       void queryClient.invalidateQueries({ queryKey: ["today-attendance", userId] });
     };
-    const onVisibility = () => { if (document.visibilityState === "visible") refresh(); };
     const onStorage = (event: StorageEvent) => {
       if (event.key === ATTENDANCE_CHANGED && event.newValue === userId) refresh();
     };
     // A daily key prevents yesterday's "Work Completed" state persisting overnight.
-    const timer = setInterval(() => setDay(lagosDay()), 30_000);
-    document.addEventListener("visibilitychange", onVisibility);
+    const timer = setInterval(() => setDay(lagosDay()), 60_000);
     window.addEventListener("storage", onStorage);
     return () => {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("storage", onStorage);
     };
   }, [queryClient, userId]);

@@ -32,8 +32,10 @@ export function useClockInMode() {
   const { data: serverMode } = useQuery({
     queryKey: QUERY_KEY,
     queryFn: getClockInMode,
-    staleTime: 1000 * 30, // 30 seconds
-    refetchInterval: 1000 * 60, // Poll every 60 seconds for global changes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchInterval: 1000 * 60 * 10, // Poll every 10 minutes while tab is active
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
     placeholderData: getCachedMode(),
   });
 

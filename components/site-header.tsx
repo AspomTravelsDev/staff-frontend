@@ -10,11 +10,11 @@ import { ClockInWidget } from "./clock-in-widget";
 import { useUser } from "@/providers/user-provider";
 import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
 import { clearAllNotifications } from "@/lib/api/notifications";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getNavigationForUser, NavItem } from "@/lib/navigation";
 import Link from "next/link";
-import { getTodayBirthdays, getTodayAnniversaries, Employee } from "@/lib/api/employees";
+import { getTodayCelebrations } from "@/lib/api/employees";
 import { PushNotificationSettings } from "@/components/pwa/push-notification-settings";
 
 
@@ -22,8 +22,15 @@ export const SiteHeader = () => {
   const { user } = useUser();
   const queryClient = useQueryClient();
   const { data: notifications } = useRoleNotifications();
-  const [todayBirthdays, setTodayBirthdays] = useState<Employee[]>([]);
-  const [todayAnniversaries, setTodayAnniversaries] = useState<Employee[]>([]);
+  const { data: celebrations } = useQuery({
+    queryKey: ["today-celebrations"],
+    queryFn: getTodayCelebrations,
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+  });
+  const todayBirthdays = celebrations?.birthdays ?? [];
+  const todayAnniversaries = celebrations?.anniversaries ?? [];
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearAll = async () => {
@@ -59,8 +66,8 @@ export const SiteHeader = () => {
 
   useEffect(() => {
     if (user) {
-      getTodayBirthdays().then(setTodayBirthdays).catch(console.error);
-      getTodayAnniversaries().then(setTodayAnniversaries).catch(console.error);
+
+
     }
   }, [user]);
 

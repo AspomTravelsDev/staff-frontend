@@ -130,7 +130,7 @@ export function ClockInWidget() {
             size="sm"
             className="gap-1.5 h-8 px-2.5 sm:px-3 border-primary/30 text-primary hover:bg-primary/5"
           >
-            <Link href="/attendance/scan?action=clock_out" title="Scan the office QR code to clock out">
+            <Link href="/attendance/scan?action=clock_out" prefetch={false} title="Scan the office QR code to clock out">
               <QrCode className="h-3.5 w-3.5" />
               <span className="text-xs font-bold uppercase tracking-wider">Clock Out</span>
             </Link>
