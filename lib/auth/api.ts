@@ -203,5 +203,9 @@ export async function validateToken(token: string): Promise<ApiResponse<User>> {
 export async function getRolesMetadata(
     token?: string
 ): Promise<ApiResponse<RolesMetadataResponse>> {
-    return api.get<RolesMetadataResponse>("/api/roles/metadata", { token });
+    return api.get<RolesMetadataResponse>("/api/roles/metadata", {
+        token,
+        cache: "force-cache",
+        next: { revalidate: 3600 },
+    });
 }

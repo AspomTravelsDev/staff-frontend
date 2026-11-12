@@ -30,6 +30,8 @@ interface TaskTrackerClientProps {
   initialView?: "assigned_to_me" | "assigned_by_me";
   initialTasks: TaskTrackerItem[];
   initialStats: TaskTrackerStats;
+  tasksByView?: Partial<Record<TaskView, TaskTrackerItem[]>>;
+  statsByView?: Partial<Record<TaskView, TaskTrackerStats>>;
   attentionCounts: Partial<Record<TaskView, number>>;
 }
 
@@ -41,15 +43,17 @@ export function TaskTrackerClient({
   initialView = "assigned_to_me",
   initialTasks,
   initialStats,
+  tasksByView,
+  statsByView,
   attentionCounts,
 }: TaskTrackerClientProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeView = initialView;
-  const tasks = initialTasks;
-  const stats = initialStats;
+  const [activeView, setActiveView] = useState<TaskView>(initialView);
+  const tasks = tasksByView?.[activeView] ?? initialTasks;
+  const stats = statsByView?.[activeView] ?? initialStats;
   const [activeTab, setActiveTab] = useState<string>("pending");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -66,6 +70,15 @@ export function TaskTrackerClient({
     if (newView === activeView) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set("view", newView);
+    if (tasksByView?.[newView] && statsByView?.[newView]) {
+      setActiveView(newView);
+      setActiveTab("pending");
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+      }
+      return;
+    }
+    setActiveView(newView);
     startTransition(() => router.replace(`${pathname}?${params.toString()}`, { scroll: false }));
   };
 

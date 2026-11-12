@@ -17,13 +17,14 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const [user, initialNotifications] = await Promise.all([
+    getCurrentUser(),
+    getNotifications(),
+  ]);
 
   if (!user) {
     redirect("/auth/logout");
   }
-
-  const initialNotifications = await getNotifications();
 
   return (
     <QueryProvider>

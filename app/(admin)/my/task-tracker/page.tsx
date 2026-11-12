@@ -34,13 +34,22 @@ export default async function TaskTrackerPage({ searchParams }: { searchParams: 
 
   const initialTasks = response.data.data;
   const initialStats = response.data.stats;
+  const tasksByView = {
+    assigned_to_me: myTasks.success ? myTasks.data.data : undefined,
+    assigned_by_me: assignedTasks.success ? assignedTasks.data.data : undefined,
+  };
+  const statsByView = {
+    assigned_to_me: myTasks.success ? myTasks.data.stats : undefined,
+    assigned_by_me: assignedTasks.success ? assignedTasks.data.stats : undefined,
+  };
 
   return (
     <TaskTrackerClient
-      key={initialView}
       initialView={initialView}
       initialTasks={initialTasks}
       initialStats={initialStats}
+      tasksByView={tasksByView}
+      statsByView={statsByView}
       attentionCounts={attentionCounts}
     />
   );

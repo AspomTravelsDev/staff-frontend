@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { getRolesMetadata } from "@/lib/auth/api";
 import { getAuthToken } from "@/lib/auth/session";
 import {
@@ -7,7 +8,7 @@ import {
     type RolesMetadataContract,
 } from "@/types/user-types";
 
-export async function getRolesMetadataContract(): Promise<RolesMetadataContract> {
+export const getRolesMetadataContract = cache(async (): Promise<RolesMetadataContract> => {
     const token = await getAuthToken();
     const result = await getRolesMetadata(token ?? undefined);
 
@@ -45,4 +46,4 @@ export async function getRolesMetadataContract(): Promise<RolesMetadataContract>
                 ? normalizedDepartments
                 : getFallbackRolesMetadataContract().departments,
     };
-}
+});

@@ -78,7 +78,8 @@ export function FloatingChatButton() {
     channel.listen(".ConversationRead", refreshUnread);
 
     return () => {
-      echo.leave(channelName);
+      channel.stopListening(".MessageSent", refreshUnread);
+      channel.stopListening(".ConversationRead", refreshUnread);
     };
   }, [user?.id, queryClient]);
 
@@ -94,6 +95,7 @@ export function FloatingChatButton() {
     <div ref={boundsRef} className="pointer-events-none fixed inset-x-5 top-[min(6rem,20vh)] bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
     <Link
       href="/chat"
+      prefetch={false}
       aria-label={unreadChats ? `Open chat, ${unreadChats} unread chats` : "Open chat"}
       title="Open chat · Drag to move, or use Alt + arrow keys"
       aria-describedby="floating-chat-help"

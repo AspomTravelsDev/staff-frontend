@@ -14,6 +14,13 @@ export function GlobalChatNotifications() {
   const { user } = useUser();
   const userId = user?.id;
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pathnameRef = useRef(pathname);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+    userRef.current = user;
+  }, [pathname, user]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -25,54 +32,51 @@ export function GlobalChatNotifications() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (pathname?.startsWith(CHAT_ROUTE_PREFIX)) return;
+    if (typeof window === "undefined" || !userId) return;
 
     let isMounted = true;
-    async function subscribeToConversations() {
-      try {
-        const echo = getEchoInstance();
-        if (!echo) {
-          console.warn("GlobalChatNotifications: unable to initialize Echo");
-          return;
-        }
-
-        if (!userId) return;
-
-        const channelName = `App.Models.User.${userId}`;
-        const channel = echo.private(channelName);
-        channel.listen(".MessageSent", (event: { message: Message }) => {
-          if (!isMounted || !user || event.message.sender?.id === user.id) return;
-
-          const senderName = event.message.sender?.name || "Someone";
-          const bodyText = event.message.body ? event.message.body : "Sent an attachment.";
-          audioRef.current?.play().catch(() => {});
-          toast.success(`New message in Chat: ${senderName}${event.message.body ? "" : " sent an attachment."}`);
-
-          if (
-            document.visibilityState !== "visible" &&
-            "Notification" in window &&
-            Notification.permission === "granted"
-          ) {
-            new Notification(`New message from ${senderName}`, {
-              body: bodyText,
-              tag: `chat-${event.message.conversation_id}`,
-            });
-          }
-        });
-      } catch (error) {
-        console.warn("Unable to subscribe to chat notifications:", error);
-      }
+    const echo = getEchoInstance();
+    if (!echo) {
+      console.warn("GlobalChatNotifications: unable to initialize Echo");
+      return;
     }
 
-    subscribeToConversations();
+    const channelName = `App.Models.User.${userId}`;
+    const channel = echo.private(channelName);
+    const handleMessageSent = (event: { message: Message }) => {
+      if (!isMounted) return;
+      if (pathnameRef.current?.startsWith(CHAT_ROUTE_PREFIX)) return;
+      const currentUser = userRef.current;
+      if (!currentUser || event.message.sender?.id === currentUser.id) return;
+
+      const senderName = event.message.sender?.name || "Someone";
+      const bodyText = event.message.body ? event.message.body : "Sent an attachment.";
+      audioRef.current?.play().catch(() => {});
+      toast.success(`New message in Chat: ${senderName}${event.message.body ? "" : " sent an attachment."}`);
+
+      if (
+        document.visibilityState !== "visible" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification(`New message from ${senderName}`, {
+          body: bodyText,
+          tag: `chat-${event.message.conversation_id}`,
+        });
+      }
+    };
+
+    try {
+      channel.listen(".MessageSent", handleMessageSent);
+    } catch (error) {
+      console.warn("Unable to subscribe to chat notifications:", error);
+    }
 
     return () => {
       isMounted = false;
-      const echo = getEchoInstance();
-      if (user?.id) echo?.leave(`App.Models.User.${user.id}`);
+      channel.stopListening(".MessageSent", handleMessageSent);
     };
-  }, [pathname, user, userId]);
+  }, [userId]);
 
   return null;
 }
