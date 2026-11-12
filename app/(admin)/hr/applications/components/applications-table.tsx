@@ -240,7 +240,7 @@ export function ApplicationsTable({
             </Button>
           ) : (
             <Button asChild size="sm" className="mt-3">
-              <Link href="/hr/applications/new">Create Application</Link>
+              <Link href="/hr/applications/new" prefetch={false}>Create Application</Link>
             </Button>
           )}
         </div>
@@ -253,6 +253,7 @@ export function ApplicationsTable({
                   <div className="min-w-0">
                     <Link
                       href={`/hr/applications/${app.id}`}
+                      prefetch={false}
                       className="break-words text-sm font-medium hover:underline"
                     >
                       {app.applicant_name || app.applicant_email.split("@")[0]}
@@ -300,6 +301,7 @@ export function ApplicationsTable({
                     <TableCell>
                       <Link
                         href={`/hr/applications/${app.id}`}
+                        prefetch={false}
                         className="font-medium hover:underline"
                       >
                         {app.applicant_name ||

@@ -28,6 +28,8 @@ export function useWeeklyFeedbackActive(options?: {
             return result.data;
         },
         initialData: options?.initialData,
+        staleTime: 180_000,
+        refetchOnWindowFocus: false,
     });
 }
 
@@ -39,6 +41,8 @@ export function useWeeklyFeedbackLockStatus() {
             if (!result.success) throw new Error(result.error.error);
             return result.data;
         },
+        staleTime: 300_000,
+        refetchOnWindowFocus: false,
     });
 }
 

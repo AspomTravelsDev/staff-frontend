@@ -56,7 +56,7 @@ export function QuickLinkButton({
   }
 
   return (
-    <Link href={url} target={target} className="flex items-center gap-2">
+    <Link href={url} target={target} prefetch={false} className="flex items-center gap-2">
       {buttonContent}
     </Link>
   );

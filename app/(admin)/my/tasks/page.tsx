@@ -3,7 +3,7 @@ import { TaskHistory } from "./components/task-history";
 import { TasksTour, TasksTourButton } from "./components/tasks-tour";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getTodaysTasks } from "./queries";
+import { getTodaysTasks, getRecentTaskHistory } from "./queries";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata = {
@@ -15,7 +15,10 @@ export default async function MyTasksPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const initialTasks = await getTodaysTasks();
+  const [initialTasks, initialHistory] = await Promise.all([
+    getTodaysTasks(),
+    getRecentTaskHistory(),
+  ]);
 
   return (
     <div className="flex flex-col gap-8 w-full">
@@ -30,7 +33,7 @@ export default async function MyTasksPage() {
 
       <Separator className="my-4" />
 
-      <TaskHistory user={user} />
+      <TaskHistory user={user} initialData={initialHistory} />
     </div>
   );
 }

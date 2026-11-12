@@ -101,6 +101,7 @@ export function RecentUpdates({ className, updates }: RecentUpdatesProps) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         href={`/announcements/${item.id}`}
+                        prefetch={false}
                         className={`hover:underline ${isUnread ? "font-black" : "font-semibold"}`}
                       >
                         {item.title}

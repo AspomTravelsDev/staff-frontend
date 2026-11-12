@@ -22,19 +22,34 @@ import type { User } from "@/types/user-types";
 
 interface TaskHistoryProps {
   user?: User | null;
+  initialData?: DailyTaskRecord[];
 }
 
-export function TaskHistory({ user }: TaskHistoryProps) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+export function TaskHistory({ user, initialData }: TaskHistoryProps) {
+  const [defaultRange] = useState(() => ({
     from: subDays(new Date(), 7),
-    to: subDays(new Date(), 1), // Exclude today by default
+    to: subDays(new Date(), 1),
+    startStr: format(subDays(new Date(), 7), "yyyy-MM-dd"),
+    endStr: format(subDays(new Date(), 1), "yyyy-MM-dd"),
+  }));
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: defaultRange.from,
+    to: defaultRange.to, // Exclude today by default
   });
 
+  const startDateStr = dateRange?.from
+    ? format(dateRange.from, "yyyy-MM-dd")
+    : undefined;
+  const endDateStr = dateRange?.to
+    ? format(dateRange.to, "yyyy-MM-dd")
+    : undefined;
+  const isDefaultRange =
+    startDateStr === defaultRange.startStr && endDateStr === defaultRange.endStr;
+
   const { data: historyRecords, isLoading } = useMyDailyTasks({
-    start_date: dateRange?.from
-      ? format(dateRange.from, "yyyy-MM-dd")
-      : undefined,
-    end_date: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+    start_date: startDateStr,
+    end_date: endDateStr,
+    initialData: isDefaultRange ? initialData : undefined,
   });
 
   // Filter out today's record if it accidentally appears in the range

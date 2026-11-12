@@ -43,15 +43,19 @@ export async function GET(
         }
 
         const contentType = backendRes.headers.get("content-type") || "application/octet-stream";
-        const buffer = await backendRes.arrayBuffer();
+        const contentLength = backendRes.headers.get("content-length");
+        const headers: Record<string, string> = {
+            "Content-Type": contentType,
+            // Cache for 24 hours in browser with 7-day stale-while-revalidate to avoid redundant proxy invocations
+            "Cache-Control": "private, max-age=86400, stale-while-revalidate=604800",
+        };
+        if (contentLength) {
+            headers["Content-Length"] = contentLength;
+        }
 
-        return new NextResponse(buffer, {
+        return new NextResponse(backendRes.body, {
             status: 200,
-            headers: {
-                "Content-Type": contentType,
-                // Cache for 5 minutes in browser; revalidated each time by the proxy
-                "Cache-Control": "private, max-age=300",
-            },
+            headers,
         });
     } catch (error) {
         console.error("File proxy error:", error);

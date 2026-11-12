@@ -23,6 +23,8 @@ export function useMyDailyTasks(options: TaskFilters & { initialData?: DailyTask
             return result.data;
         },
         initialData,
+        staleTime: 60_000,
+        refetchOnWindowFocus: false,
     });
 }
 
@@ -36,6 +38,8 @@ export function useAllDailyTasks(filters: AllTaskFilters) {
             }
             return result.data;
         },
+        staleTime: 60_000,
+        refetchOnWindowFocus: false,
     });
 }
 

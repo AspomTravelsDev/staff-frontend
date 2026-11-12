@@ -82,7 +82,7 @@ export function ApplicationActions({ id, step, employmentStatus, employmentStatu
             Copy Link
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={`/hr/applications/${id}`}>
+            <Link href={`/hr/applications/${id}`} prefetch={false}>
               <Eye className="mr-2 h-4 w-4" />
               View
             </Link>

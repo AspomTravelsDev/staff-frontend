@@ -34,12 +34,16 @@ export async function GET(request: NextRequest) {
         const inline = request.nextUrl.searchParams.get("inline") === "true";
         const contentType = response.headers.get("content-type");
         const contentDisposition = response.headers.get("content-disposition");
-        const buffer = await response.arrayBuffer();
+        const contentLength = response.headers.get("content-length");
 
         const headers: Record<string, string> = {
             "Content-Type": contentType || "application/octet-stream",
-            "Cache-Control": inline ? "private, no-store" : "public, max-age=31536000, immutable",
+            "Cache-Control": inline ? "private, max-age=3600" : "public, max-age=31536000, immutable",
         };
+
+        if (contentLength) {
+            headers["Content-Length"] = contentLength;
+        }
 
         if (inline) {
             headers["Content-Disposition"] = "inline";
@@ -47,7 +51,7 @@ export async function GET(request: NextRequest) {
             headers["Content-Disposition"] = contentDisposition;
         }
 
-        return new NextResponse(buffer, { headers });
+        return new NextResponse(response.body, { headers });
     } catch (error) {
         console.error("Proxy error fetching file:", error);
         return new NextResponse("Error fetching file proxy", { status: 500 });

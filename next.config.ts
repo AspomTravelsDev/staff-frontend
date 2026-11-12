@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
     proxyClientMaxBodySize: "20mb",
+    staleTimes: {
+      dynamic: 30,
+    },
   },
   images: {
     remotePatterns: [

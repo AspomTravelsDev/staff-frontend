@@ -94,6 +94,7 @@ export function NavMain({
                           isActive={subItem.url === pathname}
                         >
                           <Link
+                            prefetch={false}
                             href={subItem.disabled ? "#" : subItem.url}
                             onClick={(e) => {
                               if (subItem.disabled) {
@@ -133,6 +134,7 @@ export function NavMain({
                 isActive={item.url === pathname}
               >
                 <Link
+                  prefetch={false}
                   href={item.disabled ? "#" : item.url}
                   onClick={(e) => {
                     if (item.disabled) {

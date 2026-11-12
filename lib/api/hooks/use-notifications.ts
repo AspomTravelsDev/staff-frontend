@@ -10,6 +10,9 @@ export function useRoleNotifications() {
         queryKey: ["notifications"],
         queryFn: getNotifications,
         enabled: isAuthenticated,
-        refetchInterval: 60000, // Poll every 60 seconds
+        staleTime: 60_000,
+        refetchInterval: 180_000, // Poll every 3 minutes while tab is active
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
     });
 }

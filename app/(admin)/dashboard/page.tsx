@@ -56,9 +56,9 @@ export default async function Page() {
       const [managementData, awards, announcementsResult] = await Promise.all([
         getManagementDashboard(),
         getAllAwards().catch(() => []),
-        getAnnouncements({ status: "approved", limit: 50 }).catch(() => ({
+        getAnnouncements({ status: "approved", limit: 10 }).catch(() => ({
           items: [],
-          pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
+          pagination: { page: 1, limit: 10, total: 0, total_pages: 0 },
         })),
       ]);
       const previousMonth = new Date();
@@ -117,9 +117,9 @@ export default async function Page() {
       success: false as const,
       error: { code: "500", error: "Failed" },
     })),
-    getAnnouncements({ status: "approved", limit: 50 }).catch(() => ({
+    getAnnouncements({ status: "approved", limit: 10 }).catch(() => ({
       items: [],
-      pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
+      pagination: { page: 1, limit: 10, total: 0, total_pages: 0 },
     })),
     getTodayBirthdays().catch(() => []),
     getTodayAnniversaries().catch(() => []),
