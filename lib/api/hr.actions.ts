@@ -159,6 +159,9 @@ export interface ProvisionCorporateEmailRequest {
     department?: string;
     staff_id?: string;
     date_joined?: string;
+    contract_type?: string;
+    contract_start_date?: string;
+    contract_end_date?: string;
     is_supervisor?: boolean;
     is_department_account?: boolean;
 }

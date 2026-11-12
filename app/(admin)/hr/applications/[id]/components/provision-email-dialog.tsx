@@ -79,6 +79,15 @@ function generateRandomPassword(length = 14): string {
   return chars.sort(() => Math.random() - 0.5).join("");
 }
 
+function guessContractTypeFromPosition(position: string): string {
+  const pos = position.toLowerCase();
+  if (pos.includes("intern")) return "intern";
+  if (pos.includes("nysc") || pos.includes("corps")) return "nysc";
+  if (pos.includes("part-time") || pos.includes("part time")) return "part_time";
+  if (pos.includes("contract")) return "contract";
+  return "full_time";
+}
+
 function guessRoleFromPosition(position: string): UserRole {
   const pos = position.toLowerCase();
   if (pos.includes("super") || pos.includes("managing partner")) return "mp";
@@ -178,12 +187,20 @@ export function ProvisionEmailDialog({
     return undefined;
   }, [formData]);
 
+  const initialContractType = useMemo(
+    () => guessContractTypeFromPosition(positionTitle),
+    [positionTitle]
+  );
+
   // Form State
   const [emailUsername, setEmailUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState(() => generateRandomPassword());
   const [role, setRole] = useState<UserRole>(initialGuessedRole);
   const [department, setDepartment] = useState(initialDept);
   const [dateJoined, setDateJoined] = useState<Date | undefined>(initialEffectiveDate);
+  const [contractType, setContractType] = useState<string>(initialContractType);
+  const [contractStartDate, setContractStartDate] = useState<Date | undefined>(initialEffectiveDate);
+  const [contractEndDate, setContractEndDate] = useState<Date | undefined>(undefined);
   const [staffId, setStaffId] = useState("");
   const [isSupervisor, setIsSupervisor] = useState(false);
   const [sendPortalInvite, setSendPortalInvite] = useState(true);
@@ -238,6 +255,9 @@ export function ProvisionEmailDialog({
       setRole(initialGuessedRole);
       setDepartment(initialDept);
       setDateJoined(initialEffectiveDate);
+      setContractType(initialContractType);
+      setContractStartDate(initialEffectiveDate);
+      setContractEndDate(undefined);
       setStaffId("");
       setIsSupervisor(false);
     }
@@ -271,6 +291,13 @@ export function ProvisionEmailDialog({
         department: department.trim() || undefined,
         staff_id: staffId.trim() || undefined,
         date_joined: dateJoined ? format(dateJoined, "yyyy-MM-dd") : undefined,
+        contract_type: contractType || undefined,
+        contract_start_date: contractStartDate
+          ? format(contractStartDate, "yyyy-MM-dd")
+          : dateJoined
+            ? format(dateJoined, "yyyy-MM-dd")
+            : undefined,
+        contract_end_date: contractEndDate ? format(contractEndDate, "yyyy-MM-dd") : undefined,
         is_supervisor: isSupervisor,
       });
 
@@ -564,6 +591,53 @@ export function ProvisionEmailDialog({
                   onChange={(e) => setStaffId(e.target.value)}
                   placeholder="e.g. ASPOM-042"
                   className="h-9 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3.5 sm:grid-cols-3">
+              {/* Contract Type */}
+              <div className="space-y-1.5">
+                <Label htmlFor="contract_type" className="text-xs font-medium">
+                  Contract Type
+                </Label>
+                <Select value={contractType} onValueChange={setContractType}>
+                  <SelectTrigger id="contract_type" className="h-9 text-xs">
+                    <SelectValue placeholder="Select contract type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full_time" className="text-xs">Full staff</SelectItem>
+                    <SelectItem value="part_time" className="text-xs">Part-time</SelectItem>
+                    <SelectItem value="contract" className="text-xs">Contract</SelectItem>
+                    <SelectItem value="nysc" className="text-xs">NYSC</SelectItem>
+                    <SelectItem value="intern" className="text-xs">Intern</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Contract Start Date */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">
+                  Contract Start
+                </Label>
+                <DatePicker
+                  value={contractStartDate}
+                  onChange={setContractStartDate}
+                  placeholder="Start date"
+                  className="h-9 w-full text-xs"
+                />
+              </div>
+
+              {/* Contract End Date */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">
+                  Contract End <span className="text-muted-foreground font-normal">(Optional)</span>
+                </Label>
+                <DatePicker
+                  value={contractEndDate}
+                  onChange={setContractEndDate}
+                  placeholder="Open-ended"
+                  className="h-9 w-full text-xs"
                 />
               </div>
             </div>
