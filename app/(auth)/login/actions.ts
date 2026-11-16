@@ -1,6 +1,7 @@
 "use server";
 
 
+import { isIP } from "node:net";
 import { safeReturnPath } from "@/lib/auth/return-path";
 import { login } from "@/lib/auth/api";
 import { setSession } from "@/lib/auth/session";
@@ -24,13 +25,36 @@ const ERROR_MESSAGES: Record<string, string> = {
     HTTP_429: "Too many login attempts. Please wait a minute before trying again."
 };
 
+function extractValidIp(raw: string | null | undefined): string | undefined {
+    if (!raw) return undefined;
+    for (const part of raw.split(",")) {
+        let candidate = part.trim();
+        if (!candidate) continue;
+        // Strip port from IPv4:port or bracketed [IPv6]:port
+        if (candidate.startsWith("[")) {
+            const closing = candidate.indexOf("]");
+            if (closing !== -1) candidate = candidate.slice(1, closing);
+        } else if (candidate.includes(".") && candidate.includes(":")) {
+            candidate = candidate.split(":")[0];
+        }
+        if (isIP(candidate) !== 0) {
+            return candidate;
+        }
+    }
+    return undefined;
+}
+
 export async function loginAction(
     prevState: LoginState,
     formData: FormData
 ): Promise<LoginState> {
     const headerStack = await headers();
-    const xForwardedFor = headerStack.get("x-forwarded-for");
-    const clientIpFromFormData = formData.get("client_ip") as string;
+    const resolvedClientIp =
+        extractValidIp(formData.get("client_ip") as string | null) ??
+        extractValidIp(headerStack.get("cf-connecting-ip")) ??
+        extractValidIp(headerStack.get("x-real-ip")) ??
+        extractValidIp(headerStack.get("x-forwarded-for"));
+
 
     const rawData = {
         email: formData.get("email") as string,
@@ -38,7 +62,7 @@ export async function loginAction(
         location: formData.get("location")
             ? JSON.parse(formData.get("location") as string)
             : undefined,
-        client_ip: clientIpFromFormData || xForwardedFor || undefined,
+        client_ip: resolvedClientIp,
         deviceData: {
             device_uuid: (formData.get("device_uuid") as string) || undefined,
             device_fingerprint: (formData.get("device_fingerprint") as string) || undefined,

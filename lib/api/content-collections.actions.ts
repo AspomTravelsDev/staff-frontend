@@ -4,7 +4,7 @@ import { runAction } from "./run-action";
 import { ExpectedActionError } from "./action-result";
 
 import { api, type ApiResponse } from "./client";
-import type { ContentCollection, ContentAssignment, ContentDraft, ContentIdea, ContentStaff } from "@/types/content-collections";
+import type { ContentCollection, ContentAssignment, ContentDraft, ContentIdea, ContentStaff, OpenContentIdea, OpenContentIdeaInput } from "@/types/content-collections";
 
 async function unwrap<T>(result: ApiResponse<{ data: T }>): Promise<T> {
   if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
@@ -67,4 +67,32 @@ export async function saveContentIdea(assignmentId: string, idea: { title: strin
         ? await api.patch<{ data: ContentIdea }>(`/api/content-assignments/${assignmentId}/ideas/${id}`, idea)
         : await api.post<{ data: ContentIdea }>(`/api/content-assignments/${assignmentId}/ideas`, idea));
     }, "saveContentIdea");
+}
+
+export async function getMyOpenContentIdeas() {
+    return runAction(async () => {
+      return unwrap(await api.get<{ data: OpenContentIdea[] }>("/api/my/content-ideas/open"));
+    }, "getMyOpenContentIdeas");
+}
+
+export async function saveMyOpenContentIdea(idea: OpenContentIdeaInput, id?: string) {
+    return runAction(async () => {
+      return unwrap(id
+        ? await api.patch<{ data: OpenContentIdea }>(`/api/my/content-ideas/open/${id}`, idea)
+        : await api.post<{ data: OpenContentIdea }>("/api/my/content-ideas/open", idea));
+    }, "saveMyOpenContentIdea");
+}
+
+export async function deleteMyOpenContentIdea(id: string) {
+    return runAction(async () => {
+      const result = await api.delete<{ data?: { deleted?: boolean } } | null>(`/api/my/content-ideas/open/${id}`);
+      if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+      return result.data?.data ?? { deleted: true };
+    }, "deleteMyOpenContentIdea");
+}
+
+export async function getOpenContentIdeas() {
+    return runAction(async () => {
+      return unwrap(await api.get<{ data: OpenContentIdea[] }>("/api/social-media/content-ideas"));
+    }, "getOpenContentIdeas");
 }

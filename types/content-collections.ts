@@ -32,3 +32,48 @@ export interface ContentDraft {
 }
 
 export interface ContentStaff { id: string; name: string; department: string | null }
+
+export const OPEN_IDEA_CATEGORIES = [
+  "Visa",
+  "Flights",
+  "Birth Services",
+  "Study Abroad",
+  "Packages/Hotels",
+  "Customer FAQ/Story",
+  "Office/BTS",
+  "Other",
+] as const;
+
+export type OpenIdeaCategory = (typeof OPEN_IDEA_CATEGORIES)[number];
+
+export const OPEN_IDEA_FORMATS = [
+  "Reel / TikTok",
+  "Carousel",
+  "Graphic / Single Post",
+  "Story",
+  "Blog / Thread",
+  "Other",
+] as const;
+
+export type OpenIdeaFormat = (typeof OPEN_IDEA_FORMATS)[number];
+
+export interface OpenContentIdea {
+  id: string;
+  user_id?: string;
+  title: string;
+  category: OpenIdeaCategory | string;
+  description: string;
+  format?: OpenIdeaFormat | string | null;
+  reference_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  user?: { id: string; name: string; department?: string | null };
+}
+
+export interface OpenContentIdeaInput {
+  title: string;
+  category: string;
+  description: string;
+  format?: string | null;
+  reference_url?: string | null;
+}

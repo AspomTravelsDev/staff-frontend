@@ -274,6 +274,8 @@ export const departmentNav: NavItem[] = [
     url: "/social-media/content-collections",
     icon: Megaphone,
     allowedRoles: ["social-media", "super"],
+    badgeKey: "openContentIdeas",
+    badgeLabel: "New open content ideas in Idea Bank",
   },
   {
     title: "Ad Compliance Checker",

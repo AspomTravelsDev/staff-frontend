@@ -21,9 +21,9 @@ import { AvatarStack } from "@/components/avatar-stack";
 import { ITGuideReadTracker } from "./components/it-guide-read-tracker";
 
 interface ITGuideDetailPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export default async function ITGuideDetailPage({

@@ -38,3 +38,19 @@ export async function getMyContentAssignments(...args: Parameters<typeof actions
 export async function saveContentIdea(...args: Parameters<typeof actions.saveContentIdea>): Promise<ActionData<Awaited<ReturnType<typeof actions.saveContentIdea>>>> {
   return callAction(() => actions.saveContentIdea(...args));
 }
+
+export async function getMyOpenContentIdeas(...args: Parameters<typeof actions.getMyOpenContentIdeas>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMyOpenContentIdeas>>>> {
+  return callAction(() => actions.getMyOpenContentIdeas(...args));
+}
+
+export async function saveMyOpenContentIdea(...args: Parameters<typeof actions.saveMyOpenContentIdea>): Promise<ActionData<Awaited<ReturnType<typeof actions.saveMyOpenContentIdea>>>> {
+  return callAction(() => actions.saveMyOpenContentIdea(...args));
+}
+
+export async function deleteMyOpenContentIdea(...args: Parameters<typeof actions.deleteMyOpenContentIdea>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteMyOpenContentIdea>>>> {
+  return callAction(() => actions.deleteMyOpenContentIdea(...args));
+}
+
+export async function getOpenContentIdeas(...args: Parameters<typeof actions.getOpenContentIdeas>): Promise<ActionData<Awaited<ReturnType<typeof actions.getOpenContentIdeas>>>> {
+  return callAction(() => actions.getOpenContentIdeas(...args));
+}

@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import("next").NextConfig} */
+const nextConfig = {
   experimental: {
     serverActions: {
       // CVs can be 15 MB; allow room for multipart form fields and headers.
@@ -39,3 +38,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

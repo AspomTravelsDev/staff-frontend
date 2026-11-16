@@ -19,6 +19,9 @@ import { StatsCard } from "@/components/stats-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
+import { SocialMediaIdeaBank } from "./open-content-ideas";
 
 const blankAssignment = () => ({ user_id: "", theme: "", brief: "", required_count: 1 });
 const currentMonth = () => deadlineInput(new Date().toISOString()).slice(0, 7);
@@ -27,6 +30,9 @@ export function ContentCollections() {
   const cache = useQueryClient();
   const query = useQuery({ queryKey: ["content-collections"], queryFn: getContentCollections });
   const staff = useQuery({ queryKey: ["content-staff"], queryFn: getContentStaff });
+  const { data: notifications } = useRoleNotifications();
+  const openIdeasBadgeRaw = notifications?.openContentIdeas;
+  const openIdeasBadge = typeof openIdeasBadgeRaw === "object" && openIdeasBadgeRaw !== null ? openIdeasBadgeRaw.count : (openIdeasBadgeRaw ?? 0);
   const [editor, setEditor] = useState<{ id?: string; draft: ContentDraft } | null>(null);
   const [extension, setExtension] = useState<{ id: string; deadline: string } | null>(null);
   const [publishing, setPublishing] = useState<ContentCollection | null>(null);
@@ -68,30 +74,51 @@ export function ContentCollections() {
       <div><h1 className="text-2xl font-bold tracking-tight">Content Collections</h1><p className="mt-1 text-sm text-muted-foreground">Plan monthly themes, assign staff, and review their ideas.</p></div>
       <Button onClick={() => openEditor()}><Plus className="size-4" />New collection</Button>
     </div>
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatsCard title="Collections" icon={CalendarDays} value={query.isPending ? "—" : collections.length} description={`${collections.filter(c => !c.published_at).length} drafts to prepare`} />
-      <StatsCard title="Staff assignments" icon={ClipboardList} value={query.isPending ? "—" : assignments.length} description={`${new Set(assignments.map(a => a.user_id)).size} staff members assigned`} />
-      <StatsCard title="Ideas submitted" icon={Lightbulb} value={query.isPending ? "—" : assignments.reduce((sum, a) => sum + a.ideas.length, 0)} description={`${assignments.reduce((sum, a) => sum + a.required_count, 0)} ideas requested`} iconClassName="text-primary" />
-      <StatsCard title="Completed assignments" icon={CheckCircle2} value={query.isPending ? "—" : assignments.filter(a => a.ideas.length >= a.required_count).length} description="All requested ideas submitted" iconClassName="text-emerald-600" />
-    </div>
-    <Card className="min-w-0"><CardHeader className="border-b"><CardTitle className="text-base font-semibold">Monthly collections</CardTitle><CardDescription>Prepare drafts, monitor submissions, and review ideas.</CardDescription></CardHeader><CardContent className="min-w-0 space-y-4">
-    <div className="flex flex-wrap items-center gap-3"><div className="relative min-w-0 flex-1 basis-56"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search collections" className="h-9 pl-9" placeholder="Search collections…" value={search} onChange={e => setSearch(e.target.value)} /></div><Label htmlFor="collection-filter" className="text-xs text-muted-foreground">Month</Label><Input id="collection-filter" className="h-9 w-44" type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} />{(monthFilter || search) && <Button variant="ghost" size="sm" onClick={() => { setMonthFilter(""); setSearch(""); }}>Clear filters</Button>}</div>
-    {query.isPending && <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Loading collections…</div>}
-    {query.isError && <div role="alert"><p>{query.error.message}</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div>}
-    {!query.isPending && !query.isError && collections.length === 0 && <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-12 text-center"><ClipboardList className="size-8 text-muted-foreground/50" /><p className="font-semibold">No collections found</p><p className="text-sm text-muted-foreground">{monthFilter || search ? "Try a different search or month." : "Create your first monthly collection to get started."}</p></div>}
-    {collections.length > 0 && <div className="overflow-hidden rounded-lg border"><Table><TableHeader className="bg-muted/40"><TableRow><TableHead className="pl-4">Collection</TableHead><TableHead>Status</TableHead><TableHead>Deadline</TableHead><TableHead>Assignments</TableHead><TableHead>Submissions</TableHead><TableHead className="pr-4 text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
-      {collections.map(collection => {
-        const total = collection.assignments.reduce((sum, assignment) => sum + assignment.required_count, 0);
-        const submitted = collection.assignments.reduce((sum, assignment) => sum + assignment.ideas.length, 0);
-        const state = !collection.published_at ? "Draft" : new Date(collection.deadline).getTime() <= Date.now() ? "Closed" : "Open";
-        return <TableRow key={collection.id}><TableCell className="pl-4"><Link className="inline-block max-w-64 text-left font-semibold hover:text-primary [overflow-wrap:anywhere]" href={`/social-media/content-collections/${collection.id}`}>{collection.title}</Link><p className="mt-1 text-xs text-muted-foreground">{collection.month}</p></TableCell>
-          <TableCell><Badge variant="outline" className={state === "Open" ? "border-primary/20 bg-primary/5 text-primary" : "text-muted-foreground"}>{state}</Badge></TableCell><TableCell className="whitespace-nowrap text-xs text-muted-foreground">{deadlineLabel(collection.deadline)}</TableCell><TableCell><p className="text-sm font-medium">{collection.assignments.length} themes</p><p className="text-xs text-muted-foreground">{collection.assignments.filter(a => a.ideas.length >= a.required_count).length} complete</p></TableCell>
-          <TableCell className="min-w-32"><p className="mb-1.5 text-xs font-medium">{submitted} / {total} ideas</p><div className="h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${total ? Math.min(100, submitted / total * 100) : 0}%` }} /></div></TableCell>
-          <TableCell className="pr-4"><div className="flex items-center justify-end gap-1"><Button asChild variant="outline" size="sm"><Link href={`/social-media/content-collections/${collection.id}`}>Open collection</Link></Button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${collection.title}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{!collection.published_at && <><DropdownMenuItem onClick={() => openEditor(collection)}>Edit draft</DropdownMenuItem><DropdownMenuItem onClick={() => setPublishing(collection)}><Send className="size-4" />Publish collection</DropdownMenuItem></>}{collection.published_at && <DropdownMenuItem onClick={() => setExtension({ id: collection.id, deadline: "" })}>Change deadline</DropdownMenuItem>}<DropdownMenuItem onClick={() => openEditor(collection, true)}><Copy className="size-4" />Copy for next month</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></TableCell>
-        </TableRow>;
-      })}
-    </TableBody></Table></div>}
-    </CardContent></Card>
+    <Tabs defaultValue="collections" className="w-full space-y-6">
+      <TabsList aria-label="Content workspace sections" className="h-9">
+        <TabsTrigger value="collections" className="px-3">Monthly Collections</TabsTrigger>
+        <TabsTrigger value="idea-bank" className="gap-1.5 px-3">
+          <span>Idea Bank</span>
+          {openIdeasBadge > 0 && (
+            <span
+              aria-label={`${openIdeasBadge} new open content ideas`}
+              className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-medium tabular-nums text-white"
+            >
+              {openIdeasBadge}
+            </span>
+          )}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="collections" className="space-y-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatsCard title="Collections" icon={CalendarDays} value={query.isPending ? "—" : collections.length} description={`${collections.filter(c => !c.published_at).length} drafts to prepare`} />
+          <StatsCard title="Staff assignments" icon={ClipboardList} value={query.isPending ? "—" : assignments.length} description={`${new Set(assignments.map(a => a.user_id)).size} staff members assigned`} />
+          <StatsCard title="Ideas submitted" icon={Lightbulb} value={query.isPending ? "—" : assignments.reduce((sum, a) => sum + a.ideas.length, 0)} description={`${assignments.reduce((sum, a) => sum + a.required_count, 0)} ideas requested`} iconClassName="text-primary" />
+          <StatsCard title="Completed assignments" icon={CheckCircle2} value={query.isPending ? "—" : assignments.filter(a => a.ideas.length >= a.required_count).length} description="All requested ideas submitted" iconClassName="text-emerald-600" />
+        </div>
+        <Card className="min-w-0"><CardHeader className="border-b"><CardTitle className="text-base font-semibold">Monthly collections</CardTitle><CardDescription>Prepare drafts, monitor submissions, and review ideas.</CardDescription></CardHeader><CardContent className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-center gap-3"><div className="relative min-w-0 flex-1 basis-56"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search collections" className="h-9 pl-9" placeholder="Search collections…" value={search} onChange={e => setSearch(e.target.value)} /></div><Label htmlFor="collection-filter" className="text-xs text-muted-foreground">Month</Label><Input id="collection-filter" className="h-9 w-44" type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} />{(monthFilter || search) && <Button variant="ghost" size="sm" onClick={() => { setMonthFilter(""); setSearch(""); }}>Clear filters</Button>}</div>
+        {query.isPending && <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Loading collections…</div>}
+        {query.isError && <div role="alert"><p>{query.error.message}</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div>}
+        {!query.isPending && !query.isError && collections.length === 0 && <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-12 text-center"><ClipboardList className="size-8 text-muted-foreground/50" /><p className="font-semibold">No collections found</p><p className="text-sm text-muted-foreground">{monthFilter || search ? "Try a different search or month." : "Create your first monthly collection to get started."}</p></div>}
+        {collections.length > 0 && <div className="overflow-hidden rounded-lg border"><Table><TableHeader className="bg-muted/40"><TableRow><TableHead className="pl-4">Collection</TableHead><TableHead>Status</TableHead><TableHead>Deadline</TableHead><TableHead>Assignments</TableHead><TableHead>Submissions</TableHead><TableHead className="pr-4 text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+          {collections.map(collection => {
+            const total = collection.assignments.reduce((sum, assignment) => sum + assignment.required_count, 0);
+            const submitted = collection.assignments.reduce((sum, assignment) => sum + assignment.ideas.length, 0);
+            const state = !collection.published_at ? "Draft" : new Date(collection.deadline).getTime() <= Date.now() ? "Closed" : "Open";
+            return <TableRow key={collection.id}><TableCell className="pl-4"><Link className="inline-block max-w-64 text-left font-semibold hover:text-primary [overflow-wrap:anywhere]" href={`/social-media/content-collections/${collection.id}`}>{collection.title}</Link><p className="mt-1 text-xs text-muted-foreground">{collection.month}</p></TableCell>
+              <TableCell><Badge variant="outline" className={state === "Open" ? "border-primary/20 bg-primary/5 text-primary" : "text-muted-foreground"}>{state}</Badge></TableCell><TableCell className="whitespace-nowrap text-xs text-muted-foreground">{deadlineLabel(collection.deadline)}</TableCell><TableCell><p className="text-sm font-medium">{collection.assignments.length} themes</p><p className="text-xs text-muted-foreground">{collection.assignments.filter(a => a.ideas.length >= a.required_count).length} complete</p></TableCell>
+              <TableCell className="min-w-32"><p className="mb-1.5 text-xs font-medium">{submitted} / {total} ideas</p><div className="h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${total ? Math.min(100, submitted / total * 100) : 0}%` }} /></div></TableCell>
+              <TableCell className="pr-4"><div className="flex items-center justify-end gap-1"><Button asChild variant="outline" size="sm"><Link href={`/social-media/content-collections/${collection.id}`}>Open collection</Link></Button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${collection.title}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{!collection.published_at && <><DropdownMenuItem onClick={() => openEditor(collection)}>Edit draft</DropdownMenuItem><DropdownMenuItem onClick={() => setPublishing(collection)}><Send className="size-4" />Publish collection</DropdownMenuItem></>}{collection.published_at && <DropdownMenuItem onClick={() => setExtension({ id: collection.id, deadline: "" })}>Change deadline</DropdownMenuItem>}<DropdownMenuItem onClick={() => openEditor(collection, true)}><Copy className="size-4" />Copy for next month</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></TableCell>
+            </TableRow>;
+          })}
+        </TableBody></Table></div>}
+        </CardContent></Card>
+      </TabsContent>
+      <TabsContent value="idea-bank" className="space-y-6">
+        <SocialMediaIdeaBank />
+      </TabsContent>
+    </Tabs>
 
     <Dialog open={!!editor} onOpenChange={open => { if (!open && !busy) setEditor(null); }}>
       <DialogContent className="min-w-0 max-h-[90dvh] overflow-y-auto overflow-x-hidden p-5 sm:max-w-3xl"><DialogHeader className="min-w-0 border-b pb-4 pr-8"><DialogTitle className="text-lg font-semibold">{editor?.id ? "Edit draft" : "New monthly collection"}</DialogTitle><DialogDescription>Save a draft first. Staff are notified when you publish.</DialogDescription></DialogHeader>
