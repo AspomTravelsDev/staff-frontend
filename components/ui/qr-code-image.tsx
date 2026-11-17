@@ -8,6 +8,7 @@ interface QRCodeImageProps {
   size?: number;
   className?: string;
   alt?: string;
+  imgRef?: React.Ref<HTMLImageElement>;
   onReady?: (imageUrl: string) => void;
 }
 
@@ -16,6 +17,7 @@ export function QRCodeImage({
   size = 280,
   className = "",
   alt = "QR Code",
+  imgRef,
   onReady,
 }: QRCodeImageProps) {
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,8 @@ export function QRCodeImage({
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        ref={imgRef}
+        crossOrigin="anonymous"
         src={currentSrc}
         alt={alt}
         width={size}

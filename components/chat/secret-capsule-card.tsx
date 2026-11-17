@@ -22,9 +22,10 @@ import {
   Lock,
   Loader2,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { SecureSecretMetadata, RevealedSecretData } from "@/types/secret";
-import { getSecretMetadata, revealSecret } from "@/lib/api/secrets";
+import { getSecretMetadata, revealSecret, revokeSecret } from "@/lib/api/secrets";
 import { toast } from "sonner";
 
 interface SecretCapsuleCardProps {
@@ -47,6 +48,8 @@ export function SecretCapsuleCard({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pin, setPin] = useState("");
   const [revealing, setRevealing] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [revealedData, setRevealedData] = useState<RevealedSecretData | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [copiedUsername, setCopiedUsername] = useState(false);
@@ -98,6 +101,38 @@ export function SecretCapsuleCard({
     }
   }
 
+  async function handleRevoke() {
+    setRevoking(true);
+    try {
+      await revokeSecret(secretId);
+      setMetadata((prev) =>
+        prev
+          ? {
+              ...prev,
+              is_destroyed: true,
+              viewed_at: new Date().toISOString(),
+            }
+          : null
+      );
+      toast.success("Secret drop revoked and destroyed.");
+      onBurned?.();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to revoke secret.");
+    } finally {
+      setRevoking(false);
+    }
+  }
+
+  function handleCopyShareLink() {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/secret/${secretId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLink(true);
+      toast.success("Public share link copied to clipboard!");
+      setTimeout(() => setCopiedLink(false), 2500);
+    });
+  }
+
   async function handleCopyPassword(passwordToCopy: string) {
     try {
       await navigator.clipboard.writeText(passwordToCopy);
@@ -123,25 +158,23 @@ export function SecretCapsuleCard({
   return (
     <>
       <div
-        className={`w-full max-w-sm rounded-xl border p-3 text-xs transition-colors shadow-xs ${
+        className={`w-full max-w-sm rounded-xl border p-3.5 text-xs transition-colors shadow-xs ${
           isDestroyed
-            ? "border-destructive/30 bg-destructive/5 text-destructive dark:text-red-400"
+            ? "border-border/80 bg-card text-card-foreground dark:border-border/60"
             : isExpired
-            ? "border-border bg-muted/40 text-muted-foreground"
-            : isOwn
-            ? "border-amber-400/40 bg-amber-500/10 text-amber-950 dark:text-amber-100"
-            : "border-amber-500/30 bg-card text-foreground"
+            ? "border-border/80 bg-muted/40 text-muted-foreground"
+            : "border-amber-500/30 bg-card text-card-foreground dark:border-amber-500/25"
         }`}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <span
-              className={`p-1.5 rounded-lg shrink-0 ${
+              className={`p-2 rounded-lg shrink-0 ${
                 isDestroyed
                   ? "bg-destructive/10 text-destructive dark:text-red-400"
                   : isExpired
                   ? "bg-muted text-muted-foreground"
-                  : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                  : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
               }`}
             >
               {isDestroyed ? (
@@ -153,24 +186,28 @@ export function SecretCapsuleCard({
               )}
             </span>
             <div className="min-w-0">
-              <p className="font-semibold truncate text-sm">{title}</p>
-              <p className="text-[11px] opacity-80 truncate">
+              <p className="font-semibold truncate text-sm text-foreground">{title}</p>
+              <p className="text-[11px] text-muted-foreground truncate">
                 {isDestroyed
-                  ? "Burned & Destroyed"
+                  ? isOwn
+                    ? "Opened by recipient · Burned"
+                    : "Burned & Destroyed"
                   : isExpired
                   ? "Expired without viewing"
-                  : "One-Time IT Credential"}
+                  : isOwn
+                  ? "Single-use · Awaiting recipient"
+                  : "Single-use IT credential drop"}
               </p>
             </div>
           </div>
 
           <span
-            className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
               isDestroyed
-                ? "bg-destructive/15 text-destructive dark:text-red-400 font-semibold"
+                ? "bg-muted text-muted-foreground border border-border/80"
                 : isExpired
                 ? "bg-muted text-muted-foreground"
-                : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
             }`}
           >
             {isDestroyed ? "Burned" : isExpired ? "Expired" : "Active"}
@@ -178,10 +215,10 @@ export function SecretCapsuleCard({
         </div>
 
         {isDestroyed ? (
-          <div className="text-[11px] opacity-80 pt-1 border-t border-destructive/20 flex items-center justify-between">
+          <div className="text-[11px] text-muted-foreground pt-2 border-t border-border/60 flex items-center justify-between">
             <span>
               {metadata?.viewed_at
-                ? `Burned on ${new Date(metadata.viewed_at).toLocaleTimeString([], {
+                ? `Burned at ${new Date(metadata.viewed_at).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}`
@@ -190,13 +227,59 @@ export function SecretCapsuleCard({
             <span className="italic">Payload wiped</span>
           </div>
         ) : isExpired ? (
-          <div className="text-[11px] text-muted-foreground pt-1 border-t border-border">
+          <div className="text-[11px] text-muted-foreground pt-2 border-t border-border/60">
             <span>Expired. Contact IT to re-issue.</span>
           </div>
+        ) : isOwn ? (
+          /* Sender View: IT Officer cannot reveal/burn the secret meant for recipient; can revoke or copy share link */
+          <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3 text-amber-500 shrink-0" />
+              <span className="truncate">Recipient only</span>
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleCopyShareLink}
+                className="h-7 px-2.5 text-xs gap-1 font-medium"
+                title="Copy public link"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-500" />
+                    <span className="text-[10px] text-emerald-500">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    <span className="text-[10px]">Copy Link</span>
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={revoking}
+                onClick={handleRevoke}
+                className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                title="Revoke and cancel drop"
+              >
+                {revoking ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
+          </div>
         ) : (
+          /* Recipient View: Can reveal and burn the secret */
           <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between gap-2">
-            <span className="text-[11px] opacity-80 flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3 text-amber-500" />
               Single-use drop
             </span>
             <Button
@@ -217,7 +300,7 @@ export function SecretCapsuleCard({
         )}
       </div>
 
-      {/* Reveal Credential Modal */}
+      {/* Reveal Credential Modal (Only for recipient) */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6 sm:max-w-[440px]">
           <DialogHeader className="text-left space-y-1.5">
@@ -252,69 +335,47 @@ export function SecretCapsuleCard({
                     autoFocus
                     className="h-9 text-xs"
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    This drop was protected by a secondary PIN.
+                  </p>
                 </div>
               )}
 
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-300 leading-relaxed flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <span>
-                  Confirm you are ready to copy and save the login details now. The secret cannot be retrieved again after closing.
+                  <strong>Notice:</strong> Decrypting will destroy this credential forever on the server. Make sure you are ready to copy and use it now.
                 </span>
               </div>
-
-              <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDialogOpen(false)}
-                  disabled={revealing}
-                  className="text-xs h-8"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleReveal}
-                  disabled={revealing || (hasPin && !pin.trim())}
-                  className="text-xs h-8 gap-1.5"
-                >
-                  {revealing ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <KeyRound className="h-3.5 w-3.5" />
-                  )}
-                  <span>{revealing ? "Decrypting..." : "Decrypt & Copy"}</span>
-                </Button>
-              </DialogFooter>
             </div>
           ) : (
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
               {/* Username row */}
               {revealedData.username && (
                 <div className="space-y-1">
-                  <span className="text-[11px] text-muted-foreground font-medium">Username / Email:</span>
-                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted border border-border">
-                    <span className="font-mono text-xs select-all truncate text-foreground">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Username / Account ID
+                  </Label>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-2">
+                    <span className="flex-1 font-mono text-xs select-all break-all">
                       {revealedData.username}
                     </span>
                     <Button
                       type="button"
-                      variant="ghost"
                       size="sm"
+                      variant="ghost"
                       onClick={() => handleCopyUsername(revealedData.username!)}
                       className="h-7 px-2 text-xs gap-1"
                     >
                       {copiedUsername ? (
                         <>
-                          <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          <span className="text-emerald-600 font-medium">Copied</span>
+                          <Check className="h-3 w-3 text-emerald-500" />
+                          <span className="text-[11px] text-emerald-500">Copied</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="h-3.5 w-3.5" />
-                          <span>Copy</span>
+                          <Copy className="h-3 w-3" />
+                          <span className="text-[11px]">Copy</span>
                         </>
                       )}
                     </Button>
@@ -322,27 +383,32 @@ export function SecretCapsuleCard({
                 </div>
               )}
 
-              {/* Password row: strictly masked, never plain text on screen */}
+              {/* Password row: Masked dots with click-to-copy button */}
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground font-medium">Password:</span>
-                <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-primary/10 border border-primary/20">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Lock className="h-4 w-4 text-primary shrink-0" />
-                    <span className="font-mono text-sm tracking-widest text-foreground select-none">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Password (Masked for Security)
+                </Label>
+                <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm tracking-widest text-muted-foreground select-none">
                       ••••••••••••••••
                     </span>
+                    <span className="text-[10px] text-muted-foreground italic">
+                      Hidden from screen
+                    </span>
                   </div>
+
                   <Button
                     type="button"
-                    variant="default"
                     size="sm"
+                    variant="default"
                     onClick={() => handleCopyPassword(revealedData.password)}
-                    className="h-8 px-3 text-xs gap-1.5 font-semibold shrink-0 shadow-xs"
+                    className="w-full h-8 text-xs font-medium gap-1.5 shadow-xs"
                   >
                     {copiedPassword ? (
                       <>
-                        <Check className="h-3.5 w-3.5 text-primary-foreground stroke-[3]" />
-                        <span>Password Copied!</span>
+                        <Check className="h-3.5 w-3.5 text-emerald-300" />
+                        <span>Password Copied to Clipboard!</span>
                       </>
                     ) : (
                       <>
@@ -352,41 +418,70 @@ export function SecretCapsuleCard({
                     )}
                   </Button>
                 </div>
-                <p className="text-[10px] text-muted-foreground italic px-0.5">
-                  Hidden on screen to protect against screen-sharing and shoulder-surfing. Click the button to copy directly to your clipboard.
-                </p>
               </div>
 
-              {/* Notes */}
+              {/* Notes row */}
               {revealedData.notes && (
-                <div className="space-y-1 pt-1">
-                  <span className="text-[11px] text-muted-foreground font-medium">Notes from IT:</span>
-                  <div className="p-2.5 rounded-lg bg-muted text-xs whitespace-pre-wrap text-foreground border border-border">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Additional Instructions / Notes
+                  </Label>
+                  <div className="rounded-lg border border-border bg-muted/20 p-2 text-xs leading-relaxed whitespace-pre-wrap">
                     {revealedData.notes}
                   </div>
                 </div>
               )}
 
-              <div className="p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-xs text-destructive dark:text-red-400">
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 text-[11px] text-red-600 dark:text-red-400 flex items-center gap-2">
                 <Flame className="h-4 w-4 shrink-0" />
-                <span className="font-medium text-[11px]">
-                  This secret has been burned. The payload has been completely erased from the database.
-                </span>
+                <span>Payload permanently destroyed on the server.</span>
               </div>
-
-              <DialogFooter className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDialogOpen(false)}
-                  className="w-full h-8 text-xs font-medium"
-                >
-                  Done
-                </Button>
-              </DialogFooter>
             </div>
           )}
+
+          <DialogFooter className="sm:justify-between gap-2">
+            {!revealedData ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleReveal}
+                  disabled={revealing || (hasPin && !pin.trim())}
+                  className="gap-1.5"
+                >
+                  {revealing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Decrypting & Burning...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="h-3.5 w-3.5" />
+                      <span>Confirm & Reveal</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setDialogOpen(false)}
+                className="w-full"
+              >
+                Done
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

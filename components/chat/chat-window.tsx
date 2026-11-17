@@ -56,6 +56,7 @@ import { ChatImageAttachment } from "./chat-image-attachment";
 import { MessageReceipt } from "./message-receipt";
 import { CreateSecretModal } from "./create-secret-modal";
 import { SecretCapsuleCard } from "./secret-capsule-card";
+import { FormattedChatMessage, htmlToWhatsAppMarkdown } from "./formatted-chat-message";
 import { extractSecretInfo, formatSecretTag } from "@/lib/secret-helpers";
 import { useOptionalUser } from "@/providers/user-provider";
 import {
@@ -79,6 +80,20 @@ interface ChatWindowProps {
   onMessageChanged?: (message: Message) => void;
   onBack?: () => void;
   onSelectConversation?: (conversationId: string) => void;
+}
+
+function hasFormattingSyntax(text: string): boolean {
+  if (!text || !text.trim()) return false;
+  return (
+    text.includes("*") ||
+    text.includes("_") ||
+    text.includes("~") ||
+    text.includes("`") ||
+    text.includes("\n") ||
+    /^[-*]\s*(.+)$/m.test(text) ||
+    /^\d+\.\s*(.+)$/m.test(text) ||
+    /^>\s*(.+)$/m.test(text)
+  );
 }
 
 export function ChatWindow({
@@ -503,6 +518,92 @@ export function ChatWindow({
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop =
         scrollContainerRef.current.scrollHeight;
+    }
+  }
+
+  function applyFormatting(wrapper: string) {
+    const el = messageInputRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const current = inputBody;
+    const selected = current.slice(start, end);
+
+    if (selected) {
+      const next = current.slice(0, start) + `${wrapper}${selected}${wrapper}` + current.slice(end);
+      setInputBody(next);
+      requestAnimationFrame(() => {
+        el.selectionStart = start + wrapper.length;
+        el.selectionEnd = end + wrapper.length;
+        el.focus();
+      });
+    } else {
+      const next = current.slice(0, start) + `${wrapper}${wrapper}` + current.slice(end);
+      setInputBody(next);
+      requestAnimationFrame(() => {
+        el.selectionStart = start + wrapper.length;
+        el.selectionEnd = start + wrapper.length;
+        el.focus();
+      });
+    }
+  }
+
+  function insertTextAtCursor(text: string) {
+    const el = messageInputRef.current;
+    if (!el) {
+      setInputBody((prev) => prev + text);
+      return;
+    }
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const current = inputBody;
+    const next = current.slice(0, start) + text + current.slice(end);
+    setInputBody(next);
+    requestAnimationFrame(() => {
+      el.selectionStart = start + text.length;
+      el.selectionEnd = start + text.length;
+      el.focus();
+    });
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    // 1. If clipboard contains image files (e.g. pasted screenshots), attach them directly
+    const items = e.clipboardData?.items;
+    if (items) {
+      const files: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          const file = items[i].getAsFile();
+          if (file) files.push(file);
+        }
+      }
+      if (files.length > 0) {
+        e.preventDefault();
+        addFiles(files);
+        return;
+      }
+    }
+
+    // 2. If rich HTML is present (from Word, Google Docs, websites), convert to WhatsApp markdown
+    const html = e.clipboardData?.getData("text/html");
+    const plainText = e.clipboardData?.getData("text/plain");
+
+    if (
+      html &&
+      (html.includes("<b") ||
+        html.includes("<strong") ||
+        html.includes("<i") ||
+        html.includes("<em") ||
+        html.includes("<li") ||
+        html.includes("<strike") ||
+        html.includes("<del") ||
+        html.includes("<code"))
+    ) {
+      const converted = htmlToWhatsAppMarkdown(html);
+      if (converted && converted !== plainText) {
+        e.preventDefault();
+        insertTextAtCursor(converted);
+      }
     }
   }
 
@@ -1227,10 +1328,10 @@ export function ChatWindow({
                     handleToggleSelectMessage(msg.id);
                   }
                 }}
-                className={`flex items-end gap-2 group transition-all rounded-xl p-1 -m-1 ${
+                className={`flex items-end gap-2 group transition-all rounded-xl py-1 px-2 ${
                   isOwn ? "justify-end" : "justify-start"
-                } ${isSelectionMode && !isDeleted ? "cursor-pointer hover:bg-muted/40" : ""} ${
-                  isSelected ? "bg-primary/10 ring-1 ring-primary/30" : ""
+                } ${isSelectionMode && !isDeleted ? "cursor-pointer hover:bg-muted/30" : ""} ${
+                  isSelected ? "bg-primary/10" : ""
                 } ${
                   isCurrentSearchMatch
                     ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
@@ -1242,7 +1343,7 @@ export function ChatWindow({
                 {isSelectionMode && !isDeleted && (
                   <div
                     className={`flex items-center self-center px-1 shrink-0 ${
-                      isOwn ? "order-last ml-1" : "order-first mr-1"
+                      isOwn ? "order-last ml-2 mr-1" : "order-first mr-2 ml-1"
                     }`}
                   >
                     <Checkbox
@@ -1311,45 +1412,52 @@ export function ChatWindow({
                       </DropdownMenu>
                     )}
 
-                    <div
-                      className={`min-w-0 p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm ${
-                        isOwn
-                          ? "bg-primary text-primary-foreground rounded-br-none"
-                          : "bg-card text-foreground border border-border/60 rounded-bl-none"
-                      }`}
-                    >
-                      {isDeleted ? (
-                        <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
-                          <Trash2 className="h-3 w-3" />
-                          This message was deleted
-                        </p>
-                      ) : (
-                        <>
-                          {isForwarded && (
-                            <div
-                              className={`flex items-center gap-1 text-[11px] font-medium italic mb-1.5 ${
-                                isOwn ? "text-primary-foreground/80" : "text-muted-foreground"
-                              }`}
-                            >
-                              <CornerUpRight className="h-3 w-3 shrink-0" />
-                              <span>Forwarded</span>
-                            </div>
-                          )}
-                          {quote && <button type="button" className={`mb-2 block w-full min-w-0 rounded-md border-l-2 px-2 py-1.5 text-left text-xs ${isOwn ? "border-primary-foreground/60 bg-black/10 text-primary-foreground" : "border-primary bg-muted text-foreground"}`} aria-label="View original message" onClick={() => {
-                            const original = document.getElementById(`chat-message-${quote.id}`);
-                            if (original) original.scrollIntoView({ behavior: "smooth", block: "center" });
-                            else toast.info("Load earlier messages to view the original.");
-                          }}><span className="block truncate font-semibold">{quote.sender?.id === currentUserId ? "You" : quote.sender?.name || "Staff member"}</span><span className="block max-w-full truncate opacity-80">{quote.is_deleted ? "This message was deleted" : getDisplayMessageBody(quote.body) || quote.attachment_name || "Attachment"}</span></button>}
-                          {(() => {
-                            const secretInfo = extractSecretInfo(cleanBody);
-                            if (secretInfo) {
-                              const remainingText = cleanBody.replace(/\[secret:[^\]]+\]/, "").trim();
-                              return (
+                    {(() => {
+                      const secretInfo = !isDeleted ? extractSecretInfo(cleanBody) : null;
+                      const isPureSecret = Boolean(
+                        secretInfo &&
+                          !cleanBody.replace(/\[secret:[^\]]+\]/, "").trim() &&
+                          (!msg.attachments || msg.attachments.length === 0)
+                      );
+
+                      return (
+                        <div
+                          className={`min-w-0 ${
+                            isPureSecret
+                              ? "p-0 bg-transparent shadow-none"
+                              : isOwn
+                              ? "p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm bg-primary text-primary-foreground rounded-br-none"
+                              : "p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm bg-card text-foreground border border-border/60 rounded-bl-none"
+                          }`}
+                        >
+                          {isDeleted ? (
+                            <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
+                              <Trash2 className="h-3 w-3" />
+                              This message was deleted
+                            </p>
+                          ) : (
+                            <>
+                              {isForwarded && (
+                                <div
+                                  className={`flex items-center gap-1 text-[11px] font-medium italic mb-1.5 ${
+                                    isOwn ? "text-primary-foreground/80" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  <CornerUpRight className="h-3 w-3 shrink-0" />
+                                  <span>Forwarded</span>
+                                </div>
+                              )}
+                              {quote && <button type="button" className={`mb-2 block w-full min-w-0 rounded-md border-l-2 px-2 py-1.5 text-left text-xs ${isOwn ? "border-primary-foreground/60 bg-black/10 text-primary-foreground" : "border-primary bg-muted text-foreground"}`} aria-label="View original message" onClick={() => {
+                                const original = document.getElementById(`chat-message-${quote.id}`);
+                                if (original) original.scrollIntoView({ behavior: "smooth", block: "center" });
+                                else toast.info("Load earlier messages to view the original.");
+                              }}><span className="block truncate font-semibold">{quote.sender?.id === currentUserId ? "You" : quote.sender?.name || "Staff member"}</span><span className="block max-w-full truncate opacity-80">{quote.is_deleted ? "This message was deleted" : getDisplayMessageBody(quote.body) || quote.attachment_name || "Attachment"}</span></button>}
+                              {secretInfo ? (
                                 <div className="space-y-2">
-                                  {remainingText && (
-                                    <p className="whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
-                                      {remainingText}
-                                    </p>
+                                  {cleanBody.replace(/\[secret:[^\]]+\]/, "").trim() && (
+                                    <FormattedChatMessage isOwn={isOwn}>
+                                      {cleanBody.replace(/\[secret:[^\]]+\]/, "").trim()}
+                                    </FormattedChatMessage>
                                   )}
                                   <SecretCapsuleCard
                                     secretId={secretInfo.secretId}
@@ -1361,70 +1469,68 @@ export function ChatWindow({
                                     }}
                                   />
                                 </div>
-                              );
-                            }
-                            return cleanBody ? (
-                              <p className="whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
-                                {cleanBody}
-                              </p>
-                            ) : null;
-                          })()}
+                              ) : cleanBody ? (
+                                <FormattedChatMessage isOwn={isOwn}>
+                                  {cleanBody}
+                                </FormattedChatMessage>
+                              ) : null}
 
-                          {/* Attachments */}
-                          {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="mt-2 space-y-1.5 pt-1 border-t border-primary-foreground/20">
-                              {msg.attachments.map((att) => (
-                                <div key={att.id} className="min-w-0 space-y-2">
-                                  {att.mime_type.startsWith("image/") && !att.id.startsWith("temp-") && <ChatImageAttachment attachment={att} />}
-                                <div
-                                  key={att.id}
-                                  className={`flex items-center justify-between gap-3 p-2 rounded-lg text-xs ${
-                                    isOwn
-                                      ? "bg-primary-foreground/10 text-primary-foreground"
-                                      : "bg-muted text-foreground"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    {att.mime_type.startsWith("image/") ? (
-                                      <ImageIcon className="h-4 w-4 shrink-0" />
-                                    ) : (
-                                      <FileText className="h-4 w-4 shrink-0" />
-                                    )}
-                                    <div className="min-w-0">
-                                      <p className="truncate font-medium">
-                                        {att.original_name}
-                                      </p>
-                                      <p className="text-[10px] opacity-80">
-                                        {formatFileSize(att.size)}
-                                      </p>
+                              {/* Attachments */}
+                              {msg.attachments && msg.attachments.length > 0 && (
+                                <div className="mt-2 space-y-1.5 pt-1 border-t border-primary-foreground/20">
+                                  {msg.attachments.map((att) => (
+                                    <div key={att.id} className="min-w-0 space-y-2">
+                                      {att.mime_type.startsWith("image/") && !att.id.startsWith("temp-") && <ChatImageAttachment attachment={att} />}
+                                    <div
+                                      key={att.id}
+                                      className={`flex items-center justify-between gap-3 p-2 rounded-lg text-xs ${
+                                        isOwn
+                                          ? "bg-primary-foreground/10 text-primary-foreground"
+                                          : "bg-muted text-foreground"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        {att.mime_type.startsWith("image/") ? (
+                                          <ImageIcon className="h-4 w-4 shrink-0" />
+                                        ) : (
+                                          <FileText className="h-4 w-4 shrink-0" />
+                                        )}
+                                        <div className="min-w-0">
+                                          <p className="truncate font-medium">
+                                            {att.original_name}
+                                          </p>
+                                          <p className="text-[10px] opacity-80">
+                                            {formatFileSize(att.size)}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        disabled={downloadingId === att.id}
+                                        onClick={() =>
+                                          handleDownloadAttachment(att)
+                                        }
+                                        className="h-7 w-7 shrink-0 hover:bg-black/10 dark:hover:bg-white/10"
+                                        title="Download attachment"
+                                      >
+                                        {downloadingId === att.id ? (
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                          <Download className="h-3.5 w-3.5" />
+                                        )}
+                                      </Button>
                                     </div>
-                                  </div>
-
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    disabled={downloadingId === att.id}
-                                    onClick={() =>
-                                      handleDownloadAttachment(att)
-                                    }
-                                    className="h-7 w-7 shrink-0 hover:bg-black/10 dark:hover:bg-white/10"
-                                    title="Download attachment"
-                                  >
-                                    {downloadingId === att.id ? (
-                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                      <Download className="h-3.5 w-3.5" />
-                                    )}
-                                  </Button>
+                                    </div>
+                                  ))}
                                 </div>
-                                </div>
-                              ))}
-                            </div>
+                              )}
+                            </>
                           )}
-                        </>
-                      )}
-
-                    </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className={`flex items-center justify-end gap-1 text-[10px] text-muted-foreground ${!isOwn && !isDeleted ? "pr-8" : ""}`}>
                     {isEdited && !isDeleted && <span>(edited)</span>}
@@ -1489,6 +1595,27 @@ export function ChatWindow({
         </div>
       )}
 
+      {/* Live Formatted Message Preview (Shown by default when formatted content or multi-line text is typed) */}
+      {hasFormattingSyntax(inputBody) && (
+        <div
+          onClick={() => messageInputRef.current?.focus()}
+          className="px-4 py-2.5 border-t border-primary/20 bg-primary/5 cursor-text text-sm transition-all animate-in fade-in duration-150 shrink-0"
+        >
+          <div className="flex items-center justify-between text-[10px] font-bold text-primary uppercase tracking-wider mb-1.5 select-none">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Live Message Preview
+            </span>
+            <span className="text-[10px] normal-case font-normal text-muted-foreground">
+              What staff will see
+            </span>
+          </div>
+          <div className="max-h-40 overflow-y-auto pr-1">
+            <FormattedChatMessage>{inputBody}</FormattedChatMessage>
+          </div>
+        </div>
+      )}
+
       {/* Composer Bar */}
       <div className="p-3 border-t border-border bg-card flex items-end gap-2 shrink-0">
         <input
@@ -1533,14 +1660,20 @@ export function ChatWindow({
           ref={messageInputRef}
           rows={1}
           aria-label={editingMessage ? "Edit message" : "Message"}
-          aria-describedby="chat-composer-help"
           placeholder={
             editingMessage ? "Update your message..." : "Type a message..."
           }
           value={inputBody}
           onChange={(e) => setInputBody(e.target.value)}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+              e.preventDefault();
+              applyFormatting("*");
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+              e.preventDefault();
+              applyFormatting("_");
+            } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               handleSend();
             }
@@ -1570,7 +1703,6 @@ export function ChatWindow({
           )}
         </Button>
       </div>
-      <p id="chat-composer-help" className="bg-card px-3 pb-2 text-[11px] text-muted-foreground">Enter to {editingMessage ? "save" : "send"} · Shift+Enter for a new line</p>
       <AlertDialog open={Boolean(messageToDelete)} onOpenChange={open => { if (!open && !deleting) setMessageToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Delete this message?</AlertDialogTitle><AlertDialogDescription>The message will be replaced with a deleted-message notice for everyone in this conversation.</AlertDialogDescription></AlertDialogHeader>

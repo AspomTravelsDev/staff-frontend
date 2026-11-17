@@ -460,7 +460,7 @@ export function AttendanceClient({
             trigger={
               <Button variant="outline" size="sm">
                 <QrCode className="size-4" />
-                QR poster
+                QR Code & Poster
               </Button>
             }
           />

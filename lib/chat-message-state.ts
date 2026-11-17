@@ -1,19 +1,17 @@
 import type { Conversation, LastMessage, Message } from '@/types/chat';
 
+export const FORWARDED_REGEX = /^[\u200B\s]*\[forwarded\][\u200B\s]*/i;
 export const FORWARDED_PREFIX = '\u200B[forwarded]\u200B';
 
 export function isForwardedMessage(message: { is_forwarded?: boolean; body?: string | null } | null | undefined): boolean {
   if (!message) return false;
   if (message.is_forwarded) return true;
-  return typeof message.body === 'string' && message.body.startsWith(FORWARDED_PREFIX);
+  return typeof message.body === 'string' && FORWARDED_REGEX.test(message.body);
 }
 
 export function getDisplayMessageBody(body?: string | null): string {
   if (!body) return '';
-  if (body.startsWith(FORWARDED_PREFIX)) {
-    return body.slice(FORWARDED_PREFIX.length);
-  }
-  return body;
+  return body.replace(FORWARDED_REGEX, '');
 }
 
 export function formatForwardedBody(body?: string | null): string {

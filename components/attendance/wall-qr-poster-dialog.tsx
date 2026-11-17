@@ -10,8 +10,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QrCode, Download, ShieldCheck, Loader2 } from "lucide-react";
+import { QrCode, Download, ShieldCheck, Loader2, Image as ImageIcon } from "lucide-react";
 import { QRCodeImage } from "@/components/ui/qr-code-image";
+import { toast } from "sonner";
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export function WallQrPosterDialog({
   trigger,
@@ -20,8 +32,11 @@ export function WallQrPosterDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [scanUrl, setScanUrl] = useState("");
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const posterRef = useRef<HTMLDivElement>(null);
+  const pureQrRef = useRef<HTMLDivElement>(null);
+  const qrImageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -29,17 +44,116 @@ export function WallQrPosterDialog({
     }
   }, []);
 
+  const handleDownloadQrImage = async () => {
+    if (!scanUrl) return;
+    setIsDownloadingImage(true);
+    try {
+      // 1. Attempt high-resolution fetch (1200x1200px) from primary QR generator
+      const highResUrl = `https://api.qrserver.com/v1/create-qr-code/?size=1200x1200&margin=24&data=${encodeURIComponent(scanUrl)}`;
+      const fallbackUrl = `https://quickchart.io/qr?text=${encodeURIComponent(scanUrl)}&size=1200&margin=4`;
+
+      let blob: Blob | null = null;
+      try {
+        const res = await fetch(highResUrl);
+        if (res.ok) {
+          blob = await res.blob();
+        }
+      } catch (err) {
+        console.warn("Primary QR download fetch failed, attempting fallback:", err);
+      }
+
+      if (!blob) {
+        try {
+          const res = await fetch(fallbackUrl);
+          if (res.ok) {
+            blob = await res.blob();
+          }
+        } catch (err) {
+          console.warn("Secondary QR download fetch failed:", err);
+        }
+      }
+
+      if (blob) {
+        downloadBlob(blob, "Aspom_Attendance_QR.png");
+        toast.success("QR code image exported successfully");
+        return;
+      }
+
+      // 2. Fallback: Draw the rendered <img> directly onto an offscreen canvas
+      const imgEl = qrImageRef.current;
+      if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+        const canvas = document.createElement("canvas");
+        const size = Math.max(imgEl.naturalWidth * 2, 1000);
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+
+          await new Promise<void>((resolve, reject) => {
+            canvas.toBlob((b) => {
+              if (b) {
+                downloadBlob(b, "Aspom_Attendance_QR.png");
+                toast.success("QR code image exported successfully");
+                resolve();
+              } else {
+                reject(new Error("Canvas toBlob failed"));
+              }
+            }, "image/png");
+          });
+          return;
+        }
+      }
+
+      // 3. Fallback: html-to-image on the pure QR container
+      if (pureQrRef.current) {
+        const { toPng } = await import("html-to-image");
+        const dataUrl = await toPng(pureQrRef.current, {
+          pixelRatio: 4,
+          backgroundColor: "#ffffff",
+        });
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = "Aspom_Attendance_QR.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success("QR code image exported successfully");
+        return;
+      }
+
+      throw new Error("Unable to capture QR code image");
+    } catch (err) {
+      console.error("QR code export failed:", err);
+      toast.error("Failed to export QR code image. Please check your connection.");
+    } finally {
+      setIsDownloadingImage(false);
+    }
+  };
+
   const handleDownloadPdf = async () => {
     if (!posterRef.current) return;
-    setIsDownloading(true);
+    setIsDownloadingPdf(true);
     try {
       const { toPng } = await import("html-to-image");
       const { jsPDF } = await import("jspdf");
 
-      // Render at 2× scale for crisp output
+      // Render at 2× scale for crisp output, excluding non-print helper controls
       const dataUrl = await toPng(posterRef.current, {
         pixelRatio: 2,
         backgroundColor: "#ffffff",
+        filter: (node) => {
+          if (
+            node instanceof HTMLElement &&
+            (node.dataset.noPrint === "true" || node.classList.contains("no-poster-print"))
+          ) {
+            return false;
+          }
+          return true;
+        },
       });
 
       const img = new Image();
@@ -63,10 +177,12 @@ export function WallQrPosterDialog({
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       pdf.addImage(dataUrl, "PNG", offsetX, offsetY, imgW, imgH);
       pdf.save("Aspom_Attendance_QR_Poster.pdf");
+      toast.success("Wall poster PDF generated successfully");
     } catch (err) {
       console.error("PDF generation failed:", err);
+      toast.error("Failed to generate PDF poster.");
     } finally {
-      setIsDownloading(false);
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -76,37 +192,56 @@ export function WallQrPosterDialog({
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
             <QrCode className="h-4 w-4 text-primary" />
-            <span>Wall QR Poster</span>
+            <span>QR Code &amp; Poster</span>
           </Button>
         )}
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl lg:min-w-4xl max-h-[90vh] overflow-y-auto p-0 border-border">
-        <DialogHeader className="p-6 pb-2 border-b">
-          <div className="flex items-center justify-between gap-4">
+        <DialogHeader className="p-6 pb-3 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <DialogTitle className="text-lg font-bold flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-primary" />
-                Office Wall QR Poster
+                Office Attendance QR &amp; Poster
               </DialogTitle>
               <DialogDescription className="text-xs mt-1">
-                Download this poster as a PDF and mount it at the office reception or entrance for staff clock-in.
+                Export just the raw QR code as an image (no text or branding), or download the full A4 wall poster as a PDF.
               </DialogDescription>
             </div>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleDownloadPdf}
-              disabled={isDownloading || !scanUrl}
-              className="gap-2 shadow-xs cursor-pointer shrink-0"
-            >
-              {isDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              <span>{isDownloading ? "Generating…" : "Download PDF"}</span>
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadQrImage}
+                disabled={isDownloadingImage || !scanUrl}
+                className="gap-2 cursor-pointer shadow-xs"
+                title="Export only the QR code as a PNG image"
+              >
+                {isDownloadingImage ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                )}
+                <span>{isDownloadingImage ? "Exporting…" : "Export QR Image"}</span>
+              </Button>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf || !scanUrl}
+                className="gap-2 shadow-xs cursor-pointer"
+                title="Download complete A4 wall poster as PDF"
+              >
+                {isDownloadingPdf ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                <span>{isDownloadingPdf ? "Generating…" : "Download Poster (PDF)"}</span>
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -142,19 +277,41 @@ export function WallQrPosterDialog({
             </p>
 
             {/* High Res QR Code Frame */}
-            <div className="p-3 bg-slate-50 border-2 border-dashed border-primary/30 rounded-2xl shadow-inner mb-5">
-              {scanUrl ? (
-                <QRCodeImage
-                  value={scanUrl}
-                  size={240}
-                  className="mx-auto"
-                  alt="Aspom Attendance Scan QR"
-                />
-              ) : (
-                <div className="w-60 h-60 flex items-center justify-center text-xs text-slate-400">
-                  Generating...
+            <div className="flex flex-col items-center gap-2 mb-5">
+              <div className="p-3 bg-slate-50 border-2 border-dashed border-primary/30 rounded-2xl shadow-inner inline-block">
+                <div ref={pureQrRef} className="bg-white p-2 rounded-lg">
+                  {scanUrl ? (
+                    <QRCodeImage
+                      imgRef={qrImageRef}
+                      value={scanUrl}
+                      size={240}
+                      className="mx-auto !p-0 shadow-none rounded-none"
+                      alt="Aspom Attendance Scan QR"
+                    />
+                  ) : (
+                    <div className="w-60 h-60 flex items-center justify-center text-xs text-slate-400">
+                      Generating...
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                data-no-print="true"
+                onClick={handleDownloadQrImage}
+                disabled={isDownloadingImage || !scanUrl}
+                className="no-poster-print text-xs text-slate-600 hover:text-slate-900 gap-1.5 h-7 px-2.5 cursor-pointer font-medium"
+                title="Download just this QR code as a PNG image (no text, no instructions)"
+              >
+                {isDownloadingImage ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                ) : (
+                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                )}
+                <span>Export QR code only (PNG)</span>
+              </Button>
             </div>
 
             {/* How to scan */}

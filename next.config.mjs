@@ -1,6 +1,7 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       // CVs can be 15 MB; allow room for multipart form fields and headers.
       bodySizeLimit: "20mb",
