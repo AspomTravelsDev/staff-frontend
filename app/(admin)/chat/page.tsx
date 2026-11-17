@@ -115,10 +115,12 @@ export default function ChatPage() {
             <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${!selectedId ? "hidden lg:flex" : "flex"}`}>
                 <ChatWindow
                     conversation={selectedConversation}
+                    conversations={conversations}
                     currentUserId={currentUserId}
                     onMessageSent={refreshConversationsSilently}
                     onMessageChanged={handleMessageChanged}
                     onBack={() => setSelectedId(null)}
+                    onSelectConversation={(id) => setSelectedId(id)}
                 />
             </div>
 

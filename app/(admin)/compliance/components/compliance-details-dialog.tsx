@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { useComplianceQuery } from "@/lib/api/hooks/use-compliance";
 import {
   Dialog,
@@ -13,6 +13,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { QueryEvidence } from "./query-evidence";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,6 +33,7 @@ import {
   ComplianceIssue,
   addComplianceComment,
   resolveComplianceOccurrence,
+  closeComplianceIssue,
   saveComplianceCorrection,
   completeComplianceCorrection,
 } from "@/lib/api/compliance";
@@ -67,6 +78,8 @@ export function ComplianceDetailsDialog(props: ComplianceDetailsDialogProps) {
         <Header className={props.mode === "details" ? "border-b px-6 py-5 pr-12" : "pr-6"}><Title>{props.mode === "outcome" ? "Choose outcome" : props.mode === "details" ? "Query details" : "Query responses"}</Title><Description>{query.isError ? "The query could not be loaded. Please try again." : "Loading the latest query details…"}</Description></Header>
         {query.isError ? <Button variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? "Retrying…" : "Try again"}</Button> : <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Loading query…</div>}
       </Content>
+
+      
     </Surface>;
   }
   return <ComplianceQueryWorkspace key={props.issueId + (props.mode ?? "response")} {...props} issue={query.data} onReload={async () => { await query.refetch(); }} />;
@@ -98,6 +111,9 @@ function ComplianceQueryWorkspace({
   const [awardPoints, setAwardPoints] = useState(String(issue.points ?? 1));
   const [suspensionDays, setSuspensionDays] = useState("");
   const [resolving, setResolving] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [detailCloseReason, setDetailCloseReason] = useState(issue.decision_notes || "");
+  const [closingQuery, setClosingQuery] = useState(false);
   const [correctionRequired, setCorrectionRequired] = useState(Boolean(issue.correction_due_date));
   const [correctionPlan, setCorrectionPlan] = useState<CorrectionPlan>({ correction_notes: issue.correction_notes || "", correction_due_date: issue.correction_due_date || "", correction_reminder_days: issue.correction_reminder_days ?? 2 });
   const [completionNotes, setCompletionNotes] = useState("");
@@ -400,11 +416,74 @@ function ComplianceQueryWorkspace({
         </div>
         <Footer className={mode === "details" ? "border-t px-6 py-4" : undefined}>
           {mode !== "outcome" && isAdmin && issue.status === "open" && onChooseOutcome && <Button variant="outline" onClick={onChooseOutcome}>Choose outcome</Button>}
+          {mode !== "outcome" && isAdmin && (
+            <Button
+              variant="outline"
+              className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              onClick={() => {
+                setDetailCloseReason(issue.decision_notes || "");
+                setCloseConfirmOpen(true);
+              }}
+            >
+              <CheckCircle2 className="mr-1.5 size-4" />
+              {issue.status === "closed" ? "Update Close Note" : "Close Query"}
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Close Window
           </Button>
         </Footer>
       </Content>
+      <AlertDialog open={closeConfirmOpen} onOpenChange={val => { if (!val && !closingQuery) setCloseConfirmOpen(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{issue.status === "closed" ? "Update query closure" : "Close compliance query"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {issue.status === "closed"
+                ? `Update closure note and status for ${issue.user_name || issue.user?.name || "staff"}.`
+                : `Mark query for ${issue.user_name || issue.user?.name || "staff"} as closed regardless of its current status.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="detail-close-note">Closure Reason / Decision Note</Label>
+            <Textarea
+              id="detail-close-note"
+              className="w-full text-xs"
+              rows={3}
+              placeholder="Optional: Record closure reason (e.g. Reviewed with staff and resolved without occurrence, or corrective coaching completed)..."
+              value={detailCloseReason}
+              onChange={e => setDetailCloseReason(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={closingQuery}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={closingQuery}
+              onClick={async event => {
+                event.preventDefault();
+                setClosingQuery(true);
+                try {
+                  const result = await closeComplianceIssue(issue.id, detailCloseReason.trim() || undefined);
+                  if (!result.success) {
+                    toast.error(result.error || "Unable to close query");
+                    return;
+                  }
+                  toast.success(issue.status === "closed" ? "Closure note updated" : "Query closed successfully");
+                  setCloseConfirmOpen(false);
+                  await fetchDetails();
+                  router.refresh();
+                } catch {
+                  toast.error("Unable to close query");
+                } finally {
+                  setClosingQuery(false);
+                }
+              }}
+            >
+              {closingQuery ? "Closing…" : "Confirm Close"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Surface>
   );
 }

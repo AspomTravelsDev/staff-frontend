@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { deleteComplianceIssue, type ComplianceIssue } from "@/lib/api/compliance";
+import { deleteComplianceIssue, closeComplianceIssue, type ComplianceIssue } from "@/lib/api/compliance";
 import { ComplianceDetailsDialog } from "./compliance-details-dialog";
 
 type QueryView = "details" | "response" | "outcome";
@@ -26,6 +26,9 @@ export function ComplianceTable({ issues, isAdmin = false }: { issues: Complianc
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [closingIssue, setClosingIssue] = useState<ComplianceIssue | null>(null);
+  const [closeReason, setCloseReason] = useState("");
+  const [closing, setClosing] = useState(false);
   function show(id: string, view: QueryView) { setSelected({ id, view }); }
   function close() {
     setSelected(null);
@@ -96,6 +99,7 @@ export function ComplianceTable({ issues, isAdmin = false }: { issues: Complianc
                     <DropdownMenuItem onSelect={() => show(issue.id, "details")}><Eye className="mr-2 size-4" />View details</DropdownMenuItem>
                     {(issue.status === "open" || hasResponses) && <DropdownMenuItem onSelect={() => show(issue.id, "response")}><MessagesSquare className="mr-2 size-4" />{!isAdmin && issue.status === "open" ? "Respond to query" : "View responses"}</DropdownMenuItem>}
                     {isAdmin && issue.status === "open" && <DropdownMenuItem onSelect={() => show(issue.id, "outcome")}><Scale className="mr-2 size-4" />Choose outcome</DropdownMenuItem>}
+                    {isAdmin && <DropdownMenuItem onSelect={() => { setClosingIssue(issue); setCloseReason(issue.decision_notes || ""); }}><CheckCircle2 className="mr-2 size-4 text-emerald-600" />{issue.status === "closed" ? "Update close note" : "Close query"}</DropdownMenuItem>}
                     {canDelete && <><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setDeletingId(issue.id)}><Trash2 className="mr-2 size-4" />Delete query</DropdownMenuItem></>}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -112,5 +116,51 @@ export function ComplianceTable({ issues, isAdmin = false }: { issues: Complianc
       try { const result = await deleteComplianceIssue(deletingId); if (!result.success) { toast.error(result.error || "Unable to delete query"); return; } setDeletingId(null); toast.success("Query deleted"); router.refresh(); }
       catch { toast.error("Unable to delete query"); } finally { setDeleting(false); }
     }}>{deleting ? "Deleting…" : "Delete query"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+
+    <AlertDialog open={Boolean(closingIssue)} onOpenChange={value => { if (!value && !closing) setClosingIssue(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{closingIssue?.status === "closed" ? "Update query closure" : "Close compliance query"}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {closingIssue?.status === "closed"
+              ? `Update closure note and status for ${closingIssue?.user_name || closingIssue?.user?.name || "staff"}.`
+              : `Mark query for ${closingIssue?.user_name || closingIssue?.user?.name || "staff"} as closed regardless of its current status.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2 py-2">
+          <label htmlFor="close-note-input" className="text-xs font-medium text-foreground">Closure Reason / Decision Note</label>
+          <textarea
+            id="close-note-input"
+            className="w-full rounded-md border border-input bg-background p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            rows={3}
+            placeholder="Optional: Record closure reason (e.g. Reviewed with staff and resolved without occurrence, or corrective coaching completed)..."
+            value={closeReason}
+            onChange={e => setCloseReason(e.target.value)}
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={closing}>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={closing} onClick={async event => {
+            event.preventDefault();
+            if (!closingIssue) return;
+            setClosing(true);
+            try {
+              const result = await closeComplianceIssue(closingIssue.id, closeReason.trim() || undefined);
+              if (!result.success) {
+                toast.error(result.error || "Unable to close query");
+                return;
+              }
+              setClosingIssue(null);
+              toast.success(closingIssue.status === "closed" ? "Closure note updated" : "Query closed successfully");
+              router.refresh();
+            } catch {
+              toast.error("Unable to close query");
+            } finally {
+              setClosing(false);
+            }
+          }}>{closing ? "Closing…" : "Confirm Close"}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </section>;
 }

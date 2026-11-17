@@ -96,12 +96,53 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
 
     items.forEach((item) => {
+      const root = item.url.split("/").filter(Boolean)[0];
+
+      // Route tools into their owning department group by URL prefix first
+      if (root === "compliance") {
+        groups["Compliance Tools"].push(item);
+        return;
+      }
+      if (root === "social-media") {
+        groups["Social Media Tools"].push(item);
+        return;
+      }
+      if (root === "hr" || root === "attendance" || root === "performance") {
+        groups["HR Tools"].push(item);
+        return;
+      }
+      if (root === "accounts") {
+        groups["Account Tools"].push(item);
+        return;
+      }
+      if (root === "visa") {
+        groups["Visa Tools"].push(item);
+        return;
+      }
+      if (root === "it") {
+        groups["IT Tools"].push(item);
+        return;
+      }
+      if (root === "admin") {
+        groups["Admin Tools"].push(item);
+        return;
+      }
+      if (root === "operations") {
+        groups["Office Operations Tools"].push(item);
+        return;
+      }
+
       if (!item.allowedRoles) {
         groups["Other Tools"].push(item);
         return;
       }
 
       if (
+        item.allowedRoles.includes("compliance") &&
+        activeRoles.includes("compliance")
+      ) {
+        groups["Compliance Tools"].push(item);
+      } else if (
         item.allowedRoles.includes("social-media") &&
         activeRoles.includes("social-media")
       ) {
@@ -132,15 +173,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ) {
         groups["IT Tools"].push(item);
       } else if (
-        item.allowedRoles.includes("compliance") &&
-        activeRoles.includes("compliance")
-      ) {
-        groups["Compliance Tools"].push(item);
-      } else if (
         item.allowedRoles.includes("office-operations") &&
         activeRoles.includes("office-operations")
       ) {
         groups["Office Operations Tools"].push(item);
+      } else if (item.allowedRoles.includes("compliance")) {
+        groups["Compliance Tools"].push(item);
       } else if (item.allowedRoles.includes("social-media")) {
         groups["Social Media Tools"].push(item);
       } else if (item.allowedRoles.includes("hr")) {
@@ -153,8 +191,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         groups["IT Tools"].push(item);
       } else if (item.allowedRoles.includes("admin")) {
         groups["Admin Tools"].push(item);
-      } else if (item.allowedRoles.includes("compliance")) {
-        groups["Compliance Tools"].push(item);
       } else if (item.allowedRoles.includes("office-operations")) {
         groups["Office Operations Tools"].push(item);
       } else {

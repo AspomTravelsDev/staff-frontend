@@ -35,6 +35,10 @@ export async function deleteMessage(...args: Parameters<typeof actions.deleteMes
   return callAction(() => actions.deleteMessage(...args));
 }
 
+export async function deleteMessagesBatch(...args: Parameters<typeof actions.deleteMessagesBatch>): Promise<ActionData<Awaited<ReturnType<typeof actions.deleteMessagesBatch>>>> {
+  return callAction(() => actions.deleteMessagesBatch(...args));
+}
+
 export async function getAttachmentDownloadUrl(...args: Parameters<typeof actions.getAttachmentDownloadUrl>): Promise<ActionData<Awaited<ReturnType<typeof actions.getAttachmentDownloadUrl>>>> {
   return callAction(() => actions.getAttachmentDownloadUrl(...args));
 }

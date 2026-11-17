@@ -192,3 +192,18 @@ export async function completeComplianceCorrection(id: string, notes: string): P
     if (!result.success) return { success: false, error: result.error.error || "Could not complete correction" };
     return { success: true, data: result.data };
 }
+
+export async function closeComplianceIssue(
+    id: string,
+    decisionNotes?: string,
+    outcome?: string
+): Promise<ComplianceActionResult<ComplianceIssue>> {
+    const result = await api.post<ComplianceIssue>(`/api/compliance/${id}/close`, {
+        decision_notes: decisionNotes,
+        outcome,
+    });
+    if (!result.success) {
+        return { success: false, error: result.error?.error || "Failed to close compliance query" };
+    }
+    return { success: true, data: result.data };
+}

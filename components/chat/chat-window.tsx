@@ -3,9 +3,12 @@
 import { Fragment, useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmojiPicker } from "./emoji-picker";
+import { ForwardModal } from "./forward-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +18,7 @@ import {
 import {
   Send,
   Paperclip,
+  KeyRound,
   X,
   FileText,
   Download,
@@ -31,17 +35,35 @@ import {
   Copy,
   Reply,
   UploadCloud,
+  Search,
+  ListChecks,
+  CheckSquare,
+  CornerUpRight,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Conversation, Message, MessageAttachment } from "@/types/chat";
 import { toProxiedImageUrl } from "@/lib/utils/image-url";
 import { loadOpeningChat } from "@/lib/chat-opening";
+import {
+  isForwardedMessage,
+  getDisplayMessageBody,
+  formatForwardedBody,
+  formatWhatsAppMessages,
+  searchMessagesInChat,
+} from "@/lib/chat-message-state";
 import { ChatImageAttachment } from "./chat-image-attachment";
 import { MessageReceipt } from "./message-receipt";
+import { CreateSecretModal } from "./create-secret-modal";
+import { SecretCapsuleCard } from "./secret-capsule-card";
+import { extractSecretInfo, formatSecretTag } from "@/lib/secret-helpers";
+import { useOptionalUser } from "@/providers/user-provider";
 import {
   getMessages,
   sendMessage,
   updateMessage,
   deleteMessage,
+  deleteMessagesBatch,
   getAttachmentDownloadUrl,
   markAsRead,
 } from "@/lib/api/chat";
@@ -51,18 +73,22 @@ import { useQueryClient } from "@tanstack/react-query";
 
 interface ChatWindowProps {
   conversation: Conversation | null;
+  conversations?: Conversation[];
   currentUserId?: string;
   onMessageSent?: () => void;
   onMessageChanged?: (message: Message) => void;
   onBack?: () => void;
+  onSelectConversation?: (conversationId: string) => void;
 }
 
 export function ChatWindow({
   conversation,
+  conversations,
   currentUserId,
   onMessageSent,
   onMessageChanged,
   onBack,
+  onSelectConversation,
 }: ChatWindowProps) {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -91,6 +117,28 @@ export function ChatWindow({
   const openingLoadingRef = useRef(false);
   const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // In-chat search state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Multi-select & Batch actions state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+  const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+
+  // Forwarding state
+  const [forwardModalOpen, setForwardModalOpen] = useState(false);
+  const [messagesToForward, setMessagesToForward] = useState<Message[]>([]);
+
+  // IT Secret Drop state
+  const userContext = useOptionalUser();
+  const user = userContext?.user;
+  const isItOfficer = user?.role === "it" || user?.role === "super" || user?.role === "admin";
+  const [createSecretOpen, setCreateSecretOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
@@ -288,6 +336,11 @@ export function ChatWindow({
           }
         });
 
+        channel.listen(".SecretBurned", (e: { secret_id: string }) => {
+          console.info("ChatWindow: received SecretBurned", channelName, e);
+          setMessages((prev) => [...prev]);
+        });
+
         cleanupEcho = () => {
           echo.leave(channelName);
           if (socket?.unbind) {
@@ -307,6 +360,14 @@ export function ChatWindow({
     setMessageToDelete(null);
     setInputBody("");
     setSelectedFiles([]);
+    setSearchOpen(false);
+    setSearchQuery("");
+    setCurrentMatchIndex(0);
+    setIsSelectionMode(false);
+    setSelectedMessageIds(new Set());
+    setBatchDeleteConfirmOpen(false);
+    setForwardModalOpen(false);
+    setMessagesToForward([]);
 
     return () => {
       openingRequestRef.current++;
@@ -452,9 +513,11 @@ export function ChatWindow({
     if (editingMessage) {
       // Edit mode
       try {
+        const text = inputBody.trim();
+        const bodyToSend = isForwardedMessage(editingMessage) ? formatForwardedBody(text) : text;
         const updated = await updateMessage(
           editingMessage.id,
-          inputBody.trim(),
+          bodyToSend,
         );
         setMessages((prev) =>
           prev.map((msg) => (msg.id === updated.id ? updated : msg)),
@@ -563,6 +626,122 @@ export function ChatWindow({
     try { await navigator.clipboard.writeText(body); toast.success("Message copied."); }
     catch { toast.error("Could not copy the message. Please try again."); }
   }
+
+  // Search logic
+  const searchMatches = searchMessagesInChat(messages, searchQuery);
+
+  useEffect(() => {
+    if (currentMatchIndex >= searchMatches.length && searchMatches.length > 0) {
+      setCurrentMatchIndex(searchMatches.length - 1);
+    }
+  }, [searchMatches.length, currentMatchIndex]);
+
+  useEffect(() => {
+    if (!searchOpen || searchMatches.length === 0) return;
+    const matchId = searchMatches[currentMatchIndex];
+    if (!matchId) return;
+    const el = document.getElementById(`chat-message-${matchId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [searchOpen, currentMatchIndex, searchMatches]);
+
+  const handleNextSearchMatch = () => {
+    if (searchMatches.length === 0) return;
+    setCurrentMatchIndex((prev) => (prev + 1) % searchMatches.length);
+  };
+
+  const handlePrevSearchMatch = () => {
+    if (searchMatches.length === 0) return;
+    setCurrentMatchIndex((prev) => (prev - 1 + searchMatches.length) % searchMatches.length);
+  };
+
+  // Selection & Batch actions logic
+  const nonDeletedMessages = messages.filter((m) => !m.is_deleted);
+  const selectedMessages = messages.filter((m) => selectedMessageIds.has(m.id));
+  const selectedOwnMessages = selectedMessages.filter(
+    (m) => m.sender?.id === currentUserId && !m.is_deleted
+  );
+
+  const handleToggleSelectMessage = (id: string) => {
+    setSelectedMessageIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedMessageIds.size === nonDeletedMessages.length) {
+      setSelectedMessageIds(new Set());
+    } else {
+      setSelectedMessageIds(new Set(nonDeletedMessages.map((m) => m.id)));
+    }
+  };
+
+  const handleBatchCopy = async () => {
+    if (selectedMessages.length === 0) return;
+    const text = formatWhatsAppMessages(selectedMessages, currentUserId);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(
+        `Copied ${selectedMessages.length} message${
+          selectedMessages.length === 1 ? "" : "s"
+        } (WhatsApp format).`
+      );
+    } catch {
+      toast.error("Failed to copy messages.");
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (batchDeleting || selectedOwnMessages.length === 0) return;
+    setBatchDeleting(true);
+    try {
+      const idsToDelete = selectedOwnMessages.map((m) => m.id);
+      const res = await deleteMessagesBatch(idsToDelete);
+      const deletedMap = new Map((res.data || []).map((m) => [m.id, m]));
+
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (deletedMap.has(m.id)) return deletedMap.get(m.id)!;
+          if (idsToDelete.includes(m.id)) {
+            return { ...m, body: null, is_deleted: true, deleted_at: new Date().toISOString() };
+          }
+          return m;
+        })
+      );
+
+      res.data?.forEach((deletedMsg) => {
+        onMessageChanged?.(deletedMsg);
+      });
+
+      const deletedCount = res.count ?? idsToDelete.length;
+      toast.success(
+        `Deleted ${deletedCount} message${deletedCount === 1 ? "" : "s"}.`
+      );
+      setIsSelectionMode(false);
+      setSelectedMessageIds(new Set());
+      setBatchDeleteConfirmOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete selected messages.";
+      toast.error(msg);
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
+
+  const handleSingleForward = (msg: Message) => {
+    setMessagesToForward([msg]);
+    setForwardModalOpen(true);
+  };
+
+  const handleBatchForward = () => {
+    if (selectedMessages.length === 0) return;
+    setMessagesToForward(selectedMessages);
+    setForwardModalOpen(true);
+  };
 
   const insertEmoji = useCallback((emoji: string) => {
     const input = messageInputRef.current;
@@ -766,7 +945,7 @@ export function ChatWindow({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {notificationPermission === "default" && (
             <Button
               variant="outline"
@@ -780,6 +959,50 @@ export function ChatWindow({
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => {
+              setSearchOpen((prev) => {
+                const next = !prev;
+                if (next) {
+                  setTimeout(() => searchInputRef.current?.focus(), 50);
+                } else {
+                  setSearchQuery("");
+                }
+                return next;
+              });
+            }}
+            className={`h-8 w-8 ${
+              searchOpen
+                ? "bg-accent text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            title="Search in conversation"
+            aria-label="Search in conversation"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setIsSelectionMode((prev) => {
+                const next = !prev;
+                if (!next) setSelectedMessageIds(new Set());
+                return next;
+              });
+            }}
+            className={`h-8 w-8 ${
+              isSelectionMode
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            title={isSelectionMode ? "Cancel selection" : "Select messages"}
+            aria-label={isSelectionMode ? "Cancel selection" : "Select messages"}
+          >
+            <ListChecks className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => fetchInitialMessages(conversation.id, true)}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             title="Refresh messages"
@@ -788,6 +1011,161 @@ export function ChatWindow({
           </Button>
         </div>
       </div>
+
+      {/* In-chat Search Bar */}
+      {searchOpen && (
+        <div className="px-3 py-2 bg-card border-b border-border flex items-center gap-2 shrink-0 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentMatchIndex(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (e.shiftKey) handlePrevSearchMatch();
+                  else handleNextSearchMatch();
+                } else if (e.key === "Escape") {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }
+              }}
+              placeholder="Search in conversation..."
+              className="pl-8 pr-20 h-8 text-xs bg-muted/40 focus:bg-background"
+            />
+            <div className="absolute right-2 top-2 flex items-center gap-1 text-[11px] text-muted-foreground pointer-events-none">
+              {searchMatches.length > 0 ? (
+                <span>
+                  {`${currentMatchIndex + 1} of ${searchMatches.length}`}
+                </span>
+              ) : searchQuery.trim() ? (
+                <span className="text-muted-foreground/80">0 results</span>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={searchMatches.length === 0}
+              onClick={handlePrevSearchMatch}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Previous match (Shift+Enter)"
+              aria-label="Previous match"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={searchMatches.length === 0}
+              onClick={handleNextSearchMatch}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Next match (Enter)"
+              aria-label="Next match"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSearchOpen(false);
+                setSearchQuery("");
+              }}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Close search"
+              aria-label="Close search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Selection Mode Bar */}
+      {isSelectionMode && (
+        <div className="px-3 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-2 shrink-0 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setIsSelectionMode(false);
+                setSelectedMessageIds(new Set());
+              }}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              title="Cancel selection"
+              aria-label="Cancel selection"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <span className="text-xs font-semibold text-foreground">
+              {selectedMessageIds.size} selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleSelectAll}
+              className="h-7 text-xs px-2 text-primary hover:text-primary hover:bg-primary/15"
+            >
+              {selectedMessageIds.size === nonDeletedMessages.length && nonDeletedMessages.length > 0
+                ? "Deselect All"
+                : "Select All"}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selectedMessageIds.size === 0}
+              onClick={handleBatchCopy}
+              className="h-7 text-xs px-2.5 gap-1.5 bg-background shadow-xs"
+              title="Copy selected messages (WhatsApp format)"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Copy</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selectedMessageIds.size === 0}
+              onClick={handleBatchForward}
+              className="h-7 text-xs px-2.5 gap-1.5 bg-background shadow-xs"
+              title="Forward selected messages"
+            >
+              <CornerUpRight className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Forward</span>
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={selectedOwnMessages.length === 0}
+              onClick={() => setBatchDeleteConfirmOpen(true)}
+              className="h-7 text-xs px-2.5 gap-1.5"
+              title={
+                selectedOwnMessages.length === 0
+                  ? "Select your own messages to delete"
+                  : `Delete ${selectedOwnMessages.length} selected message${
+                      selectedOwnMessages.length === 1 ? "" : "s"
+                    }`
+              }
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">
+                Delete {selectedOwnMessages.length > 0 ? `(${selectedOwnMessages.length})` : ""}
+              </span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Message Feed Area */}
       <div
@@ -831,6 +1209,11 @@ export function ChatWindow({
             const isOwn = msg.sender?.id === currentUserId;
             const isDeleted = msg.is_deleted;
             const isEdited = msg.is_edited;
+            const isForwarded = isForwardedMessage(msg);
+            const cleanBody = getDisplayMessageBody(msg.body);
+            const isSelected = selectedMessageIds.has(msg.id);
+            const isCurrentSearchMatch = searchMatches[currentMatchIndex] === msg.id;
+            const isAnySearchMatch = searchMatches.includes(msg.id);
             const parent = msg.reply_to ? messages.find(message => message.id === msg.reply_to!.id) : null;
             const quote = parent ? { id: parent.id, body: parent.body, is_deleted: parent.is_deleted, sender: parent.sender, attachment_name: parent.attachments[0]?.original_name } : msg.reply_to;
 
@@ -839,10 +1222,37 @@ export function ChatWindow({
               {unreadMarker?.messageId === msg.id && <div id="chat-unread-marker" className="flex scroll-mt-3 items-center gap-3 py-2" role="separator" aria-label={`${unreadMarker.count} unread messages`}><div className="h-px flex-1 bg-border" /><span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">{unreadMarker.count} unread {unreadMarker.count === 1 ? "message" : "messages"}</span><Button type="button" variant="ghost" size="icon" className="size-6 shrink-0 text-muted-foreground" aria-label="Dismiss unread marker" onClick={() => setUnreadMarker(null)}><X className="size-3" /></Button><div className="h-px flex-1 bg-border" /></div>}
               <div
                 id={`chat-message-${msg.id}`}
-                className={`flex items-end gap-2 group ${
+                onClick={() => {
+                  if (isSelectionMode && !isDeleted) {
+                    handleToggleSelectMessage(msg.id);
+                  }
+                }}
+                className={`flex items-end gap-2 group transition-all rounded-xl p-1 -m-1 ${
                   isOwn ? "justify-end" : "justify-start"
+                } ${isSelectionMode && !isDeleted ? "cursor-pointer hover:bg-muted/40" : ""} ${
+                  isSelected ? "bg-primary/10 ring-1 ring-primary/30" : ""
+                } ${
+                  isCurrentSearchMatch
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    : isAnySearchMatch
+                    ? "bg-amber-500/10"
+                    : ""
                 }`}
               >
+                {isSelectionMode && !isDeleted && (
+                  <div
+                    className={`flex items-center self-center px-1 shrink-0 ${
+                      isOwn ? "order-last ml-1" : "order-first mr-1"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => handleToggleSelectMessage(msg.id)}
+                      aria-label={`Select message from ${msg.sender?.name || "Staff"}`}
+                    />
+                  </div>
+                )}
+
                 {!isOwn && (
                   <Avatar className="h-7 w-7 mb-1 shrink-0 border border-border">
                     <AvatarFallback className="bg-primary/10 text-primary font-semibold text-[10px]">
@@ -874,14 +1284,16 @@ export function ChatWindow({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="text-xs">
                           <DropdownMenuItem disabled={msg.id.startsWith("temp-") || sending} onSelect={() => { setReplyingTo(msg); setEditingMessage(null); messageInputRef.current?.focus(); }} className="gap-2"><Reply className="size-3.5" />Reply</DropdownMenuItem>
-                          {msg.body && <DropdownMenuItem onSelect={() => { void handleCopyMessage(msg.body!); }} className="gap-2"><Copy className="size-3.5" />Copy</DropdownMenuItem>}
+                          {cleanBody && <DropdownMenuItem onSelect={() => { void handleCopyMessage(cleanBody); }} className="gap-2"><Copy className="size-3.5" />Copy</DropdownMenuItem>}
+                          <DropdownMenuItem disabled={msg.id.startsWith("temp-")} onSelect={() => handleSingleForward(msg)} className="gap-2"><CornerUpRight className="size-3.5" />Forward</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => { setIsSelectionMode(true); setSelectedMessageIds(new Set([msg.id])); }} className="gap-2"><CheckSquare className="size-3.5" />Select</DropdownMenuItem>
                           {isOwn && <>
                           <DropdownMenuItem
                             disabled={msg.id.startsWith("temp-")}
                             onClick={() => {
                               setReplyingTo(null);
                               setEditingMessage(msg);
-                              setInputBody(msg.body || "");
+                              setInputBody(cleanBody || "");
                             }}
                             className="gap-2"
                           >
@@ -913,16 +1325,50 @@ export function ChatWindow({
                         </p>
                       ) : (
                         <>
+                          {isForwarded && (
+                            <div
+                              className={`flex items-center gap-1 text-[11px] font-medium italic mb-1.5 ${
+                                isOwn ? "text-primary-foreground/80" : "text-muted-foreground"
+                              }`}
+                            >
+                              <CornerUpRight className="h-3 w-3 shrink-0" />
+                              <span>Forwarded</span>
+                            </div>
+                          )}
                           {quote && <button type="button" className={`mb-2 block w-full min-w-0 rounded-md border-l-2 px-2 py-1.5 text-left text-xs ${isOwn ? "border-primary-foreground/60 bg-black/10 text-primary-foreground" : "border-primary bg-muted text-foreground"}`} aria-label="View original message" onClick={() => {
                             const original = document.getElementById(`chat-message-${quote.id}`);
                             if (original) original.scrollIntoView({ behavior: "smooth", block: "center" });
                             else toast.info("Load earlier messages to view the original.");
-                          }}><span className="block truncate font-semibold">{quote.sender?.id === currentUserId ? "You" : quote.sender?.name || "Staff member"}</span><span className="block max-w-full truncate opacity-80">{quote.is_deleted ? "This message was deleted" : quote.body || quote.attachment_name || "Attachment"}</span></button>}
-                          {msg.body && (
-                            <p className="whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
-                              {msg.body}
-                            </p>
-                          )}
+                          }}><span className="block truncate font-semibold">{quote.sender?.id === currentUserId ? "You" : quote.sender?.name || "Staff member"}</span><span className="block max-w-full truncate opacity-80">{quote.is_deleted ? "This message was deleted" : getDisplayMessageBody(quote.body) || quote.attachment_name || "Attachment"}</span></button>}
+                          {(() => {
+                            const secretInfo = extractSecretInfo(cleanBody);
+                            if (secretInfo) {
+                              const remainingText = cleanBody.replace(/\[secret:[^\]]+\]/, "").trim();
+                              return (
+                                <div className="space-y-2">
+                                  {remainingText && (
+                                    <p className="whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
+                                      {remainingText}
+                                    </p>
+                                  )}
+                                  <SecretCapsuleCard
+                                    secretId={secretInfo.secretId}
+                                    initialTitle={secretInfo.title}
+                                    currentUserId={currentUserId}
+                                    isOwn={isOwn}
+                                    onBurned={() => {
+                                      setMessages((prev) => [...prev]);
+                                    }}
+                                  />
+                                </div>
+                              );
+                            }
+                            return cleanBody ? (
+                              <p className="whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
+                                {cleanBody}
+                              </p>
+                            ) : null;
+                          })()}
 
                           {/* Attachments */}
                           {msg.attachments && msg.attachments.length > 0 && (
@@ -1068,6 +1514,21 @@ export function ChatWindow({
 
         <EmojiPicker disabled={sending} onSelect={insertEmoji} />
 
+        {isItOfficer && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setCreateSecretOpen(true)}
+            disabled={sending || !!editingMessage}
+            className="h-9 w-9 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 shrink-0 hover:bg-amber-500/10"
+            title="Send secure credential drop (IT only)"
+            aria-label="Send secure credential drop"
+          >
+            <KeyRound className="h-4 w-4" />
+          </Button>
+        )}
+
         <Textarea
           ref={messageInputRef}
           rows={1}
@@ -1117,6 +1578,93 @@ export function ChatWindow({
           <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" disabled={deleting} onClick={event => { event.preventDefault(); if (messageToDelete) void handleDeleteMessage(messageToDelete.id); }}>{deleting ? "Deleting…" : "Delete message"}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch delete confirmation dialog */}
+      <AlertDialog
+        open={batchDeleteConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !batchDeleting) setBatchDeleteConfirmOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {`Delete ${selectedOwnMessages.length} selected message${
+                selectedOwnMessages.length === 1 ? "" : "s"
+              }?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedMessages.length > selectedOwnMessages.length
+                ? `You have selected ${selectedMessages.length} messages, but only your own messages (${selectedOwnMessages.length}) will be deleted. They will be replaced with a deleted-message notice.`
+                : "These messages will be replaced with a deleted-message notice for everyone in this conversation."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={batchDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={batchDeleting || selectedOwnMessages.length === 0}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleBatchDelete();
+              }}
+            >
+              {batchDeleting
+                ? "Deleting…"
+                : `Delete ${selectedOwnMessages.length} message${
+                    selectedOwnMessages.length === 1 ? "" : "s"
+                  }`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Forward message(s) modal */}
+      <ForwardModal
+        open={forwardModalOpen}
+        onOpenChange={setForwardModalOpen}
+        messages={messagesToForward}
+        conversations={conversations}
+        currentUserId={currentUserId}
+        currentConversationId={conversation.id}
+        onForwardSuccess={(targetConvId) => {
+          setIsSelectionMode(false);
+          setSelectedMessageIds(new Set());
+          if (targetConvId === conversation.id) {
+            void fetchInitialMessages(conversation.id, true);
+          } else if (onSelectConversation) {
+            onSelectConversation(targetConvId);
+          }
+        }}
+      />
+
+      {/* Create Secret Modal (IT Officers only) */}
+      {isItOfficer && (
+        <CreateSecretModal
+          open={createSecretOpen}
+          onOpenChange={setCreateSecretOpen}
+          recipientId={otherUser?.id}
+          recipientName={titleName}
+          conversationId={conversation.id}
+          onSecretCreated={async (secretId, secretTitle) => {
+            const secretTag = formatSecretTag(secretId, secretTitle);
+            try {
+              const formData = new FormData();
+              formData.append("conversation_id", conversation.id);
+              formData.append("body", secretTag);
+              await sendMessage(formData);
+              void fetchInitialMessages(conversation.id, true);
+              onMessageSent?.();
+              toast.success("Secure credential drop sent into chat.");
+            } catch (err: unknown) {
+              toast.error(
+                "Failed to post credential drop: " +
+                  (err instanceof Error ? err.message : "Error")
+              );
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

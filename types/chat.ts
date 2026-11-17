@@ -46,6 +46,7 @@ export interface Message {
     deleted_at: string | null;
     is_edited: boolean;
     is_deleted: boolean;
+    is_forwarded?: boolean;
     sender: ChatUser | null;
     attachments: MessageAttachment[];
 }

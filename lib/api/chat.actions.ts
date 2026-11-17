@@ -112,6 +112,19 @@ export async function deleteMessage(messageId: string): Promise<ActionResult<Mes
     }, "deleteMessage");
 }
 
+export async function deleteMessagesBatch(messageIds: string[]): Promise<ActionResult<{ count: number; data: Message[] }>> {
+    return runAction(async (): Promise<{ count: number; data: Message[] }> => {
+        const result = await api.post<{ message: string; data: Message[]; count: number }>(
+            "/api/messages/batch-delete",
+            { message_ids: messageIds }
+        );
+        if (!result.success) {
+            throw new ExpectedActionError(result.error.error || "Failed to delete messages in batch", result.error.code);
+        }
+        return { count: result.data.count, data: result.data.data };
+    }, "deleteMessagesBatch");
+}
+
 export async function getAttachmentDownloadUrl(attachmentId: string): Promise<ActionResult<string>> {
     return runAction(async (): Promise<string> => {
         const result = await api.get<AttachmentDownloadResponse>(
