@@ -10,6 +10,6 @@ export default async function Page() {
     if (!user) redirect("/login");
     if (!user.is_active || user.is_department_account) redirect("/dashboard");
     const { appraisals, stats, availability } = await getPerformanceData();
-    return <MyPerformanceWorkspace initialAppraisals={appraisals} initialStats={stats} initialAvailability={availability} allowDevelopmentStart={process.env.NODE_ENV === "development"} />;
+    return <MyPerformanceWorkspace initialAppraisals={appraisals} initialStats={stats} initialAvailability={availability} />;
   }, "Unable to load your appraisals");
 }

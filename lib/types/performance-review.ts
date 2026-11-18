@@ -3,6 +3,7 @@ import type { PeriodCriterion, ReviewerRoute } from "./performance-period";
 
 export interface ReviewSummary {
   id: string;
+  period_id?: string;
   employee_name: string;
   employee_staff_id: string;
   department: string;
@@ -39,6 +40,7 @@ export interface ReviewQueueFilters {
   search: string;
   status: "all" | "in_progress" | "awaiting_reviewer" | "awaiting_mp" | "completed";
   type: "all" | "monthly_kpi" | "appraisal";
+  period_id?: string;
   month: string;
   department: string;
   page: number;
@@ -46,8 +48,41 @@ export interface ReviewQueueFilters {
 
 export interface ReviewQueueResponse {
   items: ReviewSummary[];
+  period?: {
+    id: string;
+    type: AppraisalType;
+    month: string;
+    status: "draft" | "open" | "closed";
+    submission_deadline: string;
+  } | null;
   pagination: { page: number; per_page: number; total: number; total_pages: number };
   counts: { ready: number; assigned: number; available: number; completed: number };
   filters: Pick<ReviewQueueFilters, "search" | "status" | "type" | "month" | "department">;
   options: { months: string[]; departments: string[] };
+}
+
+export interface ReviewPeriodSummary {
+  id: string;
+  type: AppraisalType;
+  month: string;
+  status: "draft" | "open" | "closed";
+  submission_deadline: string;
+  opened_at: string | null;
+  total_submitted: number;
+  ready_count: number;
+  assigned_count: number;
+  completed_count: number;
+  in_progress_count: number;
+}
+
+export interface ReviewPeriodQueueFilters {
+  type: "all" | "monthly_kpi" | "appraisal";
+  status: "all" | "open" | "closed" | "draft";
+  search: string;
+}
+
+export interface ReviewPeriodQueueResponse {
+  items: ReviewPeriodSummary[];
+  counts: { ready: number; assigned: number; available: number; completed: number };
+  filters: ReviewPeriodQueueFilters;
 }

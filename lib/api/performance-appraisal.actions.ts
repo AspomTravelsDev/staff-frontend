@@ -45,17 +45,12 @@ export async function markAppraisalCompletionNotificationsViewed() {
   }, "markAppraisalCompletionNotificationsViewed");
 }
 
-export async function startDevelopmentAppraisal(type: AppraisalType = "monthly_kpi") {
+export async function startMyAppraisal(type: AppraisalType = "monthly_kpi", month?: string) {
   return runAction(async () => {
-    const result = await api.post<{ data: PerformanceAppraisal }>("/api/performance/appraisals/dev/start", { type });
-    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
-    return result.data.data;
-  }, "startDevelopmentAppraisal");
-}
-
-export async function startMyAppraisal(type: AppraisalType = "monthly_kpi") {
-  return runAction(async () => {
-    const result = await api.post<{ data: PerformanceAppraisal }>("/api/performance/appraisals/mine/start", { type });
+    const result = await api.post<{ data: PerformanceAppraisal }>("/api/performance/appraisals/mine/start", {
+      type,
+      ...(month ? { month } : {}),
+    });
     if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
     return result.data.data;
   }, "startMyAppraisal");

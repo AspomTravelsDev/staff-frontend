@@ -26,14 +26,24 @@ export function assessmentValues(criteria: PeriodCriterion[], assessment: Apprai
   };
 }
 
-export function appraisalStatusLabel(appraisal: Pick<AppraisalSummary, "status" | "type" | "reviewer_route" | "self_status" | "can_edit_self">): string {
+export function appraisalStatusLabel(
+  appraisal: Pick<AppraisalSummary, "status" | "type" | "reviewer_route" | "self_status" | "can_edit_self"> & {
+    current_stage?: AppraisalSummary["current_stage"];
+  },
+): string {
   if (appraisal.status === "awaiting_self") {
     if (!appraisal.can_edit_self) return "Self-assessment closed";
     return appraisal.self_status === "draft" ? "Draft saved" : "Self-assessment due";
   }
-  const labels: Record<Exclude<AppraisalStatus, "awaiting_self">, string> = {
-    awaiting_reviewer: appraisal.reviewer_route === "compliance" ? "Awaiting Compliance review" : "Awaiting supervisor review",
-    awaiting_mp: appraisal.type === "appraisal" ? "Awaiting management review" : "Awaiting MP review", completed: "Completed",
+  if (appraisal.status === "awaiting_reviewer") {
+    if (appraisal.current_stage === "hr") return "Awaiting HR review";
+    if (appraisal.current_stage === "compliance") return "Awaiting Compliance review";
+    if (appraisal.current_stage === "supervisor") return "Awaiting supervisor review";
+    return appraisal.reviewer_route === "compliance" ? "Awaiting Compliance review" : "Awaiting supervisor review";
+  }
+  const labels: Record<Exclude<AppraisalStatus, "awaiting_self" | "awaiting_reviewer">, string> = {
+    awaiting_mp: appraisal.type === "appraisal" ? "Awaiting management review" : "Awaiting MP review",
+    completed: "Completed",
   };
   return labels[appraisal.status];
 }

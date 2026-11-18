@@ -4,11 +4,31 @@ import { api } from "./client";
 import { ExpectedActionError } from "./action-result";
 import { runAction } from "./run-action";
 import type { SelfAssessmentInput } from "@/lib/types/performance-appraisal";
-import type { ReviewDetail, ReviewQueueFilters, ReviewQueueResponse } from "@/lib/types/performance-review";
+import type {
+  ReviewDetail,
+  ReviewPeriodQueueFilters,
+  ReviewPeriodQueueResponse,
+  ReviewQueueFilters,
+  ReviewQueueResponse,
+} from "@/lib/types/performance-review";
+
+export async function listReviewPeriods(filters: ReviewPeriodQueueFilters) {
+  return runAction(async () => {
+    const params = new URLSearchParams({
+      type: filters.type,
+      status: filters.status,
+      search: filters.search,
+    });
+    const result = await api.get<{ data: ReviewPeriodQueueResponse }>(`/api/performance/reviews/periods?${params.toString()}`);
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data.data;
+  }, "listReviewPeriods");
+}
 
 export async function listAvailableReviews(filters: ReviewQueueFilters) {
   return runAction(async () => {
     const params = new URLSearchParams({ search: filters.search, status: filters.status, type: filters.type, department: filters.department, page: String(filters.page) });
+    if (filters.period_id) params.set("period_id", filters.period_id);
     if (filters.month) params.set("month", filters.month);
     const result = await api.get<{ data: ReviewQueueResponse }>(`/api/performance/reviews?${params.toString()}`);
     if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);

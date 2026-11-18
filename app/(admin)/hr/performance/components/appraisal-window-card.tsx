@@ -1,33 +1,115 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CalendarClock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarClock, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { openAppraisalCycleWindow } from "@/lib/api/performance-period.actions";
 import {
-  formatPerformanceDate,
-  formatPerformanceMonth,
+  buildSelectablePeriodMonths,
+  defaultDeadlineForPeriod,
+  formatPerformancePeriodLabel,
   getAppraisalCycleWindowInfo,
 } from "@/lib/performance-review";
 import type { PerformancePeriod } from "@/lib/types/performance-period";
 
-export function AppraisalWindowCard({ initialPeriods }: { initialPeriods: PerformancePeriod[] }) {
+type PeriodType = PerformancePeriod["type"];
+
+export interface PeriodDialogTarget {
+  type: PeriodType;
+  month: string;
+  submission_deadline?: string;
+  status?: "draft" | "open" | "closed";
+}
+
+function periodTypeLabel(type: PeriodType): string {
+  return type === "appraisal" ? "Bi-Yearly Appraisal" : "Monthly KPI";
+}
+
+function getCurrentUtcMonth(now: Date = new Date()): string {
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function AppraisalPeriodDialog({
+  open,
+  onOpenChange,
+  periods,
+  target,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  periods: PerformancePeriod[];
+  target: PeriodDialogTarget | null;
+  onSaved: (period: PerformancePeriod) => void;
+}) {
+  const router = useRouter();
   const windowInfo = getAppraisalCycleWindowInfo();
-  const [periods, setPeriods] = useState(initialPeriods);
-  const currentPeriod =
-    periods.find((item) => item.type === "appraisal" && item.month === windowInfo.targetMonth) ??
-    periods.find((item) => item.type === "appraisal" && item.status === "open");
-  const isOpen = currentPeriod?.status === "open";
-  const [deadline, setDeadline] = useState(() =>
-    (currentPeriod?.submission_deadline ?? windowInfo.defaultDeadline).slice(0, 10),
-  );
+  const currentYearMonth = getCurrentUtcMonth();
+
+  const initialType: PeriodType = target?.type ?? "appraisal";
+  const initialMonth = target?.month ?? windowInfo.targetMonth;
+  const initialDeadline =
+    target?.submission_deadline?.slice(0, 10) ??
+    defaultDeadlineForPeriod(initialType, initialMonth);
+
+  const [selectedType, setSelectedType] = useState<PeriodType>(initialType);
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
+  const [deadline, setDeadline] = useState<string>(initialDeadline);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const existingTypeMonths = periods
+    .filter((item) => item.type === selectedType)
+    .map((item) => item.month);
+  const selectableMonths = buildSelectablePeriodMonths(selectedType, existingTypeMonths);
+  const openMonthsForSelectedType = new Set(
+    periods
+      .filter((item) => item.status === "open" && item.type === selectedType)
+      .map((item) => item.month),
+  );
+
+  const matchingPeriod = periods.find(
+    (item) => item.type === selectedType && item.month === selectedMonth,
+  );
+  const isEditingOpen = matchingPeriod?.status === "open";
+
+  function applySelection(nextType: PeriodType, nextMonth?: string) {
+    const monthsForType = periods
+      .filter((item) => item.type === nextType)
+      .map((item) => item.month);
+    const availableMonths = buildSelectablePeriodMonths(nextType, monthsForType);
+    const defaultForType =
+      nextMonth ?? (nextType === "appraisal" ? windowInfo.targetMonth : currentYearMonth);
+    const resolvedMonth = availableMonths.includes(defaultForType)
+      ? defaultForType
+      : (availableMonths[0] ?? windowInfo.targetMonth);
+    const existing = periods.find(
+      (item) => item.type === nextType && item.month === resolvedMonth,
+    );
+
+    setSelectedType(nextType);
+    setSelectedMonth(resolvedMonth);
+    setDeadline(
+      existing
+        ? existing.submission_deadline.slice(0, 10)
+        : defaultDeadlineForPeriod(nextType, resolvedMonth),
+    );
+    setError(null);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,11 +119,12 @@ export function AppraisalWindowCard({ initialPeriods }: { initialPeriods: Perfor
       return;
     }
 
+    const wasEditingOpen = isEditingOpen;
     setPending(true);
     setError(null);
-    const targetMonth = isOpen && currentPeriod ? currentPeriod.month : windowInfo.targetMonth;
     const result = await openAppraisalCycleWindow({
-      month: targetMonth,
+      type: selectedType,
+      month: selectedMonth,
       submission_deadline: deadline,
     });
     setPending(false);
@@ -52,87 +135,134 @@ export function AppraisalWindowCard({ initialPeriods }: { initialPeriods: Perfor
     }
 
     const saved = result.data;
-    setPeriods((previous) => {
-      const exists = previous.some((item) => item.id === saved.id);
-      return exists ? previous.map((item) => (item.id === saved.id ? saved : item)) : [saved, ...previous];
-    });
-    setDeadline(saved.submission_deadline.slice(0, 10));
+    onSaved(saved);
+    onOpenChange(false);
     toast.success(
-      isOpen
-        ? "Appraisal submission deadline updated"
-        : `${windowInfo.cycleLabel} Appraisal window is now open`,
+      wasEditingOpen
+        ? "Submission deadline updated"
+        : `${formatPerformancePeriodLabel(saved.type, saved.month)} ${periodTypeLabel(saved.type)} window is now open`,
     );
+    router.refresh();
   }
 
-  const badge = isOpen
-    ? { label: "Window open", variant: "default" as const }
-    : windowInfo.canOpenNow
-      ? { label: "Early open available", variant: "outline" as const }
-      : { label: "Scheduled", variant: "secondary" as const };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditingOpen ? "Update submission deadline" : "Start new appraisal / review"}
+          </DialogTitle>
+          <DialogDescription>
+            Choose the cycle type, period, and submission deadline for staff.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="appraisal-window-type">Cycle type</Label>
+            <Select
+              value={selectedType}
+              disabled={pending}
+              onValueChange={(value: PeriodType) => applySelection(value)}
+            >
+              <SelectTrigger id="appraisal-window-type" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="appraisal">Bi-Yearly Appraisal</SelectItem>
+                <SelectItem value="monthly_kpi">Monthly KPI</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="appraisal-window-month">Period</Label>
+            <Select
+              value={selectedMonth}
+              disabled={pending}
+              onValueChange={(value) => applySelection(selectedType, value)}
+            >
+              <SelectTrigger id="appraisal-window-month" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {selectableMonths.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {formatPerformancePeriodLabel(selectedType, month)}
+                    {openMonthsForSelectedType.has(month) ? " · Open" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="appraisal-window-deadline">Submission deadline</Label>
+            <Input
+              id="appraisal-window-deadline"
+              type="date"
+              required
+              disabled={pending}
+              value={deadline}
+              onChange={(event) => {
+                setDeadline(event.target.value);
+                setError(null);
+              }}
+            />
+          </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending
+                ? isEditingOpen
+                  ? "Updating…"
+                  : "Opening…"
+                : isEditingOpen
+                  ? "Update deadline"
+                  : `Open ${formatPerformancePeriodLabel(selectedType, selectedMonth)}`}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-  const title = isOpen && currentPeriod
-    ? `${formatPerformanceMonth(currentPeriod.month)} Bi-Yearly Appraisal Window`
-    : `${windowInfo.cycleLabel} Bi-Yearly Appraisal Window`;
-
-  const description = isOpen && currentPeriod
-    ? `Staff can start and submit their appraisal on My Performance until ${formatPerformanceDate(currentPeriod.submission_deadline)}.`
-    : windowInfo.canOpenNow
-      ? `Open the ${windowInfo.cycleLabel} appraisal cycle early so staff have extra time to complete their self-assessment.`
-      : `Opens automatically on ${windowInfo.cycleLabel.split(" ")[0]} 1, or HR can open it early starting in ${windowInfo.earlyOpenMonthLabel}.`;
-
+export function AppraisalWindowCard({
+  onStartNew,
+}: {
+  onStartNew: () => void;
+}) {
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <CalendarClock className="size-4" aria-hidden="true" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-base">{title}</CardTitle>
-                <Badge variant={badge.variant}>{badge.label}</Badge>
-              </div>
-              <CardDescription className="mt-1">{description}</CardDescription>
+              <CardTitle className="text-base">Appraisal Windows &amp; Deadlines</CardTitle>
+              <CardDescription className="mt-1">
+                Start a new Bi-Yearly Appraisal or Monthly KPI review period, or edit deadlines from the table below.
+              </CardDescription>
             </div>
           </div>
+          <Button type="button" onClick={onStartNew}>
+            <Plus className="mr-1.5 size-4" aria-hidden="true" />
+            Start new appraisal / review
+          </Button>
         </div>
       </CardHeader>
-      {(isOpen || windowInfo.canOpenNow) && (
-        <CardContent className="pt-0">
-          <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 border-t pt-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="appraisal-window-deadline">Submission deadline</Label>
-              <Input
-                id="appraisal-window-deadline"
-                type="date"
-                required
-                disabled={pending}
-                value={deadline}
-                onChange={(event) => {
-                  setDeadline(event.target.value);
-                  setError(null);
-                }}
-                className="w-48"
-              />
-            </div>
-            <Button type="submit" variant={isOpen ? "outline" : "default"} disabled={pending}>
-              {pending
-                ? isOpen
-                  ? "Updating…"
-                  : "Opening…"
-                : isOpen
-                  ? "Update deadline"
-                  : `Open ${windowInfo.cycleLabel} window`}
-            </Button>
-          </form>
-          {error && (
-            <p role="alert" className="mt-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-        </CardContent>
-      )}
     </Card>
   );
 }

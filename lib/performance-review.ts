@@ -8,6 +8,16 @@ export function formatPerformanceMonth(value: string): string {
     .format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
+export function formatPerformancePeriodLabel(
+  type: "monthly_kpi" | "appraisal",
+  month: string,
+): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  if (type === "appraisal" && year && monthNumber === 6) return `Jan–Jun ${year}`;
+  if (type === "appraisal" && year && monthNumber === 12) return `Jul–Dec ${year}`;
+  return formatPerformanceMonth(month);
+}
+
 export function formatPerformanceDate(value: string): string {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
@@ -81,4 +91,65 @@ export function getAppraisalCycleWindowInfo(now: Date = new Date()): AppraisalCy
   const canOpenNow = monthNumber === 5 || monthNumber === 6 || monthNumber === 11 || monthNumber === 12;
   const defaultDeadline = `${year}-${isFirstHalf ? "06-30" : "12-31"}`;
   return { targetMonth, cycleLabel, earlyOpenMonthLabel, canOpenNow, defaultDeadline };
+}
+
+function formatUtcDate(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function defaultDeadlineForPeriod(
+  type: "monthly_kpi" | "appraisal",
+  month: string,
+  now: Date = new Date(),
+): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const endOfCurrentMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+
+  if (!year || !monthNumber || monthNumber < 1 || monthNumber > 12) {
+    return formatUtcDate(endOfCurrentMonth);
+  }
+
+  const candidate =
+    type === "appraisal"
+      ? new Date(Date.UTC(year, monthNumber, 0))
+      : new Date(Date.UTC(year, monthNumber, 25));
+
+  return formatUtcDate(candidate < todayUtc ? endOfCurrentMonth : candidate);
+}
+
+export function buildSelectablePeriodMonths(
+  type: "monthly_kpi" | "appraisal",
+  existingMonths: string[] = [],
+  now: Date = new Date(),
+): string[] {
+  const year = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+  const candidates = new Set<string>();
+
+  for (const month of existingMonths) {
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      candidates.add(month);
+    }
+  }
+
+  if (type === "appraisal") {
+    candidates.add(`${year}-06`);
+    candidates.add(`${year}-12`);
+    candidates.add(`${year + 1}-06`);
+    candidates.add(`${year + 1}-12`);
+    return Array.from(candidates).sort((a, b) => b.localeCompare(a));
+  }
+
+  for (let m = currentMonth; m <= 12; m += 1) {
+    candidates.add(`${year}-${String(m).padStart(2, "0")}`);
+  }
+  for (let m = 1; m <= 6; m += 1) {
+    candidates.add(`${year + 1}-${String(m).padStart(2, "0")}`);
+  }
+
+  return Array.from(candidates).sort((a, b) => b.localeCompare(a));
 }
