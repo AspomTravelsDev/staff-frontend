@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useRef, useEffect, useCallback } from "react";
+import { Fragment, useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmojiPicker } from "./emoji-picker";
 import { ForwardModal } from "./forward-modal";
+import { WhatsAppChatInput, WhatsAppChatInputRef } from "./whatsapp-chat-input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,18 +83,16 @@ interface ChatWindowProps {
   onSelectConversation?: (conversationId: string) => void;
 }
 
-function hasFormattingSyntax(text: string): boolean {
-  if (!text || !text.trim()) return false;
-  return (
-    text.includes("*") ||
-    text.includes("_") ||
-    text.includes("~") ||
-    text.includes("`") ||
-    text.includes("\n") ||
-    /^[-*]\s*(.+)$/m.test(text) ||
-    /^\d+\.\s*(.+)$/m.test(text) ||
-    /^>\s*(.+)$/m.test(text)
-  );
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / 1048576).toFixed(1) + " MB";
+}
+
+function formatMsgTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export function ChatWindow({
@@ -113,12 +112,8 @@ export function ChatWindow({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "connecting" | "connected" | "reconnecting" | "disconnected"
-  >("connecting");
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>("default");
-  const [isPageVisible, setIsPageVisible] = useState(true);
 
   // Composer state
   const [inputBody, setInputBody] = useState("");
@@ -158,11 +153,20 @@ export function ChatWindow({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const whatsAppInputRef = useRef<WhatsAppChatInputRef | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
-  const composerReply = replyingTo ? messages.find(message => message.id === replyingTo.id) ?? replyingTo : null;
+  const onMessageSentRef = useRef(onMessageSent);
+  onMessageSentRef.current = onMessageSent;
+  const onMessageChangedRef = useRef(onMessageChanged);
+  onMessageChangedRef.current = onMessageChanged;
+  const messagesById = useMemo(
+    () => new Map(messages.map((message) => [message.id, message])),
+    [messages],
+  );
+  const composerReply = replyingTo ? messagesById.get(replyingTo.id) ?? replyingTo : null;
 
   async function markConversationAsRead(conversationId: string, throughMessageId?: string) {
     if (openingLoadingRef.current) return;
@@ -172,7 +176,7 @@ export function ChatWindow({
 
   useEffect(() => {
     if (!conversation) return;
-    const focusTimer = window.setTimeout(() => messageInputRef.current?.focus(), 100);
+    const focusTimer = window.setTimeout(() => (whatsAppInputRef.current || messageInputRef.current)?.focus(), 100);
     return () => window.clearTimeout(focusTimer);
   }, [conversation?.id]);
 
@@ -242,7 +246,13 @@ export function ChatWindow({
       ? `${message.sender?.name}: ${message.body}`
       : `${message.sender?.name} sent an attachment.`;
 
-    if (!isPageVisible && notificationPermission === "granted") {
+    const pageVisible = typeof document === "undefined" || document.visibilityState === "visible";
+    const permission =
+      typeof window !== "undefined" && "Notification" in window
+        ? Notification.permission
+        : notificationPermission;
+
+    if (!pageVisible && permission === "granted") {
       showBrowserNotification(title, {
         body,
         tag: `chat-${conversation?.id}`,
@@ -251,27 +261,17 @@ export function ChatWindow({
 
     playNotificationSound();
 
-    if (!isPageVisible) {
+    if (!pageVisible) {
       toast.success("New chat message received.");
     }
   }
 
   useEffect(() => {
-    const updateVisibility = () =>
-      setIsPageVisible(document.visibilityState === "visible");
-
-    updateVisibility();
     setNotificationPermission(
       typeof window !== "undefined" && "Notification" in window
         ? Notification.permission
         : "default",
     );
-
-    document.addEventListener("visibilitychange", updateVisibility);
-
-    return () => {
-      document.removeEventListener("visibilitychange", updateVisibility);
-    };
   }, []);
 
   useEffect(() => {
@@ -290,27 +290,6 @@ export function ChatWindow({
         const channel = echo.private(channelName);
         console.info("ChatWindow: subscribing to", channelName);
 
-        const connector = (echo as any).connector;
-        const socket = connector?.socket;
-
-        if (socket) {
-          setConnectionStatus("connecting");
-
-          const bindState = (
-            eventName: string,
-            state: "connecting" | "connected" | "reconnecting" | "disconnected",
-          ) => {
-            if (socket.bind) {
-              socket.bind(eventName, () => setConnectionStatus(state));
-            }
-          };
-
-          bindState("connecting", "connecting");
-          bindState("connected", "connected");
-          bindState("disconnected", "disconnected");
-          bindState("error", "reconnecting");
-        }
-
         channel.listen(".MessageSent", (e: { message: Message }) => {
           console.info("ChatWindow: received MessageSent", channelName, e);
           setMessages((prev) => {
@@ -326,7 +305,7 @@ export function ChatWindow({
               console.error("Failed to update chat read receipt:", error);
             });
           }
-          if (onMessageSent) onMessageSent();
+          onMessageSentRef.current?.();
         });
 
         channel.listen(".MessageUpdated", (e: { message: Message }) => {
@@ -334,7 +313,7 @@ export function ChatWindow({
           setMessages((prev) =>
             prev.map((m) => (m.id === e.message.id ? e.message : m)),
           );
-          onMessageChanged?.(e.message);
+          onMessageChangedRef.current?.(e.message);
         });
 
         channel.listen(".MessageDeleted", (e: { message: Message }) => {
@@ -342,7 +321,7 @@ export function ChatWindow({
           setMessages((prev) =>
             prev.map((m) => (m.id === e.message.id ? e.message : m)),
           );
-          onMessageChanged?.(e.message);
+          onMessageChangedRef.current?.(e.message);
         });
 
         channel.listen(".ConversationRead", (e: { conversation_id: string; user_id: string; read_at: string }) => {
@@ -358,12 +337,6 @@ export function ChatWindow({
 
         cleanupEcho = () => {
           echo.leave(channelName);
-          if (socket?.unbind) {
-            socket.unbind("connecting");
-            socket.unbind("connected");
-            socket.unbind("disconnected");
-            socket.unbind("error");
-          }
         };
       }
     } else {
@@ -407,20 +380,35 @@ export function ChatWindow({
         );
 
         setMessages((previous) => {
-          const merged = new Map(previous.map((message) => [message.id, message]));
-          latestMessages.forEach((message) => merged.set(message.id, message));
-          return [...merged.values()].sort(
+          const prevById = new Map(previous.map((message) => [message.id, message]));
+          const hasChanges = latestMessages.some((incomingMsg) => {
+            const existing = prevById.get(incomingMsg.id);
+            return (
+              !existing ||
+              existing.body !== incomingMsg.body ||
+              existing.is_edited !== incomingMsg.is_edited ||
+              existing.edited_at !== incomingMsg.edited_at ||
+              existing.is_deleted !== incomingMsg.is_deleted ||
+              existing.deleted_at !== incomingMsg.deleted_at
+            );
+          });
+          if (!hasChanges) return previous;
+          latestMessages.forEach((message) => prevById.set(message.id, message));
+          return [...prevById.values()].sort(
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
           );
         });
-        setOtherLastReadAt(result.meta.other_last_read_at || null);
+        setOtherLastReadAt((prev) => {
+          const next = result.meta.other_last_read_at || null;
+          return prev === next ? prev : next;
+        });
         if (latestMessages.length && document.visibilityState === "visible") {
           void markConversationAsRead(conversation.id, result.meta.read_through_message_id ?? latestMessages.at(-1)?.id).catch((error) => {
             console.error("Failed to update chat read receipt:", error);
           });
         }
         if (hasNewIncoming) {
-          onMessageSent?.();
+          onMessageSentRef.current?.();
         }
       } catch (error) {
         console.warn("Unable to refresh recent chat messages:", error);
@@ -440,7 +428,7 @@ export function ChatWindow({
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleVisibility);
     };
-  }, [conversation?.id, currentUserId, onMessageSent, onMessageChanged]);
+  }, [conversation?.id, currentUserId]);
 
   async function fetchInitialMessages(convId: string, preserveMarker = false) {
     const request = ++openingRequestRef.current;
@@ -500,7 +488,7 @@ export function ChatWindow({
           container.scrollTop = newScrollHeight - prevScrollHeight;
         }
       });
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to load older messages.");
     } finally {
       setLoadingMore(false);
@@ -522,10 +510,10 @@ export function ChatWindow({
   }
 
   function applyFormatting(wrapper: string) {
-    const el = messageInputRef.current;
+    const el = whatsAppInputRef.current || messageInputRef.current;
     if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? start;
     const current = inputBody;
     const selected = current.slice(start, end);
 
@@ -533,40 +521,37 @@ export function ChatWindow({
       const next = current.slice(0, start) + `${wrapper}${selected}${wrapper}` + current.slice(end);
       setInputBody(next);
       requestAnimationFrame(() => {
-        el.selectionStart = start + wrapper.length;
-        el.selectionEnd = end + wrapper.length;
+        el.setSelectionRange(start + wrapper.length, end + wrapper.length);
         el.focus();
       });
     } else {
       const next = current.slice(0, start) + `${wrapper}${wrapper}` + current.slice(end);
       setInputBody(next);
       requestAnimationFrame(() => {
-        el.selectionStart = start + wrapper.length;
-        el.selectionEnd = start + wrapper.length;
+        el.setSelectionRange(start + wrapper.length, start + wrapper.length);
         el.focus();
       });
     }
   }
 
   function insertTextAtCursor(text: string) {
-    const el = messageInputRef.current;
+    const el = whatsAppInputRef.current || messageInputRef.current;
     if (!el) {
       setInputBody((prev) => prev + text);
       return;
     }
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? start;
     const current = inputBody;
     const next = current.slice(0, start) + text + current.slice(end);
     setInputBody(next);
     requestAnimationFrame(() => {
-      el.selectionStart = start + text.length;
-      el.selectionEnd = start + text.length;
+      el.setSelectionRange(start + text.length, start + text.length);
       el.focus();
     });
   }
 
-  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+  function handlePaste(e: React.ClipboardEvent) {
     // 1. If clipboard contains image files (e.g. pasted screenshots), attach them directly
     const items = e.clipboardData?.items;
     if (items) {
@@ -624,11 +609,11 @@ export function ChatWindow({
           prev.map((msg) => (msg.id === updated.id ? updated : msg)),
         );
         toast.success("Message updated.");
-        onMessageChanged?.(updated);
+        onMessageChangedRef.current?.(updated);
         setEditingMessage(null);
         setInputBody("");
-      } catch (err: any) {
-        toast.error(err?.message || "Failed to update message.");
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to update message.");
       }
       return;
     }
@@ -636,7 +621,7 @@ export function ChatWindow({
     // New message send - Optimistic UI update
     const text = inputBody.trim();
     const filesToSend = [...selectedFiles];
-    const replyTarget = replyingTo ? messages.find(message => message.id === replyingTo.id) ?? replyingTo : null;
+    const replyTarget = replyingTo ? messagesById.get(replyingTo.id) ?? replyingTo : null;
     if (replyTarget?.is_deleted) { toast.error("This message was deleted. Cancel the reply or choose another message."); return; }
     const tempId = `temp-${Date.now()}`;
     const nowIso = new Date().toISOString();
@@ -694,13 +679,13 @@ export function ChatWindow({
         return prev.map((m) => (m.id === tempId ? realMsg : m));
       });
 
-      if (onMessageSent) onMessageSent();
-    } catch (err: any) {
+      onMessageSentRef.current?.();
+    } catch (err: unknown) {
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
       setInputBody(text);
       setSelectedFiles(filesToSend);
       setReplyingTo(replyTarget);
-      toast.error(err?.message || "Failed to send message.");
+      toast.error(err instanceof Error ? err.message : "Failed to send message.");
     } finally {
       setSending(false);
     }
@@ -715,21 +700,25 @@ export function ChatWindow({
         prev.map((msg) => (msg.id === deleted.id ? deleted : msg)),
       );
       toast.success("Message deleted.");
-      onMessageChanged?.(deleted);
+      onMessageChangedRef.current?.(deleted);
       setMessageToDelete(null);
       if (editingMessage?.id === deleted.id) { setEditingMessage(null); setInputBody(""); }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to delete message.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete message.");
     } finally { setDeleting(false); }
   }
 
-  async function handleCopyMessage(body: string) {
+  const handleCopyMessage = useCallback(async (body: string) => {
     try { await navigator.clipboard.writeText(body); toast.success("Message copied."); }
     catch { toast.error("Could not copy the message. Please try again."); }
-  }
+  }, []);
 
   // Search logic
-  const searchMatches = searchMessagesInChat(messages, searchQuery);
+  const searchMatches = useMemo(
+    () => searchMessagesInChat(messages, searchQuery),
+    [messages, searchQuery],
+  );
+  const searchMatchSet = useMemo(() => new Set(searchMatches), [searchMatches]);
 
   useEffect(() => {
     if (currentMatchIndex >= searchMatches.length && searchMatches.length > 0) {
@@ -758,20 +747,27 @@ export function ChatWindow({
   };
 
   // Selection & Batch actions logic
-  const nonDeletedMessages = messages.filter((m) => !m.is_deleted);
-  const selectedMessages = messages.filter((m) => selectedMessageIds.has(m.id));
-  const selectedOwnMessages = selectedMessages.filter(
-    (m) => m.sender?.id === currentUserId && !m.is_deleted
+  const nonDeletedMessages = useMemo(
+    () => messages.filter((m) => !m.is_deleted),
+    [messages],
+  );
+  const selectedMessages = useMemo(
+    () => (selectedMessageIds.size === 0 ? [] : messages.filter((m) => selectedMessageIds.has(m.id))),
+    [messages, selectedMessageIds],
+  );
+  const selectedOwnMessages = useMemo(
+    () => selectedMessages.filter((m) => m.sender?.id === currentUserId && !m.is_deleted),
+    [selectedMessages, currentUserId],
   );
 
-  const handleToggleSelectMessage = (id: string) => {
+  const handleToggleSelectMessage = useCallback((id: string) => {
     setSelectedMessageIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   const handleToggleSelectAll = () => {
     if (selectedMessageIds.size === nonDeletedMessages.length) {
@@ -833,10 +829,10 @@ export function ChatWindow({
     }
   };
 
-  const handleSingleForward = (msg: Message) => {
+  const handleSingleForward = useCallback((msg: Message) => {
     setMessagesToForward([msg]);
     setForwardModalOpen(true);
-  };
+  }, []);
 
   const handleBatchForward = () => {
     if (selectedMessages.length === 0) return;
@@ -845,24 +841,27 @@ export function ChatWindow({
   };
 
   const insertEmoji = useCallback((emoji: string) => {
-    const input = messageInputRef.current;
-    const start = input?.selectionStart ?? input?.value.length ?? 0;
+    const input = whatsAppInputRef.current || messageInputRef.current;
+    const start = input?.selectionStart ?? input?.value?.length ?? 0;
     const end = input?.selectionEnd ?? start;
     setInputBody(body => body.slice(0, start) + emoji + body.slice(end));
-    requestAnimationFrame(() => { input?.focus(); input?.setSelectionRange(start + emoji.length, start + emoji.length); });
+    requestAnimationFrame(() => {
+      input?.focus();
+      input?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
   }, []);
 
-  async function handleDownloadAttachment(att: MessageAttachment) {
+  const handleDownloadAttachment = useCallback(async (att: MessageAttachment) => {
     setDownloadingId(att.id);
     try {
       const url = await getAttachmentDownloadUrl(att.id);
       window.open(url, "_blank");
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to get download link.");
     } finally {
       setDownloadingId(null);
     }
-  }
+  }, []);
 
   const ALLOWED_MIME_TYPES = [
     "application/pdf",
@@ -959,16 +958,346 @@ export function ChatWindow({
     addFiles(Array.from(event.dataTransfer.files));
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / 1048576).toFixed(1) + " MB";
-  }
+  const activeMatchId = searchMatches[currentMatchIndex] ?? null;
 
-  function formatMsgTime(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
+  const renderedMessages = useMemo(
+    () =>
+      messages.map((msg) => {
+        const isOwn = msg.sender?.id === currentUserId;
+        const isDeleted = msg.is_deleted;
+        const isEdited = msg.is_edited;
+        const isForwarded = isForwardedMessage(msg);
+        const cleanBody = getDisplayMessageBody(msg.body);
+        const isSelected = selectedMessageIds.has(msg.id);
+        const isCurrentSearchMatch = activeMatchId === msg.id;
+        const isAnySearchMatch = searchMatchSet.has(msg.id);
+        const parent = msg.reply_to ? messagesById.get(msg.reply_to.id) ?? null : null;
+        const quote = parent
+          ? {
+              id: parent.id,
+              body: parent.body,
+              is_deleted: parent.is_deleted,
+              sender: parent.sender,
+              attachment_name: parent.attachments[0]?.original_name,
+            }
+          : msg.reply_to;
+
+        return (
+          <Fragment key={msg.id}>
+            {unreadMarker?.messageId === msg.id && (
+              <div
+                id="chat-unread-marker"
+                className="flex scroll-mt-3 items-center gap-3 py-2"
+                role="separator"
+                aria-label={`${unreadMarker.count} unread messages`}
+              >
+                <div className="h-px flex-1 bg-border" />
+                <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {unreadMarker.count} unread {unreadMarker.count === 1 ? "message" : "messages"}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 shrink-0 text-muted-foreground"
+                  aria-label="Dismiss unread marker"
+                  onClick={() => setUnreadMarker(null)}
+                >
+                  <X className="size-3" />
+                </Button>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            <div
+              id={`chat-message-${msg.id}`}
+              onClick={() => {
+                if (isSelectionMode && !isDeleted) {
+                  handleToggleSelectMessage(msg.id);
+                }
+              }}
+              className={`flex items-end gap-2 group transition-all rounded-xl py-1 px-2 ${
+                isOwn ? "justify-end" : "justify-start"
+              } ${isSelectionMode && !isDeleted ? "cursor-pointer hover:bg-muted/30" : ""} ${
+                isSelected ? "bg-primary/10" : ""
+              } ${
+                isCurrentSearchMatch
+                  ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                  : isAnySearchMatch
+                  ? "bg-amber-500/10"
+                  : ""
+              }`}
+            >
+              {isSelectionMode && !isDeleted && (
+                <div
+                  className={`flex items-center self-center px-1 shrink-0 ${
+                    isOwn ? "order-last ml-2 mr-1" : "order-first mr-2 ml-1"
+                  }`}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => handleToggleSelectMessage(msg.id)}
+                    aria-label={`Select message from ${msg.sender?.name || "Staff"}`}
+                  />
+                </div>
+              )}
+
+              {!isOwn && (
+                <Avatar className="h-7 w-7 mb-1 shrink-0 border border-border">
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-[10px]">
+                    {(msg.sender?.name?.[0] || "U").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+
+              <div className="min-w-0 max-w-[85%] sm:max-w-[75%] xl:max-w-[65%] space-y-1">
+                {!isOwn && msg.sender?.name && (
+                  <p className="text-[11px] font-medium text-muted-foreground ml-1">
+                    {msg.sender.name}
+                  </p>
+                )}
+
+                <div className="relative group/bubble flex items-center gap-1">
+                  {/* Message actions */}
+                  {!isDeleted && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-7 w-7 shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover/bubble:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity ${isOwn ? "" : "order-last"}`}
+                          aria-label="Message actions"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="text-xs">
+                        <DropdownMenuItem
+                          disabled={msg.id.startsWith("temp-") || sending}
+                          onSelect={() => {
+                            setReplyingTo(msg);
+                            setEditingMessage(null);
+                            (whatsAppInputRef.current || messageInputRef.current)?.focus();
+                          }}
+                          className="gap-2"
+                        >
+                          <Reply className="size-3.5" />Reply
+                        </DropdownMenuItem>
+                        {cleanBody && (
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              void handleCopyMessage(cleanBody);
+                            }}
+                            className="gap-2"
+                          >
+                            <Copy className="size-3.5" />Copy
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          disabled={msg.id.startsWith("temp-")}
+                          onSelect={() => handleSingleForward(msg)}
+                          className="gap-2"
+                        >
+                          <CornerUpRight className="size-3.5" />Forward
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setIsSelectionMode(true);
+                            setSelectedMessageIds(new Set([msg.id]));
+                          }}
+                          className="gap-2"
+                        >
+                          <CheckSquare className="size-3.5" />Select
+                        </DropdownMenuItem>
+                        {isOwn && (
+                          <>
+                            <DropdownMenuItem
+                              disabled={msg.id.startsWith("temp-")}
+                              onClick={() => {
+                                setReplyingTo(null);
+                                setEditingMessage(msg);
+                                setInputBody(cleanBody || "");
+                                (whatsAppInputRef.current || messageInputRef.current)?.focus();
+                              }}
+                              className="gap-2"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={msg.id.startsWith("temp-")}
+                              onSelect={() => setMessageToDelete(msg)}
+                              className="gap-2 text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+
+                  {(() => {
+                    const secretInfo = !isDeleted ? extractSecretInfo(cleanBody) : null;
+                    const isPureSecret = Boolean(
+                      secretInfo &&
+                        !cleanBody.replace(/\[secret:[^\]]+\]/, "").trim() &&
+                        (!msg.attachments || msg.attachments.length === 0)
+                    );
+
+                    return (
+                      <div
+                        className={`min-w-0 ${
+                          isPureSecret
+                            ? "p-0 bg-transparent shadow-none"
+                            : isOwn
+                            ? "p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm bg-primary text-primary-foreground rounded-br-none"
+                            : "p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm bg-card text-foreground border border-border/60 rounded-bl-none"
+                        }`}
+                      >
+                        {isDeleted ? (
+                          <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
+                            <Trash2 className="h-3 w-3" />
+                            This message was deleted
+                          </p>
+                        ) : (
+                          <>
+                            {isForwarded && (
+                              <div
+                                className={`flex items-center gap-1 text-[11px] font-medium italic mb-1.5 ${
+                                  isOwn ? "text-primary-foreground/80" : "text-muted-foreground"
+                                }`}
+                              >
+                                <CornerUpRight className="h-3 w-3 shrink-0" />
+                                <span>Forwarded</span>
+                              </div>
+                            )}
+                            {quote && (
+                              <button
+                                type="button"
+                                className={`mb-2 block w-full min-w-0 rounded-md border-l-2 px-2 py-1.5 text-left text-xs ${isOwn ? "border-primary-foreground/60 bg-black/10 text-primary-foreground" : "border-primary bg-muted text-foreground"}`}
+                                aria-label="View original message"
+                                onClick={() => {
+                                  const original = document.getElementById(`chat-message-${quote.id}`);
+                                  if (original) original.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  else toast.info("Load earlier messages to view the original.");
+                                }}
+                              >
+                                <span className="block truncate font-semibold">
+                                  {quote.sender?.id === currentUserId ? "You" : quote.sender?.name || "Staff member"}
+                                </span>
+                                <span className="block max-w-full truncate opacity-80">
+                                  {quote.is_deleted
+                                    ? "This message was deleted"
+                                    : getDisplayMessageBody(quote.body) || quote.attachment_name || "Attachment"}
+                                </span>
+                              </button>
+                            )}
+                            {secretInfo ? (
+                              <div className="space-y-2">
+                                {cleanBody.replace(/\[secret:[^\]]+\]/, "").trim() && (
+                                  <FormattedChatMessage isOwn={isOwn}>
+                                    {cleanBody.replace(/\[secret:[^\]]+\]/, "").trim()}
+                                  </FormattedChatMessage>
+                                )}
+                                <SecretCapsuleCard
+                                  secretId={secretInfo.secretId}
+                                  initialTitle={secretInfo.title}
+                                  currentUserId={currentUserId}
+                                  isOwn={isOwn}
+                                  onBurned={() => {
+                                    setMessages((prev) => [...prev]);
+                                  }}
+                                />
+                              </div>
+                            ) : cleanBody ? (
+                              <FormattedChatMessage isOwn={isOwn}>
+                                {cleanBody}
+                              </FormattedChatMessage>
+                            ) : null}
+
+                            {/* Attachments */}
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="mt-2 space-y-1.5 pt-1 border-t border-primary-foreground/20">
+                                {msg.attachments.map((att) => (
+                                  <div key={att.id} className="min-w-0 space-y-2">
+                                    {att.mime_type.startsWith("image/") && !att.id.startsWith("temp-") && (
+                                      <ChatImageAttachment attachment={att} />
+                                    )}
+                                    <div
+                                      className={`flex items-center justify-between gap-3 p-2 rounded-lg text-xs ${
+                                        isOwn
+                                          ? "bg-primary-foreground/10 text-primary-foreground"
+                                          : "bg-muted text-foreground"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        {att.mime_type.startsWith("image/") ? (
+                                          <ImageIcon className="h-4 w-4 shrink-0" />
+                                        ) : (
+                                          <FileText className="h-4 w-4 shrink-0" />
+                                        )}
+                                        <div className="min-w-0">
+                                          <p className="truncate font-medium">
+                                            {att.original_name}
+                                          </p>
+                                          <p className="text-[10px] opacity-80">
+                                            {formatFileSize(att.size)}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        disabled={downloadingId === att.id}
+                                        onClick={() => handleDownloadAttachment(att)}
+                                        className="h-7 w-7 shrink-0 hover:bg-black/10 dark:hover:bg-white/10"
+                                        title="Download attachment"
+                                      >
+                                        {downloadingId === att.id ? (
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                          <Download className="h-3.5 w-3.5" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className={`flex items-center justify-end gap-1 text-[10px] text-muted-foreground ${!isOwn && !isDeleted ? "pr-8" : ""}`}>
+                  {isEdited && !isDeleted && <span>(edited)</span>}
+                  <span>{formatMsgTime(msg.created_at)}</span>
+                  <MessageReceipt message={msg} currentUserId={currentUserId} lastReadAt={otherLastReadAt} />
+                </div>
+              </div>
+            </div>
+          </Fragment>
+        );
+      }),
+    [
+      messages,
+      messagesById,
+      currentUserId,
+      selectedMessageIds,
+      activeMatchId,
+      searchMatchSet,
+      unreadMarker,
+      isSelectionMode,
+      sending,
+      downloadingId,
+      otherLastReadAt,
+      handleToggleSelectMessage,
+      handleCopyMessage,
+      handleSingleForward,
+      handleDownloadAttachment,
+    ],
+  );
 
   if (!conversation) {
     return (
@@ -980,7 +1309,7 @@ export function ChatWindow({
           Select a Direct Conversation
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">
-          Choose a conversation from the sidebar or click "New Chat" to start
+          Choose a conversation from the sidebar or click &ldquo;New Chat&rdquo; to start
           messaging a colleague.
         </p>
       </div>
@@ -1306,242 +1635,7 @@ export function ChatWindow({
             </p>
           </div>
         ) : (
-          messages.map((msg, index) => {
-            const isOwn = msg.sender?.id === currentUserId;
-            const isDeleted = msg.is_deleted;
-            const isEdited = msg.is_edited;
-            const isForwarded = isForwardedMessage(msg);
-            const cleanBody = getDisplayMessageBody(msg.body);
-            const isSelected = selectedMessageIds.has(msg.id);
-            const isCurrentSearchMatch = searchMatches[currentMatchIndex] === msg.id;
-            const isAnySearchMatch = searchMatches.includes(msg.id);
-            const parent = msg.reply_to ? messages.find(message => message.id === msg.reply_to!.id) : null;
-            const quote = parent ? { id: parent.id, body: parent.body, is_deleted: parent.is_deleted, sender: parent.sender, attachment_name: parent.attachments[0]?.original_name } : msg.reply_to;
-
-            return (
-              <Fragment key={`${msg.id}-${index}`}>
-              {unreadMarker?.messageId === msg.id && <div id="chat-unread-marker" className="flex scroll-mt-3 items-center gap-3 py-2" role="separator" aria-label={`${unreadMarker.count} unread messages`}><div className="h-px flex-1 bg-border" /><span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">{unreadMarker.count} unread {unreadMarker.count === 1 ? "message" : "messages"}</span><Button type="button" variant="ghost" size="icon" className="size-6 shrink-0 text-muted-foreground" aria-label="Dismiss unread marker" onClick={() => setUnreadMarker(null)}><X className="size-3" /></Button><div className="h-px flex-1 bg-border" /></div>}
-              <div
-                id={`chat-message-${msg.id}`}
-                onClick={() => {
-                  if (isSelectionMode && !isDeleted) {
-                    handleToggleSelectMessage(msg.id);
-                  }
-                }}
-                className={`flex items-end gap-2 group transition-all rounded-xl py-1 px-2 ${
-                  isOwn ? "justify-end" : "justify-start"
-                } ${isSelectionMode && !isDeleted ? "cursor-pointer hover:bg-muted/30" : ""} ${
-                  isSelected ? "bg-primary/10" : ""
-                } ${
-                  isCurrentSearchMatch
-                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                    : isAnySearchMatch
-                    ? "bg-amber-500/10"
-                    : ""
-                }`}
-              >
-                {isSelectionMode && !isDeleted && (
-                  <div
-                    className={`flex items-center self-center px-1 shrink-0 ${
-                      isOwn ? "order-last ml-2 mr-1" : "order-first mr-2 ml-1"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => handleToggleSelectMessage(msg.id)}
-                      aria-label={`Select message from ${msg.sender?.name || "Staff"}`}
-                    />
-                  </div>
-                )}
-
-                {!isOwn && (
-                  <Avatar className="h-7 w-7 mb-1 shrink-0 border border-border">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-[10px]">
-                      {(msg.sender?.name?.[0] || "U").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-
-                <div className="min-w-0 max-w-[85%] sm:max-w-[75%] xl:max-w-[65%] space-y-1">
-                  {!isOwn && msg.sender?.name && (
-                    <p className="text-[11px] font-medium text-muted-foreground ml-1">
-                      {msg.sender.name}
-                    </p>
-                  )}
-
-                  <div className="relative group/bubble flex items-center gap-1">
-                    {/* Message actions */}
-                    {!isDeleted && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={`h-7 w-7 shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover/bubble:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity ${isOwn ? "" : "order-last"}`}
-                            aria-label="Message actions"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="text-xs">
-                          <DropdownMenuItem disabled={msg.id.startsWith("temp-") || sending} onSelect={() => { setReplyingTo(msg); setEditingMessage(null); messageInputRef.current?.focus(); }} className="gap-2"><Reply className="size-3.5" />Reply</DropdownMenuItem>
-                          {cleanBody && <DropdownMenuItem onSelect={() => { void handleCopyMessage(cleanBody); }} className="gap-2"><Copy className="size-3.5" />Copy</DropdownMenuItem>}
-                          <DropdownMenuItem disabled={msg.id.startsWith("temp-")} onSelect={() => handleSingleForward(msg)} className="gap-2"><CornerUpRight className="size-3.5" />Forward</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => { setIsSelectionMode(true); setSelectedMessageIds(new Set([msg.id])); }} className="gap-2"><CheckSquare className="size-3.5" />Select</DropdownMenuItem>
-                          {isOwn && <>
-                          <DropdownMenuItem
-                            disabled={msg.id.startsWith("temp-")}
-                            onClick={() => {
-                              setReplyingTo(null);
-                              setEditingMessage(msg);
-                              setInputBody(cleanBody || "");
-                            }}
-                            className="gap-2"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={msg.id.startsWith("temp-")}
-                            onSelect={() => setMessageToDelete(msg)}
-                            className="gap-2 text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
-                          </DropdownMenuItem>
-                          </>}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-
-                    {(() => {
-                      const secretInfo = !isDeleted ? extractSecretInfo(cleanBody) : null;
-                      const isPureSecret = Boolean(
-                        secretInfo &&
-                          !cleanBody.replace(/\[secret:[^\]]+\]/, "").trim() &&
-                          (!msg.attachments || msg.attachments.length === 0)
-                      );
-
-                      return (
-                        <div
-                          className={`min-w-0 ${
-                            isPureSecret
-                              ? "p-0 bg-transparent shadow-none"
-                              : isOwn
-                              ? "p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm bg-primary text-primary-foreground rounded-br-none"
-                              : "p-2.5 sm:p-3 rounded-2xl text-sm shadow-sm bg-card text-foreground border border-border/60 rounded-bl-none"
-                          }`}
-                        >
-                          {isDeleted ? (
-                            <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
-                              <Trash2 className="h-3 w-3" />
-                              This message was deleted
-                            </p>
-                          ) : (
-                            <>
-                              {isForwarded && (
-                                <div
-                                  className={`flex items-center gap-1 text-[11px] font-medium italic mb-1.5 ${
-                                    isOwn ? "text-primary-foreground/80" : "text-muted-foreground"
-                                  }`}
-                                >
-                                  <CornerUpRight className="h-3 w-3 shrink-0" />
-                                  <span>Forwarded</span>
-                                </div>
-                              )}
-                              {quote && <button type="button" className={`mb-2 block w-full min-w-0 rounded-md border-l-2 px-2 py-1.5 text-left text-xs ${isOwn ? "border-primary-foreground/60 bg-black/10 text-primary-foreground" : "border-primary bg-muted text-foreground"}`} aria-label="View original message" onClick={() => {
-                                const original = document.getElementById(`chat-message-${quote.id}`);
-                                if (original) original.scrollIntoView({ behavior: "smooth", block: "center" });
-                                else toast.info("Load earlier messages to view the original.");
-                              }}><span className="block truncate font-semibold">{quote.sender?.id === currentUserId ? "You" : quote.sender?.name || "Staff member"}</span><span className="block max-w-full truncate opacity-80">{quote.is_deleted ? "This message was deleted" : getDisplayMessageBody(quote.body) || quote.attachment_name || "Attachment"}</span></button>}
-                              {secretInfo ? (
-                                <div className="space-y-2">
-                                  {cleanBody.replace(/\[secret:[^\]]+\]/, "").trim() && (
-                                    <FormattedChatMessage isOwn={isOwn}>
-                                      {cleanBody.replace(/\[secret:[^\]]+\]/, "").trim()}
-                                    </FormattedChatMessage>
-                                  )}
-                                  <SecretCapsuleCard
-                                    secretId={secretInfo.secretId}
-                                    initialTitle={secretInfo.title}
-                                    currentUserId={currentUserId}
-                                    isOwn={isOwn}
-                                    onBurned={() => {
-                                      setMessages((prev) => [...prev]);
-                                    }}
-                                  />
-                                </div>
-                              ) : cleanBody ? (
-                                <FormattedChatMessage isOwn={isOwn}>
-                                  {cleanBody}
-                                </FormattedChatMessage>
-                              ) : null}
-
-                              {/* Attachments */}
-                              {msg.attachments && msg.attachments.length > 0 && (
-                                <div className="mt-2 space-y-1.5 pt-1 border-t border-primary-foreground/20">
-                                  {msg.attachments.map((att) => (
-                                    <div key={att.id} className="min-w-0 space-y-2">
-                                      {att.mime_type.startsWith("image/") && !att.id.startsWith("temp-") && <ChatImageAttachment attachment={att} />}
-                                    <div
-                                      key={att.id}
-                                      className={`flex items-center justify-between gap-3 p-2 rounded-lg text-xs ${
-                                        isOwn
-                                          ? "bg-primary-foreground/10 text-primary-foreground"
-                                          : "bg-muted text-foreground"
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        {att.mime_type.startsWith("image/") ? (
-                                          <ImageIcon className="h-4 w-4 shrink-0" />
-                                        ) : (
-                                          <FileText className="h-4 w-4 shrink-0" />
-                                        )}
-                                        <div className="min-w-0">
-                                          <p className="truncate font-medium">
-                                            {att.original_name}
-                                          </p>
-                                          <p className="text-[10px] opacity-80">
-                                            {formatFileSize(att.size)}
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        disabled={downloadingId === att.id}
-                                        onClick={() =>
-                                          handleDownloadAttachment(att)
-                                        }
-                                        className="h-7 w-7 shrink-0 hover:bg-black/10 dark:hover:bg-white/10"
-                                        title="Download attachment"
-                                      >
-                                        {downloadingId === att.id ? (
-                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                        ) : (
-                                          <Download className="h-3.5 w-3.5" />
-                                        )}
-                                      </Button>
-                                    </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className={`flex items-center justify-end gap-1 text-[10px] text-muted-foreground ${!isOwn && !isDeleted ? "pr-8" : ""}`}>
-                    {isEdited && !isDeleted && <span>(edited)</span>}
-                    <span>{formatMsgTime(msg.created_at)}</span>
-                    <MessageReceipt message={msg} currentUserId={currentUserId} lastReadAt={otherLastReadAt} />
-                  </div>
-                </div>
-              </div>
-              </Fragment>
-            );
-          })
+          renderedMessages
         )}
       </div>
 
@@ -1595,27 +1689,6 @@ export function ChatWindow({
         </div>
       )}
 
-      {/* Live Formatted Message Preview (Shown by default when formatted content or multi-line text is typed) */}
-      {hasFormattingSyntax(inputBody) && (
-        <div
-          onClick={() => messageInputRef.current?.focus()}
-          className="px-4 py-2.5 border-t border-primary/20 bg-primary/5 cursor-text text-sm transition-all animate-in fade-in duration-150 shrink-0"
-        >
-          <div className="flex items-center justify-between text-[10px] font-bold text-primary uppercase tracking-wider mb-1.5 select-none">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Live Message Preview
-            </span>
-            <span className="text-[10px] normal-case font-normal text-muted-foreground">
-              What staff will see
-            </span>
-          </div>
-          <div className="max-h-40 overflow-y-auto pr-1">
-            <FormattedChatMessage>{inputBody}</FormattedChatMessage>
-          </div>
-        </div>
-      )}
-
       {/* Composer Bar */}
       <div className="p-3 border-t border-border bg-card flex items-end gap-2 shrink-0">
         <input
@@ -1656,6 +1729,19 @@ export function ChatWindow({
           </Button>
         )}
 
+        <WhatsAppChatInput
+          ref={whatsAppInputRef}
+          value={inputBody}
+          onChange={setInputBody}
+          onSend={handleSend}
+          onPaste={handlePaste}
+          disabled={sending}
+          placeholder={
+            editingMessage ? "Update your message..." : "Type a message..."
+          }
+          aria-label={editingMessage ? "Edit message" : "Message"}
+        />
+
         <Textarea
           ref={messageInputRef}
           rows={1}
@@ -1678,7 +1764,9 @@ export function ChatWindow({
               handleSend();
             }
           }}
-          className="flex-1 min-w-0 min-h-9 max-h-36 overflow-y-auto text-base sm:text-sm bg-muted/30 focus:bg-background transition-colors"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
         />
 
         <Button

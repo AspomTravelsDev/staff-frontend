@@ -144,8 +144,10 @@ function parseBlocks(content: string): Block[] {
     for (const rawLine of lines) {
       const line = rawLine.trimEnd();
 
-      // Check bullet list: "- item", "* item", "-item", "*item"
-      const bulletMatch = line.match(/^[-*]\s*(.+)$/);
+      // Check bullet list: "- item", "-item", "• item", "•item", or "* item" (not ending with *)
+      const bulletMatch =
+        line.match(/^[-•]\s*(.+)$/) ||
+        (!line.endsWith("*") && line.match(/^\*\s+(.+)$/));
       if (bulletMatch && bulletMatch[1].trim()) {
         flushNumberedList();
         flushQuote();
@@ -154,13 +156,13 @@ function parseBlocks(content: string): Block[] {
         continue;
       }
 
-      // Check numbered list: "1. item"
-      const numberedMatch = line.match(/^\d+\.\s+(.*)$/);
+      // Check numbered list: "1. item" or "1.item"
+      const numberedMatch = line.match(/^(\d+\.)\s*(.+)$/);
       if (numberedMatch) {
         flushBulletList();
         flushQuote();
         flushParagraph();
-        currentNumberedList.push(numberedMatch[1]);
+        currentNumberedList.push(numberedMatch[2]);
         continue;
       }
 

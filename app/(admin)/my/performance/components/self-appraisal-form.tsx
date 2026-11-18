@@ -242,11 +242,11 @@ export function SelfAppraisalForm({
   const reviewChain = (
     appraisal.type === "appraisal"
       ? [
-          appraisal.is_supervisor
-            ? appraisal.department === "Compliance"
-              ? null
-              : appraisal.compliance_reviewer_name
-            : appraisal.reviewer_name,
+          appraisal.reviewer_route === "direct_mp"
+            ? null
+            : appraisal.reviewer_route === "compliance"
+              ? (appraisal.compliance_reviewer_name ?? appraisal.reviewer_name)
+              : appraisal.reviewer_name,
           appraisal.mp_reviewer_name,
         ]
       : [
@@ -500,6 +500,10 @@ export function SelfAppraisalForm({
                             appraisal.type === "appraisal"
                               ? appraisalScaleLabels[item.value - 1]
                               : item.label;
+                          const scoringGuide =
+                            appraisal.type !== "appraisal"
+                              ? currentCriterion.scoring_guide?.[item.value]?.trim()
+                              : null;
                           return (
                             <Label
                               key={item.value}
@@ -519,6 +523,11 @@ export function SelfAppraisalForm({
                               <span className="text-xs font-medium">
                                 {label}
                               </span>
+                              {scoringGuide && (
+                                <span className="text-xs font-normal leading-relaxed text-muted-foreground">
+                                  {scoringGuide}
+                                </span>
+                              )}
                             </Label>
                           );
                         })}
@@ -792,7 +801,9 @@ export function SelfAppraisalForm({
           assessment={assessment}
           title={
             assessment.stage === "mp"
-              ? "MP review"
+              ? appraisal.type === "appraisal"
+                ? "Management review"
+                : "MP review"
               : assessment.stage === "hr"
                 ? "HR review"
                 : assessment.stage === "compliance"

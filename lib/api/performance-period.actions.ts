@@ -54,3 +54,11 @@ export async function openPerformancePeriod(id: string, previewToken: string) {
     return result.data.data;
   }, "openPerformancePeriod");
 }
+
+export async function openAppraisalCycleWindow(data: { month?: string; submission_deadline?: string } = {}) {
+  return runAction(async () => {
+    const result = await api.post<{ data: PerformancePeriod }>("/api/performance/periods/appraisal/open", data);
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data.data;
+  }, "openAppraisalCycleWindow");
+}

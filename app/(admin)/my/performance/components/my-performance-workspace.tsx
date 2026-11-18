@@ -65,11 +65,11 @@ export function MyPerformanceWorkspace({ initialAppraisals, initialStats, initia
   const items = appraisals.filter((item) => `${item.month} ${item.department}`.toLowerCase().includes(search.toLowerCase())
     && (filter === "all" || (filter === "action" ? item.can_edit_self : !item.can_edit_self)));
 
-  async function startTestAppraisal(type: AppraisalType) {
+  async function startTestAppraisal(type: AppraisalType, useDevEndpoint = false) {
     setStarting(true);
     setStartError(null);
     try {
-      const appraisal = await callAction(() => (allowDevelopmentStart ? startDevelopmentAppraisal : startMyAppraisal)(type));
+      const appraisal = await callAction(() => (useDevEndpoint ? startDevelopmentAppraisal : startMyAppraisal)(type));
       await Promise.all([history.refetch(), stats.refetch()]);
       router.push(`/my/performance/${appraisal.id}`);
     } catch (error) {
@@ -100,9 +100,9 @@ export function MyPerformanceWorkspace({ initialAppraisals, initialStats, initia
     {startError && <p role="alert" className="-mt-3 text-sm text-destructive">{startError}</p>}
     {(initialAvailability.periods?.some((period) => period.can_start) || allowDevelopmentStart) && <section className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4" aria-label="Start an assessment">
       <span className="mr-1 text-sm font-medium">Available now</span>
-      {(initialAvailability.periods ?? []).filter((period) => period.can_start).map((period) => <Button key={`${period.type}-${period.month}`} onClick={() => void startTestAppraisal(period.type)} disabled={starting}>{starting ? "Starting…" : `${period.type === "appraisal" ? "Appraisal" : "Monthly KPI"} · ${formatPerformanceMonth(period.month)}`}<ArrowRight className="ml-2 size-4" /></Button>)}
-      {allowDevelopmentStart && !(initialAvailability.periods ?? []).some((period) => period.type === "monthly_kpi" && period.can_start) && <Button variant="outline" onClick={() => void startTestAppraisal("monthly_kpi")} disabled={starting}>{starting ? "Starting…" : "Start test monthly KPI"}</Button>}
-      {allowDevelopmentStart && !(initialAvailability.periods ?? []).some((period) => period.type === "appraisal" && period.can_start) && <Button variant="outline" onClick={() => void startTestAppraisal("appraisal")} disabled={starting}>{starting ? "Starting…" : "Start test Appraisal"}</Button>}
+      {(initialAvailability.periods ?? []).filter((period) => period.can_start).map((period) => <Button key={`${period.type}-${period.month}`} onClick={() => void startTestAppraisal(period.type, false)} disabled={starting}>{starting ? "Starting…" : `${period.type === "appraisal" ? "Appraisal" : "Monthly KPI"} · ${formatPerformanceMonth(period.month)}`}<ArrowRight className="ml-2 size-4" /></Button>)}
+      {allowDevelopmentStart && !(initialAvailability.periods ?? []).some((period) => period.type === "monthly_kpi" && period.can_start) && <Button variant="outline" onClick={() => void startTestAppraisal("monthly_kpi", true)} disabled={starting}>{starting ? "Starting…" : "Start test monthly KPI"}</Button>}
+      {allowDevelopmentStart && !(initialAvailability.periods ?? []).some((period) => period.type === "appraisal" && period.can_start) && <Button variant="outline" onClick={() => void startTestAppraisal("appraisal", true)} disabled={starting}>{starting ? "Starting…" : "Start test Appraisal"}</Button>}
     </section>}
     <section aria-label="Appraisal summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4"><PerformanceMetric label="Assigned" value={(stats.data ?? initialStats).total_appraisals} detail="All appraisal types" /><PerformanceMetric label="Needs your input" value={(stats.data ?? initialStats).pending_self_appraisal} detail="Awaiting submission" tone="amber" /><PerformanceMetric label="Completed" value={(stats.data ?? initialStats).completed_appraisals} detail="Finished appraisals" tone="primary" /><PerformanceMetric label="Average score" value={(stats.data ?? initialStats).average_rating === null ? "—" : `${(stats.data ?? initialStats).average_rating?.toFixed(2)} / 5`} detail="Across completed reviews" /></section>
     <Card><CardHeader className="pb-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><CardTitle>Appraisal history</CardTitle><CardDescription>Monthly KPI and June/December Appraisal cycles.</CardDescription></div><div className="flex flex-wrap gap-2"><div className="relative min-w-48"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search appraisal history" className="pl-9" placeholder="Search month or department" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-44" aria-label="Filter appraisal history"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All appraisals</SelectItem><SelectItem value="action">Needs my assessment</SelectItem><SelectItem value="history">In review or complete</SelectItem></SelectContent></Select></div></div></CardHeader><CardContent className="pt-0">

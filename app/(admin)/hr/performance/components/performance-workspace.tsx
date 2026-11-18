@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { PerformanceResultFilters, PerformanceResults } from "@/lib/types/performance-result";
 import { PerformanceTable } from "./performance-table";
 import { PerformanceMetric } from "@/components/performance/performance-page-header";
@@ -28,7 +27,7 @@ export function PerformanceWorkspace({ initialData: data, filters }: { initialDa
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2"><Label htmlFor="result-search">Staff name or ID</Label><Input id="result-search" name="search" defaultValue={filters.search} maxLength={180} placeholder="Search completed results" /></div>
         <div className="space-y-2"><Label htmlFor="result-department">Department</Label><select id="result-department" name="department" className={selectClass} defaultValue={filters.department || ""}><option value="">All departments</option>{data.departments.map(name => <option key={name}>{name}</option>)}</select></div>
-        <div className="space-y-2"><Label htmlFor="result-type">Appraisal type</Label><Select name="type" defaultValue={filters.type || "all"}><SelectTrigger id="result-type" className={selectClass}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem><SelectItem value="monthly_kpi">Monthly KPI</SelectItem><SelectItem value="appraisal">Appraisal</SelectItem></SelectContent></Select></div>
+        <div className="space-y-2"><Label htmlFor="result-type">Appraisal type</Label><select id="result-type" name="type" className={selectClass} defaultValue={filters.type || ""}><option value="">All types</option><option value="monthly_kpi">Monthly KPI</option><option value="appraisal">Appraisal</option></select></div>
         <div className="space-y-2"><Label htmlFor="result-month">Appraisal period</Label><select id="result-month" name="month" className={selectClass} defaultValue={filters.month || ""}><option value="">All periods</option>{data.months.map(month => <option key={month} value={month}>{formatPerformanceMonth(month)}</option>)}</select></div>
       </div>
       <div className="flex flex-wrap gap-3"><Button type="submit">Apply filters</Button><Button variant="outline" asChild><Link href="/hr/performance">Clear filters</Link></Button></div>

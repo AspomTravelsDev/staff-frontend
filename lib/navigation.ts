@@ -134,13 +134,6 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "Pending leave requests",
   },
   {
-    title: "Appraisal Results",
-    url: "/hr/performance",
-    icon: ClipboardList,
-    allowedRoles: ["hr", "compliance", "mp", "md", "super"],
-    requiresExplicitRole: true,
-  },
-  {
     title: "Compliance Dashboard",
     url: "/compliance",
     icon: ShieldCheck,
@@ -468,13 +461,13 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "Announcements awaiting review",
   },
   {
-    title: "Performance Reviews",
+    title: "Appraisal Review Queue",
     url: "/performance/reviews",
     icon: ClipboardList,
-    allowedRoles: ["hr", "compliance", "mp"],
+    allowedRoles: ["hr", "compliance", "mp", "md", "super"],
     requiresReviewer: true,
     badgeKey: "performanceReviews",
-    badgeLabel: "Performance reviews ready for your review",
+    badgeLabel: "Appraisals ready for your review",
   },
   {
     title: "General Attendance",
@@ -751,7 +744,7 @@ export function getNavigationForUser(user: {
       ? user.roles
       : [user.role, ...(user.secondary_roles || [])];
 
-  const canReviewPerformance = !user.is_department_account && (user.is_supervisor || activeRoles.some((role) => role === "hr" || role === "compliance" || role === "mp"));
+  const canReviewPerformance = !user.is_department_account && (user.is_supervisor || activeRoles.some((role) => role === "hr" || role === "compliance" || role === "mp" || role === "md" || role === "super"));
   const department = filterNavByRole(departmentNav, activeRoles)
     .filter((item) => !item.requiresReviewer || canReviewPerformance)
     .filter((item) => !user.is_department_account || !item.requiresExplicitRole)

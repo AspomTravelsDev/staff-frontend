@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { formatPerformanceMonth, reviewStatusLabel } from "@/lib/performance-review";
+import type { PerformancePeriod } from "@/lib/types/performance-period";
 import type { ReviewQueueFilters, ReviewQueueResponse, ReviewSummary } from "@/lib/types/performance-review";
 import { PerformanceMetric, PerformancePageHeader } from "@/components/performance/performance-page-header";
+import { AppraisalWindowCard } from "@/app/(admin)/hr/performance/components/appraisal-window-card";
 
 const stages = ["self", "supervisor", "hr", "compliance", "mp"] as const;
 type ColumnStage = typeof stages[number];
@@ -57,7 +59,17 @@ function queueUrl(pathname: string, filters: ReviewQueueFilters): string {
   return query ? `${pathname}?${query}` : pathname;
 }
 
-export function ReviewQueue({ initialData, filters }: { initialData: ReviewQueueResponse; filters: ReviewQueueFilters }) {
+export function ReviewQueue({
+  initialData,
+  filters,
+  periods,
+  canManageKpis = false,
+}: {
+  initialData: ReviewQueueResponse;
+  filters: ReviewQueueFilters;
+  periods?: PerformancePeriod[];
+  canManageKpis?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
@@ -79,7 +91,7 @@ export function ReviewQueue({ initialData, filters }: { initialData: ReviewQueue
   const lastItem = Math.min(pagination.page * pagination.per_page, pagination.total);
 
   return <div className="space-y-6">
-    <PerformancePageHeader eyebrow="Department workspace" title="Performance Reviews" description="See submitted appraisals across the organization. You can act only on appraisals in your review queue." icon={ClipboardList} />
+    {periods !== undefined && <AppraisalWindowCard initialPeriods={periods} />}
     <section aria-label="Review summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4"><PerformanceMetric label="Ready now" value={counts.ready} detail="Waiting for your review" tone="amber" /><PerformanceMetric label="In my queue" value={counts.assigned} detail="Assigned · not completed" /><PerformanceMetric label="Available" value={counts.available} detail="Submitted appraisals" tone="primary" /><PerformanceMetric label="Completed" value={counts.completed} detail="Appraisals closed" /></section>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <form onSubmit={submitSearch} className="flex min-w-0 items-end gap-2 xl:col-span-1">
@@ -92,7 +104,10 @@ export function ReviewQueue({ initialData, filters }: { initialData: ReviewQueue
       <div className="space-y-2"><Label htmlFor="review-department">Department</Label><Select value={filters.department} onValueChange={(value) => navigate({ ...filters, department: value, page: 1 })}><SelectTrigger id="review-department" className="h-9 w-full px-3 text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All departments</SelectItem>{initialData.options.departments.map((department) => <SelectItem key={department} value={department}>{department}</SelectItem>)}</SelectContent></Select></div>
     </div>
       {!items.length ? <div className="rounded-xl border border-dashed px-6 py-12 text-center"><h2 className="font-medium">{pagination.total ? "No appraisals match these filters" : "No appraisals are available"}</h2><p className="mt-2 text-sm text-muted-foreground">{pagination.total ? "Adjust your search, status, type, month or department." : "Submitted staff appraisals will appear here."}</p>{hasFilters && <Button className="mt-4" variant="outline" onClick={() => { setSearch(""); navigate({ search: "", status: "all", type: "all", month: defaultMonth, department: "all", page: 1 }); }}>Clear filters</Button>}</div> : <>
-      <div className="overflow-hidden rounded-lg border"><Table><TableHeader><TableRow><TableHead className="min-w-48">Staff member</TableHead><TableHead>Department</TableHead><TableHead>Appraisal period</TableHead><TableHead>Current stage</TableHead><TableHead>Staff</TableHead><TableHead>Supervisor</TableHead><TableHead>HR</TableHead><TableHead>Compliance</TableHead><TableHead>Management / MP</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{items.map((review) => <TableRow key={review.id}><TableCell><div className="font-medium">{review.employee_name}</div><div className="text-xs text-muted-foreground">{review.employee_staff_id}</div></TableCell><TableCell>{review.department}</TableCell><TableCell><div className="space-y-1"><Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">{review.type === "appraisal" ? "Appraisal" : "Monthly KPI"}</Badge><div className="text-sm">{formatPerformanceMonth(review.month)}</div><div className="text-xs text-muted-foreground">Due {review.submission_deadline}</div></div></TableCell><TableCell>{review.status === "completed" ? <Badge variant="secondary">Complete</Badge> : review.current_stage ? <div><div className="font-medium">{currentStageLabel(review)}</div><div className="text-xs text-muted-foreground">{reviewStatusLabel(review)}</div></div> : <span className="text-muted-foreground">—</span>}</TableCell>{stages.map((stage) => <TableCell key={`${review.id}-${stage}`}><StageBadge review={review} stage={stage} /></TableCell>)}<TableCell className="text-right">{review.can_review ? <Button size="sm" asChild><Link href={`/performance/reviews/${review.id}`}>{review.assessment_status === "draft" ? "Continue" : "Review"}</Link></Button> : review.is_assigned && (review.assessment_status === "submitted" || review.status === "completed") ? <Button size="sm" asChild><Link href={`/performance/reviews/${review.id}`}>View</Link></Button> : <Button size="sm" variant="outline" disabled>{review.is_assigned ? "Waiting" : "Not assigned"}</Button>}</TableCell></TableRow>)}</TableBody></Table></div>
+      <div className="overflow-hidden rounded-lg border"><Table><TableHeader><TableRow><TableHead className="min-w-48">Staff member</TableHead><TableHead>Department</TableHead><TableHead>Appraisal period</TableHead><TableHead>Current stage</TableHead><TableHead>Staff</TableHead><TableHead>Supervisor</TableHead><TableHead>HR</TableHead><TableHead>Compliance</TableHead><TableHead>Management / MP</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{items.map((review) => {
+        const canViewCompleted = (review.is_assigned && (review.assessment_status === "submitted" || review.status === "completed")) || (review.status === "completed" && review.final_score !== null);
+        return <TableRow key={review.id}><TableCell><div className="font-medium">{review.employee_name}</div><div className="text-xs text-muted-foreground">{review.employee_staff_id}</div></TableCell><TableCell>{review.department}</TableCell><TableCell><div className="space-y-1"><Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">{review.type === "appraisal" ? "Appraisal" : "Monthly KPI"}</Badge><div className="text-sm">{formatPerformanceMonth(review.month)}</div><div className="text-xs text-muted-foreground">Due {review.submission_deadline}</div></div></TableCell><TableCell>{review.status === "completed" ? <div className="space-y-1"><Badge variant="secondary">Complete</Badge>{review.final_score !== null && <div className="text-xs font-medium tabular-nums text-foreground">{review.type === "appraisal" && review.total_score !== null && review.total_max_score !== null ? `${review.total_score} / ${review.total_max_score} pts · ${Number(review.final_score).toFixed(2)} / 5` : `Score: ${Number(review.final_score).toFixed(2)} / 5`}</div>}</div> : review.current_stage ? <div><div className="font-medium">{currentStageLabel(review)}</div><div className="text-xs text-muted-foreground">{reviewStatusLabel(review)}</div></div> : <span className="text-muted-foreground">—</span>}</TableCell>{stages.map((stage) => <TableCell key={`${review.id}-${stage}`}><StageBadge review={review} stage={stage} /></TableCell>)}<TableCell className="text-right">{review.can_review ? <Button size="sm" asChild><Link href={`/performance/reviews/${review.id}`}>{review.assessment_status === "draft" ? "Continue" : "Review"}</Link></Button> : canViewCompleted ? <Button size="sm" asChild><Link href={`/performance/reviews/${review.id}`}>View</Link></Button> : <Button size="sm" variant="outline" disabled>{review.is_assigned ? "Waiting" : "Not assigned"}</Button>}</TableCell></TableRow>;
+      })}</TableBody></Table></div>
       <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Showing {firstItem}–{lastItem} of {pagination.total} appraisals</p><Pagination className="mx-0 w-auto justify-end"><PaginationContent><PaginationItem><PaginationPrevious href={pagination.page > 1 ? queueUrl(pathname, { ...filters, page: pagination.page - 1 }) : "#"} aria-disabled={pagination.page <= 1 || isPending} className={pagination.page <= 1 || isPending ? "pointer-events-none opacity-50" : undefined} /></PaginationItem><PaginationItem><span className="px-2 text-sm text-muted-foreground">Page {pagination.page} of {pagination.total_pages}</span></PaginationItem><PaginationItem><PaginationNext href={pagination.page < pagination.total_pages ? queueUrl(pathname, { ...filters, page: pagination.page + 1 }) : "#"} aria-disabled={pagination.page >= pagination.total_pages || isPending} className={pagination.page >= pagination.total_pages || isPending ? "pointer-events-none opacity-50" : undefined} /></PaginationItem></PaginationContent></Pagination></div>
     </>}
   </div>;

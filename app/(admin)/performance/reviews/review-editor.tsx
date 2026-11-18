@@ -49,11 +49,19 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
   const ownRatings = values.answers.flatMap((answer) => answer.rating === null ? [] : [answer.rating]);
   const ownTotal = ownRatings.reduce((sum, rating) => sum + rating, 0);
   const ownAverage = ownRatings.length ? ownTotal / ownRatings.length : null;
-  const supervisorAssessment = review.preceding_assessments.find(
+  const intermediateAssessment = review.preceding_assessments.find(
     (assessment) =>
       assessment.stage === "supervisor" ||
-      (assessment.stage === "reviewer" && review.reviewer_route === "supervisor"),
+      assessment.stage === "compliance" ||
+      assessment.stage === "reviewer",
   );
+  const mpAssessment = review.preceding_assessments.find(
+    (assessment) => assessment.stage === "mp",
+  );
+  const intermediateAverageLabel =
+    review.reviewer_route === "compliance"
+      ? "Compliance average"
+      : "Supervisor average";
   const appraisalScaleLabels = ["Unsatisfactory · <50%", "Requires improvement · 50–69%", "Satisfactory · 70–80%", "Exceeded expectations · 81–90%", "Exceptional · >90%"];
 
   function assessmentAverage(assessment: AppraisalAssessment | undefined) {
@@ -66,8 +74,14 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
       : null;
   }
 
-  const supervisorAverage = assessmentAverage(supervisorAssessment);
-  const managementAverage = isMp ? ownAverage : null;
+  const intermediateAverage =
+    !isMp && (review.can_review || Boolean(review.assessment))
+      ? ownAverage
+      : assessmentAverage(intermediateAssessment);
+  const managementAverage =
+    isMp && (review.can_review || Boolean(review.assessment))
+      ? ownAverage
+      : assessmentAverage(mpAssessment);
 
   function updateRating(index: number, value: string) {
     const numericValue = value === "" ? null : Number(value);
@@ -164,7 +178,7 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
   }
 
   return <div className="space-y-6 pb-8">
-    <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push("/performance/reviews")}>Back to Performance Reviews</Button>
+    <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push("/performance/reviews")}>Back to Appraisal Review Queue</Button>
     <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${formatPerformanceDate(review.submission_deadline)}`} icon={ClipboardList} actions={<Badge variant="outline">{reviewStatusLabel(review)}</Badge>} />
     {error && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{error}</p><p>If this review changed elsewhere, reload its saved version. Reloading discards unsaved edits on this page.</p><Button variant="outline" disabled={pending} onClick={() => reload.mutate()}>Reload saved review</Button></div>}
     {review.final_score !== null && <p className="text-lg font-semibold tabular-nums">{review.type === "appraisal" ? `Final total ${review.total_score ?? "—"} / ${review.total_max_score ?? "—"} · ` : "Final score: "}{Number(review.final_score).toFixed(2)} / 5</p>}
@@ -173,12 +187,18 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="previous-assessments-heading" className="text-lg font-semibold">Ratings submitted so far</h2>
         </div>
-        <p className="text-sm text-muted-foreground">Earlier scores are read-only. Add your review comment below.</p>
+        <p className="text-sm text-muted-foreground">
+          {!review.can_review
+            ? "All submitted ratings and review comments are read-only."
+            : isStructured
+              ? "Earlier scores are read-only. Enter your ratings in the table and complete your review comments below."
+              : "Earlier scores are read-only. Add your review comment below."}
+        </p>
       </div>
       {isStructured && <div className="grid gap-3 sm:grid-cols-3" aria-label="Assessment averages">
         {[
           ["Staff average", staffAverage],
-          ["Supervisor average", supervisorAverage],
+          [intermediateAverageLabel, intermediateAverage],
           ["Management average", managementAverage],
         ].map(([label, average]) => (
           <div key={label as string} className="rounded-lg border bg-muted/30 px-4 py-3">
@@ -202,7 +222,9 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">Press Enter in a rating field to move to the next criterion.</p>
+              {review.can_review && (
+                <p className="mt-2 text-xs text-muted-foreground">Press Enter in a rating field to move to the next criterion.</p>
+              )}
             </div>
           )}
           <div className="overflow-x-auto rounded-lg border">
@@ -211,7 +233,9 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
                 <TableRow>
                   <TableHead className="min-w-56">{isStructured ? "Key result area / indicator" : "KPI"}</TableHead>
                   {staffAssessment && <TableHead className="min-w-36">Staff</TableHead>}
-                  {isStructured && <TableHead className="w-36 min-w-36">{isMp ? "Management rating" : "Your rating"}</TableHead>}
+                  {isStructured && (review.can_review || Boolean(review.assessment)) && (
+                    <TableHead className="w-36 min-w-36">{isMp ? "Management rating" : "Your rating"}</TableHead>
+                  )}
                   {otherPreviousRatings.map((assessment) => <TableHead key={assessment.id} className="min-w-36">{previousStageLabel(assessment.stage)}</TableHead>)}
                 </TableRow>
               </TableHeader>
@@ -219,6 +243,8 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
                 {review.criteria.map((criterion, index) => {
                   const staffRating = staffAssessment?.answers.find((answer) => answer.criterion_id === criterion.id)?.rating;
                   const staffScale = appraisalRatingScale.find((item) => item.value === staffRating);
+                  const ownRating = values.answers[index]?.rating ?? null;
+                  const ownScale = appraisalRatingScale.find((item) => item.value === ownRating);
                   return (
                     <TableRow key={criterion.id}>
                       <TableCell className="max-w-80 font-medium">
@@ -226,7 +252,35 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
                         {criterion.name}
                       </TableCell>
                       {staffAssessment && <TableCell>{staffScale ? <><span className="font-semibold tabular-nums">{staffScale.value} / 5</span><span className="mt-0.5 block text-xs text-muted-foreground">{appraisalScaleLabels[staffScale.value - 1]}</span></> : "—"}</TableCell>}
-                      {isStructured && <TableCell><Input data-review-rating className="h-11 w-20 border-2 border-primary/40 bg-primary/5 px-3 text-center text-lg font-semibold tabular-nums shadow-sm focus-visible:border-primary focus-visible:bg-background" type="number" min={1} max={5} step={1} inputMode="numeric" aria-label={`${isMp ? "Management" : "Your"} rating for ${criterion.name}`} value={values.answers[index]?.rating?.toString() ?? ""} onKeyDown={(event) => focusNextRating(event, index)} onChange={(event) => updateRating(index, event.target.value)} /></TableCell>}
+                      {isStructured && (review.can_review || Boolean(review.assessment)) && (
+                        <TableCell>
+                          {review.can_review ? (
+                            <Input
+                              data-review-rating
+                              disabled={pending}
+                              className="h-11 w-20 border-2 border-primary/40 bg-primary/5 px-3 text-center text-lg font-semibold tabular-nums shadow-sm focus-visible:border-primary focus-visible:bg-background"
+                              type="number"
+                              min={1}
+                              max={5}
+                              step={1}
+                              inputMode="numeric"
+                              aria-label={`${isMp ? "Management" : "Your"} rating for ${criterion.name}`}
+                              value={ownRating?.toString() ?? ""}
+                              onKeyDown={(event) => focusNextRating(event, index)}
+                              onChange={(event) => updateRating(index, event.target.value)}
+                            />
+                          ) : ownScale ? (
+                            <>
+                              <span className="font-semibold tabular-nums">{ownScale.value} / 5</span>
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {appraisalScaleLabels[ownScale.value - 1]}
+                              </span>
+                            </>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                      )}
                       {otherPreviousRatings.map((assessment) => {
                         const rating = assessment.answers.find((answer) => answer.criterion_id === criterion.id)?.rating;
                         const scale = appraisalRatingScale.find((item) => item.value === rating);

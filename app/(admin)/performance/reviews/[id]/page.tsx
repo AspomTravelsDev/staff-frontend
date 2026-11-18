@@ -6,11 +6,13 @@ import { callAction } from "@/lib/api/action-result";
 import { getAssignedReview } from "@/lib/api/performance-review.actions";
 import { ReviewEditor } from "../review-editor";
 
+const allowedRoles = ["hr", "compliance", "mp", "md", "super"] as const;
+
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   return renderDataPage(async () => {
     const user = await getCurrentUser();
     if (!user) redirect("/login");
-    if (!user.is_active || user.is_department_account || (!user.is_supervisor && !userHasRole(user, "hr") && !userHasRole(user, "compliance") && !userHasRole(user, "mp"))) redirect("/dashboard");
+    if (!user.is_active || user.is_department_account || (!user.is_supervisor && !allowedRoles.some((role) => userHasRole(user, role)))) redirect("/dashboard");
     const { id } = await params;
     const result = await getAssignedReview(id);
     if (!result.success && result.error.code === "HTTP_404") notFound();
