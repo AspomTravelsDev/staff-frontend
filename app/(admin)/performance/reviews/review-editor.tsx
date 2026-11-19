@@ -22,6 +22,7 @@ import type { AppraisalAssessment } from "@/lib/types/performance-appraisal";
 import type { ReviewDetail } from "@/lib/types/performance-review";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
+import { FormattedChatMessage } from "@/components/chat/formatted-chat-message";
 
 const sectionCommentLabels: Record<string, string> = {
   job_achievements: "Job achievements", initiatives_achieved: "Initiatives achieved",
@@ -301,7 +302,7 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
           </div>
         </div>
       ) : <p className="rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">No earlier KPI ratings are available for this review.</p>}
-      {isStructured && staffAssessment && Object.values(staffAssessment.section_comments ?? {}).some(Boolean) && <section className="grid gap-3 sm:grid-cols-2">{Object.entries(staffAssessment.section_comments ?? {}).filter(([, comment]) => !!comment).map(([key, comment]) => <div key={key} className="rounded-lg border bg-muted/20 p-4"><h3 className="text-sm font-semibold">{sectionCommentLabels[key] ?? "Staff comment"}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{comment}</p></div>)}</section>}
+      {isStructured && staffAssessment && Object.values(staffAssessment.section_comments ?? {}).some(Boolean) && <section className="grid gap-3 sm:grid-cols-2">{Object.entries(staffAssessment.section_comments ?? {}).filter(([, comment]) => !!comment).map(([key, comment]) => <div key={key} className="rounded-lg border bg-muted/20 p-4"><h3 className="text-sm font-semibold">{sectionCommentLabels[key] ?? "Staff comment"}</h3><FormattedChatMessage content={comment} className="mt-2 text-sm text-muted-foreground" /></div>)}</section>}
       {review.preceding_assessments.some((assessment) => assessment.stage !== "self") && <div className="space-y-3 border-t pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>

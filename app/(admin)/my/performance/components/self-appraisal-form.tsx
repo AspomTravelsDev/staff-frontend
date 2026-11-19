@@ -55,6 +55,7 @@ import type {
 import { AssessmentReadOnly } from "@/components/performance/assessment-read-only";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
+import { WhatsAppChatInput } from "@/components/chat/whatsapp-chat-input";
 
 const appraisalScaleLabels = [
   "Unsatisfactory · <50%",
@@ -502,36 +503,38 @@ export function SelfAppraisalForm({
                   <Label htmlFor="job-achievements">
                     Job achievements (required)
                   </Label>
-                  <Textarea
+                  <WhatsAppChatInput
                     id="job-achievements"
-                    required
+                    aria-label="Job achievements"
+                    multiline
+                    showToolbar
+                    disabled={pending}
                     maxLength={5000}
                     value={values.section_comments?.job_achievements ?? ""}
-                    onChange={(event) =>
-                      updateSectionComment(
-                        "job_achievements",
-                        event.target.value,
-                      )
+                    onChange={(next) =>
+                      updateSectionComment("job_achievements", next)
                     }
-                    placeholder="Summarize your achievements during this appraisal period."
+                    placeholder="Summarize your achievements during this appraisal period. Type - or 1. for lists..."
+                    className="min-h-28 max-h-72 rounded-none border-0 bg-transparent focus:border-0"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="initiatives-achieved">
                     Initiatives achieved (required)
                   </Label>
-                  <Textarea
+                  <WhatsAppChatInput
                     id="initiatives-achieved"
-                    required
+                    aria-label="Initiatives achieved"
+                    multiline
+                    showToolbar
+                    disabled={pending}
                     maxLength={5000}
                     value={values.section_comments?.initiatives_achieved ?? ""}
-                    onChange={(event) =>
-                      updateSectionComment(
-                        "initiatives_achieved",
-                        event.target.value,
-                      )
+                    onChange={(next) =>
+                      updateSectionComment("initiatives_achieved", next)
                     }
-                    placeholder="Describe initiatives you completed or advanced."
+                    placeholder="Describe initiatives you completed or advanced. Type - or 1. for lists..."
+                    className="min-h-28 max-h-72 rounded-none border-0 bg-transparent focus:border-0"
                   />
                 </div>
               </div>

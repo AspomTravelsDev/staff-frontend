@@ -1,6 +1,7 @@
 import { appraisalRatingScale, formatAppraisalTime } from "@/lib/performance-self-assessment";
 import type { AppraisalAssessment } from "@/lib/types/performance-appraisal";
 import type { PeriodCriterion, ReviewerRoute } from "@/lib/types/performance-period";
+import { FormattedChatMessage } from "@/components/chat/formatted-chat-message";
 
 const sectionCommentLabels: Record<string, string> = {
   job_achievements: "Job achievements", initiatives_achieved: "Initiatives achieved",
@@ -43,7 +44,7 @@ export function AssessmentReadOnly({ appraisal, assessment, title, assessments }
       const scaleLabel = appraisal.type === "appraisal" && scale ? ["Unsatisfactory · <50%", "Requires improvement · 50–69%", "Satisfactory · 70–80%", "Exceeded expectations · 81–90%", "Exceptional · >90%"][scale.value - 1] : scale?.label;
       return <li key={criterion.id} className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div className="min-w-0"><div className="flex items-start gap-3"><span className="mt-0.5 text-xs font-medium tabular-nums text-muted-foreground">{String(index + 1).padStart(2, "0")}</span><div className="min-w-0"><p className="text-xs text-muted-foreground">{criterion.key_result_area}</p><h3 className="break-words font-medium">{criterion.name}</h3>{appraisal.type !== "appraisal" && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">Target:</span> {criterion.expectation}</p>}{answer?.comment && <p className="mt-2 whitespace-pre-wrap break-words text-sm">{answer.comment}</p>}</div></div></div><div className="flex items-center gap-2 sm:justify-end"><span className="text-xs text-muted-foreground">{scaleLabel ?? "Unanswered"}</span><span className="min-w-12 rounded-md bg-muted px-2.5 py-1.5 text-center text-sm font-semibold tabular-nums">{scale ? `${scale.value}/5` : "—"}</span></div></li>;
     })}</ul> : null}
-    {assessment?.section_comments && Object.entries(assessment.section_comments).filter(([, comment]) => !!comment).map(([key, comment]) => <div key={key} className="rounded-lg bg-muted/40 px-4 py-3"><h3 className="text-sm font-medium">{sectionCommentLabels[key] ?? "Comment"}</h3><p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">{comment}</p></div>)}
+    {assessment?.section_comments && Object.entries(assessment.section_comments).filter(([, comment]) => !!comment).map(([key, comment]) => <div key={key} className="rounded-lg bg-muted/40 px-4 py-3"><h3 className="text-sm font-medium">{sectionCommentLabels[key] ?? "Comment"}</h3><FormattedChatMessage content={comment} className="mt-1 text-sm text-muted-foreground" /></div>)}
     {assessment?.comment && <div className="rounded-lg bg-muted/40 px-4 py-3"><h3 className="text-sm font-medium">Overall comment</h3><p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">{assessment.comment}</p></div>}
   </section>;
 }

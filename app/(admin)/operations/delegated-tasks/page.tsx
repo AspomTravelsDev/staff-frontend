@@ -24,7 +24,7 @@ export default async function DelegatedTasksPage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  if (!userHasAnyRole(user, ["office-operations", "super", "mp", "md"])) {
+  if (!userHasAnyRole(user, ["office-operations", "compliance", "super", "mp", "md"])) {
     redirect("/dashboard");
   }
 
