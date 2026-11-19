@@ -27,7 +27,8 @@ export default async function MyAssignedDealsPage({
   const status = allowedStatuses.find(
     (candidate) => candidate === sp.status,
   ) as PaymentConfirmationFilters["status"] | undefined;
-  const page = parseInt(sp.page || "1");
+  const parsedPage = Number.parseInt(sp.page || "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const dealId = sp.deal && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sp.deal) ? sp.deal : undefined;
 

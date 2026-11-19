@@ -70,7 +70,7 @@ export const departmentNav: NavItem[] = [
     title: "Payment Confirmation",
     url: "/accounts/confirmation",
     icon: CreditCard,
-    allowedRoles: ["account", "compliance", "office-operations"],
+    allowedRoles: ["account"],
     badgeKey: "pendingPayments",
   },
   {
@@ -98,7 +98,7 @@ export const departmentNav: NavItem[] = [
     title: "Outstanding Payments",
     url: "/accounts/outstanding",
     icon: CreditCard,
-    allowedRoles: ["account", "office-operations", "compliance"],
+    allowedRoles: ["account"],
   },
   // {
   //     title: "Assigned Projects",
@@ -348,7 +348,7 @@ export const departmentNav: NavItem[] = [
     disabled: true,
   },
   {
-    title: "Salary Advance Queue",
+    title: "Salary Advance",
     url: "/hr/salary-advance-requests",
     icon: CreditCard,
     allowedRoles: ["hr", "super"],
@@ -556,6 +556,10 @@ export const personalNav: NavItem[] = [
         badgeLabel: "New status updates",
       },
       {
+        title: "Outstanding Payments",
+        url: "/my/outstanding",
+      },
+      {
         title: "My Payment Links",
         url: "/my/payment-links",
         badgeKey: "myPaymentLinkUpdates",
@@ -584,7 +588,7 @@ export const personalNav: NavItem[] = [
         disabled: true,
       },
       {
-        title: "Salary Advance Requests",
+        title: "Salary Advance",
         url: "/my/salary-advance-requests",
         badgeKey: "mySalaryAdvanceRequestUpdates",
         badgeLabel: "Salary advance status updates",

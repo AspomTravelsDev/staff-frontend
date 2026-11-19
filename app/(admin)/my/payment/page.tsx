@@ -3,10 +3,14 @@ import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentConfirmationDialog } from "@/components/payment/payment-confirmation-dialog";
 import { PaymentConfirmationsTable } from "@/components/payment/payment-confirmations-table";
+import { PaymentUpdatesReadReceipt } from "@/components/payment/payment-updates-read-receipt";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getEmployees } from "@/lib/api/employees";
+import { format } from "date-fns";
 import {
   getPaymentConfirmations,
   getOutstandingPayments,
-  markPaymentNotificationsAsRead,
+  getDollarBillingRateForDate,
   type PaymentConfirmationFilters,
 } from "@/lib/api/payment-confirmations";
 import { TableFilter } from "@/components/payment/table-filter";
@@ -25,30 +29,34 @@ export default async function MyPaymentConfirmationsPage({
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   const sp = await searchParams;
-  const allowedStatuses = ["pending", "approved", "rejected"] as const;
+  const allowedStatuses = ["pending", "approved", "rejected", "cancelled"] as const;
   const status = allowedStatuses.find(
     (candidate) => candidate === sp.status,
   ) as PaymentConfirmationFilters["status"] | undefined;
-  const page = parseInt(sp.page || "1");
+  const parsedPage = Number.parseInt(sp.page || "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  // Mark payment notifications viewed since the user is loading their confirmations dashboard
-  try {
-    await markPaymentNotificationsAsRead();
-  } catch (err) {
-    // Ignore error
-  }
-
-  const [confirmationsData, outstandingData] = await Promise.all([
-    getPaymentConfirmations({
-      status,
-      page,
-      limit: 50,
-    }),
-    getOutstandingPayments({ status: "pending", limit: 100 }),
-  ]);
+  const [currentUser, confirmationsData, outstandingData, employeesData, defaultDollarRate] =
+    await Promise.all([
+      getCurrentUser(),
+      getPaymentConfirmations({
+        status,
+        page,
+        limit: 50,
+        mine: true,
+      }),
+      getOutstandingPayments({ status: "pending", limit: 100 }),
+      getEmployees({ status: "Active", limit: 200 }).catch(() => ({ items: [] })),
+      getDollarBillingRateForDate(format(new Date(), "yyyy-MM-dd")).catch(() => null),
+    ]);
 
   const confirmations = confirmationsData?.data ?? [];
   const outstanding = outstandingData?.data ?? [];
+  const staffList = (employeesData?.items ?? []).map((e) => ({
+    id: e.id,
+    name: `${e.firstName} ${e.lastName}`.trim(),
+    department: e.department,
+  }));
 
   const groupedDeals = confirmations.reduce((acc, confirmation) => {
     const key = confirmation.outstanding_payment_id || confirmation.id;
@@ -102,6 +110,7 @@ export default async function MyPaymentConfirmationsPage({
 
   return (
     <div className="space-y-6">
+      <PaymentUpdatesReadReceipt />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -112,7 +121,12 @@ export default async function MyPaymentConfirmationsPage({
             Submit and track your payment confirmations for accounts review.
           </p>
         </div>
-        <PaymentConfirmationDialog outstandingPayments={outstanding} />
+        <PaymentConfirmationDialog
+          outstandingPayments={outstanding}
+          staffList={staffList}
+          currentUserId={currentUser?.id || ""}
+          defaultDollarRate={defaultDollarRate}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -137,7 +151,16 @@ export default async function MyPaymentConfirmationsPage({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>My Confirmations</CardTitle>
-          <TableFilter currentStatus={sp.status || "all"} />
+          <TableFilter
+            currentStatus={sp.status || "all"}
+            options={[
+              { label: "All Status", value: "all" },
+              { label: "Pending", value: "pending" },
+              { label: "Approved", value: "approved" },
+              { label: "Declined", value: "rejected" },
+              { label: "Cancelled", value: "cancelled" },
+            ]}
+          />
         </CardHeader>
         <CardContent>
           <Suspense
@@ -151,6 +174,9 @@ export default async function MyPaymentConfirmationsPage({
               confirmations={confirmations}
               pagination={confirmationsData.pagination}
               mode="staff"
+              staffList={staffList}
+              currentUserId={currentUser?.id || ""}
+              allowEditActions
             />
           </Suspense>
         </CardContent>

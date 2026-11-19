@@ -31,6 +31,74 @@ interface GarantorPreview {
 
 const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
 
+const GUARANTOR_OCCUPATIONS = [
+  "Civil / Public Servant",
+  "Corporate / Private Sector Employee",
+  "Business Owner / Self-Employed",
+  "Medical / Healthcare Professional",
+  "Legal / Finance / Accounting",
+  "Engineering / IT / Technology",
+  "Educator / Academic",
+  "Clergy / Religious Leader",
+  "Other",
+] as const;
+
+const BLOCKED_WORK_VALUES = new Set([
+  "nil",
+  "n/a",
+  "na",
+  "none",
+  "nothing",
+  "null",
+  "unemployed",
+  "not employed",
+  "not working",
+  "jobless",
+  "no job",
+  "no occupation",
+  "no employer",
+  "student",
+  "applicant",
+  "other",
+  "others",
+  "unknown",
+]);
+
+function isInvalidWorkValue(value: string): boolean {
+  const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
+  if (!normalized || !/[a-z]{2,}/i.test(normalized)) {
+    return true;
+  }
+  return BLOCKED_WORK_VALUES.has(normalized);
+}
+
+function getMaxGuarantorDob(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 25);
+  return d.toISOString().slice(0, 10);
+}
+
+function isAtLeast25(dobStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dobStr)) return false;
+  const [y, m, d] = dobStr.split("-").map(Number);
+  const dob = new Date(y, m - 1, d);
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob.getFullYear() !== y ||
+    dob.getMonth() !== m - 1 ||
+    dob.getDate() !== d
+  ) {
+    return false;
+  }
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const monthDiff = today.getMonth() - (m - 1);
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
+    age--;
+  }
+  return age >= 25;
+}
+
 const resolvePreviewUrl = (url?: string | null): string | null => {
   if (!url) return null;
   if (url.startsWith("/api/")) {
@@ -76,6 +144,21 @@ export function Step4Guarantors({
   const [guarantor2Relationship, setGuarantor2Relationship] = useState<string>(
     initialData?.guarantors?.[1]?.relationship || "",
   );
+
+  const initOcc = (val?: string | null) => {
+    if (!val) return { choice: "", custom: "" };
+    if ((GUARANTOR_OCCUPATIONS as readonly string[]).includes(val) && val !== "Other") {
+      return { choice: val, custom: "" };
+    }
+    return { choice: "Other", custom: val === "Other" ? "" : val };
+  };
+  const g1InitOcc = initOcc(initialData?.guarantors?.[0]?.occupation);
+  const g2InitOcc = initOcc(initialData?.guarantors?.[1]?.occupation);
+
+  const [guarantor1OccChoice, setGuarantor1OccChoice] = useState<string>(g1InitOcc.choice);
+  const [guarantor1OccCustom, setGuarantor1OccCustom] = useState<string>(g1InitOcc.custom);
+  const [guarantor2OccChoice, setGuarantor2OccChoice] = useState<string>(g2InitOcc.choice);
+  const [guarantor2OccCustom, setGuarantor2OccCustom] = useState<string>(g2InitOcc.custom);
 
   const toSubmittedData = (formData: FormData) =>
     Object.fromEntries(
@@ -142,22 +225,34 @@ export function Step4Guarantors({
       const requiredFields = [
         "guarantor1_firstName",
         "guarantor1_lastName",
+        "guarantor1_ageDob",
         "guarantor1_phoneNumber",
+        "guarantor1_occupation",
+        "guarantor1_employerName",
         "guarantor1_relationship",
         "guarantor2_firstName",
         "guarantor2_lastName",
+        "guarantor2_ageDob",
         "guarantor2_phoneNumber",
+        "guarantor2_occupation",
+        "guarantor2_employerName",
         "guarantor2_relationship",
       ];
 
       const fieldLabels: Record<string, string> = {
         guarantor1_firstName: "Guarantor 1: First Name",
         guarantor1_lastName: "Guarantor 1: Last Name",
+        guarantor1_ageDob: "Guarantor 1: Date of Birth",
         guarantor1_phoneNumber: "Guarantor 1: Phone Number",
+        guarantor1_occupation: "Guarantor 1: Occupation",
+        guarantor1_employerName: "Guarantor 1: Employer / Business Name",
         guarantor1_relationship: "Guarantor 1: Relationship",
         guarantor2_firstName: "Guarantor 2: First Name",
         guarantor2_lastName: "Guarantor 2: Last Name",
+        guarantor2_ageDob: "Guarantor 2: Date of Birth",
         guarantor2_phoneNumber: "Guarantor 2: Phone Number",
+        guarantor2_occupation: "Guarantor 2: Occupation",
+        guarantor2_employerName: "Guarantor 2: Employer / Business Name",
         guarantor2_relationship: "Guarantor 2: Relationship",
       };
 
@@ -172,6 +267,50 @@ export function Step4Guarantors({
       if (missingFields.length > 0) {
         return {
           error: `Please complete the following required fields: ${missingFields.join(", ")}`,
+          submittedData: toSubmittedData(formData),
+        };
+      }
+
+      const g1Dob = String(formData.get("guarantor1_ageDob") || "").trim();
+      const g2Dob = String(formData.get("guarantor2_ageDob") || "").trim();
+      if (!isAtLeast25(g1Dob)) {
+        return {
+          error: "Guarantor 1 must be at least 25 years old.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (!isAtLeast25(g2Dob)) {
+        return {
+          error: "Guarantor 2 must be at least 25 years old.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+
+      const g1Occ = String(formData.get("guarantor1_occupation") || "");
+      const g2Occ = String(formData.get("guarantor2_occupation") || "");
+      const g1Emp = String(formData.get("guarantor1_employerName") || "");
+      const g2Emp = String(formData.get("guarantor2_employerName") || "");
+      if (isInvalidWorkValue(g1Occ)) {
+        return {
+          error: "Guarantor 1 must have a valid occupation (cannot be Nil, N/A, or unemployed).",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (isInvalidWorkValue(g1Emp)) {
+        return {
+          error: "Guarantor 1 must have a valid employer or business name.",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (isInvalidWorkValue(g2Occ)) {
+        return {
+          error: "Guarantor 2 must have a valid occupation (cannot be Nil, N/A, or unemployed).",
+          submittedData: toSubmittedData(formData),
+        };
+      }
+      if (isInvalidWorkValue(g2Emp)) {
+        return {
+          error: "Guarantor 2 must have a valid employer or business name.",
           submittedData: toSubmittedData(formData),
         };
       }
@@ -364,6 +503,11 @@ export function Step4Guarantors({
     const prefix = `guarantor${index + 1}_`;
     const storedPhoto = index === 0 ? g1StoredPhoto : g2StoredPhoto;
     const existingStoredUrl = resolvePreviewUrl(storedPhoto?.storagePath);
+    const occChoice = index === 0 ? guarantor1OccChoice : guarantor2OccChoice;
+    const setOccChoice = index === 0 ? setGuarantor1OccChoice : setGuarantor2OccChoice;
+    const occCustom = index === 0 ? guarantor1OccCustom : guarantor2OccCustom;
+    const setOccCustom = index === 0 ? setGuarantor1OccCustom : setGuarantor2OccCustom;
+    const resolvedOccupation = occChoice === "Other" ? occCustom.trim() : occChoice;
 
     return (
       <div key={index} className="space-y-4">
@@ -418,13 +562,15 @@ export function Step4Guarantors({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}ageDob`} className="text-sm">
-              Date of Birth (YYYY-MM-DD)
+              Date of Birth (25+ years) <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id={`${prefix}ageDob`}
               name={`${prefix}ageDob`}
               type="date"
+              max={getMaxGuarantorDob()}
               defaultValue={data?.ageDob || ""}
+              required
             />
           </div>
           <div>
@@ -511,22 +657,52 @@ export function Step4Guarantors({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor={`${prefix}occupation`} className="text-sm">
-              Occupation / Job Title
+              Occupation / Job Title <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
-            <Input
-              id={`${prefix}occupation`}
+            <Select
+              value={occChoice}
+              onValueChange={(val) => {
+                setOccChoice(val);
+                if (val !== "Other") setOccCustom("");
+              }}
+            >
+              <SelectTrigger id={`${prefix}occupation`}>
+                <SelectValue placeholder="Select occupation" />
+              </SelectTrigger>
+              <SelectContent>
+                {GUARANTOR_OCCUPATIONS.map((occ) => (
+                  <SelectItem key={occ} value={occ}>
+                    {occ}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input
+              type="hidden"
               name={`${prefix}occupation`}
-              defaultValue={data?.occupation || ""}
+              value={resolvedOccupation}
+              required
             />
+            {occChoice === "Other" && (
+              <Input
+                className="mt-2"
+                placeholder="Specify occupation (e.g. Architect, Accountant)"
+                value={occCustom}
+                onChange={(e) => setOccCustom(e.target.value)}
+                required
+              />
+            )}
           </div>
           <div>
             <Label htmlFor={`${prefix}employerName`} className="text-sm">
-              Employer Name
+              Employer / Business Name <span className="text-destructive font-semibold ml-1">*</span>
             </Label>
             <Input
               id={`${prefix}employerName`}
               name={`${prefix}employerName`}
+              placeholder="Company or business name"
               defaultValue={data?.employerName || ""}
+              required
             />
           </div>
         </div>

@@ -1,9 +1,12 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OutstandingPaymentsTable } from "@/components/payment/outstanding-payments-table";
 import { getOutstandingPayments } from "@/lib/api/payment-confirmations";
 import { TableFilter } from "@/components/payment/table-filter";
+import { getCurrentUser } from "@/lib/auth/session";
+import { userHasRole } from "@/types/user-types";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-NG", {
@@ -18,10 +21,20 @@ export default async function AccountsOutstandingPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
+  const user = await getCurrentUser();
+  if (!user || (!userHasRole(user, "account") && !userHasRole(user, "super"))) {
+    redirect("/dashboard");
+  }
+
   const sp = await searchParams;
   const status =
-    sp.status === "all" ? undefined : (sp.status as any) || "pending";
-  const page = parseInt(sp.page || "1");
+    sp.status === "all"
+      ? undefined
+      : sp.status === "completed" || sp.status === "pending"
+        ? sp.status
+        : "pending";
+  const parsedPage = Number.parseInt(sp.page || "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const outstandingData = await getOutstandingPayments({
     status,
@@ -123,7 +136,7 @@ export default async function AccountsOutstandingPage({
             }
           >
             <OutstandingPaymentsTable
-              payments={payments as any}
+              payments={payments}
               pagination={outstandingData.pagination}
             />
           </Suspense>

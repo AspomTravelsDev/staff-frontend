@@ -35,6 +35,7 @@ import type {
   ReviewPeriodSummary,
 } from "@/lib/types/performance-review";
 import { PerformanceMetric } from "@/components/performance/performance-page-header";
+import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 import {
   AppraisalPeriodDialog,
   AppraisalWindowCard,
@@ -130,8 +131,9 @@ export function ReviewQueue({
 
   return (
     <div className="space-y-6">
+      <PerformanceTour tourId="review-queue" />
       {canManagePeriods && (
-        <>
+        <div id="tour-rq-window">
           <AppraisalWindowCard onStartNew={openNewPeriodDialog} />
           <AppraisalPeriodDialog
             key={`${dialogTarget?.type ?? activeTab}-${dialogTarget?.month ?? ""}-${dialogTarget?.submission_deadline ?? ""}-${dialogOpen}`}
@@ -148,25 +150,28 @@ export function ReviewQueue({
               });
             }}
           />
-        </>
+        </div>
       )}
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) =>
-          navigate({
-            ...filters,
-            type: value as "appraisal" | "monthly_kpi",
-          })
-        }
-      >
-        <TabsList>
-          <TabsTrigger value="appraisal">Appraisals</TabsTrigger>
-          <TabsTrigger value="monthly_kpi">Monthly KPI Reviews</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) =>
+            navigate({
+              ...filters,
+              type: value as "appraisal" | "monthly_kpi",
+            })
+          }
+        >
+          <TabsList id="tour-rq-tabs">
+            <TabsTrigger value="appraisal">Appraisals</TabsTrigger>
+            <TabsTrigger value="monthly_kpi">Monthly KPI Reviews</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <PerformanceTourButton tourId="review-queue" />
+      </div>
 
-      <section aria-label="Review summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section id="tour-rq-metrics" aria-label="Review summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <PerformanceMetric label="Ready now" value={counts.ready} detail="Waiting for your review" tone="amber" />
         <PerformanceMetric label="In my queue" value={counts.assigned} detail="Assigned · not completed" />
         <PerformanceMetric
@@ -182,7 +187,7 @@ export function ReviewQueue({
         />
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div id="tour-rq-filters" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <form onSubmit={submitSearch} className="flex min-w-0 items-end gap-2 lg:col-span-2">
           <div className="min-w-0 flex-1 space-y-2">
             <Label htmlFor="period-search">
@@ -250,7 +255,7 @@ export function ReviewQueue({
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
+        <div id="tour-rq-table" className="overflow-hidden rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>

@@ -149,6 +149,8 @@ export async function apiClient<T>(
                 : data?.message || data?.error;
             if (data?.details && typeof data.details === "string" && data.details.trim() && data.details !== errorMessage) {
                 errorMessage = `${errorMessage} (${data.details.trim()})`;
+            } else if (data?.error && typeof data.error === "string" && data.error.trim() && data.error !== errorMessage) {
+                errorMessage = `${errorMessage}: ${data.error.trim()}`;
             }
             if (data?.errors && typeof data.errors === "object") {
                 const flatErrors = Object.values(data.errors).flat().filter(Boolean);

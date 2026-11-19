@@ -21,6 +21,7 @@ import type {
   ReviewSummary,
 } from "@/lib/types/performance-review";
 import { PerformanceMetric } from "@/components/performance/performance-page-header";
+import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 
 const stages = ["self", "supervisor", "hr", "compliance", "mp"] as const;
 type ColumnStage = (typeof stages)[number];
@@ -128,7 +129,8 @@ export function PeriodReviewsView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <PerformanceTour tourId="period-reviews" />
+      <div id="tour-pr-header" className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" size="sm" asChild>
             <Link href={`/performance/reviews?type=${period.type}`}>
@@ -146,12 +148,15 @@ export function PeriodReviewsView({
             </p>
           </div>
         </div>
-        <Badge variant={period.status === "open" ? "default" : "secondary"} className="capitalize">
-          {period.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <PerformanceTourButton tourId="period-reviews" />
+          <Badge variant={period.status === "open" ? "default" : "secondary"} className="capitalize">
+            {period.status}
+          </Badge>
+        </div>
       </div>
 
-      <section aria-label="Period summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section id="tour-pr-metrics" aria-label="Period summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <PerformanceMetric label="Ready now" value={counts.ready} detail="Waiting for your review" tone="amber" />
         <PerformanceMetric label="In my queue" value={counts.assigned} detail="Assigned · not completed" />
         <PerformanceMetric
@@ -167,7 +172,7 @@ export function PeriodReviewsView({
         />
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div id="tour-pr-filters" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <form onSubmit={submitSearch} className="flex min-w-0 items-end gap-2">
           <div className="min-w-0 flex-1 space-y-2">
             <Label htmlFor="review-search">Search staff</Label>
@@ -256,7 +261,7 @@ export function PeriodReviewsView({
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg border">
+          <div id="tour-pr-table" className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>

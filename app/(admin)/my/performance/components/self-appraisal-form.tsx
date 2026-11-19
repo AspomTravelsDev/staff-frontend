@@ -54,6 +54,7 @@ import type {
 } from "@/lib/types/performance-appraisal";
 import { AssessmentReadOnly } from "@/components/performance/assessment-read-only";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
+import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 
 const appraisalScaleLabels = [
   "Unsatisfactory · <50%",
@@ -255,6 +256,7 @@ export function SelfAppraisalForm({
 
   return (
     <div className="space-y-5 pb-10">
+      <PerformanceTour tourId="self-appraisal" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
           variant="ghost"
@@ -268,6 +270,7 @@ export function SelfAppraisalForm({
           My Performance
         </Button>
         <div className="flex items-center gap-2">
+          <PerformanceTourButton tourId="self-appraisal" />
           <Badge variant="outline">
             {formatPerformancePeriodLabel(appraisal.type, appraisal.month)}
           </Badge>
@@ -275,7 +278,8 @@ export function SelfAppraisalForm({
         </div>
       </div>
 
-      <PerformancePageHeader
+      <div id="tour-self-header">
+        <PerformancePageHeader
         eyebrow={`${isStructured ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformancePeriodLabel(appraisal.type, appraisal.month)}`}
         title="Your self-assessment"
         description={`${appraisal.department}${appraisal.is_supervisor ? " · Supervisor" : ""} · Due ${formatPerformanceDate(appraisal.submission_deadline)}`}
@@ -303,6 +307,7 @@ export function SelfAppraisalForm({
           </div>
         }
       />
+      </div>
 
       {error && (
         <div
@@ -342,19 +347,21 @@ export function SelfAppraisalForm({
       )}
 
       {!appraisal.can_edit_self ? (
-        <AssessmentReadOnly
-          appraisal={appraisal}
-          assessment={appraisal.self_assessment}
-          assessments={[
-            ...(appraisal.self_assessment ? [appraisal.self_assessment] : []),
-            ...appraisal.submitted_feedback,
-          ]}
-          title="Your self-assessment"
-        />
+        <div id="tour-self-readonly">
+          <AssessmentReadOnly
+            appraisal={appraisal}
+            assessment={appraisal.self_assessment}
+            assessments={[
+              ...(appraisal.self_assessment ? [appraisal.self_assessment] : []),
+              ...appraisal.submitted_feedback,
+            ]}
+            title="Your self-assessment"
+          />
+        </div>
       ) : (
         <form onSubmit={submit} noValidate className="space-y-6">
           <fieldset disabled={pending} className="min-w-0 space-y-5">
-            <div className="sticky top-2 z-10 rounded-lg border border-primary/20 bg-card/95 p-3 shadow-sm backdrop-blur">
+            <div id="tour-self-scale" className="sticky top-2 z-10 rounded-lg border border-primary/20 bg-card/95 p-3 shadow-sm backdrop-blur">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide">
                   Rating scale
@@ -379,7 +386,7 @@ export function SelfAppraisalForm({
               </p>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border">
+            <div id="tour-self-table" className="overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -490,7 +497,7 @@ export function SelfAppraisalForm({
             </div>
 
             {isStructured ? (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div id="tour-self-comments" className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="job-achievements">
                     Job achievements (required)
@@ -529,7 +536,7 @@ export function SelfAppraisalForm({
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div id="tour-self-comments" className="space-y-2">
                 <Label htmlFor="self-overall-comment">
                   Overall reflection{" "}
                   <span className="font-normal text-muted-foreground">
@@ -552,7 +559,7 @@ export function SelfAppraisalForm({
               </div>
             )}
 
-            <div className="space-y-3 border-t pt-4">
+            <div id="tour-self-actions" className="space-y-3 border-t pt-4">
               <p className="text-sm text-muted-foreground">
                 {appraisal.employee_name} · {appraisal.employee_staff_id} ·
                 Drafts are private until you submit. Review chain:{" "}

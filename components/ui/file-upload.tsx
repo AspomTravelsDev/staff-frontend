@@ -139,7 +139,10 @@ function FileUpload({
           accept={accept}
           multiple={maxFiles > 1}
           disabled={disabled || isUploading}
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => {
+            void handleFiles(e.target.files);
+            e.target.value = "";
+          }}
           className="hidden"
         />
         {isUploading ? (

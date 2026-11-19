@@ -19,6 +19,7 @@ import { appraisalStatusLabel } from "@/lib/performance-self-assessment";
 import { formatPerformanceDate, formatPerformancePeriodLabel } from "@/lib/performance-review";
 import type { AppraisalAvailability, AppraisalStats, AppraisalSummary, AppraisalType } from "@/lib/types/performance-appraisal";
 import { PerformanceMetric } from "@/components/performance/performance-page-header";
+import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 
 const stages = ["self", "supervisor", "hr", "compliance", "mp"] as const;
 type ColumnStage = (typeof stages)[number];
@@ -119,22 +120,26 @@ export function MyPerformanceWorkspace({ initialAppraisals, initialStats, initia
   }, [queryClient]);
 
   return <div className="flex min-w-0 flex-col gap-5">
-    <header className="flex flex-wrap items-start justify-between gap-3">
+    <PerformanceTour tourId="my-performance" />
+    <header id="tour-my-perf-header" className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
         <h1 className="text-2xl font-bold">My Performance</h1>
         <p className="mt-1 text-sm text-muted-foreground">Start an available assessment and follow its review to the final result.</p>
       </div>
-      {nextAction ? <Button asChild><Link href={`/my/performance/${nextAction.id}`}>{nextAction.self_status === "draft" ? "Continue assessment" : "View assessment"}<ArrowRight className="ml-2 size-4" /></Link></Button>
-        : !initialAvailability.periods?.some((period) => period.can_start) && <p className="pt-1 text-sm text-muted-foreground">No assessment due right now.</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        <PerformanceTourButton tourId="my-performance" />
+        {nextAction ? <Button asChild><Link href={`/my/performance/${nextAction.id}`}>{nextAction.self_status === "draft" ? "Continue assessment" : "View assessment"}<ArrowRight className="ml-2 size-4" /></Link></Button>
+          : !initialAvailability.periods?.some((period) => period.can_start) && <p className="pt-1 text-sm text-muted-foreground">No assessment due right now.</p>}
+      </div>
     </header>
     {(history.error || stats.error) && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><p>Couldn’t refresh your appraisal details.</p><Button variant="outline" size="sm" onClick={() => { void history.refetch(); void stats.refetch(); }}>Try again</Button></div>}
     {startError && <p role="alert" className="-mt-3 text-sm text-destructive">{startError}</p>}
-    {initialAvailability.periods?.some((period) => period.can_start) && <section className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4" aria-label="Start an assessment">
+    {initialAvailability.periods?.some((period) => period.can_start) && <section id="tour-my-perf-available" className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4" aria-label="Start an assessment">
       <span className="mr-1 text-sm font-medium">Available now</span>
       {(initialAvailability.periods ?? []).filter((period) => period.can_start).map((period) => <Button key={`${period.type}-${period.month}`} onClick={() => void startTestAppraisal(period.type, period.month)} disabled={starting}>{starting ? "Starting…" : `${period.type === "appraisal" ? "Appraisal" : "Monthly KPI"} · ${formatPerformancePeriodLabel(period.type, period.month)}`}<ArrowRight className="ml-2 size-4" /></Button>)}
     </section>}
-    <section aria-label="Appraisal summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4"><PerformanceMetric label="Assigned" value={(stats.data ?? initialStats).total_appraisals} detail="All appraisal types" /><PerformanceMetric label="Needs your input" value={(stats.data ?? initialStats).pending_self_appraisal} detail="Awaiting submission" tone="amber" /><PerformanceMetric label="Completed" value={(stats.data ?? initialStats).completed_appraisals} detail="Finished appraisals" tone="primary" /><PerformanceMetric label="Average score" value={(stats.data ?? initialStats).average_rating === null ? "—" : `${(stats.data ?? initialStats).average_rating?.toFixed(2)} / 5`} detail="Across completed reviews" /></section>
-    <Card><CardHeader className="pb-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><CardTitle>Appraisal history</CardTitle><CardDescription>Monthly KPI and June/December Appraisal cycles.</CardDescription></div><div className="flex flex-wrap gap-2"><div className="relative min-w-48"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search appraisal history" className="pl-9" placeholder="Search month or department" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-44" aria-label="Filter appraisal history"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All appraisals</SelectItem><SelectItem value="action">Needs my assessment</SelectItem><SelectItem value="history">In review or complete</SelectItem></SelectContent></Select></div></div></CardHeader><CardContent className="pt-0">
+    <section id="tour-my-perf-metrics" aria-label="Appraisal summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4"><PerformanceMetric label="Assigned" value={(stats.data ?? initialStats).total_appraisals} detail="All appraisal types" /><PerformanceMetric label="Needs your input" value={(stats.data ?? initialStats).pending_self_appraisal} detail="Awaiting submission" tone="amber" /><PerformanceMetric label="Completed" value={(stats.data ?? initialStats).completed_appraisals} detail="Finished appraisals" tone="primary" /><PerformanceMetric label="Average score" value={(stats.data ?? initialStats).average_rating === null ? "—" : `${(stats.data ?? initialStats).average_rating?.toFixed(2)} / 5`} detail="Across completed reviews" /></section>
+    <Card id="tour-my-perf-history"><CardHeader className="pb-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><CardTitle>Appraisal history</CardTitle><CardDescription>Monthly KPI and June/December Appraisal cycles.</CardDescription></div><div id="tour-my-perf-filters" className="flex flex-wrap gap-2"><div className="relative min-w-48"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search appraisal history" className="pl-9" placeholder="Search month or department" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-44" aria-label="Filter appraisal history"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All appraisals</SelectItem><SelectItem value="action">Needs my assessment</SelectItem><SelectItem value="history">In review or complete</SelectItem></SelectContent></Select></div></div></CardHeader><CardContent className="pt-0">
       {!openUnstartedPeriods.length && !items.length ? <div className="border-t py-8 text-center"><p className="font-medium">{appraisals.length ? "No matching appraisals" : "No appraisal history yet"}</p><p className="mt-1 text-sm text-muted-foreground">{appraisals.length ? "Adjust your search or filter." : "Your appraisals will appear here."}</p></div> : (
         <div className="overflow-hidden rounded-lg border">
           <Table>

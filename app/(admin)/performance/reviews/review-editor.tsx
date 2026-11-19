@@ -21,6 +21,7 @@ import { formatPerformanceDate, formatPerformanceMonth, reviewStageLabel, review
 import type { AppraisalAssessment } from "@/lib/types/performance-appraisal";
 import type { ReviewDetail } from "@/lib/types/performance-review";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
+import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 
 const sectionCommentLabels: Record<string, string> = {
   job_achievements: "Job achievements", initiatives_achieved: "Initiatives achieved",
@@ -178,8 +179,14 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
   }
 
   return <div className="space-y-6 pb-8">
-    <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : "/performance/reviews")}>{review.period_id ? "Back to period reviews" : "Back to Appraisal Review Queue"}</Button>
-    <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${formatPerformanceDate(review.submission_deadline)}`} icon={ClipboardList} actions={<Badge variant="outline">{reviewStatusLabel(review)}</Badge>} />
+    <PerformanceTour tourId="review-editor" />
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : "/performance/reviews")}>{review.period_id ? "Back to period reviews" : "Back to Appraisal Review Queue"}</Button>
+      <PerformanceTourButton tourId="review-editor" />
+    </div>
+    <div id="tour-re-header">
+      <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${formatPerformanceDate(review.submission_deadline)}`} icon={ClipboardList} actions={<Badge variant="outline">{reviewStatusLabel(review)}</Badge>} />
+    </div>
     {error && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{error}</p><p>If this review changed elsewhere, reload its saved version. Reloading discards unsaved edits on this page.</p><Button variant="outline" disabled={pending} onClick={() => reload.mutate()}>Reload saved review</Button></div>}
     {review.final_score !== null && <p className="text-lg font-semibold tabular-nums">{review.type === "appraisal" ? `Final total ${review.total_score ?? "—"} / ${review.total_max_score ?? "—"} · ` : "Final score: "}{Number(review.final_score).toFixed(2)} / 5</p>}
     <section aria-labelledby="previous-assessments-heading" className="space-y-3">
@@ -195,7 +202,7 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
               : "Earlier scores are read-only. Add your review comment below."}
         </p>
       </div>
-      {isStructured && <div className="grid gap-3 sm:grid-cols-3" aria-label="Assessment averages">
+      {isStructured && <div id="tour-re-averages" className="grid gap-3 sm:grid-cols-3" aria-label="Assessment averages">
         {[
           ["Staff average", staffAverage],
           [intermediateAverageLabel, intermediateAverage],
@@ -227,7 +234,7 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
               )}
             </div>
           )}
-          <div className="overflow-x-auto rounded-lg border">
+          <div id="tour-re-table" className="overflow-x-auto rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -332,8 +339,10 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
       <form onSubmit={submit} noValidate className="space-y-6"><fieldset disabled={pending} className="min-w-0 space-y-6"><legend className="sr-only">Your review comment</legend>
         <div className="flex justify-end text-sm" aria-live="polite"><p className="text-muted-foreground">{dirty ? "Unsaved changes" : review.assessment ? `Draft saved ${formatAppraisalTime(review.assessment.updated_at)}` : "Not yet saved"}</p></div>
         {isStructured && <div id="appraisal-ratings" className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-primary/5 px-4 py-3"><div><p className="text-xs text-muted-foreground">Your current total</p><p className="text-lg font-semibold tabular-nums">{ownTotal} / {review.criteria.length * 5}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Your current average</p><p className="text-lg font-semibold tabular-nums">{ownAverage === null ? "—" : ownAverage.toFixed(2)} / 5 <span className="text-xs font-normal">({ownRatings.length}/{review.criteria.length} rated)</span></p></div></div>}
-        {isStructured ? (isMp ? [{ key: "management_comment", label: "Management comment" }] : [{ key: "improvement_areas", label: "Improvement areas" }, { key: "recommendation", label: "Suggestion / recommendation" }, { key: "justification", label: "Justification" }]).map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`review-section-${key}`}>{label} (required)</Label><Textarea id={`review-section-${key}`} required maxLength={5000} value={values.section_comments?.[key as keyof NonNullable<typeof values.section_comments>] ?? ""} onChange={(event) => { setValues((previous) => ({ ...previous, section_comments: { ...previous.section_comments, [key]: event.target.value } })); setError(""); }} /></div>) : <div className="space-y-2"><Label htmlFor="review-overall-comment">{isMp ? "Final comment (required)" : "Overall comment (required)"}</Label><Textarea id="review-overall-comment" required maxLength={5000} value={values.comment ?? ""} onChange={(event) => { setValues((previous) => ({ ...previous, comment: event.target.value })); setError(""); }} placeholder={isMp ? "Summarize performance and agreed development priorities." : "Summarize performance and any support or development needed."} /></div>}
-        <div className="space-y-3 border-t pt-4"><p className="text-sm text-muted-foreground">Your draft is private. {isMp ? "Completing this appraisal locks your assessment and saves the final result." : `Submitting locks your assessment and advances the appraisal to ${nextReviewer}.`}</p><div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={() => save.mutate(false)}>Save review draft</Button><Button type="submit">{isMp ? "Complete appraisal" : `Submit review to ${nextReviewer}`}</Button></div></div>
+        <div id="tour-re-comments" className="space-y-4">
+        {isStructured ? (isMp ? [{ key: "management_comment", label: "Management comment" }] : [{ key: "improvement_areas", label: "Improvement areas" }, { key: "recommendation", label: "Suggestion / recommendation" }, { key: "justification", label: "Justification" }]).map(({ key, label }) => <div key={key} className="space-y-2"><Label htmlFor={`review-section-${key}`}>{label} (required)</Label><Textarea id={`review-section-${key}`} required maxLength={5000} value={values.section_comments?.[key as keyof NonNullable<typeof values.section_comments>] ?? ""} onChange={(event) => { setValues((previous) => ({ ...previous, section_comments: { ...previous.section_comments, [key]: event.target.value } })); setError(""); }} /></div>) : <div className="space-y-2"><Label htmlFor="review-overall-comment">{isMp ? "Final comment (required)" : "Overall comment (required)"}</Label><Textarea id={`review-overall-comment`} required maxLength={5000} value={values.comment ?? ""} onChange={(event) => { setValues((previous) => ({ ...previous, comment: event.target.value })); setError(""); }} placeholder={isMp ? "Summarize performance and agreed development priorities." : "Summarize performance and any support or development needed."} /></div>}
+        </div>
+        <div id="tour-re-actions" className="space-y-3 border-t pt-4"><p className="text-sm text-muted-foreground">Your draft is private. {isMp ? "Completing this appraisal locks your assessment and saves the final result." : `Submitting locks your assessment and advances the appraisal to ${nextReviewer}.`}</p><div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={() => save.mutate(false)}>Save review draft</Button><Button type="submit">{isMp ? "Complete appraisal" : `Submit review to ${nextReviewer}`}</Button></div></div>
       </fieldset></form>
     </>}
     {pending && <p role="status" className="text-sm text-muted-foreground">{reload.isPending ? "Reloading saved review…" : save.variables ? "Submitting your assessment…" : "Saving your review draft…"}</p>}

@@ -12,11 +12,10 @@ import {
   Download,
   Search,
   X,
-  TrendingUp,
-  Coins,
-  Clock,
-  BarChart3,
+  Pencil,
+  Ban,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +62,22 @@ import {
   approvePaymentConfirmationAction,
   rejectPaymentConfirmationAction,
   assignPaymentConfirmationAction,
+  cancelPaymentConfirmationAction,
 } from "@/lib/actions/payment-confirmations";
+import {
+  PaymentConfirmationDialog,
+  type StaffOption,
+} from "./payment-confirmation-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Pagination,
   PaginationContent,
@@ -83,9 +97,11 @@ interface PaymentConfirmationsTableProps {
     total_pages: number;
   };
   mode: "staff" | "accounts";
-  staffList?: { id: string; name: string; department?: string }[];
+  staffList?: StaffOption[];
+  currentUserId?: string;
   currentStatus?: string;
   showSubmittedBy?: boolean;
+  allowEditActions?: boolean;
 }
 
 interface DealRow {
@@ -99,6 +115,7 @@ interface DealRow {
   clientName: string;
   payerName: string;
   product: string;
+  currency: string;
   amountBilled: number;
   totalAmountPaid: number;
   paymentDate: string;
@@ -106,8 +123,9 @@ interface DealRow {
   confirmations: PaymentConfirmation[];
 }
 
-function formatCurrency(amount: number | string) {
-  return `₦${Number(amount).toLocaleString()}`;
+function formatCurrency(amount: number | string, currency = "NGN") {
+  const symbol = currency === "USD" ? "$" : "₦";
+  return `${symbol}${Number(amount || 0).toLocaleString()}`;
 }
 
 function getUserDisplay(value: unknown): string {
@@ -163,10 +181,17 @@ export function PaymentConfirmationsTable({
   pagination,
   mode,
   staffList = [],
+  currentUserId = "",
   currentStatus,
   showSubmittedBy = mode === "accounts",
+  allowEditActions = false,
 }: PaymentConfirmationsTableProps) {
+  const queryClient = useQueryClient();
   const [selectedDeal, setSelectedDeal] = useState<DealRow | null>(null);
+  const [editingConfirmation, setEditingConfirmation] =
+    useState<PaymentConfirmation | null>(null);
+  const [cancelDialog, setCancelDialog] =
+    useState<PaymentConfirmation | null>(null);
   const [rejectDialog, setRejectDialog] = useState<PaymentConfirmation | null>(
     null,
   );
@@ -227,8 +252,7 @@ export function PaymentConfirmationsTable({
         );
       }
       if (datePreset === "lastMonth") {
-        const lastMonth = new Date(today);
-        lastMonth.setMonth(today.getMonth() - 1);
+        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         return (
           pDate.getMonth() === lastMonth.getMonth() &&
           pDate.getFullYear() === lastMonth.getFullYear()
@@ -257,6 +281,7 @@ export function PaymentConfirmationsTable({
       (c.files || []).map((f) => ({
         ...f,
         confirmationAmount: c.amount_paid,
+        confirmationCurrency: c.currency || "NGN",
         confirmationDate: c.payment_date,
       }))
     );
@@ -290,12 +315,17 @@ export function PaymentConfirmationsTable({
       const origin = byOldest[0];
       const pending =
         byNewest.find((item) => item.status === "pending") || null;
-      const actionItem = pending ?? latest;
+      const rejected =
+        byNewest.find((item) => item.status === "rejected") || null;
+      const actionItem = pending ?? rejected ?? latest;
+      const activeItems = items.filter(
+        (item) => item.status !== "rejected" && item.status !== "cancelled",
+      );
 
       return {
         id: dealKey,
         dealKey,
-        paymentCount: items.length,
+        paymentCount: activeItems.length || items.length,
         hasPending: items.some((item) => item.status === "pending"),
         latestConfirmation: latest,
         actionConfirmation: actionItem,
@@ -303,8 +333,9 @@ export function PaymentConfirmationsTable({
         clientName: origin.client?.name || "—",
         payerName: origin.payer_name,
         product: origin.product,
+        currency: origin.currency || "NGN",
         amountBilled: Number(origin.amount_expected || 0),
-        totalAmountPaid: items.reduce(
+        totalAmountPaid: activeItems.reduce(
           (sum, item) => sum + Number(item.amount_paid || 0),
           0,
         ),
@@ -405,6 +436,7 @@ export function PaymentConfirmationsTable({
         const result = await approvePaymentConfirmationAction(id);
         if (result.success) {
           toast.success("Payment confirmation approved.");
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         } else {
           toast.error(result.error || "Failed to approve.");
         }
@@ -416,7 +448,7 @@ export function PaymentConfirmationsTable({
 
   async function handleReject() {
     if (!rejectDialog || !rejectionReason.trim()) {
-      toast.error("Please provide a rejection reason.");
+      toast.error("Please provide a decline reason.");
       return;
     }
     startTransition(async () => {
@@ -426,11 +458,31 @@ export function PaymentConfirmationsTable({
           rejectionReason,
         );
         if (result.success) {
-          toast.success("Payment confirmation rejected.");
+          toast.success("Payment confirmation declined.");
           setRejectDialog(null);
           setRejectionReason("");
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         } else {
-          toast.error(result.error || "Failed to reject.");
+          toast.error(result.error || "Failed to decline.");
+        }
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error));
+      }
+    });
+  }
+
+  async function handleCancelConfirmation() {
+    if (!cancelDialog) return;
+    startTransition(async () => {
+      try {
+        const result = await cancelPaymentConfirmationAction(cancelDialog.id);
+        if (result.success) {
+          toast.success("Payment confirmation cancelled.");
+          setCancelDialog(null);
+          setSelectedDeal(null);
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        } else {
+          toast.error(result.error || "Failed to cancel.");
         }
       } catch (error: unknown) {
         toast.error(getErrorMessage(error));
@@ -453,6 +505,7 @@ export function PaymentConfirmationsTable({
           toast.success("Confirmation assigned.");
           setAssignDialog(null);
           setAssignedTo("");
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         } else {
           toast.error(result.error || "Failed to assign.");
         }
@@ -468,7 +521,8 @@ export function PaymentConfirmationsTable({
     return `${pathname}?${params.toString()}`;
   };
 
-  const colCount = (showSubmittedBy ? 1 : 0) + 7 + (mode === "accounts" ? 1 : 0);
+  const showActionsColumn = mode === "accounts" || (mode === "staff" && allowEditActions);
+  const colCount = (showSubmittedBy ? 1 : 0) + 7 + (showActionsColumn ? 1 : 0);
 
   if (!dealRows.length) {
     return (
@@ -618,7 +672,7 @@ export function PaymentConfirmationsTable({
               <TableHead>Amount Paid</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
-              {mode === "accounts" && (
+              {showActionsColumn && (
                 <TableHead className="text-right">Actions</TableHead>
               )}
             </TableRow>
@@ -648,10 +702,10 @@ export function PaymentConfirmationsTable({
                 <TableCell className="font-medium">{deal.clientName}</TableCell>
                 <TableCell>{deal.payerName}</TableCell>
                 <TableCell>{deal.product}</TableCell>
-                <TableCell>{formatCurrency(deal.amountBilled)}</TableCell>
+                <TableCell>{formatCurrency(deal.amountBilled, deal.currency)}</TableCell>
                 <TableCell>
                   <div className="space-y-0.5">
-                    <p>{formatCurrency(deal.totalAmountPaid)}</p>
+                    <p>{formatCurrency(deal.totalAmountPaid, deal.currency)}</p>
                     <p className="text-xs text-muted-foreground">
                       {deal.paymentCount} payment
                       {deal.paymentCount > 1 ? "s" : ""}
@@ -696,11 +750,11 @@ export function PaymentConfirmationsTable({
                               }}
                             >
                               <XCircle className="h-3.5 w-3.5 mr-1" />
-                              Reject
+                              Decline
                             </Button>
                           </>
                         )}
-                        {deal.status !== "rejected" && (
+                        {!deal.hasPending && deal.status === "approved" && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -720,6 +774,50 @@ export function PaymentConfirmationsTable({
                           </Button>
                         )}
                       </div>
+                    </div>
+                  </TableCell>
+                )}
+                {mode === "staff" && allowEditActions && (
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex gap-1.5 justify-end">
+                      {(deal.actionConfirmation.status === "rejected" ||
+                        deal.actionConfirmation.status === "pending") && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant={
+                              deal.actionConfirmation.status === "rejected"
+                                ? "default"
+                                : "outline"
+                            }
+                            className="h-7 text-xs"
+                            disabled={isPending}
+                            onClick={() =>
+                              setEditingConfirmation(deal.actionConfirmation)
+                            }
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1" />
+                            {deal.actionConfirmation.status === "rejected"
+                              ? "Edit & Resubmit"
+                              : "Edit"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-destructive hover:text-destructive"
+                            disabled={isPending}
+                            onClick={() =>
+                              setCancelDialog(deal.actionConfirmation)
+                            }
+                          >
+                            <Ban className="h-3.5 w-3.5 mr-1" />
+                            Cancel
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 )}
@@ -802,11 +900,11 @@ export function PaymentConfirmationsTable({
                   {selectedDeal.paymentCount > 1 ? "s" : ""} recorded
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Total paid: {formatCurrency(selectedDeal.totalAmountPaid)}
+                  Total paid: {formatCurrency(selectedDeal.totalAmountPaid, selectedDeal.currency)}
                 </p>
               </div>
 
-              {selectedDeal.paymentCount > 1 && (
+              {selectedDeal.confirmations.length > 1 && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-2">
                     Payments in this deal
@@ -819,14 +917,19 @@ export function PaymentConfirmationsTable({
                       >
                         <div>
                           <p className="font-medium">
-                            {formatCurrency(entry.amount_paid)}
+                            {formatCurrency(entry.amount_paid, entry.currency || "NGN")}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {format(
                               new Date(entry.payment_date),
                               "dd MMM yyyy",
-                            )}
+                            )} · {entry.payment_method}
                           </p>
+                          {entry.status === "rejected" && entry.rejection_reason && (
+                            <p className="text-xs text-destructive mt-1">
+                              Decline reason: {entry.rejection_reason}
+                            </p>
+                          )}
                         </div>
                         <StatusBadge status={entry.status} />
                       </div>
@@ -877,19 +980,19 @@ export function PaymentConfirmationsTable({
                 <div>
                   <p className="text-muted-foreground text-xs">Amount Billed</p>
                   <p className="font-semibold">
-                    {formatCurrency(selectedDeal.amountBilled)}
+                    {formatCurrency(selectedDeal.amountBilled, selectedDeal.currency)}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Discount</p>
                   <p>
-                    {formatCurrency(selectedDeal.latestConfirmation.discount)}
+                    {formatCurrency(selectedDeal.latestConfirmation.discount, selectedDeal.currency)}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Amount Paid</p>
                   <p className="font-semibold text-green-600">
-                    {formatCurrency(selectedDeal.totalAmountPaid)}
+                    {formatCurrency(selectedDeal.totalAmountPaid, selectedDeal.currency)}
                   </p>
                 </div>
                 <div>
@@ -901,10 +1004,26 @@ export function PaymentConfirmationsTable({
                     )}
                   </p>
                 </div>
-                {selectedDeal.latestConfirmation.deal && (
+                {selectedDeal.latestConfirmation.number_of_persons && (
+                  <div>
+                    <p className="text-muted-foreground text-xs">Number of Persons</p>
+                    <p>{selectedDeal.latestConfirmation.number_of_persons}</p>
+                  </div>
+                )}
+                {selectedDeal.latestConfirmation.dollar_rate && (
+                  <div>
+                    <p className="text-muted-foreground text-xs">Dollar Billing Rate</p>
+                    <p>₦{Number(selectedDeal.latestConfirmation.dollar_rate).toLocaleString()}</p>
+                  </div>
+                )}
+                {(selectedDeal.latestConfirmation.deal_closer?.name ||
+                  selectedDeal.latestConfirmation.deal) && (
                   <div>
                     <p className="text-muted-foreground text-xs">Deal Closer</p>
-                    <p>{selectedDeal.latestConfirmation.deal}</p>
+                    <p>
+                      {selectedDeal.latestConfirmation.deal_closer?.name ||
+                        selectedDeal.latestConfirmation.deal}
+                    </p>
                   </div>
                 )}
               </div>
@@ -924,12 +1043,15 @@ export function PaymentConfirmationsTable({
 
                       // Identify type and add detail context
                       const isDataPage = file.filename?.startsWith("datapage/");
+                      const isExtra = file.filename?.startsWith("extra/");
                       const label = isDataPage
                         ? "Client DataPage"
-                        : `Receipt (₦${Number(file.confirmationAmount).toLocaleString()} · ${format(
-                            new Date(file.confirmationDate),
-                            "dd MMM yyyy",
-                          )})`;
+                        : isExtra
+                          ? "Additional Attachment"
+                          : `Receipt (${formatCurrency(file.confirmationAmount, file.confirmationCurrency)} · ${format(
+                              new Date(file.confirmationDate),
+                              "dd MMM yyyy",
+                            )})`;
 
                       return (
                         <div
@@ -984,7 +1106,7 @@ export function PaymentConfirmationsTable({
                 selectedDeal.latestConfirmation.rejection_reason && (
                   <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
                     <p className="text-destructive text-xs font-medium mb-1">
-                      Rejection Reason
+                      Decline Reason
                     </p>
                     <p className="text-sm">
                       {selectedDeal.latestConfirmation.rejection_reason}
@@ -992,7 +1114,8 @@ export function PaymentConfirmationsTable({
                   </div>
                 )}
 
-              {selectedDeal.latestConfirmation.outstandingPayment && (
+              {(selectedDeal.latestConfirmation.outstanding_payment ??
+                selectedDeal.latestConfirmation.outstandingPayment) && (
                 <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3">
                   <p className="text-xs font-medium text-yellow-700 dark:text-yellow-400 mb-1">
                     Linked to Outstanding Payment
@@ -1001,8 +1124,11 @@ export function PaymentConfirmationsTable({
                     Balance remaining:{" "}
                     <strong>
                       {formatCurrency(
-                        selectedDeal.latestConfirmation.outstandingPayment
-                          .balance,
+                        (
+                          selectedDeal.latestConfirmation.outstanding_payment ??
+                          selectedDeal.latestConfirmation.outstandingPayment
+                        )!.balance,
+                        selectedDeal.currency,
                       )}
                     </strong>
                   </p>
@@ -1017,10 +1143,12 @@ export function PaymentConfirmationsTable({
                     </p>
                     <p>
                       {getUserDisplay(
-                        selectedDeal.latestConfirmation.processedBy,
+                        selectedDeal.latestConfirmation.processed_by ??
+                          selectedDeal.latestConfirmation.processedBy,
                       ) !== "—"
                         ? getUserDisplay(
-                            selectedDeal.latestConfirmation.processedBy,
+                            selectedDeal.latestConfirmation.processed_by ??
+                              selectedDeal.latestConfirmation.processedBy,
                           )
                         : getUserDisplay(
                             selectedDeal.latestConfirmation.processed_by_id,
@@ -1050,6 +1178,35 @@ export function PaymentConfirmationsTable({
                   </p>
                 </div>
               )}
+
+              {mode === "staff" &&
+                allowEditActions &&
+                (selectedDeal.actionConfirmation.status === "rejected" ||
+                  selectedDeal.actionConfirmation.status === "pending") && (
+                  <div className="flex gap-2 border-t pt-4">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedDeal(null);
+                        setEditingConfirmation(selectedDeal.actionConfirmation);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                      {selectedDeal.actionConfirmation.status === "rejected"
+                        ? "Edit & Resubmit"
+                        : "Edit"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setCancelDialog(selectedDeal.actionConfirmation)}
+                    >
+                      <Ban className="h-3.5 w-3.5 mr-1.5" />
+                      Cancel Confirmation
+                    </Button>
+                  </div>
+                )}
             </div>
           )}
         </SheetContent>
@@ -1062,17 +1219,17 @@ export function PaymentConfirmationsTable({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Payment Confirmation</DialogTitle>
+            <DialogTitle>Decline Payment Confirmation</DialogTitle>
             <DialogDescription>
-              Provide a reason for rejecting this payment confirmation for{" "}
-              {rejectDialog?.payer_name}.
+              Provide a reason for declining this payment confirmation for{" "}
+              {rejectDialog?.payer_name}. The submitting staff member can then edit and resubmit or cancel.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+            <Label htmlFor="rejection-reason">Decline Reason *</Label>
             <Textarea
               id="rejection-reason"
-              placeholder="Explain why this payment confirmation is being rejected..."
+              placeholder="Explain why this payment confirmation is being declined..."
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               rows={4}
@@ -1091,7 +1248,7 @@ export function PaymentConfirmationsTable({
               disabled={isPending || !rejectionReason.trim()}
               onClick={handleReject}
             >
-              {isPending ? "Rejecting..." : "Reject"}
+              {isPending ? "Declining..." : "Decline"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1152,6 +1309,45 @@ export function PaymentConfirmationsTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {editingConfirmation && (
+        <PaymentConfirmationDialog
+          editingConfirmation={editingConfirmation}
+          open={Boolean(editingConfirmation)}
+          onOpenChange={(o) => {
+            if (!o) setEditingConfirmation(null);
+          }}
+          staffList={staffList}
+          currentUserId={currentUserId}
+          hideTrigger
+        />
+      )}
+
+      <AlertDialog
+        open={Boolean(cancelDialog)}
+        onOpenChange={(o) => {
+          if (!o) setCancelDialog(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this payment confirmation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the submission for {cancelDialog?.payer_name} as
+              cancelled so Accounts no longer reviews it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Keep</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isPending}
+              onClick={() => void handleCancelConfirmation()}
+            >
+              {isPending ? "Cancelling..." : "Cancel confirmation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
