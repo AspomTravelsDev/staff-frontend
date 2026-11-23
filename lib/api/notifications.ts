@@ -7,6 +7,9 @@ export type NotificationCountValue =
     | {
           count: number;
           label?: string;
+          url?: string;
+          appraisal_count?: number;
+          monthly_kpi_count?: number;
           latest_id?: string | null;
           view?: "responses" | "details";
           items?: { conversation_id: string; sender_name: string; count: number }[];
@@ -14,7 +17,7 @@ export type NotificationCountValue =
           recruitment_items?: { id: string; title: string; body: string; count: number; url: string }[];
           payroll_items?: { id: string; title: string; body: string; count: number; url: string }[];
           payment_items?: { id: string; title: string; message: string; count: number; url: string }[];
-          performance_items?: { id: number; title: string; body: string; count: number; url: string }[];
+          performance_items?: { id: number | string; title: string; body: string; count: number; url: string }[];
       };
 
 type NotificationCounts = Record<string, NotificationCountValue>;
@@ -55,4 +58,3 @@ export async function clearAllNotifications(): Promise<Record<string, Notificati
     const actualData = unwrapNotifications(result.data);
     return actualData || {};
 }
-

@@ -21,6 +21,7 @@ import type {
   ReviewSummary,
 } from "@/lib/types/performance-review";
 import { PerformanceMetric } from "@/components/performance/performance-page-header";
+import { AppraisalPdfButton } from "@/components/performance/appraisal-pdf-button";
 import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 
 const stages = ["self", "supervisor", "hr", "compliance", "mp"] as const;
@@ -323,21 +324,31 @@ export function PeriodReviewsView({
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {review.can_review ? (
-                          <Button size="sm" asChild>
-                            <Link href={`/performance/reviews/${review.id}`}>
-                              {review.assessment_status === "draft" ? "Continue" : "Review"}
-                            </Link>
-                          </Button>
-                        ) : canViewCompleted ? (
-                          <Button size="sm" asChild>
-                            <Link href={`/performance/reviews/${review.id}`}>View</Link>
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" disabled>
-                            {review.is_assigned ? "Waiting" : "Not assigned"}
-                          </Button>
-                        )}
+                        <div className="flex items-center justify-end gap-2">
+                          {review.status === "completed" && canViewCompleted && (
+                            <AppraisalPdfButton
+                              reviewId={review.id}
+                              label="PDF"
+                              variant="outline"
+                              size="sm"
+                            />
+                          )}
+                          {review.can_review ? (
+                            <Button size="sm" asChild>
+                              <Link href={`/performance/reviews/${review.id}`}>
+                                {review.assessment_status === "draft" ? "Continue" : "Review"}
+                              </Link>
+                            </Button>
+                          ) : canViewCompleted ? (
+                            <Button size="sm" asChild>
+                              <Link href={`/performance/reviews/${review.id}`}>View</Link>
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" disabled>
+                              {review.is_assigned ? "Waiting" : "Not assigned"}
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

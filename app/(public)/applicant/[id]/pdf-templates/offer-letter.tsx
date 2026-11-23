@@ -26,6 +26,7 @@ interface ApplicantData {
     houseNumber?: string;
     address?: string;
     city: string;
+    lga?: string;
     state: string;
     country: string;
   };
@@ -78,6 +79,7 @@ export const OfferLetterPdf: React.FC<OfferLetterPdfProps> = ({
         applicant.residentialAddress.houseNumber,
         applicant.residentialAddress.address,
         applicant.residentialAddress.city,
+        applicant.residentialAddress.lga,
         applicant.residentialAddress.state,
         applicant.residentialAddress.country,
       ]

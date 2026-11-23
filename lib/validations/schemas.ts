@@ -44,6 +44,7 @@ export const personalDataSchema = z.object({
         address: z.string().min(5, 'Address is required'),
         busStop: optionalText,
         city: z.string().min(2, 'City is required'),
+        lga: z.string().min(2, 'LGA (Local Government Area) is required'),
         state: z.string().min(2, 'State is required'),
         country: z.string().min(2, 'Country is required'),
         postalCode: optionalText,

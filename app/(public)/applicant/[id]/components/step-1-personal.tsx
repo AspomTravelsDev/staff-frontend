@@ -64,6 +64,7 @@ export function Step1Personal({
       "houseNumber",
       "address",
       "city",
+      "lga",
       "state",
       "country",
       "nearestLandmark",
@@ -84,6 +85,7 @@ export function Step1Personal({
       houseNumber: "House Number",
       address: "Address",
       city: "City",
+      lga: "LGA (Local Government Area)",
       state: "State",
       country: "Country",
       nearestLandmark: "Nearest Landmark",
@@ -136,6 +138,7 @@ export function Step1Personal({
           address: formData.get("address"),
           busStop: formData.get("busStop"),
           city: formData.get("city"),
+          lga: formData.get("lga"),
           state: formData.get("state"),
           country: formData.get("country"),
         },
@@ -476,6 +479,16 @@ export function Step1Personal({
               name="city"
               required
               defaultValue={initialData?.residentialAddress?.city || ""}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lga">LGA (Local Government Area) <span className="text-destructive font-semibold ml-1">*</span></Label>
+            <Input
+              id="lga"
+              name="lga"
+              required
+              placeholder="e.g., Ado-Odo/Ota, Eti-Osa"
+              defaultValue={initialData?.residentialAddress?.lga || ""}
             />
           </div>
           <div className="space-y-2">

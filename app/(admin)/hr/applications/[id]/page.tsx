@@ -81,6 +81,7 @@ export default async function ApplicationDetailPage({
     personal?.residentialAddress?.address,
     personal?.residentialAddress?.busStop,
     personal?.residentialAddress?.city,
+    personal?.residentialAddress?.lga,
     personal?.residentialAddress?.state,
     personal?.residentialAddress?.country,
   ].filter(Boolean);

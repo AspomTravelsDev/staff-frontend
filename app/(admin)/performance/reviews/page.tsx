@@ -27,19 +27,38 @@ export default async function ReviewsPage({
     }
 
     const params = await searchParams;
-    const type = params.type === "monthly_kpi" ? "monthly_kpi" : "appraisal";
+    const explicitType =
+      params.type === "monthly_kpi"
+        ? "monthly_kpi"
+        : params.type === "appraisal"
+          ? "appraisal"
+          : null;
+    const initialType = explicitType ?? "appraisal";
     const status =
       params.status === "open" || params.status === "closed" || params.status === "draft"
         ? params.status
         : "all";
     const search = typeof params.search === "string" ? params.search.slice(0, 120) : "";
 
-    const filters: ReviewPeriodQueueFilters = { type, status, search };
+    const filters: ReviewPeriodQueueFilters = { type: initialType, status, search };
     const canManagePeriods = userHasRole(user, "hr") || userHasRole(user, "super");
-    const [data, periodsResult] = await Promise.all([
+    const [initialData, periodsResult] = await Promise.all([
       callAction(() => listReviewPeriods(filters)),
       canManagePeriods ? listPerformancePeriods() : Promise.resolve(null),
     ]);
+
+    // If no tab was explicitly requested in the URL and only Monthly KPI has actionable reviews,
+    // automatically land on the Monthly KPI Reviews tab instead of the default Appraisals tab.
+    const shouldAutoSwitchToMonthlyKpi =
+      explicitType === null &&
+      (initialData.tab_counts?.appraisal ?? 0) === 0 &&
+      (initialData.tab_counts?.monthly_kpi ?? 0) > 0;
+
+    const data = shouldAutoSwitchToMonthlyKpi
+      ? await callAction(() =>
+          listReviewPeriods({ type: "monthly_kpi", status, search }),
+        )
+      : initialData;
     const periods = periodsResult?.success ? periodsResult.data.items : [];
 
     return (

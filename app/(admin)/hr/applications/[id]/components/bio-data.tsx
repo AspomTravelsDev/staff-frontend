@@ -58,6 +58,7 @@ export function BioData({ formData, applicationId }: BioDataProps) {
     personal?.residentialAddress?.address,
     personal?.residentialAddress?.busStop,
     personal?.residentialAddress?.city,
+    personal?.residentialAddress?.lga,
     personal?.residentialAddress?.state,
     personal?.residentialAddress?.country,
   ].filter(Boolean);
@@ -244,6 +245,10 @@ export function BioData({ formData, applicationId }: BioDataProps) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InfoRow label="Address" value={addressText || "—"} />
+                  <InfoRow
+                    label="LGA (Local Government Area)"
+                    value={personal?.residentialAddress?.lga}
+                  />
                   <InfoRow
                     label="Nearest Landmark"
                     value={personal?.nearestLandmark}

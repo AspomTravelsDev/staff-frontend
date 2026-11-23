@@ -20,6 +20,7 @@ type StaffDetailsPdfProps = {
   address?: string;
   busStop?: string;
   city?: string;
+  lga?: string;
   state?: string;
   country?: string;
   nearestLandmark?: string;
@@ -126,17 +127,25 @@ const s = StyleSheet.create({
   underline: {
     borderBottom: "0.75pt solid #000",
     flex: 1,
-    paddingBottom: 1,
+    paddingBottom: 2,
     fontFamily: "Times-Roman",
     fontSize: 9.5,
-    minHeight: 14,
+    minHeight: 15,
+  },
+  subUnderline: {
+    borderBottom: "0.75pt solid #000",
+    width: "100%",
+    paddingBottom: 2,
+    fontFamily: "Times-Roman",
+    fontSize: 9.5,
+    minHeight: 15,
   },
   subLabel: {
     fontFamily: "Times-Roman",
     fontSize: 8,
     color: "#444",
     textAlign: "center",
-    marginTop: 1,
+    marginTop: 3,
   },
   // ── name sub-fields ──
   nameBlock: {
@@ -151,7 +160,7 @@ const s = StyleSheet.create({
   halfRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 11,
   },
   halfField: {
     flex: 1,
@@ -160,8 +169,8 @@ const s = StyleSheet.create({
   addrSubRow: {
     flexDirection: "row",
     gap: 6,
-    marginTop: 2,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 12,
   },
   addrSubField: {
     flex: 1,
@@ -275,6 +284,7 @@ export const StaffDetailsPdf = ({
   address = "",
   busStop = "",
   city = "",
+  lga = "",
   state = "",
   country = "",
   nearestLandmark = "",
@@ -336,30 +346,30 @@ export const StaffDetailsPdf = ({
       {/* ── Main section ────────────────────────────────── */}
       <View style={s.outerBox}>
         {/* Name row */}
-        <View style={[s.fieldRow, { marginBottom: 2 }]}>
-          <Text style={s.label}>Name:</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
+          <Text style={[s.label, { paddingTop: 2 }]}>Name:</Text>
           <View style={s.nameBlock}>
             <View style={s.nameField}>
-              <Text style={s.underline}>{title}</Text>
+              <Text style={s.subUnderline}>{title}</Text>
               <Text style={s.subLabel}>(Title)</Text>
             </View>
             <View style={s.nameField}>
-              <Text style={s.underline}>{surname}</Text>
+              <Text style={s.subUnderline}>{surname}</Text>
               <Text style={s.subLabel}>(Surname / Last Name)</Text>
             </View>
             <View style={s.nameField}>
-              <Text style={s.underline}>{firstName}</Text>
+              <Text style={s.subUnderline}>{firstName}</Text>
               <Text style={s.subLabel}>(First Name)</Text>
             </View>
             <View style={s.nameField}>
-              <Text style={s.underline}>{middleNameInitials}</Text>
+              <Text style={s.subUnderline}>{middleNameInitials}</Text>
               <Text style={s.subLabel}>(Middle Name/Initials)</Text>
             </View>
           </View>
         </View>
 
         {/* Address */}
-        <View style={[s.fieldRow, { marginTop: 8, marginBottom: 2 }]}>
+        <View style={[s.fieldRow, { marginTop: 2, marginBottom: 4 }]}>
           <Text style={s.label}>Address:</Text>
           <Text style={s.underline}>{address}</Text>
         </View>
@@ -367,19 +377,23 @@ export const StaffDetailsPdf = ({
         {/* Address sub-row */}
         <View style={s.addrSubRow}>
           <View style={s.addrSubField}>
-            <Text style={s.underline}>{busStop}</Text>
+            <Text style={s.subUnderline}>{busStop}</Text>
             <Text style={s.subLabel}>(Bus stop)</Text>
           </View>
           <View style={s.addrSubField}>
-            <Text style={s.underline}>{city}</Text>
+            <Text style={s.subUnderline}>{city}</Text>
             <Text style={s.subLabel}>(City)</Text>
           </View>
           <View style={s.addrSubField}>
-            <Text style={s.underline}>{state}</Text>
+            <Text style={s.subUnderline}>{lga}</Text>
+            <Text style={s.subLabel}>(LGA)</Text>
+          </View>
+          <View style={s.addrSubField}>
+            <Text style={s.subUnderline}>{state}</Text>
             <Text style={s.subLabel}>(State)</Text>
           </View>
           <View style={s.addrSubField}>
-            <Text style={s.underline}>{country}</Text>
+            <Text style={s.subUnderline}>{country}</Text>
             <Text style={s.subLabel}>(Country)</Text>
           </View>
         </View>

@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { closePerformancePeriod } from "@/lib/api/performance-period.actions";
+import { useRoleNotifications } from "@/lib/api/hooks/use-notifications";
 import {
   formatPerformanceDate,
   formatPerformancePeriodLabel,
@@ -44,11 +45,23 @@ import {
 
 function queueUrl(pathname: string, filters: ReviewPeriodQueueFilters): string {
   const params = new URLSearchParams();
-  if (filters.type !== "appraisal") params.set("type", filters.type);
+  if (filters.type !== "all") params.set("type", filters.type);
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.search.trim()) params.set("search", filters.search.trim());
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;
+}
+
+function TabReadyBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={`${count} ready for your review`}
+      className="ml-1.5 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold tabular-nums text-white"
+    >
+      {count}
+    </span>
+  );
 }
 
 function periodStatusBadge(status: ReviewPeriodSummary["status"]) {
@@ -77,9 +90,28 @@ export function ReviewQueue({
   const [closingId, setClosingId] = useState<string | null>(null);
 
   const canManagePeriods = initialPeriods !== undefined;
-  const { items, counts } = initialData;
+  const { items, counts, tab_counts } = initialData;
+  const { data: roleNotifications } = useRoleNotifications();
+  const perfReviewNotif = roleNotifications?.performanceReviews;
+  const notifAppraisalReady =
+    typeof perfReviewNotif === "object" && perfReviewNotif !== null
+      ? perfReviewNotif.appraisal_count
+      : undefined;
+  const notifMonthlyKpiReady =
+    typeof perfReviewNotif === "object" && perfReviewNotif !== null
+      ? perfReviewNotif.monthly_kpi_count
+      : undefined;
+
   const activeTab: "appraisal" | "monthly_kpi" =
     filters.type === "monthly_kpi" ? "monthly_kpi" : "appraisal";
+  const appraisalReadyCount =
+    tab_counts?.appraisal ??
+    notifAppraisalReady ??
+    (activeTab === "appraisal" ? counts.ready : 0);
+  const monthlyKpiReadyCount =
+    tab_counts?.monthly_kpi ??
+    notifMonthlyKpiReady ??
+    (activeTab === "monthly_kpi" ? counts.ready : 0);
   const hasFilters = Boolean(search.trim()) || filters.status !== "all";
 
   function navigate(next: ReviewPeriodQueueFilters) {
@@ -164,8 +196,14 @@ export function ReviewQueue({
           }
         >
           <TabsList id="tour-rq-tabs">
-            <TabsTrigger value="appraisal">Appraisals</TabsTrigger>
-            <TabsTrigger value="monthly_kpi">Monthly KPI Reviews</TabsTrigger>
+            <TabsTrigger value="appraisal">
+              <span>Appraisals</span>
+              <TabReadyBadge count={appraisalReadyCount} />
+            </TabsTrigger>
+            <TabsTrigger value="monthly_kpi">
+              <span>Monthly KPI Reviews</span>
+              <TabReadyBadge count={monthlyKpiReadyCount} />
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <PerformanceTourButton tourId="review-queue" />

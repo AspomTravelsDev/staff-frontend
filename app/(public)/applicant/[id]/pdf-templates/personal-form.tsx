@@ -22,6 +22,7 @@ type PersonalDataFormProps = {
   middleNameInitials?: string;
   address?: string;
   city?: string;
+  lga?: string;
   state?: string;
   country?: string;
   personalTelephone?: string;
@@ -103,32 +104,40 @@ const s = StyleSheet.create({
     marginBottom: 4,
     marginTop: 2,
   },
-  fieldRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: 9 },
-  label: { fontFamily: "Times-Bold", fontSize: 9.5, marginRight: 4 },
+  fieldRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: 11 },
+  label: { fontFamily: "Times-Bold", fontSize: 9.5, marginRight: 5, paddingBottom: 1 },
   labelItalic: {
     fontFamily: "Times-Italic",
     fontSize: 9,
-    marginRight: 4,
+    marginRight: 5,
     color: "#333",
   },
   underline: {
     borderBottom: "0.75pt solid #000",
     flex: 1,
-    paddingBottom: 1,
+    paddingBottom: 2,
     fontFamily: "Times-Roman",
     fontSize: 9.5,
-    minHeight: 14,
+    minHeight: 15,
+  },
+  subUnderline: {
+    borderBottom: "0.75pt solid #000",
+    width: "100%",
+    paddingBottom: 2,
+    fontFamily: "Times-Roman",
+    fontSize: 9.5,
+    minHeight: 15,
   },
   subLabel: {
     fontFamily: "Times-Roman",
     fontSize: 7.5,
     color: "#444",
     textAlign: "center",
-    marginTop: 1,
+    marginTop: 3,
   },
-  halfRow: { flexDirection: "row", gap: 10, marginBottom: 9 },
+  halfRow: { flexDirection: "row", gap: 12, marginBottom: 11 },
   halfField: { flex: 1 },
-  addrSubRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  addrSubRow: { flexDirection: "row", gap: 8, marginTop: 2, marginBottom: 12 },
   addrSubField: { flex: 1 },
   tableHeader: {
     flexDirection: "row",
@@ -200,7 +209,7 @@ const s = StyleSheet.create({
 
 const HalfField = ({ label, value = "", italic = false }: { label: string; value?: string; italic?: boolean }) => (
   <View style={s.halfField}>
-    <View style={s.fieldRow}>
+    <View style={[s.fieldRow, { marginBottom: 0 }]}>
       <Text style={italic ? s.labelItalic : s.label}>{label}</Text>
       <Text style={s.underline}>{value}</Text>
     </View>
@@ -216,7 +225,7 @@ const FullField = ({ label, value = "", italic = false }: { label: string; value
 
 const SubField = ({ value = "", subLabel }: { value?: string; subLabel: string }) => (
   <View style={s.addrSubField}>
-    <Text style={s.underline}>{value}</Text>
+    <Text style={s.subUnderline}>{value}</Text>
     <Text style={s.subLabel}>{subLabel}</Text>
   </View>
 );
@@ -271,6 +280,7 @@ export const PersonalDataFormPdf = ({
   middleNameInitials = "",
   address = "",
   city = "",
+  lga = "",
   state = "",
   country = "",
   personalTelephone = "",
@@ -332,30 +342,29 @@ export const PersonalDataFormPdf = ({
 
           <View style={s.innerPad}>
             {/* Name */}
-            <View style={{ marginBottom: 6 }}>
+            <View style={{ marginBottom: 12 }}>
               <View
                 style={{
                   flexDirection: "row",
-                  alignItems: "flex-end",
-                  marginBottom: 2,
+                  alignItems: "flex-start",
                 }}
               >
-                <Text style={s.label}>Name:</Text>
+                <Text style={[s.label, { paddingTop: 2 }]}>Name:</Text>
                 <View style={{ flexDirection: "row", flex: 1, gap: 6 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.underline}>{title}</Text>
+                    <Text style={s.subUnderline}>{title}</Text>
                     <Text style={s.subLabel}>(Title)</Text>
                   </View>
                   <View style={{ flex: 2 }}>
-                    <Text style={s.underline}>{lastName}</Text>
+                    <Text style={s.subUnderline}>{lastName}</Text>
                     <Text style={s.subLabel}>(Last)</Text>
                   </View>
                   <View style={{ flex: 2 }}>
-                    <Text style={s.underline}>{firstName}</Text>
+                    <Text style={s.subUnderline}>{firstName}</Text>
                     <Text style={s.subLabel}>(First)</Text>
                   </View>
                   <View style={{ flex: 2 }}>
-                    <Text style={s.underline}>{middleNameInitials}</Text>
+                    <Text style={s.subUnderline}>{middleNameInitials}</Text>
                     <Text style={s.subLabel}>(Middle Name/Initials)</Text>
                   </View>
                 </View>
@@ -366,6 +375,7 @@ export const PersonalDataFormPdf = ({
             <FullField label="Address:" value={address} />
             <View style={s.addrSubRow}>
               <SubField value={city} subLabel="(City)" />
+              <SubField value={lga} subLabel="(LGA)" />
               <SubField value={state} subLabel="(State)" />
               <SubField value={country} subLabel="(Country)" />
             </View>

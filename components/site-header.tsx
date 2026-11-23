@@ -147,12 +147,15 @@ export const SiteHeader = () => {
         }
         let displayCount = 0;
         let chatItems: { conversation_id: string; sender_name: string; count: number }[] | undefined = undefined;
-        let performanceItems: { id: number; title: string; body: string; count: number; url: string }[] | undefined = undefined;
+        let performanceItems: { id: number | string; title: string; body: string; count: number; url: string }[] | undefined = undefined;
 
         if (typeof count === "object" && count !== null) {
           displayCount = count.count;
           if (count.label) {
             label = count.label;
+          }
+          if (count.url) {
+            targetUrl = count.url;
           }
           if ((key === "compliance" || key === "complianceReplies") && count.latest_id) {
             targetUrl = `${key === "complianceReplies" ? "/compliance" : "/my/compliance"}?id=${encodeURIComponent(count.latest_id)}&view=${count.view ?? "responses"}`;
@@ -163,7 +166,7 @@ export const SiteHeader = () => {
           if (key === "chatMessages" && count.items) {
             chatItems = count.items;
           }
-          if (key === "performanceAppraisalUpdates" && count.performance_items) {
+          if ((key === "performanceAppraisalUpdates" || key === "performanceReviews") && count.performance_items) {
             performanceItems = count.performance_items;
           }
           // Dynamic routing for announcements
@@ -195,7 +198,7 @@ export const SiteHeader = () => {
       }
       return acc;
     },
-    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; performanceItems?: { id: number; title: string; body: string; count: number; url: string }[]; recruitmentItems?: { id: string; title: string; body: string; count: number; url: string }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[]; paymentItems?: { id: string; title: string; message: string; count: number; url: string }[] }>,
+    {} as Record<string, { count: number; label: string; url: string; items?: { conversation_id: string; sender_name: string; count: number }[]; performanceItems?: { id: number | string; title: string; body: string; count: number; url: string }[]; recruitmentItems?: { id: string; title: string; body: string; count: number; url: string }[]; taskItems?: { task_id: string; title: string; body: string; count: number; view: "assigned_to_me" | "assigned_by_me" }[]; paymentItems?: { id: string; title: string; message: string; count: number; url: string }[] }>,
   );
 
   const totalNotifications =
@@ -336,8 +339,8 @@ export const SiteHeader = () => {
                                 <span className="shrink-0 rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600">{task.count}</span>
                               </Link>);
                             }
-                            if (key === "performanceAppraisalUpdates" && data.performanceItems?.length) {
-                              return data.performanceItems.map(item => <Link key={`performance-${item.id}`} href={item.url} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0">
+                            if ((key === "performanceAppraisalUpdates" || key === "performanceReviews") && data.performanceItems?.length) {
+                              return data.performanceItems.map(item => <Link key={`performance-${key}-${item.id}`} href={item.url} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 border-b last:border-0">
                                 <div className="min-w-0"><p className="truncate text-sm font-medium">{item.title}</p><p className="line-clamp-2 text-xs text-muted-foreground">{item.body}</p></div>
                                 <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">{item.count}</span>
                               </Link>);

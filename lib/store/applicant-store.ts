@@ -26,6 +26,7 @@ export type PersonalData = {
         address: string
         busStop?: string
         city: string
+        lga: string
         state: string
         country: string
     }

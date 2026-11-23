@@ -382,10 +382,16 @@ export async function downloadPdfFormsAction(
 
         // Generate NDA PDF
         const personalAddress = personal?.residentialAddress
-            ? `${personal.residentialAddress.houseNumber || ''}, ${personal.residentialAddress.address || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
-                .replace(/\s+,/g, ',')
-                .replace(/^,\s*/, '')
-                .replace(/,\s*,/g, ', ')
+            ? [
+                personal.residentialAddress.houseNumber,
+                personal.residentialAddress.address,
+                personal.residentialAddress.city,
+                personal.residentialAddress.lga,
+                personal.residentialAddress.state,
+                personal.residentialAddress.country,
+            ]
+                .filter(Boolean)
+                .join(', ')
             : ''
 
         const ndaResult = await generateAndUploadPdf(
@@ -426,10 +432,16 @@ export async function downloadPdfFormsAction(
                     .join('')
                 : ''
             const personalAddress = personal?.residentialAddress
-                ? `${personal.residentialAddress.houseNumber || ''}, ${personal.residentialAddress.address || ''}, ${personal.residentialAddress.city || ''}, ${personal.residentialAddress.state || ''}, ${personal.residentialAddress.country || ''}`
-                    .replace(/\s+,/g, ',')
-                    .replace(/^,\s*/, '')
-                    .replace(/,\s*,/g, ', ')
+                ? [
+                    personal.residentialAddress.houseNumber,
+                    personal.residentialAddress.address,
+                    personal.residentialAddress.city,
+                    personal.residentialAddress.lga,
+                    personal.residentialAddress.state,
+                    personal.residentialAddress.country,
+                ]
+                    .filter(Boolean)
+                    .join(', ')
                 : ''
             const emergency = personal?.emergencyContact || {}
             const languagesSpoken = Array.isArray(personal?.languagesSpoken)
@@ -488,6 +500,7 @@ export async function downloadPdfFormsAction(
                     middleNameInitials,
                     address: personalAddress,
                     city: personal.residentialAddress?.city || '',
+                    lga: personal.residentialAddress?.lga || '',
                     state: personal.residentialAddress?.state || '',
                     country: personal.residentialAddress?.country || '',
                     personalTelephone: personal.phoneNumber || '',
@@ -532,6 +545,7 @@ export async function downloadPdfFormsAction(
                     address: `${personal.residentialAddress?.houseNumber || ''}, ${personal.residentialAddress?.address || ''}`.replace(/^,\s*/, ''),
                     busStop: personal.residentialAddress?.busStop || '',
                     city: personal.residentialAddress?.city || '',
+                    lga: personal.residentialAddress?.lga || '',
                     state: personal.residentialAddress?.state || '',
                     country: personal.residentialAddress?.country || '',
                     nearestLandmark: personal.nearestLandmark || '',

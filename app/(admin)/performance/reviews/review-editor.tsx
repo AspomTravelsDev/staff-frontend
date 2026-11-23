@@ -21,6 +21,7 @@ import { formatPerformanceDate, formatPerformanceMonth, reviewStageLabel, review
 import type { AppraisalAssessment } from "@/lib/types/performance-appraisal";
 import type { ReviewDetail } from "@/lib/types/performance-review";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
+import { AppraisalPdfButton } from "@/components/performance/appraisal-pdf-button";
 import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 import { FormattedChatMessage } from "@/components/chat/formatted-chat-message";
 
@@ -182,11 +183,16 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
   return <div className="space-y-6 pb-8">
     <PerformanceTour tourId="review-editor" />
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : "/performance/reviews")}>{review.period_id ? "Back to period reviews" : "Back to Appraisal Review Queue"}</Button>
-      <PerformanceTourButton tourId="review-editor" />
+      <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : `/performance/reviews?type=${review.type}`)}>{review.period_id ? "Back to period reviews" : "Back to Appraisal Review Queue"}</Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {review.status === "completed" && (
+          <AppraisalPdfButton data={review} label="Download Branded PDF" />
+        )}
+        <PerformanceTourButton tourId="review-editor" />
+      </div>
     </div>
     <div id="tour-re-header">
-      <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${formatPerformanceDate(review.submission_deadline)}`} icon={ClipboardList} actions={<Badge variant="outline">{reviewStatusLabel(review)}</Badge>} />
+      <PerformancePageHeader eyebrow={`${review.type === "appraisal" ? "Appraisal" : "Monthly KPI appraisal"} · ${formatPerformanceMonth(review.month)}`} title={reviewStageLabel(review)} description={`${review.employee_name} · ${review.employee_staff_id} · ${review.department} · Deadline ${formatPerformanceDate(review.submission_deadline)}`} icon={ClipboardList} actions={<div className="flex flex-wrap items-center gap-2">{review.status === "completed" && <AppraisalPdfButton data={review} label="Download PDF" />}<Badge variant="outline">{reviewStatusLabel(review)}</Badge></div>} />
     </div>
     {error && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{error}</p><p>If this review changed elsewhere, reload its saved version. Reloading discards unsaved edits on this page.</p><Button variant="outline" disabled={pending} onClick={() => reload.mutate()}>Reload saved review</Button></div>}
     {review.final_score !== null && <p className="text-lg font-semibold tabular-nums">{review.type === "appraisal" ? `Final total ${review.total_score ?? "—"} / ${review.total_max_score ?? "—"} · ` : "Final score: "}{Number(review.final_score).toFixed(2)} / 5</p>}
@@ -347,6 +353,6 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
       </fieldset></form>
     </>}
     {pending && <p role="status" className="text-sm text-muted-foreground">{reload.isPending ? "Reloading saved review…" : save.variables ? "Submitting your assessment…" : "Saving your review draft…"}</p>}
-    <AlertDialog open={dialog !== null} onOpenChange={(open) => { if (!open) setDialog(null); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{dialog === "discard" ? "Leave without saving?" : isMp ? "Complete this appraisal?" : `Submit this review to ${nextReviewer}?`}</AlertDialogTitle><AlertDialogDescription>{dialog === "discard" ? "Unsaved changes will be lost. Your last saved draft remains available." : isMp ? isStructured ? "Management’s ratings and comment will become the final result, and the appraisal will be marked complete." : "Your final comment will be saved, the staff KPI score retained, and the appraisal marked completed." : `Your review will be saved and sent to ${nextReviewer}. This review will become read-only.`}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep editing</AlertDialogCancel><AlertDialogAction onClick={() => { if (dialog === "discard") router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : "/performance/reviews"); else save.mutate(true); setDialog(null); }}>{dialog === "discard" ? "Leave without saving" : isMp ? "Complete appraisal" : "Submit review"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    <AlertDialog open={dialog !== null} onOpenChange={(open) => { if (!open) setDialog(null); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{dialog === "discard" ? "Leave without saving?" : isMp ? "Complete this appraisal?" : `Submit this review to ${nextReviewer}?`}</AlertDialogTitle><AlertDialogDescription>{dialog === "discard" ? "Unsaved changes will be lost. Your last saved draft remains available." : isMp ? isStructured ? "Management’s ratings and comment will become the final result, and the appraisal will be marked complete." : "Your final comment will be saved, the staff KPI score retained, and the appraisal marked completed." : `Your review will be saved and sent to ${nextReviewer}. This review will become read-only.`}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep editing</AlertDialogCancel><AlertDialogAction onClick={() => { if (dialog === "discard") router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : `/performance/reviews?type=${review.type}`); else save.mutate(true); setDialog(null); }}>{dialog === "discard" ? "Leave without saving" : isMp ? "Complete appraisal" : "Submit review"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </div>;
 }

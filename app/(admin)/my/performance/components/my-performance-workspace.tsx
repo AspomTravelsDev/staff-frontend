@@ -19,6 +19,7 @@ import { appraisalStatusLabel } from "@/lib/performance-self-assessment";
 import { formatPerformanceDate, formatPerformancePeriodLabel } from "@/lib/performance-review";
 import type { AppraisalAvailability, AppraisalStats, AppraisalSummary, AppraisalType } from "@/lib/types/performance-appraisal";
 import { PerformanceMetric } from "@/components/performance/performance-page-header";
+import { AppraisalPdfButton } from "@/components/performance/appraisal-pdf-button";
 import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 
 const stages = ["self", "supervisor", "hr", "compliance", "mp"] as const;
@@ -225,11 +226,21 @@ export function MyPerformanceWorkspace({ initialAppraisals, initialStats, initia
                     </TableCell>
                   ))}
                   <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
-                    <Button variant={item.can_edit_self ? "default" : "outline"} size="sm" asChild>
-                      <Link href={`/my/performance/${item.id}`}>
-                        {item.can_edit_self ? (item.self_status === "draft" ? "Continue" : "Start Appraisal") : "View"}
-                      </Link>
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      {item.status === "completed" && (
+                        <AppraisalPdfButton
+                          appraisalId={item.id}
+                          label="PDF"
+                          variant="outline"
+                          size="sm"
+                        />
+                      )}
+                      <Button variant={item.can_edit_self ? "default" : "outline"} size="sm" asChild>
+                        <Link href={`/my/performance/${item.id}`}>
+                          {item.can_edit_self ? (item.self_status === "draft" ? "Continue" : "Start Appraisal") : "View"}
+                        </Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

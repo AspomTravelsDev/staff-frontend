@@ -84,5 +84,6 @@ export interface ReviewPeriodQueueFilters {
 export interface ReviewPeriodQueueResponse {
   items: ReviewPeriodSummary[];
   counts: { ready: number; assigned: number; available: number; completed: number };
+  tab_counts?: { appraisal: number; monthly_kpi: number };
   filters: ReviewPeriodQueueFilters;
 }

@@ -78,10 +78,12 @@ export const HR_APPLICATION_EXPORT_COLUMNS: ExportColumn<OnboardingApplication>[
                 getPath(app.form_data, "personal.residentialAddress.houseNumber"),
                 getPath(app.form_data, "personal.residentialAddress.address"),
                 getPath(app.form_data, "personal.residentialAddress.city"),
+                getPath(app.form_data, "personal.residentialAddress.lga"),
                 getPath(app.form_data, "personal.residentialAddress.state"),
                 getPath(app.form_data, "personal.residentialAddress.country"),
             ]),
     },
+    { header: "Residential LGA", key: (app) => stringify(getPath(app.form_data, "personal.residentialAddress.lga")) },
     {
         header: "Address Verified",
         key: (app) =>

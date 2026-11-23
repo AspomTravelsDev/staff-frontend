@@ -24,6 +24,7 @@ export interface PersonalData {
         address: string;
         busStop?: string;
         city: string;
+        lga?: string;
         state: string;
         country: string;
         postalCode?: string;

@@ -73,6 +73,7 @@ export interface PersonalInfo {
         houseNumber: string;
         address: string;
         city: string;
+        lga?: string;
         state: string;
         busStop?: string;
         country: string;

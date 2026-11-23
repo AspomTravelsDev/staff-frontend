@@ -53,6 +53,7 @@ import type {
   Rating,
 } from "@/lib/types/performance-appraisal";
 import { AssessmentReadOnly } from "@/components/performance/assessment-read-only";
+import { AppraisalPdfButton } from "@/components/performance/appraisal-pdf-button";
 import { PerformancePageHeader } from "@/components/performance/performance-page-header";
 import { PerformanceTour, PerformanceTourButton } from "@/components/performance/performance-tour";
 import { WhatsAppChatInput } from "@/components/chat/whatsapp-chat-input";
@@ -270,7 +271,10 @@ export function SelfAppraisalForm({
           <ArrowLeft className="mr-2 size-4" />
           My Performance
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {appraisal.status === "completed" && (
+            <AppraisalPdfButton data={appraisal} label="Download Branded PDF" />
+          )}
           <PerformanceTourButton tourId="self-appraisal" />
           <Badge variant="outline">
             {formatPerformancePeriodLabel(appraisal.type, appraisal.month)}

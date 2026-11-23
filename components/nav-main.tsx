@@ -30,6 +30,21 @@ function NotificationBadge({ count }: { count: number }) {
   return <span aria-label={`${count} pending notifications`} className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-medium tabular-nums text-white">{count}</span>;
 }
 
+function resolveNavItemUrl(
+  item: { url: string; badgeKey?: string },
+  badges?: Record<string, NotificationCountValue>,
+): string {
+  if (
+    item.url === "/performance/reviews" &&
+    badges?.performanceReviews &&
+    typeof badges.performanceReviews === "object" &&
+    badges.performanceReviews.url
+  ) {
+    return badges.performanceReviews.url;
+  }
+  return item.url;
+}
+
 export function NavMain({
   items,
   label,
@@ -135,7 +150,7 @@ export function NavMain({
               >
                 <Link
                   prefetch={false}
-                  href={item.disabled ? "#" : item.url}
+                  href={item.disabled ? "#" : resolveNavItemUrl(item, badges)}
                   onClick={(e) => {
                     if (item.disabled) {
                       e.preventDefault();
