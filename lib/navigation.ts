@@ -22,9 +22,11 @@ import {
   Briefcase,
   ListTodo,
   Ticket,
+  Images,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 import { ANNOUNCEMENT_REVIEW_ROLES, canReviewAnnouncements } from "@/lib/announcement-review-access";
+import { SOCIAL_MEDIA_GRAPHICS_ROLES } from "@/lib/social-media-graphics-access";
 
 export interface NavItem {
   title: string;
@@ -275,6 +277,12 @@ export const departmentNav: NavItem[] = [
     url: "/social-media/compliance",
     icon: ShieldCheck,
     allowedRoles: ["social-media", "super"],
+  },
+  {
+    title: "Graphics Library",
+    url: "/social-media/graphics",
+    icon: Images,
+    allowedRoles: SOCIAL_MEDIA_GRAPHICS_ROLES,
   },
   {
     title: "All IT Issues",
@@ -701,7 +709,7 @@ function managementNavigation(items: NavItem[]): NavItem[] {
     !managementHiddenRoutes.has(url) &&
     !url.startsWith("/visa/") &&
     !url.startsWith("/birth-services/") &&
-    !url.startsWith("/social-media/");
+    (!url.startsWith("/social-media/") || url === "/social-media/graphics");
   return items
     .filter((item) => visible(item.url))
     .map((item) =>

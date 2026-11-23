@@ -213,6 +213,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       "Human Resources": [],
       Accounts: [],
       Compliance: [],
+      "Social Media": [],
       Operations: [],
       Administration: [],
       IT: [],
@@ -228,15 +229,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           ? "Accounts"
           : root === "compliance"
             ? "Compliance"
-            : root === "operations"
-              ? "Operations"
-              : root === "admin"
-                ? "Administration"
-                : root === "crm" || root === "announcements"
-                  ? "Shared Services"
-                  : root === "it"
-                    ? "IT"
-                    : "Other Tools";
+            : root === "social-media"
+              ? "Social Media"
+              : root === "operations"
+                ? "Operations"
+                : root === "admin"
+                  ? "Administration"
+                  : root === "crm" || root === "announcements"
+                    ? "Shared Services"
+                    : root === "it"
+                      ? "IT"
+                      : "Other Tools";
 
       (groups[group] ||= []).push(item);
     });

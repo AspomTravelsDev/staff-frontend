@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Share2 } from "lucide-react";
+import { Copy, Check, Printer, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -19,6 +19,22 @@ interface ITGuideShareDialogProps {
   slug: string;
 }
 
+export function ITGuidePrintButton() {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="h-9 w-9 rounded-full hover:bg-background print:hidden"
+      onClick={() => window.print()}
+      title="Print or save guide as PDF"
+    >
+      <Printer className="h-4 w-4" />
+      <span className="sr-only">Print guide</span>
+    </Button>
+  );
+}
+
 export function ITGuideShareDialog({ title, slug }: ITGuideShareDialogProps) {
   const [copied, setCopied] = useState(false);
 
@@ -32,7 +48,7 @@ export function ITGuideShareDialog({ title, slug }: ITGuideShareDialogProps) {
       setCopied(true);
       toast.success("Link copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       toast.error("Failed to copy link");
     }
   };
@@ -43,16 +59,18 @@ export function ITGuideShareDialog({ title, slug }: ITGuideShareDialogProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full hover:bg-background"
+          className="h-9 w-9 rounded-full hover:bg-background print:hidden"
+          title="Share guide link"
         >
           <Share2 className="h-4 w-4" />
+          <span className="sr-only">Share guide</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share Guide</DialogTitle>
           <DialogDescription>
-            Copy the link below to share "{title}" with your colleagues.
+            Copy the link below to share &quot;{title}&quot; with your colleagues.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-2 pt-4">
@@ -83,3 +101,4 @@ export function ITGuideShareDialog({ title, slug }: ITGuideShareDialogProps) {
     </Dialog>
   );
 }
+
