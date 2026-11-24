@@ -11,6 +11,7 @@ import { GlobalChatNotifications } from "@/components/chat/global-chat-notificat
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 import { CheatsheetFloatingWidget } from "@/components/cheatsheet-floating-widget";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { BreakLockOverlay } from "@/components/attendance/break-lock-overlay";
 
 export default async function AdminLayout({
   children,
@@ -31,6 +32,7 @@ export default async function AdminLayout({
       <UserProvider user={user}>
         <NotificationsUpdater notifications={initialNotifications} />
         <GlobalChatNotifications />
+        <BreakLockOverlay />
         <SidebarProvider className="h-svh min-h-0 overflow-hidden">
           <AppSidebar />
           <FloatingChatButton />

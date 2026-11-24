@@ -1,7 +1,3 @@
-"use client";
-
-import { useMemo } from "react";
-
 export interface ITGuideHeading {
   id: string;
   text: string;
@@ -77,7 +73,7 @@ interface ITGuideContentProps {
 }
 
 export function ITGuideContent({ content, className }: ITGuideContentProps) {
-  const { html } = useMemo(() => extractITGuideHeadings(content), [content]);
+  const { html } = extractITGuideHeadings(content);
 
   return (
     <>

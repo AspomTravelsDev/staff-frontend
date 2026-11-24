@@ -27,7 +27,12 @@ export function useTodayAttendance(initialStatus?: ClockInRecord | null) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchIntervalInBackground: false,
-    refetchInterval: (q) => (q.state.data?.clock_out_at ? false : 300_000),
+    refetchInterval: (q) =>
+      q.state.data?.clock_out_at
+        ? false
+        : q.state.data?.is_on_break
+          ? 15_000
+          : 300_000,
   });
 
   useEffect(() => {

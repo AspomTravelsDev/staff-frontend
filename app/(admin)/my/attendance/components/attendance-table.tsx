@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceClockOut } from "@/components/attendance/attendance-clock-out";
+import { AttendanceDuration } from "@/components/attendance/attendance-duration";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -59,7 +60,7 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
               <TableHead>Clock Out</TableHead>
               <TableHead>Method</TableHead>
               <TableHead>Distance</TableHead>
-              <TableHead>Duration</TableHead>
+              <TableHead>Net Work Time</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -145,11 +146,7 @@ export function AttendanceTable({ history }: AttendanceTableProps) {
                     </TableCell>
 
                     <TableCell>
-                      {record.duration_minutes
-                        ? `${Math.floor(record.duration_minutes / 60)}h ${
-                            record.duration_minutes % 60
-                          }m`
-                        : "-"}
+                      <AttendanceDuration record={record} />
                     </TableCell>
                     <TableCell>
                       {(() => {

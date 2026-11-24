@@ -23,7 +23,7 @@ export function PayrollSupportingDocuments({ run, canUpload, busy = false, onUpd
 }) {
   const [uploading, setUploading] = useState<string | null>(null);
   const uploadingRef = useRef(false);
-  const allowedCategories = run.uploadable_document_categories ?? (["draft", "hr_draft"].includes(run.status) && (run.can_upload_documents ?? canUpload) ? CATEGORIES.filter(category => category.key !== "sanctions").map(category => category.key) : []);
+  const allowedCategories = run.uploadable_document_categories ?? (["draft", "hr_draft"].includes(run.status) && (run.can_upload_documents ?? canUpload) ? CATEGORIES.map(category => category.key) : []);
   const documents = run.supporting_documents ?? [];
 
   const upload = async (category: PayrollSupportingDocument["category"], file: File) => {

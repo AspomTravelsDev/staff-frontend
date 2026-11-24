@@ -3,6 +3,14 @@
 import { api, type ApiResponse } from "@/lib/api/client";
 import { revalidatePath } from "next/cache";
 
+export interface ClockInBreak {
+    id: number;
+    started_at: string;
+    ended_at: string | null;
+    duration_minutes: number | null;
+    is_flagged_unclosed?: boolean;
+}
+
 export interface ClockInRecord {
     id: number;
     user_id: string;
@@ -12,6 +20,17 @@ export interface ClockInRecord {
     is_half_day?: boolean;
     duration_minutes: number | null;
     is_clocked_in?: boolean; // Sometimes returned by /today
+    is_on_break?: boolean;
+    active_break?: {
+        id: number;
+        started_at: string;
+    } | null;
+    breaks?: ClockInBreak[];
+    completed_break_minutes?: number;
+    total_break_minutes?: number;
+    net_work_minutes?: number | null;
+    is_break_over_limit?: boolean;
+    has_unclosed_break?: boolean;
     location_method?: "gps" | "ip" | "exempt" | "disabled" | "qrcode";
     ip_address?: string;
     distance?: number;
@@ -159,6 +178,53 @@ export async function clockOut(
     }
 
     return result;
+}
+
+async function postBreakTransition(
+    action: "start" | "end",
+    location?: LocationData,
+    client_ip?: string,
+    qr_scan?: boolean
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    const result = await api.post<StandardResponse<ClockInRecord>>(`/api/clock-in/breaks/${action}`, {
+        location,
+        client_ip,
+        ...(qr_scan !== undefined ? { qr_scan } : {})
+    });
+
+    if (result.success) {
+        revalidatePath("/my/attendance");
+        revalidatePath("/attendance");
+        revalidatePath("/attendance/scan");
+        revalidatePath("/dashboard");
+        revalidatePath("/", "layout");
+    }
+
+    return result;
+}
+
+/**
+ * POST /api/clock-in/breaks/start
+ * Start a break without closing today's shift
+ */
+export async function startBreak(
+    location?: LocationData,
+    client_ip?: string,
+    qr_scan?: boolean
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    return postBreakTransition("start", location, client_ip, qr_scan);
+}
+
+/**
+ * POST /api/clock-in/breaks/end
+ * End the active break and resume work
+ */
+export async function endBreak(
+    location?: LocationData,
+    client_ip?: string,
+    qr_scan?: boolean
+): Promise<ApiResponse<StandardResponse<ClockInRecord>>> {
+    return postBreakTransition("end", location, client_ip, qr_scan);
 }
 
 /**

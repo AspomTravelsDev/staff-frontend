@@ -3,7 +3,15 @@
 import { api } from "./client";
 import { ExpectedActionError } from "./action-result";
 import { runAction } from "./run-action";
-import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList, KpiCategory, KpiCategoryList } from "@/lib/types/department-kpi";
+import type {
+  DepartmentKpi,
+  DepartmentKpiInput,
+  DepartmentKpiList,
+  KpiCategory,
+  KpiCategoryList,
+  StaffKpiCategoryAssignment,
+  StaffKpiCategoryList,
+} from "@/lib/types/department-kpi";
 
 export async function listDepartmentKpis() {
   return runAction(async () => {
@@ -87,5 +95,24 @@ export async function bulkUpdateKpiCategoriesStatus(ids: string[], is_active: bo
     if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
     return result.data;
   }, "bulkUpdateKpiCategoriesStatus");
+}
+
+export async function listStaffKpiCategories() {
+  return runAction(async () => {
+    const result = await api.get<{ data: StaffKpiCategoryList }>("/api/performance/staff-kpi-categories");
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data.data;
+  }, "listStaffKpiCategories");
+}
+
+export async function updateStaffKpiCategories(userId: string, categoryIds: string[]) {
+  return runAction(async () => {
+    const result = await api.put<{ data: StaffKpiCategoryAssignment }>(
+      `/api/performance/staff-kpi-categories/${encodeURIComponent(userId)}`,
+      { category_ids: categoryIds },
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data.data;
+  }, "updateStaffKpiCategories");
 }
 

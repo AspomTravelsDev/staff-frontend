@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Papa, { type ParseResult } from "papaparse";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2, Download, Upload, Trash2, EyeOff, CheckSquare } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Pencil, Search, Target, ListFilter, MoreHorizontal, Eye, Building2, Download, Upload, Trash2, EyeOff, CheckSquare, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,13 +30,23 @@ import {
   deleteAllDepartmentKpis,
   listDepartmentKpis,
   listKpiCategories,
+  listStaffKpiCategories,
   saveDepartmentKpi,
   saveDepartmentKpisBulk,
   saveKpiCategory,
+  updateStaffKpiCategories,
 } from "@/lib/api/department-kpi.actions";
-import type { DepartmentKpi, DepartmentKpiInput, DepartmentKpiList, KpiCategory } from "@/lib/types/department-kpi";
+import type {
+  DepartmentKpi,
+  DepartmentKpiInput,
+  DepartmentKpiList,
+  KpiCategory,
+  StaffKpiCategoryAssignment,
+  StaffKpiCategoryList,
+} from "@/lib/types/department-kpi";
 
 const queryKey = ["performance", "department-kpis"] as const;
+const staffQueryKey = ["performance", "staff-kpi-categories"] as const;
 const sortOptions = ["category", "name", "status"] as const;
 const pageSizeOptions = [10, 25, 50] as const;
 const importHeaders = ["category", "name", "description", "expectation", "measurement_method", "applies_to", "is_active", "score_1", "score_2", "score_3", "score_4", "score_5"];
@@ -64,6 +74,7 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
   const client = useQueryClient();
   const { data, error, isFetching, refetch } = useQuery({ queryKey, queryFn: () => callAction(listDepartmentKpis), initialData });
   const categories = useQuery({ queryKey: ["performance", "kpi-categories"], queryFn: () => callAction(listKpiCategories) });
+  const staffAssignments = useQuery({ queryKey: staffQueryKey, queryFn: () => callAction(listStaffKpiCategories) });
   const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState("active");
   const [search, setSearch] = useState("");
@@ -71,9 +82,14 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
   const [pageSize, setPageSize] = useState<(typeof pageSizeOptions)[number]>(10);
   const [editor, setEditor] = useState<{ id: string | null; values: DepartmentKpiInput } | null>(null);
   const [categoryEditor, setCategoryEditor] = useState<{ id: string | null; name: string; description: string; departments: string[]; is_active: boolean } | null>(null);
+  const [staffEditor, setStaffEditor] = useState<{ user: StaffKpiCategoryAssignment; categoryIds: string[] } | null>(null);
   const [viewing, setViewing] = useState<DepartmentKpi | null>(null);
   const [saveError, setSaveError] = useState("");
   const [categorySaveError, setCategorySaveError] = useState("");
+  const [staffSaveError, setStaffSaveError] = useState("");
+  const [staffSearch, setStaffSearch] = useState("");
+  const [staffDepartmentFilter, setStaffDepartmentFilter] = useState("all");
+  const [staffStatusFilter, setStaffStatusFilter] = useState<"all" | "missing_kpis" | "has_extras">("all");
   const [importError, setImportError] = useState("");
   const [importing, setImporting] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
@@ -91,6 +107,7 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
     onSuccess: () => {
       client.setQueryData<DepartmentKpiList>(queryKey, (old) => old ? { ...old, items: [] } : old);
       void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey: staffQueryKey });
       setSelectedKpiIds(new Set());
       toast.success("All department KPIs deleted successfully");
       setConfirmDeleteAll(false);
@@ -113,6 +130,7 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
         client.setQueryData<DepartmentKpiList>(queryKey, (old) => old ? { ...old, items: old.items.map((k) => ids.includes(k.id) ? { ...k, is_active: action === "activate" } : k) } : old);
       }
       void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey: staffQueryKey });
       setSelectedKpiIds(new Set());
       setKpiBatchConfirm(null);
       const noun = ids.length === 1 ? "KPI" : "KPIs";
@@ -133,6 +151,7 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
     onSuccess: (_result, { action, ids }) => {
       void categories.refetch();
       void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey: staffQueryKey });
       setSelectedCategoryIds(new Set());
       setCategoryBatchConfirm(null);
       const noun = ids.length === 1 ? "category" : "categories";
@@ -160,14 +179,40 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
       toast.success("KPI saved");
       addRef.current?.focus();
       void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey: staffQueryKey });
     },
     onError: (failure) => setSaveError(failure instanceof Error ? failure.message : "Unable to save. Please try again."),
   });
 
   const saveCategory = useMutation({
     mutationFn: () => categoryEditor ? saveKpiCategory(categoryEditor.id, categoryEditor) : Promise.reject(new Error("No category selected")),
-    onSuccess: () => { setCategoryEditor(null); setCategorySaveError(""); void categories.refetch(); void client.invalidateQueries({ queryKey }); toast.success("KPI category saved"); },
+    onSuccess: () => {
+      setCategoryEditor(null);
+      setCategorySaveError("");
+      void categories.refetch();
+      void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey: staffQueryKey });
+      toast.success("KPI category saved");
+    },
     onError: (failure) => setCategorySaveError(failure instanceof Error ? failure.message : "Unable to save this category."),
+  });
+
+  const saveStaffCategories = useMutation({
+    mutationFn: () =>
+      staffEditor
+        ? callAction(() => updateStaffKpiCategories(staffEditor.user.id, staffEditor.categoryIds))
+        : Promise.reject(new Error("No staff member selected")),
+    onSuccess: (updated) => {
+      client.setQueryData<StaffKpiCategoryList>(staffQueryKey, (old) =>
+        old ? { ...old, items: old.items.map((item) => (item.id === updated.id ? updated : item)) } : old,
+      );
+      setStaffEditor(null);
+      setStaffSaveError("");
+      void client.invalidateQueries({ queryKey: staffQueryKey });
+      toast.success("Staff KPI categories updated");
+    },
+    onError: (failure) =>
+      setStaffSaveError(failure instanceof Error ? failure.message : "Unable to update staff categories."),
   });
 
   function openEditor(kpi?: DepartmentKpi) {
@@ -179,6 +224,21 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
   function openCategoryEditor(category?: KpiCategory) {
     setCategorySaveError("");
     setCategoryEditor(category ? { id: category.id, name: category.name, description: category.description ?? "", departments: category.departments, is_active: category.is_active } : { id: null, name: "", description: "", departments: [], is_active: true });
+  }
+
+  function openStaffEditor(staffMember: StaffKpiCategoryAssignment) {
+    setStaffSaveError("");
+    setStaffEditor({ user: staffMember, categoryIds: [...staffMember.assigned_category_ids] });
+  }
+
+  function toggleStaffCategory(categoryId: string, checked: boolean) {
+    setStaffEditor((old) => {
+      if (!old) return old;
+      const next = checked
+        ? Array.from(new Set([...old.categoryIds, categoryId]))
+        : old.categoryIds.filter((id) => id !== categoryId);
+      return { ...old, categoryIds: next };
+    });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -256,7 +316,7 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
         const chunk = preparedItems.slice(i, i + chunkSize);
         await callAction(() => saveDepartmentKpisBulk(chunk));
       }
-      await Promise.all([refetch(), categories.refetch()]);
+      await Promise.all([refetch(), categories.refetch(), staffAssignments.refetch()]);
       toast.success(`${pendingRows.length} KPI${pendingRows.length === 1 ? "" : "s"} imported${createdCategories ? ` · ${createdCategories} categor${createdCategories === 1 ? "y" : "ies"} created` : ""}`);
     } catch (failure) {
       setImportError(failure instanceof Error ? failure.message : "Unable to import this file.");
@@ -362,9 +422,28 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
   // Clear selection when visible items change significantly
   useEffect(() => { setSelectedKpiIds(new Set()); }, [department, status, search]);
 
-  const isBusy = !!editor || !!categoryEditor || importing;
+  const isBusy = !!editor || !!categoryEditor || !!staffEditor || importing;
   const kpiSelectedCount = selectedKpiIds.size;
   const categorySelectedCount = selectedCategoryIds.size;
+
+  const staffList = staffAssignments.data?.items ?? [];
+  const staffCategoryOptions = staffAssignments.data?.categories ?? [];
+  const staffDepartments = Array.from(
+    new Set(staffList.map((member) => member.department).filter((dept): dept is string => Boolean(dept))),
+  ).sort((a, b) => a.localeCompare(b));
+  const filteredStaff = staffList.filter((member) => {
+    const query = staffSearch.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      `${member.name} ${member.staff_id ?? ""} ${member.department ?? ""}`.toLowerCase().includes(query);
+    const matchesDept = staffDepartmentFilter === "all" || member.department === staffDepartmentFilter;
+    const matchesStatus =
+      staffStatusFilter === "all" ||
+      (staffStatusFilter === "missing_kpis"
+        ? member.effective_kpi_count === 0
+        : member.assigned_categories.length > 0);
+    return matchesSearch && matchesDept && matchesStatus;
+  });
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -479,6 +558,7 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
         <TabsList aria-label="KPI management sections">
           <TabsTrigger value="kpis">KPI catalogue</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="staff">Staff assignments</TabsTrigger>
         </TabsList>
 
         {/* CATEGORIES TAB */}
@@ -690,12 +770,311 @@ export function DepartmentKpiManager({ initialData, isSuperAdmin = false }: { in
             </div>
           </section>
         </TabsContent>
+        {/* STAFF ASSIGNMENTS TAB */}
+        <TabsContent value="staff" className="space-y-4">
+          <section aria-labelledby="staff-assignments-heading" className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 id="staff-assignments-heading" className="flex items-center gap-2 text-lg font-semibold">
+                  <Users className="size-4 text-primary" aria-hidden="true" />
+                  Per-staff KPI category assignments
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Staff automatically inherit active KPIs from <strong>General</strong> and their department. Assign extra categories below for hybrid or cross-functional roles.
+                </p>
+              </div>
+              <Badge variant="secondary" className="tabular-nums">
+                {filteredStaff.length} staff shown
+              </Badge>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/20 p-3">
+              <div className="relative min-w-0 flex-1 sm:max-w-sm">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="staff-assignment-search"
+                  aria-label="Search staff name, ID, or department"
+                  className="h-9 pl-9"
+                  placeholder="Search staff name, ID, or department…"
+                  value={staffSearch}
+                  onChange={(event) => setStaffSearch(event.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="staff-dept-filter" className="text-sm">Department</Label>
+                <Select value={staffDepartmentFilter} onValueChange={setStaffDepartmentFilter}>
+                  <SelectTrigger id="staff-dept-filter" className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All departments</SelectItem>
+                    {staffDepartments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="staff-status-filter" className="text-sm">Filter</Label>
+                <Select
+                  value={staffStatusFilter}
+                  onValueChange={(value) => setStaffStatusFilter(value as "all" | "missing_kpis" | "has_extras")}
+                >
+                  <SelectTrigger id="staff-status-filter" className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All staff</SelectItem>
+                    <SelectItem value="missing_kpis">Needs KPIs (0)</SelectItem>
+                    <SelectItem value="has_extras">Has extra categories</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {staffAssignments.error && (
+              <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+                <span>Unable to load staff assignments.</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={staffAssignments.isFetching}
+                  onClick={() => void staffAssignments.refetch()}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="min-w-48">Staff</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead className="min-w-52">Inherited categories</TableHead>
+                    <TableHead className="min-w-48">Extra assigned</TableHead>
+                    <TableHead>Active KPIs</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {staffAssignments.isLoading && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        Loading staff KPI assignments…
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!staffAssignments.isLoading && !staffAssignments.error && !filteredStaff.length && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        No matching staff members found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filteredStaff.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium">{member.name}</span>
+                          {member.is_supervisor && (
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                              Supervisor
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{member.staff_id || "No staff ID"}</p>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {member.department ? (
+                          <span>{member.department}</span>
+                        ) : (
+                          <span className="text-xs text-destructive">Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {member.inherited_categories.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {member.inherited_categories.map((cat) => (
+                              <Badge key={cat.id} variant="secondary" className="text-xs font-normal">
+                                {cat.name}
+                                {cat.source === "general" ? " · General" : ""}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {member.assigned_categories.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {member.assigned_categories.map((cat) => (
+                              <Badge
+                                key={cat.id}
+                                variant={cat.is_active ? "default" : "outline"}
+                                className="text-xs font-normal"
+                              >
+                                {cat.name}
+                                {!cat.is_active ? " (inactive)" : ""}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge
+                          variant={member.effective_kpi_count === 0 ? "destructive" : "outline"}
+                          className="tabular-nums"
+                        >
+                          {member.effective_kpi_count} KPI{member.effective_kpi_count === 1 ? "" : "s"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={isBusy}
+                          onClick={() => openStaffEditor(member)}
+                        >
+                          <Pencil className="mr-1.5 size-3.5" aria-hidden="true" />
+                          Assign
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </section>
+        </TabsContent>
       </Tabs>
 
       {/* Category editor dialog */}
       <Dialog open={!!categoryEditor} onOpenChange={(open) => { if (!open && !saveCategory.isPending) setCategoryEditor(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>{categoryEditor?.id ? "Edit KPI category" : "Add KPI category"}</DialogTitle><DialogDescription>Choose the departments that receive this category&apos;s active KPIs when future appraisal periods are opened. Existing appraisal periods keep their saved criteria.</DialogDescription></DialogHeader>
           {categoryEditor && <form onSubmit={(event) => { event.preventDefault(); if (!categoryEditor.name.trim() || !categoryEditor.departments.length) return; saveCategory.mutate(); }} className="space-y-4"><div className="grid gap-2"><Label htmlFor="kpi-category-name">Category name</Label><Input id="kpi-category-name" required maxLength={180} value={categoryEditor.name} onChange={(event) => setCategoryEditor({ ...categoryEditor, name: event.target.value })} placeholder="e.g. Client service" /></div><div className="grid gap-2"><Label htmlFor="kpi-category-description">Description</Label><Textarea id="kpi-category-description" maxLength={3000} rows={3} value={categoryEditor.description} onChange={(event) => setCategoryEditor({ ...categoryEditor, description: event.target.value })} placeholder="Describe the shared performance area." /></div><fieldset className="space-y-2"><legend className="text-sm font-medium">Departments that answer this category</legend><div className="grid gap-2 sm:grid-cols-2">{data.departments.map((value) => <label key={value} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={categoryEditor.departments.includes(value)} onChange={(event) => setCategoryEditor({ ...categoryEditor, departments: event.target.checked ? [...categoryEditor.departments, value] : categoryEditor.departments.filter((department) => department !== value) })} />{value}</label>)}</div></fieldset><div className="flex items-center gap-2"><input id="kpi-category-active" type="checkbox" checked={categoryEditor.is_active} onChange={(event) => setCategoryEditor({ ...categoryEditor, is_active: event.target.checked })} /><Label htmlFor="kpi-category-active">Active for future monthly assessments</Label></div>{categorySaveError && <p role="alert" className="text-sm text-destructive">{categorySaveError}</p>}<DialogFooter><Button type="submit" disabled={saveCategory.isPending || !categoryEditor.departments.length}>{saveCategory.isPending ? "Saving…" : "Save category"}</Button><Button type="button" variant="outline" disabled={saveCategory.isPending} onClick={() => setCategoryEditor(null)}>Cancel</Button></DialogFooter></form>}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign staff KPI categories dialog */}
+      <Dialog open={!!staffEditor} onOpenChange={(open) => { if (!open && !saveStaffCategories.isPending) setStaffEditor(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Assign extra KPI categories</DialogTitle>
+            <DialogDescription>
+              Selected categories are added on top of <strong>General</strong> and the staff member&apos;s department KPIs for future Monthly KPI cycles.
+            </DialogDescription>
+          </DialogHeader>
+          {staffEditor && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (saveStaffCategories.isPending) return;
+                saveStaffCategories.mutate();
+              }}
+              className="space-y-5"
+            >
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{staffEditor.user.name}</span>
+                  {staffEditor.user.is_supervisor && <Badge variant="outline">Supervisor</Badge>}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Department: {staffEditor.user.department || "Unassigned"} · Staff ID: {staffEditor.user.staff_id || "—"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Inherited automatically (General + Department)
+                </p>
+                {staffEditor.user.inherited_categories.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {staffEditor.user.inherited_categories.map((cat) => (
+                      <Badge key={cat.id} variant="secondary">
+                        {cat.name} ({cat.source === "general" ? "General" : staffEditor.user.department})
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No categories inherited from General or department yet.</p>
+                )}
+              </div>
+
+              <fieldset className="space-y-2.5">
+                <legend className="text-sm font-medium">Extra categories for this staff member</legend>
+                {!staffCategoryOptions.length ? (
+                  <p className="text-xs text-muted-foreground">No active KPI categories available.</p>
+                ) : (
+                  <div className="grid gap-2">
+                    {staffCategoryOptions.map((category) => {
+                      const inherited = staffEditor.user.inherited_categories.some((item) => item.id === category.id);
+                      const checked = inherited || staffEditor.categoryIds.includes(category.id);
+                      const applicableCount =
+                        category.all_staff_kpi_count + (staffEditor.user.is_supervisor ? category.supervisor_kpi_count : 0);
+                      return (
+                        <label
+                          key={category.id}
+                          className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${
+                            inherited ? "bg-muted/40 opacity-75" : "cursor-pointer hover:bg-muted/30"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            disabled={inherited || saveStaffCategories.isPending}
+                            onCheckedChange={(value) => toggleStaffCategory(category.id, !!value)}
+                            className="mt-0.5"
+                          />
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium">{category.name}</span>
+                              {inherited && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  Inherited
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="ml-auto text-[11px] tabular-nums">
+                                {applicableCount} KPI{applicableCount === 1 ? "" : "s"}
+                              </Badge>
+                            </div>
+                            {category.departments.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Departments: {category.departments.join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
+
+              {staffSaveError && (
+                <p role="alert" className="text-sm text-destructive">{staffSaveError}</p>
+              )}
+
+              <DialogFooter>
+                <Button type="submit" disabled={saveStaffCategories.isPending}>
+                  {saveStaffCategories.isPending ? "Saving…" : "Save assignments"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saveStaffCategories.isPending}
+                  onClick={() => setStaffEditor(null)}
+                >
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

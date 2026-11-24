@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PeriodParticipationPanel } from "./period-participation-panel";
 import {
   formatPerformanceDate,
   formatPerformancePeriodLabel,
@@ -99,10 +101,14 @@ export function PeriodReviewsView({
   initialData,
   period,
   filters,
+  canManagePeriod = false,
+  isSuperAdmin = false,
 }: {
   initialData: ReviewQueueResponse;
   period: NonNullable<ReviewQueueResponse["period"]>;
   filters: ReviewQueueFilters;
+  canManagePeriod?: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -128,35 +134,8 @@ export function PeriodReviewsView({
   const firstItem = pagination.total ? (pagination.page - 1) * pagination.per_page + 1 : 0;
   const lastItem = Math.min(pagination.page * pagination.per_page, pagination.total);
 
-  return (
+  const submittedReviewsContent = (
     <div className="space-y-6">
-      <PerformanceTour tourId="period-reviews" />
-      <div id="tour-pr-header" className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/performance/reviews?type=${period.type}`}>
-              <ArrowLeft className="mr-2 size-4" aria-hidden="true" />
-              Back
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {formatPerformancePeriodLabel(period.type, period.month)}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isAppraisal ? "Bi-Yearly Appraisal" : "Monthly KPI Review"} · Submission deadline{" "}
-              {formatPerformanceDate(period.submission_deadline)}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <PerformanceTourButton tourId="period-reviews" />
-          <Badge variant={period.status === "open" ? "default" : "secondary"} className="capitalize">
-            {period.status}
-          </Badge>
-        </div>
-      </div>
-
       <section id="tour-pr-metrics" aria-label="Period summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <PerformanceMetric label="Ready now" value={counts.ready} detail="Waiting for your review" tone="amber" />
         <PerformanceMetric label="In my queue" value={counts.assigned} detail="Assigned · not completed" />
@@ -401,6 +380,58 @@ export function PeriodReviewsView({
             </Pagination>
           </div>
         </>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <PerformanceTour tourId="period-reviews" />
+      <div id="tour-pr-header" className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/performance/reviews?type=${period.type}`}>
+              <ArrowLeft className="mr-2 size-4" aria-hidden="true" />
+              Back
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              {formatPerformancePeriodLabel(period.type, period.month)}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isAppraisal ? "Bi-Yearly Appraisal" : "Monthly KPI Review"} · Submission deadline{" "}
+              {formatPerformanceDate(period.submission_deadline)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <PerformanceTourButton tourId="period-reviews" />
+          <Badge variant={period.status === "open" ? "default" : "secondary"} className="capitalize">
+            {period.status}
+          </Badge>
+        </div>
+      </div>
+
+      {canManagePeriod ? (
+        <Tabs defaultValue="reviews" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="reviews">Submitted reviews</TabsTrigger>
+            <TabsTrigger value="participation">Participation &amp; management</TabsTrigger>
+          </TabsList>
+          <TabsContent value="reviews" className="space-y-6">
+            {submittedReviewsContent}
+          </TabsContent>
+          <TabsContent value="participation" className="space-y-6">
+            <PeriodParticipationPanel
+              periodId={period.id}
+              periodType={period.type}
+              isSuperAdmin={isSuperAdmin}
+            />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        submittedReviewsContent
       )}
     </div>
   );

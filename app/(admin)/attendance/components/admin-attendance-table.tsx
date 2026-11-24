@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceClockOut } from "@/components/attendance/attendance-clock-out";
+import { AttendanceDuration } from "@/components/attendance/attendance-duration";
 import { Button } from "@/components/ui/button";
 import {
   ClockInRecord,
@@ -306,6 +307,17 @@ export function AdminAttendanceTable({
           if (aName > bName) return direction === "asc" ? 1 : -1;
           return 0;
         },
+        net_work_minutes: (
+          a: ClockInRecord,
+          b: ClockInRecord,
+          direction: "asc" | "desc",
+        ) => {
+          const aVal = a.net_work_minutes ?? a.duration_minutes ?? -1;
+          const bVal = b.net_work_minutes ?? b.duration_minutes ?? -1;
+          if (aVal < bVal) return direction === "asc" ? -1 : 1;
+          if (aVal > bVal) return direction === "asc" ? 1 : -1;
+          return 0;
+        },
       },
     }),
     [],
@@ -402,12 +414,12 @@ export function AdminAttendanceTable({
               </TableHead>
               <TableHead
                 className="cursor-pointer transition-colors hover:text-foreground"
-                onClick={() => handleSort("duration_minutes")}
+                onClick={() => handleSort("net_work_minutes")}
               >
                 <div className="flex items-center">
-                  Duration{" "}
+                  Net Work Time{" "}
                   <SortIcon
-                    columnKey="duration_minutes"
+                    columnKey="net_work_minutes"
                     sortConfig={sortConfig}
                   />
                 </div>
@@ -530,9 +542,7 @@ export function AdminAttendanceTable({
                     </TableCell>
 
                     <TableCell>
-                      {record.duration_minutes
-                        ? `${Math.floor(record.duration_minutes / 60)}h ${record.duration_minutes % 60}m`
-                        : "-"}
+                      <AttendanceDuration record={record} />
                     </TableCell>
                     <TableCell>
                       {(() => {

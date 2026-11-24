@@ -23,6 +23,7 @@ import {
   ListTodo,
   Ticket,
   Images,
+  Video,
 } from "lucide-react";
 import type { UserRole } from "@/types/user-types";
 import { ANNOUNCEMENT_REVIEW_ROLES, canReviewAnnouncements } from "@/lib/announcement-review-access";
@@ -430,6 +431,13 @@ export const departmentNav: NavItem[] = [
     allowedRoles: ["it", "super"],
   },
   {
+    title: "Training Videos",
+    url: "/admin/training-videos",
+    icon: Video,
+    allowedRoles: ["hr", "it", "compliance", "super"],
+    requiresExplicitRole: true,
+  },
+  {
     title: "Manage Dept Contacts",
     url: "/it/departmental-contacts",
     icon: Users,
@@ -469,13 +477,13 @@ export const departmentNav: NavItem[] = [
     badgeLabel: "Announcements awaiting review",
   },
   {
-    title: "Appraisal Review Queue",
+    title: "Performance Review",
     url: "/performance/reviews",
     icon: ClipboardList,
     allowedRoles: ["hr", "compliance", "mp", "md", "super"],
     requiresReviewer: true,
     badgeKey: "performanceReviews",
-    badgeLabel: "Appraisals ready for your review",
+    badgeLabel: "Performance reviews ready for your review",
   },
   {
     title: "General Attendance",
@@ -533,6 +541,7 @@ export const personalNav: NavItem[] = [
         badgeLabel: "Clock in for today",
       },
       { title: "Employee Documents", url: "/my/documents" },
+      { title: "Training & Onboarding", url: "/my/training" },
       { title: "My Performance", url: "/my/performance", badgeKey: "monthlyKpiAssessment,performanceAppraisalUpdates", badgeLabel: "Monthly KPI assessment or appraisal update" },
       { title: "Request Staff", url: "/my/request-staff" },
     ],

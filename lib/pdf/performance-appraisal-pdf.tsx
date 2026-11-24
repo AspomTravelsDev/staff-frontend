@@ -532,11 +532,14 @@ const styles = StyleSheet.create({
   },
   signOffRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
     marginTop: 8,
   },
   signOffBox: {
-    flex: 1,
+    minWidth: "30%",
+    flexGrow: 1,
+    flexBasis: "30%",
     borderWidth: 0.75,
     borderColor: "#cbd5e1",
     borderRadius: 5,
@@ -795,6 +798,12 @@ export function PerformanceAppraisalPdfDocument({
                   {percentage !== null ? ` (${percentage}%)` : ""}
                 </Text>
               )}
+            {!isStructured && data.criteria.length > 0 && percentage !== null && (
+              <Text style={styles.scoreSecondary}>
+                {data.criteria.length} KPI{data.criteria.length === 1 ? "" : "s"} ·{" "}
+                {percentage}% achievement
+              </Text>
+            )}
           </View>
         </View>
 
@@ -1089,9 +1098,19 @@ export function PerformanceAppraisalPdfDocument({
                         {criterion.description}
                       </Text>
                     ) : null}
-                    {answer?.comment ? (
+                    {criterion.measurement_method ? (
+                      <Text style={{ fontSize: 8.5, color: "#64748b", marginTop: 2 }}>
+                        Measured by: {criterion.measurement_method}
+                      </Text>
+                    ) : null}
+                    {answer?.evidence ? (
                       <Text style={{ fontSize: 9, color: "#0f172a", marginTop: 3 }}>
-                        Evidence: {answer.comment}
+                        Evidence: {answer.evidence}
+                      </Text>
+                    ) : null}
+                    {answer?.comment ? (
+                      <Text style={{ fontSize: 9, color: "#0f172a", marginTop: 2 }}>
+                        Staff Comment: {answer.comment}
                       </Text>
                     ) : null}
                   </View>

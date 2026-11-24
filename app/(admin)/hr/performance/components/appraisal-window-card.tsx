@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Plus } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, Loader2, Plus, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,14 +19,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { openAppraisalCycleWindow } from "@/lib/api/performance-period.actions";
+import { getPeriodReadiness, openAppraisalCycleWindow } from "@/lib/api/performance-period.actions";
 import {
   buildSelectablePeriodMonths,
   defaultDeadlineForPeriod,
   formatPerformancePeriodLabel,
   getAppraisalCycleWindowInfo,
 } from "@/lib/performance-review";
-import type { PerformancePeriod } from "@/lib/types/performance-period";
+import type { PerformancePeriod, PeriodReadinessResponse } from "@/lib/types/performance-period";
 
 type PeriodType = PerformancePeriod["type"];
 
@@ -71,6 +73,10 @@ export function AppraisalPeriodDialog({
   const [deadline, setDeadline] = useState<string>(initialDeadline);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<PeriodReadinessResponse | null>(null);
+  const [readinessLoading, setReadinessLoading] = useState(false);
+  const [readinessError, setReadinessError] = useState<string | null>(null);
+  const [showReadinessDetails, setShowReadinessDetails] = useState(false);
 
   const existingTypeMonths = periods
     .filter((item) => item.type === selectedType)
@@ -86,6 +92,25 @@ export function AppraisalPeriodDialog({
     (item) => item.type === selectedType && item.month === selectedMonth,
   );
   const isEditingOpen = matchingPeriod?.status === "open";
+
+  useEffect(() => {
+    if (!open || isEditingOpen) return;
+    let active = true;
+    setReadinessLoading(true);
+    setReadinessError(null);
+    void getPeriodReadiness(selectedType).then((result) => {
+      if (!active) return;
+      setReadinessLoading(false);
+      if (!result.success) {
+        setReadinessError(result.error.message);
+        return;
+      }
+      setReadiness(result.data);
+    });
+    return () => {
+      active = false;
+    };
+  }, [open, isEditingOpen, selectedType]);
 
   function applySelection(nextType: PeriodType, nextMonth?: string) {
     const monthsForType = periods
@@ -147,7 +172,7 @@ export function AppraisalPeriodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEditingOpen ? "Update submission deadline" : "Start new appraisal / review"}
@@ -207,6 +232,95 @@ export function AppraisalPeriodDialog({
               }}
             />
           </div>
+          {!isEditingOpen && (
+            <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-foreground">Pre-flight staff readiness</span>
+                {readinessLoading ? (
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                    Checking staff setup…
+                  </span>
+                ) : readiness ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="secondary" className="gap-1">
+                      <CheckCircle2 className="size-3 text-green-600" aria-hidden="true" />
+                      {readiness.summary.ready} ready
+                    </Badge>
+                    {readiness.summary.warning > 0 && (
+                      <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                        <AlertTriangle className="size-3" aria-hidden="true" />
+                        {readiness.summary.warning} advisory
+                      </Badge>
+                    )}
+                    {readiness.summary.blocked > 0 && (
+                      <Badge variant="destructive" className="gap-1">
+                        <ShieldAlert className="size-3" aria-hidden="true" />
+                        {readiness.summary.blocked} blocked
+                      </Badge>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {readinessError && (
+                <p className="text-destructive">{readinessError}</p>
+              )}
+
+              {readiness && (readiness.summary.blocked > 0 || readiness.summary.warning > 0) && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground">
+                    <span>
+                      {readiness.summary.blocked > 0
+                        ? "Blocked staff will get an error when clicking Start until resolved."
+                        : "Some staff only match General KPIs or skip HR review."}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                      onClick={() => setShowReadinessDetails((value) => !value)}
+                    >
+                      {showReadinessDetails ? "Hide details" : "Inspect staff"}
+                      {showReadinessDetails ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                    </button>
+                  </div>
+
+                  {showReadinessDetails && (
+                    <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border bg-background p-2">
+                      {readiness.items
+                        .filter((item) => item.status !== "ready")
+                        .map((item) => (
+                          <div key={item.employee_id} className="rounded border px-2.5 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-foreground">
+                                {item.employee_name}
+                                {item.department ? ` · ${item.department}` : ""}
+                              </span>
+                              <Badge variant={item.status === "blocked" ? "destructive" : "outline"} className="text-[10px]">
+                                {item.kpi_count} KPI{item.kpi_count === 1 ? "" : "s"}
+                              </Badge>
+                            </div>
+                            {[...item.issues, ...item.warnings].map((msg) => (
+                              <p
+                                key={msg}
+                                className={`mt-1 ${item.issues.includes(msg) ? "text-destructive" : "text-amber-700 dark:text-amber-300"}`}
+                              >
+                                {msg}
+                              </p>
+                            ))}
+                          </div>
+                        ))}
+                      <div className="pt-1 text-right">
+                        <Link href="/hr/department-supervisors" className="text-primary hover:underline">
+                          Manage Department Supervisors →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}

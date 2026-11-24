@@ -53,12 +53,17 @@ export default async function PeriodReviewsPage({
     const data = await callAction(() => listAvailableReviews(filters));
     if (!data.period) notFound();
 
+    const canManagePeriod = userHasRole(user, "hr") || userHasRole(user, "super");
+    const isSuperAdmin = userHasRole(user, "super");
+
     return (
       <PeriodReviewsView
         key={`${periodId}-${data.filters.search}-${data.filters.status}-${data.filters.department}-${data.pagination.page}`}
         initialData={data}
         period={data.period}
         filters={{ ...data.filters, period_id: periodId, page: data.pagination.page }}
+        canManagePeriod={canManagePeriod}
+        isSuperAdmin={isSuperAdmin}
       />
     );
   }, "Unable to load period reviews");

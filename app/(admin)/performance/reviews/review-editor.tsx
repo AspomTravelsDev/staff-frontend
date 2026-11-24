@@ -183,7 +183,7 @@ export function ReviewEditor({ initialReview }: { initialReview: ReviewDetail })
   return <div className="space-y-6 pb-8">
     <PerformanceTour tourId="review-editor" />
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : `/performance/reviews?type=${review.type}`)}>{review.period_id ? "Back to period reviews" : "Back to Appraisal Review Queue"}</Button>
+      <Button variant="outline" disabled={pending} onClick={() => dirty ? setDialog("discard") : router.push(review.period_id ? `/performance/reviews/periods/${review.period_id}` : `/performance/reviews?type=${review.type}`)}>{review.period_id ? "Back to period reviews" : "Back to Performance Review"}</Button>
       <div className="flex flex-wrap items-center gap-2">
         {review.status === "completed" && (
           <AppraisalPdfButton data={review} label="Download Branded PDF" />

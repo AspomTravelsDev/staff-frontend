@@ -3,7 +3,16 @@
 import { api } from "./client";
 import { ExpectedActionError } from "./action-result";
 import { runAction } from "./run-action";
-import type { PerformancePeriod, PeriodDetail, PeriodInput, PeriodPreview, PeriodStaff } from "@/lib/types/performance-period";
+import type {
+  PerformancePeriod,
+  PeriodDetail,
+  PeriodInput,
+  PeriodParticipationResponse,
+  PeriodPreview,
+  PeriodReadinessResponse,
+  PeriodStaff,
+  ReassignableStage,
+} from "@/lib/types/performance-period";
 
 export async function listPerformancePeriods() {
   return runAction(async () => {
@@ -71,4 +80,76 @@ export async function closePerformancePeriod(id: string) {
     if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
     return result.data.data;
   }, "closePerformancePeriod");
+}
+
+export async function getPeriodReadiness(type: "monthly_kpi" | "appraisal" = "monthly_kpi") {
+  return runAction(async () => {
+    const result = await api.get<{ data: PeriodReadinessResponse }>(
+      `/api/performance/periods/readiness?type=${encodeURIComponent(type)}`,
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data.data;
+  }, "getPeriodReadiness");
+}
+
+export async function getPeriodParticipation(periodId: string) {
+  return runAction(async () => {
+    const result = await api.get<{ data: PeriodParticipationResponse }>(
+      `/api/performance/periods/${encodeURIComponent(periodId)}/participation`,
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data.data;
+  }, "getPeriodParticipation");
+}
+
+export async function remindPeriodParticipant(
+  periodId: string,
+  payload: { employee_id?: string; appraisal_id?: string },
+) {
+  return runAction(async () => {
+    const result = await api.post<{ message: string }>(
+      `/api/performance/periods/${encodeURIComponent(periodId)}/remind`,
+      payload,
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "remindPeriodParticipant");
+}
+
+export async function refreshAppraisalCriteria(periodId: string, appraisalId: string) {
+  return runAction(async () => {
+    const result = await api.post<{ message: string }>(
+      `/api/performance/periods/${encodeURIComponent(periodId)}/appraisals/${encodeURIComponent(appraisalId)}/refresh-criteria`,
+      {},
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "refreshAppraisalCriteria");
+}
+
+export async function resetPeriodAppraisal(periodId: string, appraisalId: string, reason?: string) {
+  return runAction(async () => {
+    const result = await api.post<{ message: string }>(
+      `/api/performance/periods/${encodeURIComponent(periodId)}/appraisals/${encodeURIComponent(appraisalId)}/reset`,
+      reason ? { reason } : {},
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "resetPeriodAppraisal");
+}
+
+export async function reassignAppraisalReviewer(
+  periodId: string,
+  appraisalId: string,
+  stage: ReassignableStage,
+  reviewerId: string,
+) {
+  return runAction(async () => {
+    const result = await api.patch<{ message: string }>(
+      `/api/performance/periods/${encodeURIComponent(periodId)}/appraisals/${encodeURIComponent(appraisalId)}/reviewer`,
+      { stage, reviewer_id: reviewerId },
+    );
+    if (!result.success) throw new ExpectedActionError(result.error.error, result.error.code);
+    return result.data;
+  }, "reassignAppraisalReviewer");
 }
