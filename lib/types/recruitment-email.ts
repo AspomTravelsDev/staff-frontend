@@ -28,6 +28,38 @@ export interface RecruitmentEmailInput {
   revision: number;
   draft_revision: number;
   fields: Record<string, string | number | null>;
+  custom_subject?: string | null;
+  custom_body?: string | null;
+}
+
+export interface BatchPipelineCandidateItem {
+  candidate_id: string;
+  name: string;
+  email: string | null;
+  valid_email: boolean;
+  event_id: string;
+  revision: number;
+  draft_revision: number;
+  saved_fields: Record<string, string | number | null>;
+}
+
+export interface BatchPipelineEmailGroup {
+  template: string;
+  label: string;
+  outcome: "pass" | "fail";
+  subject_template: string;
+  body_template: string;
+  field_definitions: RecruitmentEmailField[];
+  candidates: BatchPipelineCandidateItem[];
+}
+
+export interface BatchPipelineEmailPreview {
+  role_title: string;
+  signature_html: string;
+  cc: string | null;
+  reply_to: string;
+  groups: BatchPipelineEmailGroup[];
+  skipped_no_pending: number;
 }
 
 export interface RecruitmentEmails {

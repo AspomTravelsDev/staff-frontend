@@ -25,7 +25,7 @@ const applicant = {
   ai_evaluation: { status: "failed" },
 };
 
-function board(reanalyse, initialProps = {}) {
+function board(reanalyse, initialProps = {}, emailOverrides = {}) {
   const hooks = [],
     calls = [],
     messages = [],
@@ -56,7 +56,7 @@ function board(reanalyse, initialProps = {}) {
     "next/navigation": {
       useRouter: () => ({ refresh: () => refreshes.push(true) }),
     },
-    "lucide-react": named("ArrowRight Loader2 MoreHorizontal RotateCw"),
+    "lucide-react": named("ArrowRight Loader2 MoreHorizontal RotateCw Mail SkipForward"),
     sonner: {
       toast: {
         success: (value) => messages.push(["success", value]),
@@ -88,15 +88,41 @@ function board(reanalyse, initialProps = {}) {
     "./applicant-stage-workspace": named("ApplicantStageWorkspace"),
     "./applicant-status-dialog": named("ApplicantStatusDialog"),
     "./candidate-emails-dialog": named("CandidateEmailsDialog"),
+    "./batch-pipeline-emails-dialog": named("BatchPipelineEmailsDialog"),
     "./candidate-overview-sheet": named("CandidateOverviewSheet"),
     "./stage-documents-dialog": named("StageDocumentsDialog"),
     "./vacancy-settings-dialog": named("VacancySettingsDialog"),
     "./management-review-sheet": named("ManagementReviewSheet"),
     "./prepare-offer-dialog": named("PrepareOfferDialog"),
+    "@/lib/api/recruitment-email": {
+      batchSkipRecruitmentEmails: async (...args) =>
+        emailOverrides.batchSkip
+          ? emailOverrides.batchSkip(...args)
+          : { success: true, data: { skipped_ids: args[1], skipped_count: args[1].length } },
+    },
     "@/lib/api/recruitment": {
       reanalyzeCandidate: async (...args) => {
         calls.push(args);
         return reanalyse(...args);
+      },
+      batchAnalyzeCandidates: async (roleId, ids) => {
+        calls.push(["batch", roleId, ids]);
+        if (emailOverrides.batchAnalyze) {
+          return emailOverrides.batchAnalyze(roleId, ids);
+        }
+        return {
+          success: true,
+          data: {
+            rate_limited: false,
+            retry_after_seconds: null,
+            results: ids.map((id) => ({
+              candidate_id: id,
+              status: "completed",
+              reused: false,
+              candidate: { ...(candidates.find((c) => c.id === id) ?? applicant), ai_score: 80, ai_evaluation: { status: "completed" } },
+            })),
+          },
+        };
       },
     },
   });
@@ -514,20 +540,89 @@ test("pending email remains the visible next action after closing, and explicit 
   assert.ok(nodes(tree, "Button").some(node => node.props["aria-label"] === "Start oral interview for Ada"));
 });
 
-test("selected CVs are analysed with bounded concurrency and only failures remain selected", async () => {
-  let active = 0, max = 0;
-  const candidates = [1, 2, 3].map(i => ({ ...applicant, id: `bulk-${i}`, name: `Candidate ${i}`, ai_evaluation: { status: "not_requested" } }));
-  const control = board(async id => {
-    active++; max = Math.max(max, active); await tick(); active--;
-    return id === "bulk-2" ? { success: false, error: "Provider unavailable" } : { success: true, data: { ...candidates.find(c => c.id === id), ai_score: 80, ai_evaluation: { status: "completed" } } };
+test("selected CVs are screened in micro-batches, retain failures, cool down on 429, and refresh once", async () => {
+  const candidates = [1, 2, 3, 4, 5].map(i => ({ ...applicant, id: `bulk-${i}`, name: `Candidate ${i}`, ai_evaluation: { status: "not_requested" } }));
+  let rateLimitedOnce = false;
+  const control = board(async () => ({ success: false }), {}, {
+    batchAnalyze: async (_roleId, ids) => {
+      if (ids.includes("bulk-5") && !rateLimitedOnce) {
+        rateLimitedOnce = true;
+        return {
+          success: true,
+          data: {
+            rate_limited: true,
+            retry_after_seconds: 1,
+            results: [{ candidate_id: "bulk-5", status: "failed", reused: false, candidate: { ...candidates[4], ai_evaluation: { status: "failed", failure_code: "provider_http_429", retry_after_seconds: 1 } } }],
+          },
+        };
+      }
+      return {
+        success: true,
+        data: {
+          rate_limited: false,
+          retry_after_seconds: null,
+          results: ids.map((id) =>
+            id === "bulk-2"
+              ? { candidate_id: id, status: "failed", reused: false, candidate: { ...candidates[1], ai_evaluation: { status: "failed", failure_code: "invalid_response" } } }
+              : { candidate_id: id, status: "completed", reused: false, candidate: { ...candidates.find(c => c.id === id), ai_score: 80, ai_evaluation: { status: "completed" } } }
+          ),
+        },
+      };
+    },
   });
   let tree = control.render(candidates);
-  nodes(tree, "input").find(node => node.props["aria-label"] === "Select up to 20 visible applicants for AI screening").props.onChange({ target: { checked: true } });
+  nodes(tree, "input").find(node => node.props["aria-label"] === "Select up to 50 visible applicants for AI screening").props.onChange({ target: { checked: true } });
   tree = control.render();
-  nodes(tree, "Button").find(node => node.props.children === "Analyze selected (3)").props.onClick();
-  await tick(); await tick(); await tick();
+  nodes(tree, "Button").find(node => node.props.children === "Analyze selected (5)").props.onClick();
+  await new Promise(resolve => setTimeout(resolve, 1200));
   tree = control.render();
-  assert.equal(control.calls.length, 3); assert.equal(max, 2);
+  // Sent [4], [1], then cooldown-retried [1] -> 3 batch calls, only 1 router refresh at end, and only bulk-2 stays selected.
+  assert.deepEqual(control.calls.map(c => c[2]), [["bulk-1", "bulk-2", "bulk-3", "bulk-4"], ["bulk-5"], ["bulk-5"]]);
+  assert.equal(control.refreshes.length, 1);
   assert.ok(nodes(tree, "Button").some(node => node.props.children === "Analyze selected (1)"));
   assert.ok(control.messages.some(([kind, text]) => kind === "error" && text.includes("remain selected")));
+});
+
+test("pending emails filter, batch send dialog, and bulk skip clear pending rows immediately", async () => {
+  const skippedCalls = [];
+  const list = [
+    { ...applicant, id: "p-1", name: "Ada", pipeline_stage: "oral_interview", email_summary: { pending: true, status: "pending", event_id: "e-1" } },
+    { ...applicant, id: "p-2", name: "Bola", pipeline_stage: "oral_interview", email_summary: { pending: true, status: "pending", event_id: "e-2" } },
+    { ...applicant, id: "c-3", name: "Chidi", pipeline_stage: "cv_screening", email_summary: { pending: false, status: null, event_id: null } },
+  ];
+  const control = board(async () => ({ success: false }), {}, {
+    batchSkip: async (roleId, ids) => {
+      skippedCalls.push([roleId, ids]);
+      return { success: true, data: { skipped_ids: ids, skipped_count: ids.length } };
+    },
+  });
+
+  let tree = control.render(list);
+  const pendingBtn = nodes(tree, "Button").find((n) => JSON.stringify(n.props.children).includes("Pending emails"));
+  assert.ok(pendingBtn);
+  pendingBtn.props.onClick();
+  tree = control.render();
+  assert.equal(nodes(tree, "TableBody")[0].props.children[0].length, 2);
+
+  // Clicking "Send pending emails (2)" opens BatchPipelineEmailsDialog with all visible pending IDs.
+  nodes(tree, "Button")
+    .find((n) => JSON.stringify(n.props.children).includes("Send pending emails"))
+    .props.onClick();
+  tree = control.render();
+  assert.deepEqual(nodes(tree, "BatchPipelineEmailsDialog")[0].props.candidateIds, ["p-1", "p-2"]);
+  nodes(tree, "BatchPipelineEmailsDialog")[0].props.onClose();
+  tree = control.render();
+
+  // Select all pending rows and click "Skip emails (2)".
+  nodes(tree, "input")
+    .find((n) => n.props["aria-label"] === "Select up to 50 visible applicants for AI screening")
+    .props.onChange({ target: { checked: true } });
+  tree = control.render();
+  nodes(tree, "Button")
+    .find((n) => JSON.stringify(n.props.children).includes("Skip emails"))
+    .props.onClick();
+  await tick();
+  tree = control.render();
+  assert.deepEqual(skippedCalls, [["role-1", ["p-1", "p-2"]]]);
+  assert.equal(nodes(tree, "TableBody")[0].props.children[0].length, 0);
 });

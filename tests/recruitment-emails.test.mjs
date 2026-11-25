@@ -24,6 +24,7 @@ function dialog(data = fixture(), sender) {
       useEffect(callback, deps) { const i = cursor++; if (!slots[i] || deps.some((value, j) => slots[i][j] !== value)) { slots[i] = deps; effects.push(callback); } },
     },
     "react/jsx-runtime": jsxRuntime,
+    "lucide-react": named("Edit3 Sparkles"),
     "@/components/ui/button": named("Button"), "@/components/ui/input": named("Input"), "@/components/ui/label": named("Label"), "@/components/ui/textarea": named("Textarea"),
     "@/components/ui/dialog": named("Dialog DialogContent DialogDescription DialogHeader DialogTitle"),
     "@/lib/api/recruitment-email": {
@@ -134,4 +135,31 @@ test("conditional fields, HTTPS links, dates and placeholder text are checked", 
   assert.equal(emailFieldsComplete(fields, { delivery_method: "link", delivery_link: "https://example.test/q" }), true);
   assert.equal(emailFieldsComplete([{ key: "focus", required: true, type: "text" }], { focus: "[brief focus]" }), false);
   assert.equal(previewRecruitmentEmail("Call on {{day}}", [{ key: "day", type: "date" }], { day: "2026-11-01" }), "Call on 1 November 2026");
+});
+
+test("batch candidate email API actions call batch-preview and batch-skip endpoints", async () => {
+  const calls = [];
+  const actions = actionLoader(async (method, path, body) => {
+    calls.push({ method, path, body });
+    return {
+      success: true,
+      data: {
+        data: path.endsWith("batch-preview")
+          ? { role_title: "Accounts", groups: [], skipped_no_pending: 0 }
+          : { skipped_ids: ["ada"], skipped_count: 1 },
+      },
+    };
+  }).load("lib/api/recruitment-email.ts");
+
+  const preview = await actions.getBatchRecruitmentEmailsPreview("role-1", ["ada"]);
+  assert.equal(preview.role_title, "Accounts");
+  const skipRes = await actions.batchSkipRecruitmentEmails("role-1", ["ada"]);
+  assert.equal(skipRes.data.skipped_count, 1);
+  assert.deepEqual(
+    calls.map((c) => [c.method, c.path]),
+    [
+      ["post", "/api/recruitment/roles/role-1/emails/batch-preview"],
+      ["post", "/api/recruitment/roles/role-1/emails/batch-skip"],
+    ],
+  );
 });

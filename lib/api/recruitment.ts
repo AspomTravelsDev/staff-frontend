@@ -128,6 +128,19 @@ export async function uploadCandidateCv(
   return { success: true, data: response.data.data };
 }
 
+export type BatchAnalyzeItemResult = {
+  candidate_id: string;
+  status: "completed" | "failed" | "busy";
+  reused: boolean;
+  candidate: RecruitmentCandidate | null;
+};
+
+export type BatchAnalyzeResponse = {
+  results: BatchAnalyzeItemResult[];
+  rate_limited: boolean;
+  retry_after_seconds: number | null;
+};
+
 export async function reanalyzeCandidate(
   candidateId: string,
   roleId: string
@@ -140,6 +153,24 @@ export async function reanalyzeCandidate(
   }
   revalidatePath(`/hr/recruitment/${roleId}`);
   return { success: true, data: response.data.data, ...(response.data.analysis_reused !== undefined ? { analysisReused: response.data.analysis_reused } : {}) };
+}
+
+export async function batchAnalyzeCandidates(
+  roleId: string,
+  candidateIds: string[],
+): Promise<RecruitmentActionResult<BatchAnalyzeResponse>> {
+  const response = await api.post<{ data: BatchAnalyzeResponse }>(
+    `/api/recruitment/roles/${roleId}/candidates/batch-analyze`,
+    { candidate_ids: candidateIds },
+  );
+  if (!response.success) {
+    return {
+      success: false,
+      error: response.error?.error || "Failed to run batch CV analysis",
+      errorCode: response.error?.code,
+    };
+  }
+  return { success: true, data: response.data.data };
 }
 
 export async function prepareCandidateInterview(candidateId: string) {

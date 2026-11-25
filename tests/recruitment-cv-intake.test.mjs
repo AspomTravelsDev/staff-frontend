@@ -45,8 +45,10 @@ test('possible duplicates require the explicit Upload anyway action',async()=>{
 });
 
 test('file limits and invalid documents are rejected before any upload',()=>{
- const {cvFileError,CV_UPLOAD_LIMIT}=actionLoader().load('lib/recruitment/cv-intake.ts');
+ const {cvFileError,CV_UPLOAD_LIMIT,CV_BATCH_ANALYZE_LIMIT,chunkItems}=actionLoader().load('lib/recruitment/cv-intake.ts');
  assert.equal(CV_UPLOAD_LIMIT,20);
+ assert.equal(CV_BATCH_ANALYZE_LIMIT,50);
+ assert.deepEqual(chunkItems([1,2,3,4,5],4),[[1,2,3,4],[5]]);
  assert.match(cvFileError({name:'archive.zip',size:100}),/PDF/);
  assert.match(cvFileError({name:'big.pdf',size:16*1024*1024}),/15 MB/);
  const control=dialog(async()=>{throw Error('must not upload');});

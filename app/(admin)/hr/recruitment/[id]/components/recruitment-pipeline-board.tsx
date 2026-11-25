@@ -15,6 +15,8 @@ import {
   XCircle,
   Trophy,
   RotateCcw,
+  Mail,
+  SkipForward,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,16 +55,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatsCard } from "@/components/stats-card";
-import { reanalyzeCandidate } from "@/lib/api/recruitment";
+import { batchAnalyzeCandidates, reanalyzeCandidate } from "@/lib/api/recruitment";
+import { batchSkipRecruitmentEmails } from "@/lib/api/recruitment-email";
 import { decideRecruitmentStage } from "@/lib/api/recruitment-pipeline";
 import { cvEvaluationScore, cvAnalysisFailureMessage } from "@/lib/recruitment/cv-evaluation";
-import { runRecruitmentBatch, CV_UPLOAD_LIMIT } from "@/lib/recruitment/cv-intake";
+import {
+  CV_BATCH_ANALYZE_LIMIT,
+  CV_MICRO_BATCH_SIZE,
+  chunkItems,
+} from "@/lib/recruitment/cv-intake";
 import { UploadCvDialog } from "./upload-cv-dialog";
 import { CvAnalysisSheet } from "./cv-analysis-sheet";
 import { ApplicantAdvanceDialog } from "./applicant-advance-dialog";
 import { StageDocumentsDialog } from "./stage-documents-dialog";
 import { ApplicantStageWorkspace } from "./applicant-stage-workspace";
 import { CandidateEmailsDialog } from "./candidate-emails-dialog";
+import { BatchPipelineEmailsDialog } from "./batch-pipeline-emails-dialog";
 import { CandidateOverviewSheet } from "./candidate-overview-sheet";
 import { ApplicantStatusDialog } from "./applicant-status-dialog";
 import { VacancySettingsDialog } from "./vacancy-settings-dialog";
@@ -164,6 +172,9 @@ export function RecruitmentPipelineBoard({
     undefined,
   );
   const [emailId, setEmailId] = useState<string | null>(null);
+  const [batchEmailIds, setBatchEmailIds] = useState<string[] | null>(null);
+  const [emailBatchBusy, setEmailBatchBusy] = useState(false);
+  const [emailFilter, setEmailFilter] = useState<"all" | "pending">("all");
   const [overviewId, setOverviewId] = useState<string | null>(null);
   const [statusAction, setStatusAction] = useState("");
   const [managementId, setManagementId] = useState<string | null>(null);
@@ -212,6 +223,7 @@ export function RecruitmentPipelineBoard({
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchProgress, setBatchProgress] = useState("");
   const batchLock = useRef(false);
+  const batchCancelRef = useRef(false);
   const inFlight = useRef(new Set<string>());
   // Fresh server records supersede optimistic analysis and stage updates.
   const applicants = candidates.map((c) =>
@@ -250,10 +262,12 @@ export function RecruitmentPipelineBoard({
                 : c.pipeline_summary?.started
                   ? "In progress"
                   : "Not started";
+  const pendingEmailsCount = applicants.filter((c) => !!c.email_summary?.pending).length;
   const visible = applicants.filter(
     (c) =>
       (stage === "all" || c.pipeline_stage === stage) &&
       (outcome === "all" || c.pipeline_outcome === outcome) &&
+      (emailFilter === "all" || !!c.email_summary?.pending) &&
       `${c.name} ${c.email ?? ""}`.toLowerCase().includes(search.toLowerCase()),
   );
   const stageOrderRank: Record<string, number> = {
@@ -352,7 +366,7 @@ export function RecruitmentPipelineBoard({
       if (result.data.ai_evaluation?.status === "failed")
         { if (!quiet) toast.error(cvAnalysisFailureMessage(result.data)); }
       else if (!quiet) toast.success(result.analysisReused ? "Saved screening reused. No new AI request was needed." : "AI analysis completed.");
-      router.refresh();
+      if (!quiet) router.refresh();
       return result.data.ai_evaluation?.status !== "failed";
     } catch {
       if (!quiet) toast.error("AI analysis could not be started. Please retry.");
@@ -364,24 +378,170 @@ export function RecruitmentPipelineBoard({
   }
   async function retryAnalysis(candidate: RecruitmentCandidate) { await analyzeCandidate(candidate); }
   const selectedApplicants = applicants.filter(candidate => selectedCvs.includes(candidate.id));
+  const selectedPendingEmailIds = selectedApplicants
+    .filter((c) => !!c.email_summary?.pending)
+    .map((c) => c.id);
+  const visiblePendingEmailIds = visible
+    .filter((c) => !!c.email_summary?.pending)
+    .map((c) => c.id);
+  const visibleUnscreenedIds = visible
+    .filter((c) => canSelectCv(c) && (c.ai_evaluation?.status === "not_requested" || c.ai_evaluation?.status === "failed"))
+    .slice(0, CV_BATCH_ANALYZE_LIMIT)
+    .map((c) => c.id);
   function canSelectCv(candidate: RecruitmentCandidate) {
     return candidate.pipeline_outcome === "active" && !["pending", "processing"].includes(candidate.ai_evaluation?.status ?? "") && !retrying.includes(candidate.id);
   }
-  async function analyzeSelected() {
-    if (batchLock.current) return;
-    const items = selectedApplicants.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT);
-    if (!items.length) return;
-    batchLock.current = true; setBatchRunning(true);
-    let done = 0, failed = 0;
-    setBatchProgress(`Analysing 0 of ${items.length} CVs…`);
+  function applyEmailStatuses(statusMap: Record<string, "sent" | "skipped">) {
+    for (const [id, status] of Object.entries(statusMap)) {
+      const candidate = applicants.find((c) => c.id === id);
+      const source = candidates.find((c) => c.id === id);
+      if (candidate && source) {
+        const email_summary = {
+          ...candidate.email_summary,
+          pending: false,
+          status,
+          event_id: candidate.email_summary?.event_id ?? null,
+        };
+        setUpdates((prev) => ({ ...prev, [id]: { source, candidate: { ...candidate, email_summary } } }));
+        const context = contextFor(id);
+        if (context) {
+          setContextUpdates((prev) => ({
+            ...prev,
+            [id]: { source, data: { ...context, candidate: { ...context.candidate, email_summary } } },
+          }));
+        }
+      }
+    }
+    router.refresh();
+  }
+  async function skipSelectedEmails() {
+    if (emailBatchBusy || !selectedPendingEmailIds.length) return;
+    setEmailBatchBusy(true);
     try {
-      await runRecruitmentBatch(items, async candidate => {
-        if (await analyzeCandidate(candidate, true)) setSelectedCvs(previous => previous.filter(id => id !== candidate.id)); else failed++;
-        done++; setBatchProgress(`Analysed ${done} of ${items.length} CVs${failed ? ` · ${failed} failed` : ""}`);
-      });
-      if (failed) toast.error(`${failed} CV${failed === 1 ? "" : "s"} could not be analysed. They remain selected for retry.`);
-      else toast.success(`${items.length} CV${items.length === 1 ? "" : "s"} screened. Unchanged saved results were reused.`);
-    } finally { batchLock.current = false; setBatchRunning(false); router.refresh(); }
+      const res = await batchSkipRecruitmentEmails(role.id, selectedPendingEmailIds);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      const statusMap: Record<string, "sent" | "skipped"> = {};
+      for (const id of res.data.skipped_ids) statusMap[id] = "skipped";
+      applyEmailStatuses(statusMap);
+      setSelectedCvs((prev) => prev.filter((id) => !res.data.skipped_ids.includes(id)));
+      toast.success(`Skipped ${res.data.skipped_count} pending email${res.data.skipped_count === 1 ? "" : "s"}.`);
+    } catch {
+      toast.error("Could not skip selected emails. Please retry.");
+    } finally {
+      setEmailBatchBusy(false);
+    }
+  }
+  async function analyzeSelected(overrideIds?: string[]) {
+    if (batchLock.current) return;
+    const items = overrideIds
+      ? applicants.filter((c) => overrideIds.includes(c.id) && canSelectCv(c)).slice(0, CV_BATCH_ANALYZE_LIMIT)
+      : selectedApplicants.filter(canSelectCv).slice(0, CV_BATCH_ANALYZE_LIMIT);
+    if (!items.length) return;
+
+    batchLock.current = true;
+    batchCancelRef.current = false;
+    setBatchRunning(true);
+    let done = 0;
+    let failed = 0;
+    const total = items.length;
+    const queue = chunkItems(items.map((c) => c.id), CV_MICRO_BATCH_SIZE);
+    const cooldownAttempts = new Map<string, number>();
+
+    setBatchProgress(`Analysing 0 of ${total} CVs…`);
+    try {
+      while (queue.length > 0 && !batchCancelRef.current) {
+        const chunkIds = queue.shift()!;
+        setRetrying(chunkIds);
+        const result = await batchAnalyzeCandidates(role.id, chunkIds);
+
+        if (!result.success || !result.data) {
+          failed += chunkIds.length;
+          setBatchProgress(`Analysed ${done} of ${total} CVs${failed ? ` · ${failed} failed` : ""}`);
+          continue;
+        }
+
+        const retryable429: string[] = [];
+        const completedIds: string[] = [];
+
+        for (const item of result.data.results) {
+          if (item.candidate) {
+            const source = candidates.find((c) => c.id === item.candidate_id);
+            if (source) {
+              setUpdates((values) => ({
+                ...values,
+                [item.candidate_id]: { source, candidate: item.candidate! },
+              }));
+              const loadedContext = contextFor(item.candidate_id);
+              if (loadedContext) {
+                setContextUpdates((prev) => ({
+                  ...prev,
+                  [item.candidate_id]: {
+                    source,
+                    data: { ...loadedContext, candidate: { ...loadedContext.candidate, ...item.candidate! } },
+                  },
+                }));
+              }
+              const review = reviewFor(item.candidate_id);
+              if (review?.ai && !item.reused) {
+                updateReview(item.candidate_id, { ...review, ai_stale: true });
+              }
+            }
+          }
+
+          if (item.status === "completed") {
+            done++;
+            completedIds.push(item.candidate_id);
+          } else if (
+            item.candidate?.ai_evaluation?.failure_code === "provider_http_429" &&
+            (cooldownAttempts.get(item.candidate_id) ?? 0) < 2
+          ) {
+            retryable429.push(item.candidate_id);
+          } else {
+            failed++;
+          }
+        }
+
+        if (completedIds.length) {
+          setSelectedCvs((prev) => prev.filter((id) => !completedIds.includes(id)));
+        }
+
+        if (retryable429.length > 0 && !batchCancelRef.current) {
+          for (const id of retryable429) {
+            cooldownAttempts.set(id, (cooldownAttempts.get(id) ?? 0) + 1);
+          }
+          setRetrying([]);
+          const waitSeconds = Math.min(65, Math.max(1, Number(result.data.retry_after_seconds ?? 20)));
+          for (let sec = waitSeconds; sec >= 1 && !batchCancelRef.current; sec--) {
+            setBatchProgress(
+              `AI rate limit reached — cooling down ${sec}s, then resuming automatically (${done} of ${total} scored)…`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          if (!batchCancelRef.current) {
+            queue.unshift(...chunkItems(retryable429, CV_MICRO_BATCH_SIZE));
+          }
+        } else {
+          setBatchProgress(`Analysed ${done} of ${total} CVs${failed ? ` · ${failed} failed` : ""}`);
+        }
+      }
+
+      if (batchCancelRef.current) {
+        toast.error(`Batch CV analysis stopped (${done} of ${total} scored).`);
+      } else if (failed) {
+        toast.error(`${failed} CV${failed === 1 ? "" : "s"} could not be analysed. They remain selected for retry.`);
+      } else {
+        toast.success(`${done} CV${done === 1 ? "" : "s"} screened. Unchanged saved results were reused.`);
+      }
+    } finally {
+      setRetrying([]);
+      batchLock.current = false;
+      batchCancelRef.current = false;
+      setBatchRunning(false);
+      router.refresh();
+    }
   }
   function updateApplicant(context: PipelineContext, evidenceChanged = true) {
     const source = candidates.find((c) => c.id === context.candidate.id)!;
@@ -564,8 +724,58 @@ export function RecruitmentPipelineBoard({
             </span>
           </h2>
           <div className="flex flex-wrap gap-2">
+            {(pendingEmailsCount > 0 || emailFilter === "pending") && (
+              <Button
+                variant={emailFilter === "pending" ? "secondary" : "outline"}
+                onClick={() => setEmailFilter((prev) => (prev === "pending" ? "all" : "pending"))}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Pending emails ({pendingEmailsCount})
+              </Button>
+            )}
+            {selectedPendingEmailIds.length > 0 ? (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={emailBatchBusy || batchRunning}
+                  onClick={() => setBatchEmailIds(selectedPendingEmailIds)}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Send emails ({selectedPendingEmailIds.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={emailBatchBusy || batchRunning}
+                  onClick={() => void skipSelectedEmails()}
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Skip emails ({selectedPendingEmailIds.length})
+                </Button>
+              </>
+            ) : (
+              visiblePendingEmailIds.length > 0 && (
+                <Button
+                  variant="outline"
+                  disabled={emailBatchBusy || batchRunning}
+                  onClick={() => setBatchEmailIds(visiblePendingEmailIds)}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Send pending emails ({visiblePendingEmailIds.length})
+                </Button>
+              )
+            )}
             <Button variant="outline" disabled={batchRunning || !selectedApplicants.some(canSelectCv)} onClick={() => void analyzeSelected()}>{batchRunning ? "Analysing selected…" : `Analyze selected (${selectedApplicants.length})`}</Button>
-            {!!selectedCvs.length && <Button variant="ghost" disabled={batchRunning} onClick={() => setSelectedCvs([])}>Clear selection</Button>}
+            {!batchRunning && selectedApplicants.length === 0 && visibleUnscreenedIds.length > 0 && (
+              <Button variant="outline" disabled={emailBatchBusy} onClick={() => void analyzeSelected(visibleUnscreenedIds)}>
+                Analyze unscreened ({visibleUnscreenedIds.length})
+              </Button>
+            )}
+            {batchRunning && (
+              <Button variant="ghost" onClick={() => { batchCancelRef.current = true; }}>
+                Stop
+              </Button>
+            )}
+            {!!selectedCvs.length && <Button variant="ghost" disabled={batchRunning || emailBatchBusy} onClick={() => setSelectedCvs([])}>Clear selection</Button>}
             <Input
               aria-label="Search applicants"
               placeholder="Search name or email"
@@ -611,12 +821,13 @@ export function RecruitmentPipelineBoard({
                 )}
               </SelectContent>
             </Select>
-            {(stage !== "all" || outcome !== "all" || search) && (
+            {(stage !== "all" || outcome !== "all" || emailFilter !== "all" || search) && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setStage("all");
                   setOutcome("all");
+                  setEmailFilter("all");
                   setSearch("");
                 }}
               >
@@ -625,12 +836,12 @@ export function RecruitmentPipelineBoard({
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground" role="status" aria-live="polite">{batchProgress || "Select up to 20 applicants to screen. Unchanged CVs reuse their saved analysis."}</p>
+        <p className="text-xs text-muted-foreground" role="status" aria-live="polite">{batchProgress || `Select up to ${CV_BATCH_ANALYZE_LIMIT} applicants to screen in micro-batches. Unchanged CVs reuse their saved analysis.`}</p>
         <div className="rounded-md border">
           <Table className="text-xs">
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[170px]"><label className="flex items-center gap-2"><input type="checkbox" aria-label="Select up to 20 visible applicants for AI screening" disabled={batchRunning || !visible.some(canSelectCv)} checked={visible.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT).length > 0 && visible.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT).every(candidate => selectedCvs.includes(candidate.id))} onChange={event => setSelectedCvs(event.target.checked ? visible.filter(canSelectCv).slice(0, CV_UPLOAD_LIMIT).map(candidate => candidate.id) : [])} />Applicant</label></TableHead>
+                <TableHead className="min-w-[170px]"><label className="flex items-center gap-2"><input type="checkbox" aria-label="Select up to 50 visible applicants for AI screening" disabled={batchRunning || emailBatchBusy || !visible.length} checked={visible.slice(0, CV_BATCH_ANALYZE_LIMIT).length > 0 && visible.slice(0, CV_BATCH_ANALYZE_LIMIT).every(candidate => selectedCvs.includes(candidate.id))} onChange={event => setSelectedCvs(event.target.checked ? visible.slice(0, CV_BATCH_ANALYZE_LIMIT).map(candidate => candidate.id) : [])} />Applicant</label></TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>CV fit</TableHead>
@@ -702,7 +913,7 @@ export function RecruitmentPipelineBoard({
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" aria-label={`Select ${c.name} for AI screening`} checked={selectedCvs.includes(c.id)} disabled={batchRunning || !canSelectCv(c) || (!selectedCvs.includes(c.id) && selectedCvs.length >= CV_UPLOAD_LIMIT)} onChange={event => setSelectedCvs(previous => event.target.checked ? [...previous, c.id] : previous.filter(id => id !== c.id))} />
+                        <input type="checkbox" aria-label={`Select ${c.name} for AI screening`} checked={selectedCvs.includes(c.id)} disabled={batchRunning || emailBatchBusy || (!selectedCvs.includes(c.id) && selectedCvs.length >= CV_BATCH_ANALYZE_LIMIT)} onChange={event => setSelectedCvs(previous => event.target.checked ? [...previous, c.id] : previous.filter(id => id !== c.id))} />
                         <Button
                           variant="link"
                           className="h-auto justify-start p-0 text-foreground"
@@ -1145,6 +1356,17 @@ export function RecruitmentPipelineBoard({
             closeDeepLink(offerId);
             setOfferId(null);
             router.refresh();
+          }}
+        />
+      )}
+      {batchEmailIds && (
+        <BatchPipelineEmailsDialog
+          roleId={role.id}
+          roleTitle={role.title}
+          candidateIds={batchEmailIds}
+          onClose={() => setBatchEmailIds(null)}
+          onCompleted={(statusMap) => {
+            applyEmailStatuses(statusMap);
           }}
         />
       )}
