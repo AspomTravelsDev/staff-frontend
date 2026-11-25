@@ -130,6 +130,10 @@ export const SiteHeader = () => {
           label = "Gadget return awaiting IT inspection";
         } else if (key === "inventoryClearanceCompliance") {
           label = "Gadget return awaiting Compliance clearance";
+        } else if (key === "inventoryConditionUpdatesStaff") {
+          label = "Device condition update awaiting acknowledgement";
+        } else if (key === "inventoryConditionDisputesOfficer") {
+          label = "Device condition update flagged by staff";
         } else if (key === "payrollQueue") {
           label = "Payroll runs awaiting review";
         }
@@ -144,6 +148,10 @@ export const SiteHeader = () => {
           targetUrl = key.startsWith("inventoryClearance")
             ? "/admin/inventory?tab=clearance"
             : "/admin/inventory?tab=pending-approvals";
+        } else if (key === "inventoryConditionUpdatesStaff") {
+          targetUrl = "/my/inventory";
+        } else if (key === "inventoryConditionDisputesOfficer") {
+          targetUrl = "/admin/inventory";
         }
         let displayCount = 0;
         let chatItems: { conversation_id: string; sender_name: string; count: number }[] | undefined = undefined;

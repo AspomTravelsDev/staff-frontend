@@ -29,7 +29,7 @@ export function GadgetChecklistFields({
   title,
   description,
 }: {
-  name: "defaultChecklist" | "adminChecklist" | "staffChecklist";
+  name: "defaultChecklist" | "adminChecklist" | "staffChecklist" | "checklist";
   title: string;
   description: string;
 }) {

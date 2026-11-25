@@ -1091,17 +1091,17 @@ export function PayrollEntrySheet({
                   <div className="flex flex-col justify-center items-end text-right"><span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Half-Day Deduction</span><span className="text-base font-bold text-red-600 mt-1">-{money(computed.halfDayAmount)}</span></div>
                 </div>
 
-                {/* Unapproved Leave */}
+                {/* Unpaid Leave */}
                 <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/5 hover:bg-muted/10 transition-colors">
                   <div className="space-y-2">
-                    <Label htmlFor="unapproved-leave-days" className="text-xs font-semibold text-slate-700">Unapproved Leave (Working Days)</Label>
+                    <Label htmlFor="unapproved-leave-days" className="text-xs font-semibold text-slate-700">Unpaid Leave (Working Days)</Label>
                     <div className="relative">
                       <Input id="unapproved-leave-days" type="number" min="0" step="0.5" value={unapprovedLeaveDays} onChange={(e) => { setUnapprovedLeaveDays(e.target.value); setCustomTaxAmount(""); setCustomDailyRate(""); setCustomNetAmount(""); }} className="pr-24 bg-background text-xs h-9" />
                       <div className="absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground pointer-events-none">working days</div>
                     </div>
-                    {Number(entry.unapproved_leave_suggested_days) > 0 ? <p className="text-[10px] text-orange-600 font-medium">Suggested unapproved leave: {entry.unapproved_leave_suggested_days} working days</p> : <p className="text-[10px] text-muted-foreground">Pending or rejected leave requests during this payroll period.</p>}
+                    {Number(entry.unapproved_leave_suggested_days) > 0 ? <p className="text-[10px] text-orange-600 font-medium">Suggested unpaid leave: {entry.unapproved_leave_suggested_days} working days</p> : <p className="text-[10px] text-muted-foreground">Unpaid, pending, or rejected leave requests during this payroll period.</p>}
                   </div>
-                  <div className="flex flex-col justify-center items-end text-right"><span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Unapproved Leave Deduction</span><span className="text-base font-bold text-red-600 mt-1">-{money(computed.unapprovedLeaveAmount)}</span></div>
+                  <div className="flex flex-col justify-center items-end text-right"><span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Unpaid Leave Deduction</span><span className="text-base font-bold text-red-600 mt-1">-{money(computed.unapprovedLeaveAmount)}</span></div>
                 </div>
 
                 {/* Unauthorized late arrivals */}
@@ -1684,7 +1684,7 @@ export function PayrollEntrySheet({
                   <div className="flex justify-between items-center text-red-600"><span className="italic">Half Days ({halfDayCount} × 0.5 working days):</span><span className="font-semibold">-{money(computed.halfDayAmount)}</span></div>
                 )}
                 {computed.unapprovedLeaveAmount > 0 && (
-                  <div className="flex justify-between items-center text-red-600"><span className="italic">Unapproved Leave ({unapprovedLeaveDays} working days):</span><span className="font-semibold">-{money(computed.unapprovedLeaveAmount)}</span></div>
+                  <div className="flex justify-between items-center text-red-600"><span className="italic">Unpaid Leave ({unapprovedLeaveDays} working days):</span><span className="font-semibold">-{money(computed.unapprovedLeaveAmount)}</span></div>
                 )}
                 {computed.unauthorizedLateAmount > 0 && (
                   <div className="flex justify-between items-center text-red-600"><span className="italic">Unauthorized late arrivals ({unauthorizedLateDays} days = {computed.unauthorizedLateDeductionDays} deduction days):</span><span className="font-semibold">-{money(computed.unauthorizedLateAmount)}</span></div>

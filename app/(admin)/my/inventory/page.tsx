@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import {
   getMyInventory,
   getMyInventoryAssignments,
+  getMyInventoryConditionUpdates,
 } from "@/lib/api/inventory";
 import { MyInventoryTable } from "./components/my-inventory-table";
 import { PendingAssignmentsSection } from "./components/pending-assignments-section";
 import { PendingClearanceHandoverSection } from "./components/pending-clearance-handover-section";
+import { PendingConditionUpdatesSection } from "./components/pending-condition-updates-section";
 import { AssetFormPdfButton } from "@/components/inventory/asset-form-pdf-button";
 import { ShieldCheck } from "lucide-react";
 
@@ -20,11 +22,13 @@ export default async function MyInventoryPage() {
     redirect("/login");
   }
 
-  const [myItems, pendingAssignments, allAssignments] = await Promise.all([
-    getMyInventory(),
-    getMyInventoryAssignments(true),
-    getMyInventoryAssignments(false),
-  ]);
+  const [myItems, pendingAssignments, allAssignments, pendingConditionUpdates] =
+    await Promise.all([
+      getMyInventory(),
+      getMyInventoryAssignments(true),
+      getMyInventoryAssignments(false),
+      getMyInventoryConditionUpdates(true),
+    ]);
 
   const pendingCustody = pendingAssignments.filter(
     (a) => a.status === "pending_staff"
@@ -53,6 +57,7 @@ export default async function MyInventoryPage() {
         )}
       </div>
 
+      <PendingConditionUpdatesSection updates={pendingConditionUpdates} />
       <PendingClearanceHandoverSection assignments={pendingClearances} />
       <PendingAssignmentsSection assignments={pendingCustody} />
 

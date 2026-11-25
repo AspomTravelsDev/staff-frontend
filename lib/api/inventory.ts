@@ -118,3 +118,15 @@ export async function returnSelectedEquipment(...args: Parameters<typeof actions
 export async function getEmployeeEquipment(...args: Parameters<typeof actions.getEmployeeEquipment>): Promise<ActionData<Awaited<ReturnType<typeof actions.getEmployeeEquipment>>>> {
   return callAction(() => actions.getEmployeeEquipment(...args));
 }
+
+export async function createInventoryConditionUpdate(...args: Parameters<typeof actions.createInventoryConditionUpdate>): Promise<ActionData<Awaited<ReturnType<typeof actions.createInventoryConditionUpdate>>>> {
+  return callAction(() => actions.createInventoryConditionUpdate(...args));
+}
+
+export async function getMyInventoryConditionUpdates(...args: Parameters<typeof actions.getMyInventoryConditionUpdates>): Promise<ActionData<Awaited<ReturnType<typeof actions.getMyInventoryConditionUpdates>>>> {
+  return callAction(() => actions.getMyInventoryConditionUpdates(...args));
+}
+
+export async function respondToConditionUpdate(...args: Parameters<typeof actions.respondToConditionUpdate>): Promise<ActionData<Awaited<ReturnType<typeof actions.respondToConditionUpdate>>>> {
+  return callAction(() => actions.respondToConditionUpdate(...args));
+}

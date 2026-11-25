@@ -403,7 +403,7 @@ export const departmentNav: NavItem[] = [
     icon: ClipboardList,
     allowedRoles: ["admin", "it", "super", "compliance", "office-operations"],
     badgeKey:
-      "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance,inventoryClearanceOfficer,inventoryClearanceCompliance",
+      "inventoryAssignmentsOfficer,inventoryAssignmentsCompliance,inventoryClearanceOfficer,inventoryClearanceCompliance,inventoryConditionDisputesOfficer",
     badgeLabel: "Pending asset assignment approvals",
   },
   // {
@@ -554,7 +554,7 @@ export const personalNav: NavItem[] = [
       {
         title: "My IT Assets",
         url: "/my/inventory",
-        badgeKey: "inventoryAssignmentsStaff",
+        badgeKey: "inventoryAssignmentsStaff,inventoryConditionUpdatesStaff",
         badgeLabel: "Devices awaiting acknowledgement or clearance handover",
       },
       { title: "Report Issue", url: "/my/it-issue" },

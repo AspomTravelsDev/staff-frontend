@@ -227,7 +227,16 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
               <TableCell><button onClick={() => setDetailItem(item)} className="text-left font-medium underline-offset-4 hover:underline focus-visible:underline">{item.name}</button><div className="mt-1 text-xs text-muted-foreground break-all">{item.serialNumber || item.assetTag}</div></TableCell>
               <TableCell className="max-sm:col-start-1 max-sm:row-start-2 max-sm:text-muted-foreground">{holder(item)}</TableCell>
               <TableCell className="max-sm:col-start-1 max-sm:row-start-3"><Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>{item.openAssignment && <p className="mt-1 max-w-56 text-xs text-muted-foreground">{formatAssignmentStatus(item.openAssignment.status)}{item.openAssignment.assignee?.name ? ` :  ${item.openAssignment.assignee.name}` : ""}</p>}</TableCell>
-              <TableCell className="hidden md:table-cell"><span className={["Poor", "Broken"].includes(item.conditionRating) ? "font-medium text-destructive" : "text-muted-foreground"}>{item.conditionRating}</span></TableCell>
+              <TableCell className="hidden md:table-cell">
+                <span className={["Poor", "Broken"].includes(item.conditionRating) ? "font-medium text-destructive" : "text-muted-foreground"}>{item.conditionRating}</span>
+                {item.pendingConditionUpdate?.status === "pending_staff" && (
+                  <div className="mt-1">
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      Pending: {item.pendingConditionUpdate.newConditionRating} (awaiting staff)
+                    </Badge>
+                  </div>
+                )}
+              </TableCell>
               <TableCell className="text-right max-sm:col-start-2 max-sm:row-start-1"><div className="flex items-center justify-end gap-1">
                 <Button size="sm" variant="outline" className="hidden sm:inline-flex" onClick={() => {
                   if (item.openAssignment) setDetailItem(item);
@@ -262,9 +271,13 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
                         </>
                       )}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setItemToInspect(item)}>
-                        <ClipboardCheck className="mr-2 h-4 w-4" /> Log
-                        Inspection
+                      <DropdownMenuItem
+                        disabled={item.pendingConditionUpdate?.status === "pending_staff"}
+                        onClick={() => setItemToInspect(item)}
+                      >
+                        <ClipboardCheck className="mr-2 h-4 w-4" />{" "}
+                        {item.status === "Assigned" ? "Update Condition" : "Log Inspection"}
+                        {item.pendingConditionUpdate?.status === "pending_staff" && " (Pending staff)"}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setItemHistory(item)}>
                         <History className="mr-2 h-4 w-4" /> View History
@@ -304,12 +317,44 @@ export function InventoryTable({ items, employees }: InventoryTableProps) {
               {[["Serial number", detailItem.serialNumber || "Not applicable"], ["Asset reference", detailItem.assetTag || "Legacy item"], ["Asset type", detailItem.assetType || detailItem.category], ["Category", detailItem.category], ["Held by", holder(detailItem)], ["Status", detailItem.status], ["Condition", detailItem.conditionRating]].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-medium break-words">{value}</dd></div>)}
             </dl>
             {detailItem.openAssignment && <section><h3 className="font-medium">Current progress</h3><p className="mt-2 text-sm">{formatAssignmentStatus(detailItem.openAssignment.status)} : {detailItem.openAssignment.assignee?.name}</p><p className="mt-2 text-sm text-muted-foreground">Review this process in the approvals or clearance tab.</p></section>}
+            {detailItem.pendingConditionUpdate?.status === "pending_staff" && (
+              <section className="rounded-md border border-sky-200 bg-sky-50/60 dark:border-sky-900/50 dark:bg-sky-950/20 p-3 space-y-1.5 text-sm">
+                <h3 className="font-medium text-sky-900 dark:text-sky-200">
+                  Condition update awaiting staff confirmation
+                </h3>
+                <p>
+                  Proposed:{" "}
+                  <strong>{detailItem.pendingConditionUpdate.previousConditionRating}</strong>
+                  {" → "}
+                  <strong>{detailItem.pendingConditionUpdate.newConditionRating}</strong>
+                </p>
+                {detailItem.pendingConditionUpdate.newConditionDetails && (
+                  <p className="text-muted-foreground">
+                    {detailItem.pendingConditionUpdate.newConditionDetails}
+                  </p>
+                )}
+                {detailItem.pendingConditionUpdate.notes && (
+                  <p className="text-muted-foreground">
+                    Note: {detailItem.pendingConditionUpdate.notes}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Live device condition and stats will update once the assigned staff confirms.
+                </p>
+              </section>
+            )}
             {detailItem.conditionDetails && <section><h3 className="font-medium">Condition notes</h3><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{detailItem.conditionDetails}</p></section>}
             {detailItem.defaultChecklist && <details><summary className="cursor-pointer font-medium">Recorded device checklist</summary><dl className="mt-3 space-y-3 text-sm">{Object.entries(detailItem.defaultChecklist).map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{({ screen: "Screen & display", charger: "Charger & cables", buttons: "Buttons & keyboard", battery: "Battery & charging", ports: "Ports & connectivity", cameraMic: "Camera, mic & speaker", overall: "Body & casing" } as Record<string, string>)[key] || key}</dt><dd>{value || "Not recorded"}</dd></div>)}</dl></details>}
             {detailItem.status === "Repairs" && detailItem.technicianDetails && <section><h3 className="font-medium">Repair contact</h3><p className="mt-2 text-sm">{detailItem.technicianDetails.name}</p><p className="text-sm text-muted-foreground">{detailItem.technicianDetails.phone}</p><p className="text-sm text-muted-foreground">{detailItem.technicianDetails.address}</p></section>}
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => { setDetailItem(null); setItemHistory(detailItem); }}>View history</Button>
-              <Button variant="outline" onClick={() => { setDetailItem(null); setItemToInspect(detailItem); }}>Log inspection</Button>
+              <Button
+                variant="outline"
+                disabled={detailItem.pendingConditionUpdate?.status === "pending_staff"}
+                onClick={() => { setDetailItem(null); setItemToInspect(detailItem); }}
+              >
+                {detailItem.status === "Assigned" ? "Update condition" : "Log inspection"}
+              </Button>
               {(detailItem.status === "Assigned" || detailItem.openAssignment) && <Button variant="outline" onClick={() => handleDownloadAssetForm(detailItem)}>Download device form</Button>}
             </div>
           </div>}

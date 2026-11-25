@@ -81,8 +81,15 @@ export function PayslipContent({
     entry.calculation_snapshot?.unauthorized_late_deduction ?? 0,
   );
 
+  const snapshotUnpaidLeaveDeduction =
+    entry.calculation_snapshot?.unapproved_leave_deduction !== undefined
+      ? Number(entry.calculation_snapshot.unapproved_leave_deduction)
+      : Number(entry.unapproved_leave_days || 0) * Number(entry.daily_rate || 0);
+
   const storedDeductionAmount = Number(entry.deduction_amount || 0);
-  const deductionAdjustment = storedDeductionAmount - (snapshotAttDeduction + snapshotSuspDeduction + snapshotLateDeduction);
+  const deductionAdjustment =
+    storedDeductionAmount -
+    (snapshotAttDeduction + snapshotSuspDeduction + snapshotLateDeduction + snapshotUnpaidLeaveDeduction);
 
   const totalDeductions = Math.max(
     0,
@@ -379,6 +386,18 @@ export function PayslipContent({
                       (
                       {formatPrice(snapshotAttDeduction).replace("NGN", "")}
                       )
+                    </td>
+                  </tr>
+                )}
+
+                {/* Unpaid Leave Deductions */}
+                {(Number(entry.unapproved_leave_days) > 0 || snapshotUnpaidLeaveDeduction > 0) && (
+                  <tr className="bg-slate-50/30">
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-slate-600">
+                      Unpaid Leave ({entry.unapproved_leave_days ?? entry.calculation_snapshot?.unapproved_leave_days ?? 0} working days)
+                    </td>
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-right font-bold tabular-nums text-rose-600">
+                      ({formatPrice(snapshotUnpaidLeaveDeduction).replace("NGN", "")})
                     </td>
                   </tr>
                 )}

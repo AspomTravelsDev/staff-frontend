@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
-  InventoryConditionRating,
+  createInventoryConditionUpdate,
   InventoryItem,
   logInventoryInspection,
 } from "@/lib/api/inventory";
+import {
+  EMPTY_GADGET_CHECKLIST,
+  GadgetChecklistFields,
+} from "@/components/inventory/gadget-checklist-fields";
 import {
   Dialog,
   DialogContent,
@@ -35,11 +39,23 @@ import {
 } from "@/components/ui/select";
 import { ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+const checklistSchema = z.object({
+  screen: z.string(),
+  charger: z.string(),
+  buttons: z.string(),
+  battery: z.string(),
+  ports: z.string(),
+  cameraMic: z.string(),
+  overall: z.string(),
+});
 
 const formSchema = z.object({
   conditionRating: z.enum(["Excellent", "Good", "Fair", "Poor", "Broken"]),
   conditionDetails: z.string().optional(),
-  notes: z.string().min(1, "Inspection notes are required"),
+  notes: z.string().min(1, "Notes are required"),
+  checklist: checklistSchema,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -57,26 +73,67 @@ export function LogInspectionDialog({
 }: LogInspectionDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const isAssigned = item?.status === "Assigned";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       conditionRating: item?.conditionRating || "Good",
       conditionDetails: item?.conditionDetails || "",
-      notes: "Routine inspection completed and verified.",
+      notes: isAssigned ? "" : "Routine inspection completed and verified.",
+      checklist: { ...EMPTY_GADGET_CHECKLIST, ...item?.defaultChecklist },
     },
   });
+
+  useEffect(() => {
+    if (!open || !item) return;
+    form.reset({
+      conditionRating: item.conditionRating || "Good",
+      conditionDetails: item.conditionDetails || "",
+      notes:
+        item.status === "Assigned"
+          ? ""
+          : "Routine inspection completed and verified.",
+      checklist: { ...EMPTY_GADGET_CHECKLIST, ...item.defaultChecklist },
+    });
+  }, [open, item, form]);
 
   const handleSubmit = async (values: FormValues) => {
     if (!item) return;
     setIsSubmitting(true);
     try {
-      await logInventoryInspection(item.id, values);
+      if (isAssigned) {
+        const hasChecklistValues = Object.values(values.checklist).some(
+          (v) => v.trim() !== ""
+        );
+        await createInventoryConditionUpdate(item.id, {
+          conditionRating: values.conditionRating,
+          conditionDetails: values.conditionDetails,
+          checklist: hasChecklistValues ? values.checklist : undefined,
+          notes: values.notes,
+        });
+        toast.success(
+          "Condition update sent to staff for 1-click acknowledgement."
+        );
+      } else {
+        await logInventoryInspection(item.id, {
+          conditionRating: values.conditionRating,
+          conditionDetails: values.conditionDetails,
+          notes: values.notes,
+        });
+        toast.success("Inspection recorded.");
+      }
       onOpenChange(false);
       router.refresh();
       form.reset();
     } catch (error) {
-      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isAssigned
+            ? "Failed to send condition update."
+            : "Failed to record inspection."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -84,14 +141,26 @@ export function LogInspectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-green-600" />
-            <DialogTitle>Log Asset Inspection</DialogTitle>
+            <DialogTitle>
+              {isAssigned ? "Update Assigned Condition" : "Log Asset Inspection"}
+            </DialogTitle>
           </div>
           <DialogDescription>
-            Quickly update the condition of <strong>{item?.name}</strong>.
+            {isAssigned ? (
+              <>
+                Update the condition of <strong>{item?.name}</strong>. The
+                assigned staff member will be notified to confirm with 1 click
+                before the live condition and stats update.
+              </>
+            ) : (
+              <>
+                Quickly update the condition of <strong>{item?.name}</strong>.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -105,11 +174,10 @@ export function LogInspectionDialog({
               name="conditionRating"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current Condition Rating</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>
+                    {isAssigned ? "Updated Condition Rating" : "Current Condition Rating"}
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Rating" />
@@ -136,7 +204,11 @@ export function LogInspectionDialog({
                   <FormLabel>Physical Details (Optional)</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. No new damage, cleaned vents"
+                      placeholder={
+                        isAssigned
+                          ? "e.g. Screen replaced, no scuffs"
+                          : "e.g. No new damage, cleaned vents"
+                      }
                       {...field}
                     />
                   </FormControl>
@@ -150,10 +222,16 @@ export function LogInspectionDialog({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Inspection Summary / Notes</FormLabel>
+                  <FormLabel>
+                    {isAssigned ? "Reason / Repair Notes" : "Inspection Summary / Notes"}
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. Regular Monday checkup"
+                      placeholder={
+                        isAssigned
+                          ? "e.g. Cracked screen replaced and tested"
+                          : "e.g. Regular Monday checkup"
+                      }
                       {...field}
                     />
                   </FormControl>
@@ -161,6 +239,21 @@ export function LogInspectionDialog({
                 </FormItem>
               )}
             />
+
+            {isAssigned && (
+              <details className="rounded-md border p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Update component checklist (optional)
+                </summary>
+                <div className="mt-3">
+                  <GadgetChecklistFields
+                    name="checklist"
+                    title="Updated Device Checklist"
+                    description="Adjust any repaired or verified components so the device baseline stays accurate once confirmed."
+                  />
+                </div>
+              </details>
+            )}
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
@@ -175,7 +268,11 @@ export function LogInspectionDialog({
                 disabled={isSubmitting}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isSubmitting ? "Saving..." : "Record Inspection"}
+                {isSubmitting
+                  ? "Saving..."
+                  : isAssigned
+                    ? "Send for Staff Confirmation"
+                    : "Record Inspection"}
               </Button>
             </div>
           </form>

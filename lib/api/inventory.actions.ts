@@ -48,6 +48,30 @@ export interface InventoryItem {
     history?: InventoryHistory[];
     openAssignment?: InventoryAssignment | null;
     currentAssignment?: InventoryAssignment | null;
+    pendingConditionUpdate?: InventoryConditionUpdate | null;
+}
+
+export type InventoryConditionUpdateStatus = "pending_staff" | "acknowledged" | "disputed";
+export type InventoryConditionUpdateDecision = "acknowledged" | "disputed";
+
+export interface InventoryConditionUpdate {
+    id: string;
+    inventoryItemId: string;
+    assigneeId?: string;
+    previousConditionRating: InventoryConditionRating;
+    newConditionRating: InventoryConditionRating;
+    previousConditionDetails?: string;
+    newConditionDetails?: string;
+    checklist?: GadgetChecklist;
+    notes: string;
+    status: InventoryConditionUpdateStatus;
+    staffNotes?: string;
+    staffRespondedAt?: string;
+    createdAt: string;
+    updatedAt?: string;
+    inventoryItem?: InventoryItem;
+    assignee?: InventoryAssignmentUser;
+    initiator?: InventoryAssignmentUser;
 }
 
 export interface InventoryHistory {
@@ -185,6 +209,7 @@ export async function getInventory(
                     createdAt: item.created_at,
                     updatedAt: item.updated_at,
                     openAssignment: mapOpenAssignment(item.open_assignment),
+                    pendingConditionUpdate: mapPendingConditionUpdate(item.pending_condition_update),
                     history: item.history?.map((h: any) => ({
                         id: h.id.toString(),
                         inventoryItemId: h.inventory_item_id.toString(),
@@ -427,6 +452,7 @@ export async function getMyInventory(): Promise<ActionResult<InventoryItem[]>> {
                 createdAt: item.created_at,
                 updatedAt: item.updated_at,
                 openAssignment: mapOpenAssignment(item.open_assignment),
+                pendingConditionUpdate: mapPendingConditionUpdate(item.pending_condition_update),
             }));
         } catch (error) {
             console.error("Error fetching my inventory", error);
@@ -578,6 +604,59 @@ function mapAssignment(a: any): InventoryAssignment {
 function mapOpenAssignment(a: any): InventoryAssignment | null {
     if (!a) return null;
     return mapAssignment(a);
+}
+
+function mapConditionUpdate(u: any): InventoryConditionUpdate {
+    return {
+        id: u.id.toString(),
+        inventoryItemId: u.inventory_item_id?.toString(),
+        assigneeId: u.assignee_id?.toString(),
+        previousConditionRating: u.previous_condition_rating,
+        newConditionRating: u.new_condition_rating,
+        previousConditionDetails: u.previous_condition_details ?? undefined,
+        newConditionDetails: u.new_condition_details ?? undefined,
+        checklist: u.checklist ?? undefined,
+        notes: u.notes ?? "",
+        status: u.status,
+        staffNotes: u.staff_notes ?? undefined,
+        staffRespondedAt: u.staff_responded_at ?? undefined,
+        createdAt: u.created_at,
+        updatedAt: u.updated_at ?? undefined,
+        inventoryItem: u.inventory_item
+            ? {
+                  id: u.inventory_item.id.toString(),
+                  name: u.inventory_item.name,
+                  category: u.inventory_item.category,
+                  serialNumber: u.inventory_item.serial_number ?? "",
+                  assetTag: u.inventory_item.asset_tag,
+                  assetType: u.inventory_item.asset_type,
+                  parentAssetId: u.inventory_item.parent_asset_id?.toString(),
+                  status: u.inventory_item.status,
+                  conditionRating: u.inventory_item.condition_rating,
+                  conditionDetails: u.inventory_item.condition_details,
+                  defaultChecklist: u.inventory_item.default_checklist ?? undefined,
+                  assignedTo: u.inventory_item.assigned_to,
+              }
+            : undefined,
+        assignee: u.assignee
+            ? {
+                  id: u.assignee.id,
+                  name: u.assignee.name,
+                  role: u.assignee.role,
+                  department: u.assignee.department,
+                  phone: u.assignee.phone ?? null,
+                  mobile_phone: u.assignee.mobile_phone ?? null,
+              }
+            : undefined,
+        initiator: u.initiator
+            ? { id: u.initiator.id, name: u.initiator.name }
+            : undefined,
+    };
+}
+
+function mapPendingConditionUpdate(u: any): InventoryConditionUpdate | null {
+    if (!u) return null;
+    return mapConditionUpdate(u);
 }
 
 export async function getMyInventoryAssignments(pendingOnly = false): Promise<ActionResult<InventoryAssignment[]>> {
@@ -921,6 +1000,72 @@ export async function getEmployeeEquipment(assigneeId: string): Promise<ActionRe
             conditionDetails: item.condition_details as string, defaultChecklist: item.default_checklist as GadgetChecklist,
             currentAssignment: item.current_issue ? mapAssignment(item.current_issue) : null,
             assignedTo: item.assigned_to as string, openAssignment: item.open_assignment ? mapAssignment(item.open_assignment) : null,
+            pendingConditionUpdate: mapPendingConditionUpdate(item.pending_condition_update),
         }));
     }, "getEmployeeEquipment");
+}
+
+export async function createInventoryConditionUpdate(
+    itemId: string,
+    payload: {
+        conditionRating: InventoryConditionRating;
+        conditionDetails?: string;
+        checklist?: GadgetChecklist;
+        notes: string;
+    }
+): Promise<ActionResult<InventoryConditionUpdate>> {
+    return runAction(async (): Promise<InventoryConditionUpdate> => {
+        const response = await api.post<any>(`/api/admin/inventory/${itemId}/condition-updates`, {
+            condition_rating: payload.conditionRating,
+            condition_details: payload.conditionDetails,
+            checklist: payload.checklist,
+            notes: payload.notes,
+        });
+        if (!response.success) {
+            throw new ExpectedActionError(
+                (response.error as any)?.message || response.error?.error || "Failed to send condition update",
+                response.error.code
+            );
+        }
+        return mapConditionUpdate(response.data.data ?? response.data);
+    }, "createInventoryConditionUpdate");
+}
+
+export async function getMyInventoryConditionUpdates(
+    pendingOnly = true
+): Promise<ActionResult<InventoryConditionUpdate[]>> {
+    return runAction(async (): Promise<InventoryConditionUpdate[]> => {
+        const query = pendingOnly ? "?pending_only=1" : "";
+        const response = await api.get<any>(`/api/my-inventory/condition-updates${query}`);
+        if (!response.success) {
+            if (response.error.code === "HTTP_404") {
+                return [];
+            }
+            throw new ExpectedActionError(
+                response.error.error || "Failed to fetch condition updates",
+                response.error.code
+            );
+        }
+        const items = response.data?.data ?? response.data;
+        return Array.isArray(items) ? items.map(mapConditionUpdate) : [];
+    }, "getMyInventoryConditionUpdates");
+}
+
+export async function respondToConditionUpdate(
+    id: string,
+    payload: { decision: InventoryConditionUpdateDecision; notes?: string }
+): Promise<ActionResult<InventoryConditionUpdate>> {
+    return runAction(async (): Promise<InventoryConditionUpdate> => {
+        const response = await api.patch<any>(`/api/my-inventory/condition-updates/${id}/respond`, {
+            decision: payload.decision,
+            notes: payload.notes,
+        });
+        if (!response.success) {
+            throw new ExpectedActionError(
+                (response.error as any)?.message || response.error?.error || "Failed to submit response",
+                response.error.code
+            );
+        }
+        return mapConditionUpdate(response.data.data ?? response.data);
+    }, "respondToConditionUpdate");
 }
