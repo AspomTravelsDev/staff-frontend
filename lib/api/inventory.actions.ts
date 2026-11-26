@@ -1038,7 +1038,7 @@ export async function getMyInventoryConditionUpdates(
         const query = pendingOnly ? "?pending_only=1" : "";
         const response = await api.get<any>(`/api/my-inventory/condition-updates${query}`);
         if (!response.success) {
-            if (response.error.code === "HTTP_404") {
+            if (response.error.code === "HTTP_404" || response.error.code === "HTTP_405") {
                 return [];
             }
             throw new ExpectedActionError(
