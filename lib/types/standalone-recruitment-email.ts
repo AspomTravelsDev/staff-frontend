@@ -68,7 +68,7 @@ export interface StandaloneBatchItemResult {
   id: string;
   applicant_name: string;
   recipient: string;
-  status: "sent" | "failed";
+  status: "sending" | "sent" | "failed";
   error: string | null;
   record: StandaloneEmailRecord | null;
 }
@@ -76,6 +76,7 @@ export interface StandaloneBatchItemResult {
 export interface StandaloneBatchSendResponse {
   results: StandaloneBatchItemResult[];
   sent_count: number;
+  queued_count: number;
   failed_count: number;
 }
 

@@ -44,3 +44,9 @@ export async function batchSendStandaloneEmails(input: StandaloneBatchSendInput)
   if (!response.success) return { success: false as const, error: response.error.error, code: response.error.code };
   return { success: true as const, data: response.data.data };
 }
+
+export async function getStandaloneEmailBatchStatus(ids: string[]) {
+  const response = await api.post<{ data: StandaloneEmailRecord[] }>("/api/recruitment/emails/batch-status", { ids });
+  if (!response.success) throw new Error(response.error.error);
+  return response.data.data;
+}

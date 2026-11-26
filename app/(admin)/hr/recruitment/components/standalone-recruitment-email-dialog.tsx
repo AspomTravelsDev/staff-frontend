@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   CheckCircle2,
@@ -53,6 +53,7 @@ import {
   batchSendStandaloneEmails,
   getStandaloneEmail,
   getStandaloneEmailComposer,
+  getStandaloneEmailBatchStatus,
   saveStandaloneEmail,
   sendStandaloneEmail,
 } from "@/lib/api/standalone-recruitment-email";
@@ -196,6 +197,46 @@ export function StandaloneRecruitmentEmailDialog({
   const isInterviewInvite = campaign.template === "call_screening_pass";
   const isVirtualInvite =
     isInterviewInvite && String(campaign.fields.interview_format ?? "") === "virtual";
+  const queuedEmailKey = (data?.history ?? [])
+    .filter((item) => item.status === "sending")
+    .map((item) => item.id)
+    .join(",");
+
+  useEffect(() => {
+    if (!open || !queuedEmailKey) return;
+    let cancelled = false;
+    const ids = queuedEmailKey.split(",");
+    const refreshStatuses = async () => {
+      try {
+        const records = await getStandaloneEmailBatchStatus(ids);
+        if (cancelled || !records.length) return;
+        const byId = new Map(records.map((record) => [record.id, record]));
+        setData((previous) => previous && ({
+          ...previous,
+          history: previous.history.map((item) => byId.get(item.id) ?? item),
+        }));
+        setRecipients((previous) => previous.map((row) => {
+          const record = byId.get(row.id);
+          if (!record || (record.status !== "sent" && record.status !== "failed")) return row;
+          return {
+            ...row,
+            revision: record.revision,
+            status: record.status,
+            error: record.status === "failed" ? "Email delivery failed. Retry this recipient." : undefined,
+          };
+        }));
+      } catch {
+        // Keep queued messages visible; the next interval retries the status check.
+      }
+    };
+
+    void refreshStatuses();
+    const interval = window.setInterval(() => void refreshStatuses(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [open, queuedEmailKey]);
 
   const validRecipients = useMemo(
     () =>
@@ -206,7 +247,7 @@ export function StandaloneRecruitmentEmailDialog({
   );
 
   const unsentRecipients = useMemo(
-    () => recipients.filter((row) => row.status !== "sent"),
+    () => recipients.filter((row) => row.status !== "sent" && row.status !== "sending"),
     [recipients],
   );
 
@@ -221,6 +262,7 @@ export function StandaloneRecruitmentEmailDialog({
   );
 
   const allSent = recipients.length > 0 && sentRecipientsCount === recipients.length;
+  const deliveryPending = recipients.some((row) => row.status === "sending");
 
   const duplicateEmails = useMemo(() => {
     const counts = new Map<string, number>();
@@ -317,7 +359,7 @@ export function StandaloneRecruitmentEmailDialog({
     !customPlaceholdersInvalid &&
     unsentRecipients.length > 0;
 
-  const isSingleDraftEditable = recipients.length === 1 && recipients[0].status !== "sent";
+  const isSingleDraftEditable = recipients.length === 1 && !["sent", "sending"].includes(recipients[0].status);
   const currentFingerprint = JSON.stringify({ campaign, recipients });
   const hasUnsavedContent =
     currentFingerprint !== savedFingerprint.current &&
@@ -343,9 +385,10 @@ export function StandaloneRecruitmentEmailDialog({
       recipients.map((r) => r.recipient.trim().toLowerCase()).filter(Boolean),
     );
     return activeRoleImport.candidates.filter((c) => {
-      if (!isValidEmail(c.email)) return false;
       if (importStageFilter !== "all" && c.pipeline_stage !== importStageFilter) return false;
-      return !existingEmails.has(c.email.trim().toLowerCase());
+      if (!isValidEmail(c.email)) return false;
+      if (existingEmails.has(c.email.trim().toLowerCase())) return false;
+      return recipients.length < MAX_RECIPIENTS;
     });
   }, [activeRoleImport, importStageFilter, recipients]);
 
@@ -606,7 +649,7 @@ export function StandaloneRecruitmentEmailDialog({
     if (running.current || !data || !template || !allRowsComplete || customPlaceholdersInvalid) return;
     const targets = onlyFailed
       ? recipients.filter((r) => r.status === "failed")
-      : recipients.filter((r) => r.status !== "sent");
+      : recipients.filter((r) => r.status !== "sent" && r.status !== "sending");
 
     if (!targets.length || !campaign.role_title.trim()) return;
 
@@ -663,91 +706,94 @@ export function StandaloneRecruitmentEmailDialog({
           }
           return;
         }
+        const finalRecord = result.data;
+        if (finalRecord.status === "sending") {
+          prependHistory([finalRecord]);
+          setRecipients([{ ...row, status: "sending" }]);
+          setNotice(`Email queued for delivery to ${row.applicant_name}.`);
+          return;
+        }
         const nextRow: RecipientRow = {
           ...row,
-          revision: result.data.revision,
-          status: result.data.status,
-          error: undefined,
+          revision: finalRecord.revision,
+          status: finalRecord.status === "sent" ? "sent" : "failed",
+          error: finalRecord.status === "failed" ? "Email delivery failed. Retry from this message." : undefined,
         };
         setRecipients([nextRow]);
         savedFingerprint.current = JSON.stringify({ campaign, recipients: [nextRow] });
-        prependHistory([result.data]);
-        setNotice(`Email sent to ${row.applicant_name}.`);
+        prependHistory([finalRecord]);
+        if (finalRecord.status === "sent") setNotice(`Email sent to ${row.applicant_name}.`);
+        else setError("Email delivery failed. Retry the message from History & Drafts.");
         return;
       }
 
-      const chunkSize = 5;
-      let totalSent = 0;
-      let totalFailed = 0;
-      let processed = 0;
-      const savedRecords: StandaloneEmailRecord[] = [];
+      const targetIds = new Set(targets.map((row) => row.id));
+      setRecipients((prev) => prev.map((row) => targetIds.has(row.id)
+        ? { ...row, status: "sending", error: undefined }
+        : row));
 
-      for (let i = 0; i < targets.length; i += chunkSize) {
-        const chunk = targets.slice(i, i + chunkSize);
-        const chunkIds = new Set(chunk.map((c) => c.id));
-        setRecipients((prev) =>
-          prev.map((row) =>
-            chunkIds.has(row.id) ? { ...row, status: "sending", error: undefined } : row,
-          ),
-        );
+      const result = await batchSendStandaloneEmails({
+        role_title: campaign.role_title.trim(),
+        template: campaign.template,
+        fields: campaign.fields,
+        custom_subject: campaign.customMode ? campaign.customSubject.trim() : null,
+        custom_body: campaign.customMode ? campaign.customBody.trim() : null,
+        recipients: targets.map((row) => ({
+          id: row.id,
+          applicant_name: row.applicant_name.trim(),
+          recipient: row.recipient.trim(),
+          revision: row.revision,
+          field_overrides: overridesForRow(row),
+        })),
+      });
 
-        const result = await batchSendStandaloneEmails({
-          role_title: campaign.role_title.trim(),
-          template: campaign.template,
-          fields: campaign.fields,
-          custom_subject: campaign.customMode ? campaign.customSubject.trim() : null,
-          custom_body: campaign.customMode ? campaign.customBody.trim() : null,
-          recipients: chunk.map((row) => ({
-            id: row.id,
-            applicant_name: row.applicant_name.trim(),
-            recipient: row.recipient.trim(),
-            revision: row.revision,
-            field_overrides: overridesForRow(row),
-          })),
-        });
-
-        if (!result.success) {
-          totalFailed += chunk.length;
-          processed += chunk.length;
-          setRecipients((prev) =>
-            prev.map((row) =>
-              chunkIds.has(row.id) ? { ...row, status: "failed", error: result.error } : row,
-            ),
-          );
-          setError(result.error);
-          setProgressText(`Processed ${processed} of ${targets.length}…`);
-          continue;
-        }
-
-        const resultById = new Map(result.data.results.map((r) => [r.id, r]));
-        setRecipients((prev) =>
-          prev.map((row) => {
-            const item = resultById.get(row.id);
-            if (!item) return row;
-            return {
-              ...row,
-              status: item.status,
-              revision: item.record?.revision ?? row.revision,
-              error: item.error ?? undefined,
-            };
-          }),
-        );
-
-        for (const item of result.data.results) {
-          if (item.record) savedRecords.push(item.record);
-        }
-        totalSent += result.data.sent_count;
-        totalFailed += result.data.failed_count;
-        processed += chunk.length;
-        setProgressText(`Sending ${processed} of ${targets.length} emails…`);
+      if (!result.success) {
+        setRecipients((prev) => prev.map((row) => targetIds.has(row.id)
+          ? { ...row, status: "failed", error: result.error }
+          : row));
+        setError(result.error);
+        return;
       }
 
-      if (savedRecords.length) prependHistory(savedRecords);
+      const queuedIds = result.data.results
+        .filter((item) => item.status === "sending")
+        .map((item) => item.id);
+      const failedResults = new Map(
+        result.data.results.filter((item) => item.status === "failed").map((item) => [item.id, item]),
+      );
+      const finalRecords: StandaloneEmailRecord[] = result.data.results
+        .flatMap((item) => item.status !== "sending" && item.record ? [item.record] : []);
+      const queuedRecords = result.data.results
+        .flatMap((item) => item.status === "sending" && item.record ? [item.record] : []);
+      if (queuedRecords.length) prependHistory(queuedRecords);
+
+      const finalById = new Map(finalRecords.map((record) => [record.id, record]));
+      setRecipients((prev) => prev.map((row) => {
+        const record = finalById.get(row.id);
+        const failed = failedResults.get(row.id);
+        if (!record) return failed
+          ? { ...row, status: "failed", error: failed.error ?? "Could not queue this email." }
+          : row;
+        return {
+          ...row,
+          revision: record.revision,
+          status: record.status === "sent" ? "sent" : record.status === "failed" ? "failed" : "sending",
+          error: record.status === "failed" ? "Email delivery failed. Retry this recipient." : undefined,
+        };
+      }));
+
+      if (finalRecords.length) prependHistory(finalRecords);
+      const totalSent = finalRecords.filter((record) => record.status === "sent").length;
+      const totalFailed = failedResults.size + finalRecords.filter(
+        (record) => queuedIds.includes(record.id) && record.status === "failed",
+      ).length;
       if (totalFailed === 0) {
-        setNotice(`Sent ${totalSent} email${totalSent === 1 ? "" : "s"} successfully.`);
+        setNotice(queuedIds.length
+          ? `Queued ${queuedIds.length} email${queuedIds.length === 1 ? "" : "s"} for delivery.`
+          : `Sent ${totalSent} email${totalSent === 1 ? "" : "s"} successfully.`);
       } else {
         setError(
-          `Sent ${totalSent} of ${targets.length} emails; ${totalFailed} failed. Fix or click "Retry failed" below.`,
+          `${queuedIds.length} queued, ${totalFailed} failed to queue. Fix or click "Retry failed" below.`,
         );
       }
     } catch {
@@ -859,7 +905,8 @@ export function StandaloneRecruitmentEmailDialog({
       void saveSingleDraft(true);
       return;
     }
-    if (hasUnsavedContent && recipients.length > 1 && unsentRecipients.length > 0) {
+    const unsavedRecipients = recipients.some((row) => row.status !== "sent" && row.status !== "sending");
+    if (hasUnsavedContent && recipients.length > 1 && unsavedRecipients) {
       if (!window.confirm("Close with unsent recipients in your batch?")) return;
     }
     setOpen(false);
@@ -953,7 +1000,7 @@ export function StandaloneRecruitmentEmailDialog({
                             </div>
                             {!!roles.length && (
                               <Select
-                                disabled={busy || allSent}
+                                disabled={busy || allSent || deliveryPending}
                                 onValueChange={(roleId) => {
                                   const picked = roles.find((r) => r.id === roleId);
                                   if (!picked) return;
@@ -986,7 +1033,7 @@ export function StandaloneRecruitmentEmailDialog({
                                 required
                                 maxLength={255}
                                 placeholder="e.g. Travel Consultant"
-                                disabled={busy || allSent}
+                                disabled={busy || allSent || deliveryPending}
                                 value={campaign.role_title}
                                 onChange={(e) =>
                                   setCampaign((prev) => ({
@@ -1000,7 +1047,7 @@ export function StandaloneRecruitmentEmailDialog({
                             <div className="space-y-1.5">
                               <Label htmlFor="standalone-stage">Stage *</Label>
                               <Select
-                                disabled={busy || allSent}
+                                disabled={busy || allSent || deliveryPending}
                                 value={stage}
                                 onValueChange={(value) =>
                                   setCampaign((prev) => ({
@@ -1031,7 +1078,7 @@ export function StandaloneRecruitmentEmailDialog({
                             <div className="space-y-1.5">
                               <Label htmlFor="standalone-outcome">Result *</Label>
                               <Select
-                                disabled={busy || allSent}
+                                disabled={busy || allSent || deliveryPending}
                                 value={outcome}
                                 onValueChange={(value) =>
                                   setCampaign((prev) => ({
@@ -1084,7 +1131,7 @@ export function StandaloneRecruitmentEmailDialog({
                                         <Textarea
                                           id={fieldId}
                                           required={isFieldRequired}
-                                          disabled={busy || allSent}
+                                          disabled={busy || allSent || deliveryPending}
                                           value={value}
                                           maxLength={2000}
                                           rows={2}
@@ -1092,7 +1139,7 @@ export function StandaloneRecruitmentEmailDialog({
                                         />
                                       ) : field.type === "select" ? (
                                         <Select
-                                          disabled={busy || allSent}
+                                          disabled={busy || allSent || deliveryPending}
                                           value={value || undefined}
                                           onValueChange={(val) =>
                                             setCampaign((prev) => ({
@@ -1125,7 +1172,7 @@ export function StandaloneRecruitmentEmailDialog({
                                           id={fieldId}
                                           type={field.type}
                                           required={isFieldRequired}
-                                          disabled={busy || allSent}
+                                          disabled={busy || allSent || deliveryPending}
                                           value={value}
                                           maxLength={2000}
                                           min={field.type === "number" ? 1 : undefined}
@@ -1165,7 +1212,7 @@ export function StandaloneRecruitmentEmailDialog({
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  disabled={busy || allSent}
+                                  disabled={busy || allSent || deliveryPending}
                                   onClick={staggerInterviewTimes}
                                   title="Fill staggered 30-minute interview slots"
                                 >
@@ -1326,7 +1373,7 @@ export function StandaloneRecruitmentEmailDialog({
                                     required
                                     maxLength={255}
                                     placeholder="Full name"
-                                    disabled={busy || recipients[0].status === "sent"}
+                                    disabled={busy || deliveryPending || recipients[0].status === "sent"}
                                     value={recipients[0].applicant_name}
                                     onChange={(e) =>
                                       updateRow(recipients[0].id, {
@@ -1343,7 +1390,7 @@ export function StandaloneRecruitmentEmailDialog({
                                     required
                                     maxLength={255}
                                     placeholder="applicant@example.com"
-                                    disabled={busy || recipients[0].status === "sent"}
+                                    disabled={busy || deliveryPending || recipients[0].status === "sent"}
                                     value={recipients[0].recipient}
                                     onChange={(e) =>
                                       updateRow(recipients[0].id, {
@@ -1365,7 +1412,7 @@ export function StandaloneRecruitmentEmailDialog({
                                       aria-label="Applicant 1 interview date"
                                       type="date"
                                       className="h-8 text-xs"
-                                      disabled={busy || recipients[0].status === "sent"}
+                                      disabled={busy || deliveryPending || recipients[0].status === "sent"}
                                       value={recipients[0].interview_date_override}
                                       onChange={(e) =>
                                         updateRow(recipients[0].id, {
@@ -1383,7 +1430,7 @@ export function StandaloneRecruitmentEmailDialog({
                                       aria-label="Applicant 1 interview time"
                                       type="time"
                                       className="h-8 text-xs"
-                                      disabled={busy || recipients[0].status === "sent"}
+                                      disabled={busy || deliveryPending || recipients[0].status === "sent"}
                                       value={recipients[0].interview_time_override}
                                       onChange={(e) =>
                                         updateRow(recipients[0].id, {
@@ -1402,7 +1449,7 @@ export function StandaloneRecruitmentEmailDialog({
                                         aria-label="Applicant 1 meeting link"
                                         type="url"
                                         className="h-8 text-xs"
-                                        disabled={busy || recipients[0].status === "sent"}
+                                        disabled={busy || deliveryPending || recipients[0].status === "sent"}
                                         placeholder={
                                           campaign.fields.meeting_link
                                             ? "Using default link — paste custom https:// link to override"
@@ -1658,7 +1705,7 @@ export function StandaloneRecruitmentEmailDialog({
                                 type="button"
                                 size="sm"
                                 variant={campaign.customMode ? "secondary" : "outline"}
-                                disabled={busy || allSent || !template}
+                                disabled={busy || allSent || deliveryPending || !template}
                                 onClick={toggleCustomMode}
                               >
                                 <Edit3 className="h-3.5 w-3.5" />
@@ -1731,7 +1778,7 @@ export function StandaloneRecruitmentEmailDialog({
                                     id="standalone-subject"
                                     required
                                     maxLength={255}
-                                    disabled={busy || allSent}
+                                    disabled={busy || allSent || deliveryPending}
                                     value={campaign.customSubject}
                                     onChange={(e) =>
                                       setCampaign((prev) => ({
@@ -1748,7 +1795,7 @@ export function StandaloneRecruitmentEmailDialog({
                                     required
                                     maxLength={20000}
                                     rows={11}
-                                    disabled={busy || allSent}
+                                    disabled={busy || allSent || deliveryPending}
                                     value={campaign.customBody}
                                     onChange={(e) =>
                                       setCampaign((prev) => ({
@@ -1826,7 +1873,7 @@ export function StandaloneRecruitmentEmailDialog({
                           <Button
                             type="button"
                             variant="ghost"
-                            disabled={busy}
+                              disabled={busy || deliveryPending}
                             onClick={() => resetComposer(false)}
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
@@ -1839,7 +1886,7 @@ export function StandaloneRecruitmentEmailDialog({
                             <Button
                               type="button"
                               variant="secondary"
-                              disabled={busy}
+                              disabled={busy || deliveryPending}
                               onClick={() => void handleSend(true)}
                             >
                               Retry failed ({failedRecipients.length})
