@@ -32,8 +32,8 @@ export type StandaloneEmailHistory = Pick<
 export interface StandaloneComposerRoleCandidate {
   id: string;
   recruitment_role_id: string;
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   pipeline_stage?: string | null;
   pipeline_outcome?: string | null;
   status?: string | null;

@@ -8,8 +8,8 @@ const PHYSICAL_ARRIVAL_INSTRUCTIONS =
 const VIRTUAL_ARRIVAL_INSTRUCTIONS =
   "Please join the meeting using the link above a few minutes before the scheduled time.";
 
-export function isValidEmail(value: string) {
-  return EMAIL_REGEX.test(value.trim());
+export function isValidEmail(value: string | null | undefined): value is string {
+  return typeof value === "string" && EMAIL_REGEX.test(value.trim());
 }
 
 export function hasUnresolvedPlaceholders(text: string, allowApplicantTokens = false) {

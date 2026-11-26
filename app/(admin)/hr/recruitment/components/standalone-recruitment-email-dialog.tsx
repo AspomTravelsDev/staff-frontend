@@ -401,10 +401,10 @@ export function StandaloneRecruitmentEmailDialog({
       if (historyFilter !== "all" && item.status !== historyFilter) return false;
       if (!query) return true;
       return (
-        item.applicant_name.toLowerCase().includes(query) ||
-        item.recipient.toLowerCase().includes(query) ||
-        item.role_title.toLowerCase().includes(query) ||
-        item.subject.toLowerCase().includes(query)
+        (item.applicant_name ?? "").toLowerCase().includes(query) ||
+        (item.recipient ?? "").toLowerCase().includes(query) ||
+        (item.role_title ?? "").toLowerCase().includes(query) ||
+        (item.subject ?? "").toLowerCase().includes(query)
       );
     });
   }, [data?.history, historyFilter, historySearch]);
@@ -524,8 +524,8 @@ export function StandaloneRecruitmentEmailDialog({
     if (!activeRoleImport || !importableCandidates.length) return;
     appendRecipients(
       importableCandidates.map((c) => ({
-        applicant_name: c.name,
-        recipient: c.email,
+        applicant_name: c.name ?? "",
+        recipient: c.email ?? "",
       })),
     );
     if (!campaign.role_title.trim()) {
